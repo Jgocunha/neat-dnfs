@@ -19,6 +19,14 @@ namespace neat_dnfs
 		addRandomConnectionGenes(numConnectionGenes);
 	}
 
+	void Population::evaluate()
+	{
+		for (auto& genome : genomes)
+		{
+			genome.evaluate();
+		}
+	}
+
 	void Population::createInitialEmptyGenomes()
 	{
 		for (int i = 0; i < size; i++)

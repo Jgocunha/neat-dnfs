@@ -25,14 +25,16 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		static constexpr bool circularity = false;
 		static constexpr bool normalization = false;
+		static constexpr int xSize = 100;
+		static constexpr double dx = 1.0;
 
 		// for input neural fields use gauss kernel
 		// this allows for multiple bumps of activation
 		parameters.type = GeneType::INPUT;
 		const NeuralFieldParameters nfp{25, -10, HeavisideFunction{0.0}};
-		const ElementCommonParameters nfcp{ "nf " + std::to_string(parameters.id), {100, 1.0} };
+		const ElementCommonParameters nfcp{ "nf " + std::to_string(parameters.id), {xSize, dx} };
 		const GaussKernelParameters gkp{ 2, 1, circularity, normalization };
-		const ElementCommonParameters gkcp{ "gk " + std::to_string(parameters.id), {100, 1.0} };
+		const ElementCommonParameters gkcp{ "gk " + std::to_string(parameters.id), {xSize, dx} };
 		neuralField = std::make_shared<NeuralField>(nfcp, nfp);
 		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
 	}
@@ -42,14 +44,16 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		static constexpr bool circularity = false;
 		static constexpr bool normalization = false;
+		static constexpr int xSize = 100;
+		static constexpr double dx = 1.0;
 
 		// for output neural fields use lateral interactions self-excitation kernel
 		// with global inhibition to exhibit selection behavior
 		parameters.type = GeneType::OUTPUT;
 		const NeuralFieldParameters nfp{ 25, -10, HeavisideFunction{0.0} };
-		const ElementCommonParameters nfcp{ "nf " + std::to_string(parameters.id), {100, 1.0} };
+		const ElementCommonParameters nfcp{ "nf " + std::to_string(parameters.id), {xSize, dx} };
 		const LateralInteractionsParameters lip{ 5.3,7.4,6,6, -0.55, circularity, normalization };
-		const ElementCommonParameters licp{ "li " + std::to_string(parameters.id), {100, 1.0} };
+		const ElementCommonParameters licp{ "lik " + std::to_string(parameters.id), {xSize, dx} };
 		neuralField = std::make_shared<NeuralField>(nfcp, nfp);
 		kernel = std::make_shared<LateralInteractions>(licp, lip);
 	}
@@ -59,14 +63,16 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		static constexpr bool circularity = false;
 		static constexpr bool normalization = false;
+		static constexpr int xSize = 100;
+		static constexpr double dx = 1.0;
 
 		// for input neural fields use gauss kernel initially
 		// this can be changed later through mutation
 		parameters.type = GeneType::INPUT;
 		const NeuralFieldParameters nfp{ 25, -10, HeavisideFunction{0.0} };
-		const ElementCommonParameters nfcp{ "nf " + std::to_string(parameters.id), {100, 1.0} };
+		const ElementCommonParameters nfcp{ "nf " + std::to_string(parameters.id), {xSize, dx} };
 		const GaussKernelParameters gkp{ 2, 1, circularity, normalization };
-		const ElementCommonParameters gkcp{ "gk " + std::to_string(parameters.id), {100, 1.0} };
+		const ElementCommonParameters gkcp{ "gk " + std::to_string(parameters.id), {xSize, dx} };
 		neuralField = std::make_shared<NeuralField>(nfcp, nfp);
 		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
 	}
@@ -76,12 +82,12 @@ namespace neat_dnfs
 		return parameters;
 	}
 
-	std::shared_ptr<dnf_composer::element::NeuralField> Gene::getNeuralField()
+	std::shared_ptr<dnf_composer::element::NeuralField> Gene::getNeuralField() const
 	{
 		return neuralField;
 	}
 
-	std::shared_ptr<dnf_composer::element::Kernel> Gene::getKernel()
+	std::shared_ptr<dnf_composer::element::Kernel> Gene::getKernel() const
 	{
 		return kernel;
 	}

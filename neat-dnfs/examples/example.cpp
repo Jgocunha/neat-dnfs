@@ -14,8 +14,9 @@ int main(int argc, char* argv[])
 	{
 		using namespace neat_dnfs;
 		Population population(10);
-		population.initialize(2, 2, 0);
-
+		// number of output genes should be just 1
+		population.initialize(1, 1, 1);
+		population.evaluate();
 
 		return 0;
 	}

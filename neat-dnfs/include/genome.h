@@ -37,6 +37,8 @@ namespace neat_dnfs
 		void addHiddenGene();
 		void addConnectionGene();
 
+		void evaluate();
+
 		GenomeParameters getParameters() const;
 	private:
 		unsigned long int getRandomGeneIdByType(GeneType type) const;

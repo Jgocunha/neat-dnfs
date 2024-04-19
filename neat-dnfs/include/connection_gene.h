@@ -33,5 +33,6 @@ namespace neat_dnfs
 	public:
 		ConnectionGene(unsigned long int inGeneId, unsigned long int outGeneId);
 		ConnectionGeneParameters getParameters() const;
+		std::shared_ptr<dnf_composer::element::Kernel> getKernel() const;
 	};
 }

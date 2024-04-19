@@ -13,6 +13,7 @@ namespace neat_dnfs
 	public:
 		Population(int size);
 		void initialize(int numInputGenes, int numOutputGenes, int numConnectionGenes);
+		void evaluate();
 	private:
 		void createInitialEmptyGenomes();
 		void addInputGenes(int numInputGenes);

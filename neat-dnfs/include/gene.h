@@ -37,7 +37,7 @@ namespace neat_dnfs
 		void setAsHidden();
 
 		GeneParameters getParameters() const;
-		std::shared_ptr<dnf_composer::element::NeuralField> getNeuralField();
-		std::shared_ptr<dnf_composer::element::Kernel> getKernel();
+		std::shared_ptr<dnf_composer::element::NeuralField> getNeuralField() const;
+		std::shared_ptr<dnf_composer::element::Kernel> getKernel() const;
 	};
 }
