@@ -44,9 +44,16 @@ add_compile_definitions(OUTPUT_DIRECTORY="${OUTPUT_DIRECTORY}")
 
 # Header and source files
 set(header 
+"include/connection_gene.h"
+"include/gene.h"
+"include/genome.h"
+"include/population.h"
 )
 set(src 
-"src/test.cpp"
+"src/connection_gene.cpp"
+"src/gene.cpp"
+"src/genome.cpp"
+"src/population.cpp"
 )
 
 # Library target definition
