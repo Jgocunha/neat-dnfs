@@ -20,6 +20,7 @@ namespace neat_dnfs
 	private:
 		void createInitialEmptySolutions(const std::shared_ptr<Solution>& initialSolution);
 		void buildInitialSolutionsGenome() const;
+		void reproduce() const;
 		void mutate() const;
 		void upkeepBestSolution();
 	};

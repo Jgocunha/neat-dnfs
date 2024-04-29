@@ -25,17 +25,11 @@ namespace neat_dnfs
 		{
 			evaluate();
 			//select();
-			//crossover();
-			mutate();
+			reproduce();
+			//speciate();
 			upkeepBestSolution();
 			currentGeneration++;
 		} while (currentGeneration < maxGeneration);
-	}
-
-	void Population::mutate() const
-	{
-		for (const auto& solution : solutions)
-			solution->mutate();
 	}
 
 	std::shared_ptr<Solution> Population::getBestSolution() const
@@ -54,6 +48,20 @@ namespace neat_dnfs
 		for (const auto& solution : solutions)
 			solution->initialize();
 	}
+
+	void Population::reproduce() const
+	{
+		//crossover();
+		mutate();
+	}
+
+
+	void Population::mutate() const
+	{
+		for (const auto& solution : solutions)
+			solution->mutate();
+	}
+
 
 	void Population::upkeepBestSolution()
 	{

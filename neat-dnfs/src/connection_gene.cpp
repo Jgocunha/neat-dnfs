@@ -66,6 +66,4 @@ namespace neat_dnfs
 		const ElementCommonParameters gkcp = kernel->getElementCommonParameters();
 		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
 	}
-
-
 }
