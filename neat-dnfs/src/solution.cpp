@@ -15,7 +15,7 @@ namespace neat_dnfs
 	{
 		createInputGenes();
 		createOutputGenes();
-		createRandomConnectionGenes();
+		createRandomInitialConnectionGenes();
 	}
 
 	void Solution::createInputGenes()

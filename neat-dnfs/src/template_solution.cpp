@@ -9,12 +9,7 @@ namespace neat_dnfs
 
 	void TemplateSolution::buildPhenotype()
 	{
-		
-	}
-
-	void TemplateSolution::evaluatePhenotype()
-	{
-		
+		phenotype.buildFromGenome(genome);
 	}
 
 	std::shared_ptr<Solution> TemplateSolution::clone() const
@@ -25,9 +20,21 @@ namespace neat_dnfs
 		return clonedSolution;
 	}
 
-	void TemplateSolution::createRandomConnectionGenes()
+	void TemplateSolution::evaluate()
 	{
-		static constexpr double connectionProbability = 0.3;
+		buildPhenotype();
+		evaluatePhenotype();
+	}
+
+	void TemplateSolution::evaluatePhenotype()
+	{
+		parameters.fitness = phenotype.evaluateFitness();
+		std::cout << "Fitness: " << parameters.fitness << std::endl;
+	}
+
+	void TemplateSolution::createRandomInitialConnectionGenes()
+	{
+		static constexpr double connectionProbability = 0.6;
 		for(int i = 0; i < parameters.numInputGenes * parameters.numOutputGenes; ++i)
 			if(dnf_composer::tools::utils::generateRandomNumber(0.0, 1.0) < connectionProbability)
 				genome.addConnectionGene();

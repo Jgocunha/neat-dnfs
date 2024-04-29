@@ -41,15 +41,16 @@ namespace neat_dnfs
 		virtual ~Solution() = default;
 
 		void initialize();
-		virtual void buildPhenotype() = 0;
-		virtual void evaluatePhenotype() = 0;
+		virtual void evaluate() = 0;
 		virtual std::shared_ptr<Solution> clone() const = 0;
 
 		Phenotype getPhenotype() const;
 		Genome getGenome() const;
 		SolutionParameters getParameters() const;
 	private:
-		virtual void createRandomConnectionGenes() = 0;
+		virtual void buildPhenotype() = 0;
+		virtual void evaluatePhenotype() = 0;
+		virtual void createRandomInitialConnectionGenes() = 0;
 		void createInputGenes();
 		void createOutputGenes();
 	};

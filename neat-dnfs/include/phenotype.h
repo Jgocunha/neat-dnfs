@@ -18,9 +18,9 @@ namespace neat_dnfs
 		~Phenotype() = default;
 
 		std::shared_ptr<Architecture> getArchitecture() const;
-	private:
 		void buildFromGenome(const Genome& genome);
-		void evaluate();
+		double evaluateFitness();
+	private:
 	};
 }
 

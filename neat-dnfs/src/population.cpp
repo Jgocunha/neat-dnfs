@@ -13,10 +13,10 @@ namespace neat_dnfs
 		buildInitialSolutionsGenome();
 	}
 
-	void Population::evaluate()
+	void Population::evaluate() const
 	{
-		//for (auto& solution : solutions)
-		//	solution.evaluate();
+		for (const auto& solution : solutions)
+			solution->evaluate();
 	}
 
 	void Population::createInitialEmptySolutions(const std::shared_ptr<Solution>& initialSolution)
@@ -30,11 +30,4 @@ namespace neat_dnfs
 		for (const auto& solution : solutions)
 			solution->initialize();
 	}
-
-	//void Population::addRandomConnectionGenes(int numConnectionGenes)
-	//{
-	//	for (int i = 0; i < size; i++)
-	//		for (int j = 0; j < numConnectionGenes; j++)
-	//			genomes[i].addConnectionGene();
-	//}
 }

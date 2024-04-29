@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
 		const Population population(10, std::make_shared<TemplateSolution>(solution));
 
 		population.initialize();
-		//population.evaluate();*/
+		population.evaluate();
 
 		return 0;
 	}

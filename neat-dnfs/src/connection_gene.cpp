@@ -26,4 +26,20 @@ namespace neat_dnfs
 	{
 		return kernel;
 	}
+
+	unsigned long int ConnectionGene::getInnovationNumber() const
+	{
+		return parameters.innovationNumber;
+	}
+
+	unsigned long int ConnectionGene::getInGeneId() const
+	{
+		return parameters.inGeneId;
+	}
+
+	unsigned long int ConnectionGene::getOutGeneId() const
+	{
+		return parameters.outGeneId;
+	}
+
 }

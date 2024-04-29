@@ -18,7 +18,8 @@ namespace neat_dnfs
 		void addHiddenGene();
 		void addConnectionGene();
 
-		Genome clone();
+		std::vector<Gene> getGenes() const;
+		std::vector<ConnectionGene> getConnectionGenes() const;
 	private:
 		unsigned long int getRandomGeneIdByType(GeneType type) const;
 	};

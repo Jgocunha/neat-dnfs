@@ -68,7 +68,7 @@ namespace neat_dnfs
 
 		// for input neural fields use gauss kernel initially
 		// this can be changed later through mutation
-		parameters.type = GeneType::INPUT;
+		parameters.type = GeneType::HIDDEN;
 		const NeuralFieldParameters nfp{ 25, -10, HeavisideFunction{0.0} };
 		const ElementCommonParameters nfcp{ "nf " + std::to_string(parameters.id), {xSize, dx} };
 		const GaussKernelParameters gkp{ 2, 1, circularity, normalization };

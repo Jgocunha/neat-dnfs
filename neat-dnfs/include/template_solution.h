@@ -11,10 +11,11 @@ namespace neat_dnfs
 		TemplateSolution(const SolutionParameters& parameters);
 		~TemplateSolution() override = default;
 
-		void buildPhenotype() override;
-		void evaluatePhenotype() override;
+		void evaluate() override;
 		std::shared_ptr<Solution> clone() const override;
 	private:
-		void createRandomConnectionGenes() override;
+		void buildPhenotype() override;
+		void evaluatePhenotype() override; 
+		void createRandomInitialConnectionGenes() override;
 	};
 }
