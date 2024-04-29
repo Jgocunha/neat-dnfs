@@ -38,5 +38,6 @@ namespace neat_dnfs
 		unsigned long int getInGeneId() const;
 		unsigned long int getOutGeneId() const;
 		bool isEnabled() const;
+		void mutate();
 	};
 }

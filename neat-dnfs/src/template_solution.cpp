@@ -7,11 +7,6 @@ namespace neat_dnfs
 	{
 	}
 
-	void TemplateSolution::buildPhenotype()
-	{
-		phenotype.buildFromGenome(genome);
-	}
-
 	std::shared_ptr<Solution> TemplateSolution::clone() const
 	{
 		TemplateSolution solution(parameters);
@@ -33,7 +28,29 @@ namespace neat_dnfs
 
 	void TemplateSolution::evaluatePhenotype()
 	{
-		parameters.fitness = phenotype.evaluateFitness();
+		using namespace dnf_composer;
+
+		// add inputs to the neural fields
+		const element::GaussStimulusParameters gcp_a = { 5, 25, 50, false, false };
+		const std::shared_ptr<element::GaussStimulus> gauss_stimulus
+		(new element::GaussStimulus({ "gauss stimulus", {100, 1.0 }}, gcp_a));
+		phenotype.addElement(gauss_stimulus);
+		phenotype.createInteraction(gauss_stimulus->getUniqueName(), "output", "nf 1");
+
+		// simulate behavior
+		static constexpr int numSteps = 1000;
+		phenotype.init();
+		for(int i = 0; i < numSteps; i++)
+			phenotype.step();
+		const auto ael = std::dynamic_pointer_cast<element::NeuralField>(phenotype.getElement("nf 4"));
+		const double centroid = ael->getCentroid();
+		std::cout << "Centroid: " << centroid << std::endl;
+		phenotype.close();
+
+		// Calculate fitness
+		static constexpr double targetCentroid = 50;
+		parameters.fitness = 1 / (1 + std::abs(centroid - targetCentroid));
+
 		std::cout << "Fitness: " << parameters.fitness << std::endl;
 		if( parameters.fitness > 0.8)
 		{

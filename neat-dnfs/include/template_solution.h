@@ -15,7 +15,6 @@ namespace neat_dnfs
 		void mutate() override;
 		std::shared_ptr<Solution> clone() const override;
 	private:
-		void buildPhenotype() override;
 		void evaluatePhenotype() override; 
 		void createRandomInitialConnectionGenes() override;
 	};

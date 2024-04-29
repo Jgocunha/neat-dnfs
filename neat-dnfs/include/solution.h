@@ -6,6 +6,8 @@
 
 namespace neat_dnfs
 {
+	typedef dnf_composer::Simulation Phenotype;
+
 	struct SolutionParameters
 	{
 		int numInputGenes;
@@ -29,7 +31,6 @@ namespace neat_dnfs
 		}
 	};
 
-
 	class Solution
 	{
 	protected:
@@ -48,12 +49,16 @@ namespace neat_dnfs
 		Phenotype getPhenotype() const;
 		Genome getGenome() const;
 		SolutionParameters getParameters() const;
+		double getFitness() const;
+	protected:
+		void buildPhenotype();
 	private:
-		virtual void buildPhenotype() = 0;
 		virtual void evaluatePhenotype() = 0;
 		virtual void createRandomInitialConnectionGenes() = 0;
 		void createInputGenes();
 		void createOutputGenes();
+		void translateGenesToPhenotype();
+		void translateConnectionGenesToPhenotype();
 	};
 }
 

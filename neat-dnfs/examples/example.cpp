@@ -17,14 +17,11 @@ int main(int argc, char* argv[])
 
 		const SolutionParameters parameters{3, 1};
 		TemplateSolution solution(parameters);
-		const Population population(10, std::make_shared<TemplateSolution>(solution));
+		Population population(10, std::make_shared<TemplateSolution>(solution));
+		constexpr int numGenerations = 1000;
 
 		population.initialize();
-		for (size_t i = 0; i < 100; i++)
-		{
-			population.evaluate();
-			population.evolve();
-		}
+		population.evolve(numGenerations);
 
 		return 0;
 	}

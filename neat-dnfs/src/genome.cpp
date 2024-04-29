@@ -46,8 +46,8 @@ namespace neat_dnfs
 
 		static constexpr double addGeneProbability = 0.1;
 		static constexpr double mutateGeneProbability = 0.1;
-		static constexpr double addConnectionGeneProbability = 0.5;
-		static constexpr double mutateConnectionGeneProbability = 0.1;
+		static constexpr double addConnectionGeneProbability = 0.3;
+		static constexpr double mutateConnectionGeneProbability = 0.5;
 		static constexpr double toggleConnectionGeneProbability = 0.1;
 
 		/*if (addGeneProbability > static_cast<double>(rand()) / RAND_MAX)
@@ -62,13 +62,18 @@ namespace neat_dnfs
 		if (addConnectionGeneProbability > static_cast<double>(rand()) / RAND_MAX)
 			addConnectionGene();
 
-		/*if (mutateConnectionGeneProbability > static_cast<double>(rand()) / RAND_MAX)
+		if (mutateConnectionGeneProbability > static_cast<double>(rand()) / RAND_MAX)
 		{
+			if (connectionGenes.empty())
+			{
+				std::cout << "No connection genes to mutate." << std::endl;
+				return;
+			}
 			const auto connectionGeneId = rand() % connectionGenes.size();
 			connectionGenes[connectionGeneId].mutate();
 		}
 
-		if (toggleConnectionGeneProbability > static_cast<double>(rand()) / RAND_MAX)
+		/*if (toggleConnectionGeneProbability > static_cast<double>(rand()) / RAND_MAX)
 		{
 			const auto connectionGeneId = rand() % connectionGenes.size();
 			connectionGenes[connectionGeneId].toggle();
@@ -98,6 +103,13 @@ namespace neat_dnfs
 	    do {
 	        geneIndex2 = dis(gen);
 	    } while (geneIndex2 == geneIndex1); // Ensure geneIndex2 is different from geneIndex1
+
+		// if a connection gene between the two genes already exists, return
+		if (std::find_if(connectionGenes.begin(), connectionGenes.end(), 
+			[geneIndex1, geneIndex2](const ConnectionGene& connectionGene) {
+			return connectionGene.getParameters().inGeneId == geneIndex1 && connectionGene.getParameters().outGeneId == geneIndex2;
+			}) != connectionGenes.end())
+			return;
 
 	    connectionGenes.emplace_back(geneIndex1, geneIndex2);
 	}

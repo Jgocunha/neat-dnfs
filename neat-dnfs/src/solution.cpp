@@ -18,18 +18,6 @@ namespace neat_dnfs
 		createRandomInitialConnectionGenes();
 	}
 
-	void Solution::createInputGenes()
-	{
-		for (int j = 0; j < parameters.numInputGenes; j++)
-			genome.addInputGene();
-	}
-
-	void Solution::createOutputGenes()
-	{
-		for (int j = 0; j < parameters.numOutputGenes; j++)
-			genome.addOutputGene();
-	}
-
 	Phenotype Solution::getPhenotype() const
 	{
 		return phenotype;
@@ -45,4 +33,56 @@ namespace neat_dnfs
 		return parameters;
 	}
 
+	double Solution::getFitness() const
+	{
+		return parameters.fitness;
+	}
+
+	void Solution::buildPhenotype()
+	{
+		translateGenesToPhenotype();
+		translateConnectionGenesToPhenotype();
+	}
+
+	void Solution::createInputGenes()
+	{
+		for (int j = 0; j < parameters.numInputGenes; j++)
+			genome.addInputGene();
+	}
+
+	void Solution::createOutputGenes()
+	{
+		for (int j = 0; j < parameters.numOutputGenes; j++)
+			genome.addOutputGene();
+	}
+
+	void Solution::translateGenesToPhenotype()
+	{
+		for (auto const& gene : genome.getGenes())
+		{
+			const auto nf = gene.getNeuralField();
+			const auto kernel = gene.getKernel();
+			phenotype.addElement(nf);
+			phenotype.addElement(kernel);
+			phenotype.createInteraction(nf->getUniqueName(), "output", kernel->getUniqueName());
+			phenotype.createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
+		}
+	}
+
+	void Solution::translateConnectionGenesToPhenotype()
+	{
+		for (auto const& connectionGene : genome.getConnectionGenes())
+		{
+			if (connectionGene.isEnabled())
+			{
+				const auto kernel = connectionGene.getKernel();
+				const auto sourceId = connectionGene.getInGeneId();
+				const auto targetId = connectionGene.getOutGeneId();
+
+				phenotype.addElement(kernel);
+				phenotype.createInteraction("nf " + std::to_string(sourceId), "output", kernel->getUniqueName());
+				phenotype.createInteraction(kernel->getUniqueName(), "output", "nf " + std::to_string(targetId));
+			}
+		}
+	}
 }

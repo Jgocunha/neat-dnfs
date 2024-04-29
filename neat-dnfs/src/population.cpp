@@ -19,18 +19,28 @@ namespace neat_dnfs
 			solution->evaluate();
 	}
 
-	void Population::evolve() const
+	void Population::evolve(int maxGeneration)
 	{
-		pruneSpecies();
-		speciate();
-		mutate();
-		crossover();
+		do
+		{
+			evaluate();
+			//select();
+			//crossover();
+			mutate();
+			upkeepBestSolution();
+			currentGeneration++;
+		} while (currentGeneration < maxGeneration);
 	}
 
 	void Population::mutate() const
 	{
 		for (const auto& solution : solutions)
 			solution->mutate();
+	}
+
+	std::shared_ptr<Solution> Population::getBestSolution() const
+	{
+		return bestSolution;
 	}
 
 	void Population::createInitialEmptySolutions(const std::shared_ptr<Solution>& initialSolution)
@@ -44,4 +54,14 @@ namespace neat_dnfs
 		for (const auto& solution : solutions)
 			solution->initialize();
 	}
+
+	void Population::upkeepBestSolution()
+	{
+		for (const auto& solution : solutions)
+		{
+			if (bestSolution == nullptr || solution->getFitness() > bestSolution->getFitness())
+				bestSolution = solution;
+		}
+	}
+
 }
