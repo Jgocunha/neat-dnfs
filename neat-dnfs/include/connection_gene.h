@@ -37,5 +37,6 @@ namespace neat_dnfs
 		unsigned long int getInnovationNumber() const;
 		unsigned long int getInGeneId() const;
 		unsigned long int getOutGeneId() const;
+		bool isEnabled() const;
 	};
 }

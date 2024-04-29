@@ -19,6 +19,20 @@ namespace neat_dnfs
 			solution->evaluate();
 	}
 
+	void Population::evolve() const
+	{
+		pruneSpecies();
+		speciate();
+		mutate();
+		crossover();
+	}
+
+	void Population::mutate() const
+	{
+		for (const auto& solution : solutions)
+			solution->mutate();
+	}
+
 	void Population::createInitialEmptySolutions(const std::shared_ptr<Solution>& initialSolution)
 	{
 		for (int i = 0; i < size; i++)

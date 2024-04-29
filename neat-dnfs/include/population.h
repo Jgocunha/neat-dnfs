@@ -14,8 +14,13 @@ namespace neat_dnfs
 		Population(int size, const std::shared_ptr<Solution>& initialSolution);
 		void initialize() const;
 		void evaluate() const;
+		void evolve() const;
 	private:
 		void createInitialEmptySolutions(const std::shared_ptr<Solution>& initialSolution);
 		void buildInitialSolutionsGenome() const;
+		void pruneSpecies() const {}
+		void speciate() const {}
+		void mutate() const;
+		void crossover() const {}
 	};
 }

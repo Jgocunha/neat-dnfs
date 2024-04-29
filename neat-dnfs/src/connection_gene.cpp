@@ -42,4 +42,10 @@ namespace neat_dnfs
 		return parameters.outGeneId;
 	}
 
+	bool ConnectionGene::isEnabled() const
+	{
+		return parameters.enabled;
+	}
+
+
 }

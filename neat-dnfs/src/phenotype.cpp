@@ -16,7 +16,7 @@ namespace neat_dnfs
 	{
 		// for each gene in the genome
 		// add neural fields and self-excitation kernels
-		for (auto const gene : genome.getGenes())
+		for (auto const& gene : genome.getGenes())
 		{
 			const auto nf = gene.getNeuralField();
 			const auto kernel = gene.getKernel();
@@ -28,15 +28,18 @@ namespace neat_dnfs
 
 		// for each connection in the genome
 		// add interaction kernels
-		for (auto const connectionGene : genome.getConnectionGenes())
+		for (auto const& connectionGene : genome.getConnectionGenes())
 		{
-			const auto kernel = connectionGene.getKernel();
-			const auto sourceId = connectionGene.getInGeneId();
-			const auto targetId = connectionGene.getOutGeneId();
+			if (connectionGene.isEnabled())
+			{
+				const auto kernel = connectionGene.getKernel();
+				const auto sourceId = connectionGene.getInGeneId();
+				const auto targetId = connectionGene.getOutGeneId();
 
-			architecture->addElement(kernel);
-			architecture->createInteraction("nf " + std::to_string(sourceId), "output", kernel->getUniqueName());
-			architecture->createInteraction(kernel->getUniqueName(), "output", "nf " + std::to_string(targetId));
+				architecture->addElement(kernel);
+				architecture->createInteraction("nf " + std::to_string(sourceId), "output", kernel->getUniqueName());
+				architecture->createInteraction(kernel->getUniqueName(), "output", "nf " + std::to_string(targetId));
+			}
 		}
 
 	}
@@ -57,7 +60,7 @@ namespace neat_dnfs
 		architecture->init();
 		for(int i = 0; i < numSteps; i++)
 			architecture->step();
-		const auto ael = std::dynamic_pointer_cast<element::NeuralField>(architecture->getElement("nf 3"));
+		const auto ael = std::dynamic_pointer_cast<element::NeuralField>(architecture->getElement("nf 4"));
 		const double centroid = ael->getCentroid();
 		std::cout << "Centroid: " << centroid << std::endl;
 		architecture->close();

@@ -16,11 +16,13 @@ namespace neat_dnfs
 		void addInputGene();
 		void addOutputGene();
 		void addHiddenGene();
-		void addConnectionGene();
+		void addRandomInitialConnectionGene();
+		void mutate();
 
 		std::vector<Gene> getGenes() const;
 		std::vector<ConnectionGene> getConnectionGenes() const;
 	private:
+		void addConnectionGene();
 		unsigned long int getRandomGeneIdByType(GeneType type) const;
 	};
 }

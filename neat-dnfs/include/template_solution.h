@@ -12,6 +12,7 @@ namespace neat_dnfs
 		~TemplateSolution() override = default;
 
 		void evaluate() override;
+		void mutate() override;
 		std::shared_ptr<Solution> clone() const override;
 	private:
 		void buildPhenotype() override;

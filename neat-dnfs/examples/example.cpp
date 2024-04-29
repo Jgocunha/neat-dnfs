@@ -15,12 +15,16 @@ int main(int argc, char* argv[])
 	{
 		using namespace neat_dnfs;
 
-		const SolutionParameters parameters{2, 1};
+		const SolutionParameters parameters{3, 1};
 		TemplateSolution solution(parameters);
 		const Population population(10, std::make_shared<TemplateSolution>(solution));
 
 		population.initialize();
-		population.evaluate();
+		for (size_t i = 0; i < 100; i++)
+		{
+			population.evaluate();
+			population.evolve();
+		}
 
 		return 0;
 	}
