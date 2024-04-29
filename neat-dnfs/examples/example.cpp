@@ -7,16 +7,20 @@
 #include <iostream>
 
 #include "population.h"
+#include "template_solution.h"
 
 int main(int argc, char* argv[])
 {
 	try
 	{
 		using namespace neat_dnfs;
-		Population population(10);
-		// number of output genes should be just 1
-		population.initialize(1, 1, 1);
-		population.evaluate();
+
+		const SolutionParameters parameters{2, 1};
+		TemplateSolution solution(parameters);
+		const Population population(10, std::make_shared<TemplateSolution>(solution));
+
+		population.initialize();
+		//population.evaluate();*/
 
 		return 0;
 	}

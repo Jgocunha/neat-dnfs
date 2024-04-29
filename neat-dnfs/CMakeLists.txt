@@ -48,12 +48,18 @@ set(header
 "include/gene.h"
 "include/genome.h"
 "include/population.h"
+"include/solution.h"
+"include/template_solution.h"
+"include/phenotype.h"
 )
 set(src 
 "src/connection_gene.cpp"
 "src/gene.cpp"
 "src/genome.cpp"
 "src/population.cpp"
+"src/solution.cpp"
+"src/phenotype.cpp"
+"src/template_solution.cpp"
 )
 
 # Library target definition
@@ -65,25 +71,21 @@ target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
 
 # Setup imgui - win32 Directx12
 find_package(imgui CONFIG REQUIRED)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE imgui::imgui "d3d12.lib" "dxgi.lib" "d3dcompiler.lib")
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE imgui::imgui)
 
 # Setup implot
 find_package(implot CONFIG REQUIRED)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE implot::implot)
 
 # Setup nlohmann-json
 find_package(nlohmann_json CONFIG REQUIRED)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE nlohmann_json::nlohmann_json)
 
 # Setup imgui-platform-kit
 find_package(imgui-platform-kit REQUIRED)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE imgui-platform-kit)
 
-
 # Setup dynamic-neural-field-composer
 find_package(dynamic-neural-field-composer REQUIRED)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE dynamic-neural-field-composer)
-
 
 target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
     NEAT_DNFS=1
@@ -106,7 +108,7 @@ install(TARGETS ${CMAKE_PROJECT_NAME} EXPORT ${CMAKE_PROJECT_NAME}Targets
 
 # Install the headers
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
-        DESTINATION ${NEAT_DNFS_INC_INSTALL_DIR}/imgui-platform-kit
+        DESTINATION ${NEAT_DNFS_INC_INSTALL_DIR}/neat-dnfs
         FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp")
 
 # Package version configuration
@@ -125,5 +127,9 @@ install(EXPORT ${CMAKE_PROJECT_NAME}Targets DESTINATION ${NEAT_DNFS_CMAKE_CONFIG
 set(EXE_PROJECT_EXAMPLE ${CMAKE_PROJECT_NAME}-example)
 add_executable(${EXE_PROJECT_EXAMPLE} "examples/example.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
-target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE imgui::imgui imgui-platform-kit ${CMAKE_PROJECT_NAME})
-target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE dynamic-neural-field-composer)
+target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE 
+    imgui::imgui 
+    imgui-platform-kit 
+    dynamic-neural-field-composer 
+    ${CMAKE_PROJECT_NAME}
+)

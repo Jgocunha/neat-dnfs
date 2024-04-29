@@ -1,6 +1,6 @@
 #pragma once
 
-#include <dnf-composer/elements/element_factory.h>
+#include <elements/element_factory.h>
 
 
 namespace neat_dnfs

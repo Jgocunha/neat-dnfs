@@ -1,6 +1,6 @@
 #pragma once
 
-#include "genome.h"
+#include "solution.h"
 
 namespace neat_dnfs
 {
@@ -9,15 +9,17 @@ namespace neat_dnfs
 	private:
 		int size;
 		unsigned long int currentGeneration;
-		std::vector<Genome> genomes;
+		std::vector<std::shared_ptr<Solution>> solutions;
 	public:
-		Population(int size);
-		void initialize(int numInputGenes, int numOutputGenes, int numConnectionGenes);
+		Population(int size, const std::shared_ptr<Solution>& initialSolution);
+		void initialize() const;
 		void evaluate();
 	private:
-		void createInitialEmptyGenomes();
-		void addInputGenes(int numInputGenes);
-		void addOutputGenes(int numOutputGenes);
-		void addRandomConnectionGenes(int numConnectionGenes);
+		void createInitialEmptySolutions(const std::shared_ptr<Solution>& initialSolution);
+		void buildInitialSolutionsGenome() const;
+		//void createInitialEmptyGenomes();
+		//void addInputGenes(int numInputGenes);
+		//void addOutputGenes(int numOutputGenes);
+		//void addRandomConnectionGenes(int numConnectionGenes);
 	};
 }

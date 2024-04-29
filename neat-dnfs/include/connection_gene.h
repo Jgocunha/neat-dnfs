@@ -13,15 +13,15 @@ namespace neat_dnfs
 	{
 		unsigned long int inGeneId;
 		unsigned long int outGeneId;
-		bool enabled;
 		unsigned long int innovationNumber;
+		bool enabled;
 
 		ConnectionGeneParameters(unsigned long int inGeneId, 
 			unsigned long int outGeneId)
 			: inGeneId(inGeneId),
 			outGeneId(outGeneId),
-			enabled(true),
-			innovationNumber(currentInnovationNumber++)
+			innovationNumber(currentInnovationNumber++),
+			enabled(true)
 		{}
 	};
 

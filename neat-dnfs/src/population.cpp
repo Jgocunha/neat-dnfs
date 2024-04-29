@@ -2,55 +2,39 @@
 
 namespace neat_dnfs
 {
-	Population::Population(int size)
+	Population::Population(int size, const std::shared_ptr<Solution>& initialSolution)
 		: size(size), currentGeneration(0)
 	{
-		genomes.reserve(size);
+		createInitialEmptySolutions(initialSolution);
 	}
 
-	void Population::initialize(int numInputGenes, int numOutputGenes, int numConnectionGenes)
+	void Population::initialize() const
 	{
-		if (numInputGenes < 1 || numOutputGenes < 1)
-			throw std::invalid_argument("Number of input and output genes must be greater than 0");
-
-		createInitialEmptyGenomes();
-		addInputGenes(numInputGenes);
-		addOutputGenes(numOutputGenes);
-		addRandomConnectionGenes(numConnectionGenes);
+		buildInitialSolutionsGenome();
 	}
 
 	void Population::evaluate()
 	{
-		for (auto& genome : genomes)
-		{
-			genome.evaluate();
-		}
+		//for (auto& solution : solutions)
+		//	solution.evaluate();
 	}
 
-	void Population::createInitialEmptyGenomes()
+	void Population::createInitialEmptySolutions(const std::shared_ptr<Solution>& initialSolution)
 	{
 		for (int i = 0; i < size; i++)
-			genomes.emplace_back();
+			solutions.push_back(initialSolution->clone());
 	}
 
-	void Population::addInputGenes(int numInputGenes)
+	void Population::buildInitialSolutionsGenome() const
 	{
-		for (int i = 0; i < size; i++)
-			for (int j = 0; j < numInputGenes; j++)
-				genomes[i].addInputGene();
+		for (const auto& solution : solutions)
+			solution->initialize();
 	}
 
-	void Population::addOutputGenes(int numOutputGenes)
-	{
-		for (int i = 0; i < size; i++)
-			for (int j = 0; j < numOutputGenes; j++)
-				genomes[i].addOutputGene();
-	}
-
-	void Population::addRandomConnectionGenes(int numConnectionGenes)
-	{
-		for (int i = 0; i < size; i++)
-			for (int j = 0; j < numConnectionGenes; j++)
-				genomes[i].addConnectionGene();
-	}
+	//void Population::addRandomConnectionGenes(int numConnectionGenes)
+	//{
+	//	for (int i = 0; i < size; i++)
+	//		for (int j = 0; j < numConnectionGenes; j++)
+	//			genomes[i].addConnectionGene();
+	//}
 }
