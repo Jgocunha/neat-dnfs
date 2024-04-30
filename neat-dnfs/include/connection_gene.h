@@ -7,17 +7,17 @@
 
 namespace neat_dnfs
 {
-	static unsigned long int currentInnovationNumber = 1;
+	static uint16_t currentInnovationNumber = 1;
 
 	struct ConnectionGeneParameters
 	{
-		unsigned long int inGeneId;
-		unsigned long int outGeneId;
-		unsigned long int innovationNumber;
+		uint16_t inGeneId;
+		uint16_t outGeneId;
+		uint16_t innovationNumber;
 		bool enabled;
 
-		ConnectionGeneParameters(unsigned long int inGeneId, 
-			unsigned long int outGeneId)
+		ConnectionGeneParameters(uint16_t inGeneId, 
+			uint16_t outGeneId)
 			: inGeneId(inGeneId),
 			outGeneId(outGeneId),
 			innovationNumber(currentInnovationNumber++),
@@ -31,13 +31,15 @@ namespace neat_dnfs
 		ConnectionGeneParameters parameters;
 		std::shared_ptr<dnf_composer::element::Kernel> kernel;
 	public:
-		ConnectionGene(unsigned long int inGeneId, unsigned long int outGeneId);
+		ConnectionGene(uint16_t inGeneId, uint16_t outGeneId);
 		ConnectionGeneParameters getParameters() const;
 		std::shared_ptr<dnf_composer::element::Kernel> getKernel() const;
-		unsigned long int getInnovationNumber() const;
-		unsigned long int getInGeneId() const;
-		unsigned long int getOutGeneId() const;
+		uint16_t getInnovationNumber() const;
+		uint16_t getInGeneId() const;
+		uint16_t getOutGeneId() const;
 		bool isEnabled() const;
 		void mutate();
+		void setInnovationNumber(uint16_t innovationNumber);
+
 	};
 }

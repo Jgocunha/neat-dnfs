@@ -2,22 +2,24 @@
 
 namespace neat_dnfs
 {
+	std::map<std::tuple<uint16_t, uint16_t>, uint16_t> Genome::generationalInnovations;
+
 	void Genome::addInputGene()
 	{
 		const auto index = genes.size() + 1;
-		genes.push_back(Gene({GeneType::INPUT, static_cast<unsigned long int>(index) }));
+		genes.push_back(Gene({GeneType::INPUT, static_cast<uint16_t>(index) }));
 	}
 
 	void Genome::addOutputGene()
 	{
 		const auto index = genes.size() + 1;
-		genes.push_back(Gene({ GeneType::OUTPUT, static_cast<unsigned long int>(index) }));
+		genes.push_back(Gene({ GeneType::OUTPUT, static_cast<uint16_t>(index) }));
 	}
 
 	void Genome::addHiddenGene()
 	{
 		const auto index = genes.size() + 1;
-		genes.push_back(Gene({ GeneType::HIDDEN, static_cast<unsigned long int>(index) }));
+		genes.push_back(Gene({ GeneType::HIDDEN, static_cast<uint16_t>(index) }));
 	}
 
 	void Genome::addRandomInitialConnectionGene()
@@ -80,6 +82,10 @@ namespace neat_dnfs
 		}*/
 	}
 
+	void Genome::clearGenerationalInnovations()
+	{
+		generationalInnovations.clear();
+	}
 	
 	std::vector<Gene> Genome::getGenes() const
 	{
@@ -93,30 +99,56 @@ namespace neat_dnfs
 
 	void Genome::addConnectionGene()
 	{
-		 // Select two different random genes
-	    std::random_device rd;
-	    std::mt19937 gen(rd());
-	    std::uniform_int_distribution<unsigned long int> dis(1, genes.size());
-	    unsigned long int geneIndex1 = dis(gen);
-
-	    unsigned long int geneIndex2;
-	    do {
-	        geneIndex2 = dis(gen);
-	    } while (geneIndex2 == geneIndex1); // Ensure geneIndex2 is different from geneIndex1
-
-		// if a connection gene between the two genes already exists, return
-		if (std::find_if(connectionGenes.begin(), connectionGenes.end(), 
-			[geneIndex1, geneIndex2](const ConnectionGene& connectionGene) {
-			return connectionGene.getParameters().inGeneId == geneIndex1 && connectionGene.getParameters().outGeneId == geneIndex2;
-			}) != connectionGenes.end())
+		const std::tuple<uint16_t, uint16_t> geneTuple = getNewRandomGeneTuple();
+		if (geneTuple == std::tuple<uint16_t, uint16_t>{})
 			return;
-
-	    connectionGenes.emplace_back(geneIndex1, geneIndex2);
+		addConnectionGeneIfNewWithinGeneration(geneTuple);
 	}
 
-	unsigned long int Genome::getRandomGeneIdByType(GeneType type) const
+	std::tuple<uint16_t, uint16_t> Genome::getNewRandomGeneTuple() const
 	{
-		std::vector<unsigned long int> geneIds;
+		// Select two different random genes
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<uint16_t> dis(1, genes.size());
+		uint16_t geneIndex1 = dis(gen);
+
+		// Ensure geneIndex2 is different from geneIndex1
+		uint16_t geneIndex2;
+		do {
+			geneIndex2 = dis(gen);
+		} while (geneIndex2 == geneIndex1);
+
+		// If a connection gene between the two genes already exists, return
+		if (std::find_if(connectionGenes.begin(), connectionGenes.end(),
+			[geneIndex1, geneIndex2](const ConnectionGene& connectionGene) 
+			{
+				return connectionGene.getParameters().inGeneId == geneIndex1 && connectionGene.getParameters().outGeneId == geneIndex2;
+			} ) != connectionGenes.end())
+			return {};
+
+		return std::tuple{geneIndex1, geneIndex2};
+	}
+
+	void Genome::addConnectionGeneIfNewWithinGeneration(std::tuple<uint16_t, uint16_t> geneTuple)
+	{
+		if (generationalInnovations.contains(geneTuple))
+		{
+			const uint16_t innovationNumber = generationalInnovations[geneTuple];
+			connectionGenes.emplace_back(std::get<0>(geneTuple), std::get<1>(geneTuple));
+			connectionGenes.back().setInnovationNumber(innovationNumber);
+		}
+		else
+		{
+			connectionGenes.emplace_back(std::get<0>(geneTuple), std::get<1>(geneTuple));
+			generationalInnovations.insert({ geneTuple,
+				connectionGenes[connectionGenes.size() - 1].getInnovationNumber() });
+		}
+	}
+
+	uint16_t Genome::getRandomGeneIdByType(GeneType type) const
+	{
+		std::vector<uint16_t> geneIds;
 		for (const auto& gene : genes)
 		{
 			if (gene.getParameters().type == type)
@@ -128,7 +160,7 @@ namespace neat_dnfs
 
 		std::random_device rd;
 		std::mt19937 gen(rd());
-		std::uniform_int_distribution<unsigned long int> dis(0, geneIds.size() - 1);
+		std::uniform_int_distribution<uint16_t> dis(0, geneIds.size() - 1);
 
 		return geneIds[dis(gen)];
 	}

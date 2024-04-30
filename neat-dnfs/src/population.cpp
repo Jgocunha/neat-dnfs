@@ -60,6 +60,8 @@ namespace neat_dnfs
 	{
 		for (const auto& solution : solutions)
 			solution->mutate();
+		for (const auto& solution : solutions)
+			solution->clearGenerationalInnovations();
 	}
 
 

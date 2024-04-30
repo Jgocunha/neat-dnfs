@@ -21,11 +21,6 @@ namespace neat_dnfs
 		evaluatePhenotype();
 	}
 
-	void TemplateSolution::mutate()
-	{
-		genome.mutate();
-	}
-
 	void TemplateSolution::evaluatePhenotype()
 	{
 		using namespace dnf_composer;

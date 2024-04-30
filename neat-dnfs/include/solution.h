@@ -43,13 +43,14 @@ namespace neat_dnfs
 
 		void initialize();
 		virtual void evaluate() = 0;
-		virtual void mutate() = 0;
+		void mutate();
 		virtual std::shared_ptr<Solution> clone() const = 0;
 
 		Phenotype getPhenotype() const;
 		Genome getGenome() const;
 		SolutionParameters getParameters() const;
 		double getFitness() const;
+		void clearGenerationalInnovations();
 	protected:
 		void buildPhenotype();
 	private:

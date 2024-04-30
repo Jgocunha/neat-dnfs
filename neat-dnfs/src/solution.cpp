@@ -18,6 +18,11 @@ namespace neat_dnfs
 		createRandomInitialConnectionGenes();
 	}
 
+	void Solution ::mutate()
+	{
+		genome.mutate();
+	}
+
 	Phenotype Solution::getPhenotype() const
 	{
 		return phenotype;
@@ -36,6 +41,11 @@ namespace neat_dnfs
 	double Solution::getFitness() const
 	{
 		return parameters.fitness;
+	}
+
+	void Solution::clearGenerationalInnovations()
+	{
+		genome.clearGenerationalInnovations();
 	}
 
 	void Solution::buildPhenotype()

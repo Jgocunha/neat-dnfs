@@ -8,7 +8,7 @@ namespace neat_dnfs
 	{
 	private:
 		int size;
-		unsigned long int currentGeneration;
+		uint16_t currentGeneration;
 		std::vector<std::shared_ptr<Solution>> solutions;
 		std::shared_ptr<Solution> bestSolution;
 	public:

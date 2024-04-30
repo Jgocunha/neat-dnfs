@@ -3,7 +3,7 @@
 
 namespace neat_dnfs
 {
-	ConnectionGene::ConnectionGene(unsigned long int inGeneId, unsigned long int outGeneId)
+	ConnectionGene::ConnectionGene(uint16_t inGeneId, uint16_t outGeneId)
 		: parameters(inGeneId, outGeneId)
 	{
 		using namespace dnf_composer::element;
@@ -27,17 +27,17 @@ namespace neat_dnfs
 		return kernel;
 	}
 
-	unsigned long int ConnectionGene::getInnovationNumber() const
+	uint16_t ConnectionGene::getInnovationNumber() const
 	{
 		return parameters.innovationNumber;
 	}
 
-	unsigned long int ConnectionGene::getInGeneId() const
+	uint16_t ConnectionGene::getInGeneId() const
 	{
 		return parameters.inGeneId;
 	}
 
-	unsigned long int ConnectionGene::getOutGeneId() const
+	uint16_t ConnectionGene::getOutGeneId() const
 	{
 		return parameters.outGeneId;
 	}
@@ -66,4 +66,10 @@ namespace neat_dnfs
 		const ElementCommonParameters gkcp = kernel->getElementCommonParameters();
 		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
 	}
+
+	void ConnectionGene::setInnovationNumber(uint16_t innovationNumber)
+	{
+		parameters.innovationNumber = innovationNumber;
+	}
+
 }

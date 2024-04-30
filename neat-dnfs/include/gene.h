@@ -15,9 +15,9 @@ namespace neat_dnfs
 	struct GeneParameters
 	{
 		GeneType type;
-		unsigned long int id;
+		uint16_t id;
 
-		GeneParameters(GeneType type, unsigned long int id)
+		GeneParameters(GeneType type, uint16_t id)
 			: type(type),
 			id(id)
 		{}
