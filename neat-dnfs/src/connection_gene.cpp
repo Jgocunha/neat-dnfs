@@ -12,7 +12,21 @@ namespace neat_dnfs
 		static constexpr int xSize = 100;
 		static constexpr double dx = 1.0;
 
-		const GaussKernelParameters gkp{ 0, 0, circularity, normalization };
+		const double randomSigmaBetween0And10 = 10.0 * (static_cast<double>(rand()) / RAND_MAX);
+		const double randomAmplitudeBetween0And10 = 10.0 * (static_cast<double>(rand()) / RAND_MAX);
+
+		const GaussKernelParameters gkp{ randomSigmaBetween0And10, randomAmplitudeBetween0And10, circularity, normalization };
+		const ElementCommonParameters gkcp{ "gk cg " + std::to_string(inGeneId) + " - " + std::to_string(outGeneId), {xSize, dx} };
+		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
+	}
+
+	ConnectionGene::ConnectionGene(uint16_t inGeneId, uint16_t outGeneId, const dnf_composer::element::GaussKernelParameters& gkp)
+		: parameters(inGeneId, outGeneId)
+	{
+		using namespace dnf_composer::element;
+		static constexpr int xSize = 100;
+		static constexpr double dx = 1.0;
+
 		const ElementCommonParameters gkcp{ "gk cg " + std::to_string(inGeneId) + " - " + std::to_string(outGeneId), {xSize, dx} };
 		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
 	}
@@ -70,6 +84,16 @@ namespace neat_dnfs
 	void ConnectionGene::setInnovationNumber(uint16_t innovationNumber)
 	{
 		parameters.innovationNumber = innovationNumber;
+	}
+
+	void ConnectionGene::disable()
+	{
+		parameters.enabled = false;
+	}
+
+	void ConnectionGene::toggle()
+	{
+		parameters.enabled = !parameters.enabled;
 	}
 
 }

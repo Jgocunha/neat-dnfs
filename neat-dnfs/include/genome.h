@@ -16,7 +16,6 @@ namespace neat_dnfs
 
 		void addInputGene();
 		void addOutputGene();
-		void addHiddenGene();
 		void addRandomInitialConnectionGene();
 		void mutate();
 		static void clearGenerationalInnovations();
@@ -24,9 +23,13 @@ namespace neat_dnfs
 		std::vector<Gene> getGenes() const;
 		std::vector<ConnectionGene> getConnectionGenes() const;
 	private:
-		void addConnectionGene();
 		std::tuple<uint16_t, uint16_t> getNewRandomGeneTuple() const;
 		void addConnectionGeneIfNewWithinGeneration(std::tuple<uint16_t, uint16_t> geneTuple);
 		uint16_t getRandomGeneIdByType(GeneType type) const;
+		ConnectionGene getEnabledConnectionGene() const;
+		void addGene();
+		void mutateGene();
+		void addConnectionGene();
+		void mutateConnectionGene();
 	};
 }

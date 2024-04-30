@@ -77,6 +77,25 @@ namespace neat_dnfs
 		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
 	}
 
+	void Gene::mutate()
+	{
+		using namespace dnf_composer::element;
+
+		GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
+
+		// Mutate sigma value
+		const double sigmaMutation = 0.5 * (2.0 * (static_cast<double>(rand()) / RAND_MAX) - 1.0); // Random number between -0.1 and 0.1
+		gkp.sigma += sigmaMutation;
+		gkp.sigma = std::max(0.0, std::min(10.0, gkp.sigma)); // Ensure sigma stays within the range of 0 to 10
+
+		// Mutate amplitude value
+		const double amplitudeMutation = 0.5 * (2.0 * (static_cast<double>(rand()) / RAND_MAX) - 1.0); // Random number between -0.1 and 0.1
+		gkp.amplitude += amplitudeMutation;
+		gkp.amplitude = std::max(0.0, std::min(10.0, gkp.amplitude)); // Ensure amplitude stays within the range of 0 to 10
+
+		std::dynamic_pointer_cast<GaussKernel>(kernel)->setParameters(gkp);
+	}
+
 	GeneParameters Gene::getParameters() const
 	{
 		return parameters;

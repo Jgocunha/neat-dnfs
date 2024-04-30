@@ -37,7 +37,7 @@ namespace neat_dnfs
 		phenotype.init();
 		for(int i = 0; i < numSteps; i++)
 			phenotype.step();
-		const auto ael = std::dynamic_pointer_cast<element::NeuralField>(phenotype.getElement("nf 4"));
+		const auto ael = std::dynamic_pointer_cast<element::NeuralField>(phenotype.getElement("nf 11"));
 		const double centroid = ael->getCentroid();
 		std::cout << "Centroid: " << centroid << std::endl;
 		phenotype.close();
