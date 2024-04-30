@@ -12,7 +12,7 @@ namespace neat_dnfs
 		~TemplateSolution() override = default;
 
 		void evaluate() override;
-		std::shared_ptr<Solution> clone() const override;
+		SolutionPtr clone() const override;
 	private:
 		void evaluatePhenotype() override; 
 		void createRandomInitialConnectionGenes() override;

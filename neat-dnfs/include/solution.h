@@ -6,7 +6,9 @@
 
 namespace neat_dnfs
 {
+	class Solution;
 	typedef dnf_composer::Simulation Phenotype;
+	typedef std::shared_ptr<Solution> SolutionPtr;
 
 	struct SolutionParameters
 	{
@@ -44,12 +46,13 @@ namespace neat_dnfs
 		void initialize();
 		virtual void evaluate() = 0;
 		void mutate();
-		virtual std::shared_ptr<Solution> clone() const = 0;
+		virtual SolutionPtr clone() const = 0;
 
 		Phenotype getPhenotype() const;
 		Genome getGenome() const;
 		SolutionParameters getParameters() const;
 		double getFitness() const;
+		int getGenomeSize() const;
 		void clearGenerationalInnovations();
 	protected:
 		void buildPhenotype();

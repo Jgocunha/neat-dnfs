@@ -2,7 +2,7 @@
 
 namespace neat_dnfs
 {
-	Population::Population(int size, const std::shared_ptr<Solution>& initialSolution)
+	Population::Population(int size, const SolutionPtr& initialSolution)
 		: size(size), currentGeneration(0)
 	{
 		createInitialEmptySolutions(initialSolution);
@@ -25,19 +25,19 @@ namespace neat_dnfs
 		{
 			evaluate();
 			//select();
+			speciate();
 			reproduce();
-			//speciate();
 			upkeepBestSolution();
 			currentGeneration++;
 		} while (currentGeneration < maxGeneration);
 	}
 
-	std::shared_ptr<Solution> Population::getBestSolution() const
+	SolutionPtr Population::getBestSolution() const
 	{
 		return bestSolution;
 	}
 
-	void Population::createInitialEmptySolutions(const std::shared_ptr<Solution>& initialSolution)
+	void Population::createInitialEmptySolutions(const SolutionPtr& initialSolution)
 	{
 		for (int i = 0; i < size; i++)
 			solutions.push_back(initialSolution->clone());
@@ -47,6 +47,15 @@ namespace neat_dnfs
 	{
 		for (const auto& solution : solutions)
 			solution->initialize();
+	}
+
+	void Population::speciate()
+	{
+		// divide the population into species
+		// such that similar topologies are in the same species
+
+
+
 	}
 
 	void Population::reproduce() const
@@ -73,5 +82,41 @@ namespace neat_dnfs
 				bestSolution = solution;
 		}
 	}
+
+	double Population::calculateCompatibilityDistanceBetweenTwoSolutions(const SolutionPtr& solution1, const SolutionPtr& solution2) const
+	{
+		const int excessGenes = getNumberOfExcessGenesBetweenTwoSolutions(solution1, solution2);
+		const int disjointGenes = getNumberOfDisjointGenesBetweenTwoSolutions(solution1, solution2);
+	}
+
+	int Population::getNumberOfDisjointGenesBetweenTwoSolutions(const SolutionPtr& solution1, const SolutionPtr& solution2) const
+	{
+		int disjointGenes = 0;
+		int i = 0, j = 0;
+		while (i < solution1->getGenomeSize() && j < solution2->getGenomeSize()) 
+		{
+			if (solution1-> < solution2[j].innovationNumber) {
+				disjointGenes++;
+				i++;
+			}
+			else if (solution2[j].innovationNumber < solution1[i].innovationNumber) 
+			{
+				disjointGenes++;
+				j++;
+			}
+			else {
+				i++;
+				j++;
+			}
+		}
+		return disjointGenes;
+	}
+
+	int Population::getNumberOfExcessGenesBetweenTwoSolutions(const SolutionPtr& solution1, const SolutionPtr& solution2)
+	{
+		return abs(solution1->getGenomeSize() - solution2->getGenomeSize());
+	}
+
+
 
 }

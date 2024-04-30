@@ -7,7 +7,7 @@ namespace neat_dnfs
 	{
 	}
 
-	std::shared_ptr<Solution> TemplateSolution::clone() const
+	SolutionPtr TemplateSolution::clone() const
 	{
 		TemplateSolution solution(parameters);
 		auto clonedSolution = std::make_shared<TemplateSolution>(solution);

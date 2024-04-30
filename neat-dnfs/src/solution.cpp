@@ -95,4 +95,10 @@ namespace neat_dnfs
 			}
 		}
 	}
+
+	int Solution::getGenomeSize() const
+	{
+		return static_cast<int>(genome.getGenes().size());
+	}
+
 }

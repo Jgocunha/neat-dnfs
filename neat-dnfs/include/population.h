@@ -4,24 +4,33 @@
 
 namespace neat_dnfs
 {
+
 	class Population
 	{
 	private:
 		int size;
 		uint16_t currentGeneration;
-		std::vector<std::shared_ptr<Solution>> solutions;
-		std::shared_ptr<Solution> bestSolution;
+		std::vector<SolutionPtr> solutions;
+		SolutionPtr bestSolution;
+		std::vector<int> species;
 	public:
-		Population(int size, const std::shared_ptr<Solution>& initialSolution);
+		Population(int size, const SolutionPtr& initialSolution);
 		void initialize() const;
 		void evaluate() const;
 		void evolve(int maxGeneration);
-		std::shared_ptr<Solution> getBestSolution() const;
+		SolutionPtr getBestSolution() const;
 	private:
-		void createInitialEmptySolutions(const std::shared_ptr<Solution>& initialSolution);
+		void createInitialEmptySolutions(const SolutionPtr& initialSolution);
 		void buildInitialSolutionsGenome() const;
+		void speciate();
 		void reproduce() const;
 		void mutate() const;
 		void upkeepBestSolution();
+		double calculateCompatibilityDistanceBetweenTwoSolutions(const SolutionPtr& solution1, 
+			const SolutionPtr& solution2) const;
+		int getNumberOfDisjointGenesBetweenTwoSolutions(const SolutionPtr& solution1, 
+			const SolutionPtr& solution2) const;
+		static int getNumberOfExcessGenesBetweenTwoSolutions(const SolutionPtr& solution1, 
+			const SolutionPtr& solution2);
 	};
 }
