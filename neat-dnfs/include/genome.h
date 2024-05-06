@@ -22,6 +22,7 @@ namespace neat_dnfs
 
 		std::vector<Gene> getGenes() const;
 		std::vector<ConnectionGene> getConnectionGenes() const;
+		std::vector<uint16_t> getInnovationNumbers() const;
 	private:
 		std::tuple<uint16_t, uint16_t> getNewRandomGeneTuple() const;
 		void addConnectionGeneIfNewWithinGeneration(std::tuple<uint16_t, uint16_t> geneTuple);

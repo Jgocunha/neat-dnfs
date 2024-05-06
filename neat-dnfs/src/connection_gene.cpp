@@ -96,4 +96,14 @@ namespace neat_dnfs
 		parameters.enabled = !parameters.enabled;
 	}
 
+	double ConnectionGene::getKernelAmplitude() const
+	{
+		return std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(kernel)->getParameters().amplitude;
+	}
+
+	double ConnectionGene::getKernelSigma() const
+	{
+		return std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(kernel)->getParameters().sigma;
+	}
+
 }

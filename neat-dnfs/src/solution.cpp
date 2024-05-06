@@ -43,9 +43,19 @@ namespace neat_dnfs
 		return parameters.fitness;
 	}
 
-	void Solution::clearGenerationalInnovations()
+	void Solution::clearGenerationalInnovations() const
 	{
 		genome.clearGenerationalInnovations();
+	}
+
+	std::vector<uint16_t> Solution::getInnovationNumbers() const
+	{
+		return genome.getInnovationNumbers();
+	}
+
+	void Solution::setSpecies(int species)
+	{
+		parameters.species = species;
 	}
 
 	void Solution::buildPhenotype()
@@ -101,4 +111,8 @@ namespace neat_dnfs
 		return static_cast<int>(genome.getGenes().size());
 	}
 
+	void Solution::incrementAge()
+	{
+		parameters.age++;
+	}
 }

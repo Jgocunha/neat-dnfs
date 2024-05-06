@@ -51,6 +51,7 @@ set(header
 "include/solution.h"
 "include/template_solution.h"
 "include/phenotype.h"
+"include/species.h"
 )
 set(src 
 "src/connection_gene.cpp"
@@ -60,6 +61,7 @@ set(src
 "src/solution.cpp"
 "src/phenotype.cpp"
 "src/template_solution.cpp"
+"src/species.cpp"
 )
 
 # Library target definition

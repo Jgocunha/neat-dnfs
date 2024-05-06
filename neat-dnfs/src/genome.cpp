@@ -93,6 +93,15 @@ namespace neat_dnfs
 		return connectionGenes;
 	}
 
+	std::vector<uint16_t> Genome::getInnovationNumbers() const
+	{
+		std::vector<uint16_t> innovationNumbers;
+		for (const auto& connectionGene : connectionGenes)
+			innovationNumbers.push_back(connectionGene.getInnovationNumber());
+
+		return innovationNumbers;
+	}
+
 	std::tuple<uint16_t, uint16_t> Genome::getNewRandomGeneTuple() const
 	{
 		// Select two different random genes

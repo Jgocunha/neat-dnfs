@@ -1,18 +1,18 @@
 #pragma once
 
 #include "solution.h"
+#include "species.h"
 
 namespace neat_dnfs
 {
-
 	class Population
 	{
 	private:
 		int size;
 		uint16_t currentGeneration;
 		std::vector<SolutionPtr> solutions;
+		std::vector<Species> species;
 		SolutionPtr bestSolution;
-		std::vector<int> species;
 	public:
 		Population(int size, const SolutionPtr& initialSolution);
 		void initialize() const;
@@ -32,5 +32,9 @@ namespace neat_dnfs
 			const SolutionPtr& solution2) const;
 		static int getNumberOfExcessGenesBetweenTwoSolutions(const SolutionPtr& solution1, 
 			const SolutionPtr& solution2);
+		void createSpeciesAndAddSolutionToIt(const SolutionPtr& solution);
+		void updateGenerationAndAges();
+		double getAverageConnectionDifferenceBetweenTwoSolutions(const SolutionPtr& solution1, 
+						const SolutionPtr& solution2) const;
 	};
 }

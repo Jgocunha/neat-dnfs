@@ -16,19 +16,18 @@ namespace neat_dnfs
 		int numOutputGenes;
 
 		double fitness;
-		int speciesId;
 		double adjustedFitness;
 		int age;
+		int species;
 
 		SolutionParameters(int numInputGenes, int numOutputGenes, double fitness = 0.0,
-			int speciesId = 0,
 			double adjustedFitness = 0.0,
-			int age = 0)
+			int age = 0, int species = 0)
 			:  numInputGenes(numInputGenes), numOutputGenes(numOutputGenes),
 			fitness(fitness),
-			speciesId(speciesId),
 			adjustedFitness(adjustedFitness),
-			age(age)
+			age(age),
+			species(species)
 		{
 		}
 	};
@@ -53,7 +52,11 @@ namespace neat_dnfs
 		SolutionParameters getParameters() const;
 		double getFitness() const;
 		int getGenomeSize() const;
-		void clearGenerationalInnovations();
+		void clearGenerationalInnovations() const;
+		std::vector<uint16_t> getInnovationNumbers() const;
+
+		void setSpecies(int species);
+		void incrementAge();
 	protected:
 		void buildPhenotype();
 	private:

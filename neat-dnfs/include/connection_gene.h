@@ -43,5 +43,7 @@ namespace neat_dnfs
 		void setInnovationNumber(uint16_t innovationNumber);
 		void disable();
 		void toggle();
+		double getKernelAmplitude() const;
+		double getKernelSigma() const;
 	};
 }
