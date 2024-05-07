@@ -33,7 +33,7 @@ namespace neat_dnfs
 		phenotype.createInteraction(gauss_stimulus->getUniqueName(), "output", "nf 1");
 
 		// simulate behavior
-		static constexpr int numSteps = 10;
+		static constexpr int numSteps = 1000;
 		phenotype.init();
 		for(int i = 0; i < numSteps; i++)
 			phenotype.step();

@@ -2,7 +2,7 @@
 
 namespace neat_dnfs
 {
-	Population::Population(uint8_t size, const SolutionPtr& initialSolution)
+	Population::Population(uint16_t size, const SolutionPtr& initialSolution)
 		: size(size), currentGeneration(0)
 	{
 		createInitialEmptySolutions(initialSolution);
@@ -42,12 +42,14 @@ namespace neat_dnfs
 	{
 		calculateAdjustedFitness();
 		calculateSpeciesOffspring();
+		//killLeastFitSolutions();
 	}
 
 	void Population::reproduce() const
 	{
 		//crossover();
 		mutate();
+		
 	}
 
 	SolutionPtr Population::getBestSolution() const
@@ -183,4 +185,9 @@ namespace neat_dnfs
 		}
 	}
 
+	void Population::killLeastFitSolutions()
+	{
+		for (auto& species : speciesList)
+			species.killLeastFitSolutions();
+	}
 }

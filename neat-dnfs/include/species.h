@@ -31,5 +31,7 @@ namespace neat_dnfs
         double totalAdjustedFitness() const;
         void setOffspringCount(uint16_t offspring) { offspringCount = offspring; }
         uint16_t getOffspringCount() const { return offspringCount; }
+
+        void killLeastFitSolutions();
    };
 }

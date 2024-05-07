@@ -8,13 +8,13 @@ namespace neat_dnfs
 	class Population
 	{
 	private:
-		uint8_t size;
+		uint16_t size;
 		uint16_t currentGeneration;
 		std::vector<SolutionPtr> solutions;
 		std::vector<Species> speciesList;
 		SolutionPtr bestSolution;
 	public:
-		Population(uint8_t size, const SolutionPtr& initialSolution);
+		Population(uint16_t size, const SolutionPtr& initialSolution);
 		void initialize() const;
 		void evolve(uint16_t maxGeneration);
 		void evaluate() const;
@@ -32,5 +32,6 @@ namespace neat_dnfs
 		Species* findSpecies(const SolutionPtr& solution);
 		void calculateAdjustedFitness();
 		void calculateSpeciesOffspring();
+		void killLeastFitSolutions();
 	};
 }

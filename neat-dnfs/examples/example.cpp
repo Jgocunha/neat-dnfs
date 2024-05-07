@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
 		const SolutionTopology initialTopology{10, 1};
 		TemplateSolution solution(initialTopology);
 		Population population(10, std::make_shared<TemplateSolution>(solution));
-		constexpr int numGenerations = 1000;
+		constexpr int numGenerations = 100;
 
 		population.initialize();
 		population.evolve(numGenerations);

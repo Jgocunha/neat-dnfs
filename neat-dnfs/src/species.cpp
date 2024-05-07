@@ -63,4 +63,17 @@ namespace neat_dnfs
 
 		return total;
 	}
+
+	void Species::killLeastFitSolutions()
+	{
+		std::sort(members.begin(), members.end(), 
+		[](const SolutionPtr& a, const SolutionPtr& b)
+		{
+			return a->getParameters().adjustedFitness > b->getParameters().adjustedFitness;
+		});
+
+		const size_t numSurvivors = members.size() / 2;
+		members.erase(members.begin(), members.begin() + numSurvivors);
+	}
+
 }
