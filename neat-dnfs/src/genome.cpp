@@ -2,45 +2,36 @@
 
 namespace neat_dnfs
 {
-	std::map<std::tuple<uint16_t, uint16_t>, uint16_t> Genome::generationalInnovations;
+	std::map<ConnectionTuple, uint16_t> Genome::connectionToInnovationNumberMap;
 
 	void Genome::addInputGene()
 	{
-		const auto index = genes.size() + 1;
-		genes.push_back(Gene({GeneType::INPUT, static_cast<uint16_t>(index) }));
+		const auto index = fieldGenes.size() + 1;
+		fieldGenes.push_back(FieldGene({FieldGeneType::INPUT,
+			static_cast<uint16_t>(index) }));
 	}
 
 	void Genome::addOutputGene()
 	{
-		const auto index = genes.size() + 1;
-		genes.push_back(Gene({ GeneType::OUTPUT, static_cast<uint16_t>(index) }));
+		const auto index = fieldGenes.size() + 1;
+		fieldGenes.push_back(FieldGene({ FieldGeneType::OUTPUT,
+			static_cast<uint16_t>(index) }));
 	}
 
 	void Genome::addRandomInitialConnectionGene()
 	{
-		if (genes.size() < 2)
-			throw std::invalid_argument("There must be at least two genes to add a connection gene.");
+		if (fieldGenes.size() < 2)
+			throw std::invalid_argument(
+				"There must be at least two genes to add a connection gene.");
 
-		const auto inGeneId = getRandomGeneIdByType(GeneType::INPUT);
-		const auto outGeneId = getRandomGeneIdByType(GeneType::OUTPUT);
+		const auto inGeneId = getRandomGeneIdByType(FieldGeneType::INPUT);
+		const auto outGeneId = getRandomGeneIdByType(FieldGeneType::OUTPUT);
 
-		connectionGenes.emplace_back(inGeneId, outGeneId);
+		connectionGenes.push_back(ConnectionTuple{ inGeneId, outGeneId });
 	}
 
 	void Genome::mutate()
 	{
-		// Connection weights mutate as in any NE system, with each connection either perturbed
-		//or not at each generation.
-
-		//In the add connection mutation, a single new connection gene
-		// with a random weight is added connecting two previously unconnected nodes.
-
-		//In the add node mutation, an existing connection is
-		//	split and the new node placed where the old connection used to be.The old connection
-		//	is disabled and two new connections are added to the genome.The new connection
-		//	leading into the new node receives a weight of 1, and the new connection leading out
-		//	receives the same weight as the old connection.
-
 		static constexpr double addGeneProbability = 0.1;
 		static constexpr double mutateGeneProbability = 0.2;
 		static constexpr double addConnectionGeneProbability = 0.3;
@@ -48,44 +39,29 @@ namespace neat_dnfs
 		static constexpr double toggleConnectionGeneProbability = 0.05;
 
 		if (addGeneProbability > static_cast<double>(rand()) / RAND_MAX)
-		{
 			addGene();
-			return;
-		}
 
 		if (mutateGeneProbability > static_cast<double>(rand()) / RAND_MAX)
-		{
 			mutateGene();
-			return;
-		}
 
 		if (addConnectionGeneProbability > static_cast<double>(rand()) / RAND_MAX)
-		{
 			addConnectionGene();
-			return;
-		}
 
 		if (mutateConnectionGeneProbability > static_cast<double>(rand()) / RAND_MAX)
-		{
 			mutateConnectionGene();
-			return;
-		}
 
 		if (toggleConnectionGeneProbability > static_cast<double>(rand()) / RAND_MAX)
-		{
-			const auto connectionGeneId = rand() % connectionGenes.size();
-			connectionGenes[connectionGeneId].toggle();
-		}
+			toggleConnectionGene();
 	}
 
 	void Genome::clearGenerationalInnovations()
 	{
-		generationalInnovations.clear();
+		connectionToInnovationNumberMap.clear();
 	}
 	
-	std::vector<Gene> Genome::getGenes() const
+	std::vector<FieldGene> Genome::getGenes() const
 	{
-		return genes;
+		return fieldGenes;
 	}
 
 	std::vector<ConnectionGene> Genome::getConnectionGenes() const
@@ -102,12 +78,12 @@ namespace neat_dnfs
 		return innovationNumbers;
 	}
 
-	std::tuple<uint16_t, uint16_t> Genome::getNewRandomGeneTuple() const
+	ConnectionTuple Genome::getNewRandomConnectionGeneTuple() const
 	{
 		// Select two different random genes
 		std::random_device rd;
 		std::mt19937 gen(rd());
-		std::uniform_int_distribution<uint16_t> dis(1, genes.size());
+		std::uniform_int_distribution<uint16_t> dis(1, fieldGenes.size());
 		uint16_t geneIndex1 = dis(gen);
 
 		// Ensure geneIndex2 is different from geneIndex1
@@ -120,33 +96,18 @@ namespace neat_dnfs
 		if (std::find_if(connectionGenes.begin(), connectionGenes.end(),
 			[geneIndex1, geneIndex2](const ConnectionGene& connectionGene) 
 			{
-				return connectionGene.getParameters().inGeneId == geneIndex1 && connectionGene.getParameters().outGeneId == geneIndex2;
+				return connectionGene.getParameters().connectionTuple.inFieldGeneId == geneIndex1
+				&& connectionGene.getParameters().connectionTuple.outFieldGeneId == geneIndex2;
 			} ) != connectionGenes.end())
-			return {};
+			return {0,0};
 
-		return std::tuple{geneIndex1, geneIndex2};
+		return {geneIndex1, geneIndex2};
 	}
 
-	void Genome::addConnectionGeneIfNewWithinGeneration(std::tuple<uint16_t, uint16_t> geneTuple)
-	{
-		if (generationalInnovations.contains(geneTuple))
-		{
-			const uint16_t innovationNumber = generationalInnovations[geneTuple];
-			connectionGenes.emplace_back(std::get<0>(geneTuple), std::get<1>(geneTuple));
-			connectionGenes.back().setInnovationNumber(innovationNumber);
-		}
-		else
-		{
-			connectionGenes.emplace_back(std::get<0>(geneTuple), std::get<1>(geneTuple));
-			generationalInnovations.insert({ geneTuple,
-				connectionGenes[connectionGenes.size() - 1].getInnovationNumber() });
-		}
-	}
-
-	uint16_t Genome::getRandomGeneIdByType(GeneType type) const
+	uint16_t Genome::getRandomGeneIdByType(FieldGeneType type) const
 	{
 		std::vector<uint16_t> geneIds;
-		for (const auto& gene : genes)
+		for (const auto& gene : fieldGenes)
 		{
 			if (gene.getParameters().type == type)
 			geneIds.push_back(gene.getParameters().id);
@@ -172,7 +133,7 @@ namespace neat_dnfs
 		}
 
 		if (enabledConnectionGenes.empty())
-			return ConnectionGene{ 0, 0 };
+			return ConnectionGene{ {0, 0}};
 
 		std::random_device rd;
 		std::mt19937 gen(rd());
@@ -181,45 +142,70 @@ namespace neat_dnfs
 		return enabledConnectionGenes[dis(gen)];
 	}
 
+	void Genome::addConnectionGeneIfNewWithinGeneration(ConnectionTuple connectionTuple)
+	{
+		if (connectionToInnovationNumberMap.contains(connectionTuple))
+		{
+			const uint16_t innovationNumber = connectionToInnovationNumberMap[connectionTuple];
+			connectionGenes.emplace_back(connectionTuple);
+			connectionGenes.back().setInnovationNumber(innovationNumber);
+		}
+		else
+		{
+			connectionGenes.emplace_back(connectionTuple);
+			connectionToInnovationNumberMap.insert({ connectionTuple,
+				connectionGenes[connectionGenes.size() - 1].getInnovationNumber() });
+		}
+	}
+
 	void Genome::addGene()
 	{
 		using namespace dnf_composer::element;
 
 		auto randEnabledConnectionGene = getEnabledConnectionGene();
-		if (randEnabledConnectionGene.getInGeneId() == 0)
+		if (randEnabledConnectionGene.getInFieldGeneId() == 0)
 			return;
 		randEnabledConnectionGene.disable();
-		const auto inGeneId = randEnabledConnectionGene.getParameters().inGeneId;
-		const auto outGeneId = randEnabledConnectionGene.getParameters().outGeneId;
+		const auto inGeneId
+			= randEnabledConnectionGene.getParameters().connectionTuple.inFieldGeneId;
+		const auto outGeneId
+			= randEnabledConnectionGene.getParameters().connectionTuple.outFieldGeneId;
 		const auto kernel = randEnabledConnectionGene.getKernel();
-		const auto kernelParameters = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
+		const auto kernelParameters = 
+			std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
 
-		const auto index = genes.size() + 1;
-		genes.push_back(Gene({ GeneType::HIDDEN, static_cast<uint16_t>(index) }));
+		const auto index = fieldGenes.size() + 1;
+		fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN,
+			static_cast<uint16_t>(index) }));
 
 		// create two new connection genes
-		const auto connectionGeneKernelParametersIn = GaussKernelParameters{ 5, 10, false, false };
-		const auto connectionGeneKernelParametersOut = GaussKernelParameters{ kernelParameters.sigma, kernelParameters.amplitude, false, false };
-		const ConnectionGene connectionGeneIn { inGeneId, static_cast<uint16_t>(index), connectionGeneKernelParametersIn };
-		const ConnectionGene connectionGeneOut{ static_cast<uint16_t>(index), outGeneId, connectionGeneKernelParametersOut };
+		const auto connectionGeneKernelParametersIn = 
+			GaussKernelParameters{ 5, 10, false, false };
+		const auto connectionGeneKernelParametersOut = 
+			GaussKernelParameters{ kernelParameters.sigma, kernelParameters.amplitude,
+				false, false };
+		const ConnectionGene connectionGeneIn{ {inGeneId,
+			static_cast<uint16_t>(index)}, connectionGeneKernelParametersIn };
+		const ConnectionGene connectionGeneOut{ {static_cast<uint16_t>(index),
+			outGeneId}, connectionGeneKernelParametersOut };
 		connectionGenes.push_back(connectionGeneIn);
 		connectionGenes.push_back(connectionGeneOut);
 	}
 
-	void Genome::mutateGene()
+	void Genome::mutateGene() const
 	{
-		const auto geneId = getRandomGeneIdByType(GeneType::HIDDEN);
+		const auto geneId = getRandomGeneIdByType(FieldGeneType::HIDDEN);
 		if (geneId == 0)
 			return;
-		genes[geneId-1].mutate();
+		fieldGenes[geneId-1].mutate();
 	}
 
 	void Genome::addConnectionGene()
 	{
-		const std::tuple<uint16_t, uint16_t> geneTuple = getNewRandomGeneTuple();
-		if (geneTuple == std::tuple<uint16_t, uint16_t>{})
+		const ConnectionTuple connectionTuple = getNewRandomConnectionGeneTuple();
+		if (connectionTuple == ConnectionTuple{0, 0})
 			return;
-		addConnectionGeneIfNewWithinGeneration(geneTuple);
+		addConnectionGeneIfNewWithinGeneration(connectionTuple);
 	}
 
 	void Genome::mutateConnectionGene()
@@ -230,4 +216,118 @@ namespace neat_dnfs
 		const auto connectionGeneId = rand() % connectionGenes.size();
 		connectionGenes[connectionGeneId].mutate();
 	}
+
+	void Genome::toggleConnectionGene()
+	{
+		if (connectionGenes.empty())
+			return;
+		const auto connectionGeneId = rand() % connectionGenes.size();
+		connectionGenes[connectionGeneId].toggle();
+	}
+
+
+	int Genome::excessGenes(const Genome& other) const
+	{
+		const auto thisInnovationNumbers = getInnovationNumbers();
+		const auto otherInnovationNumbers = other.getInnovationNumbers();
+		int thisMaxInnovationNumber = 0;
+		int otherMaxInnovationNumber = 0;
+
+		if (thisInnovationNumbers.empty() && otherInnovationNumbers.empty())
+			return 0;
+
+		if (!thisInnovationNumbers.empty())
+			thisMaxInnovationNumber = *std::max_element(thisInnovationNumbers.begin(),
+				thisInnovationNumbers.end());
+
+		if(!otherInnovationNumbers.empty())
+			otherMaxInnovationNumber = *std::max_element(otherInnovationNumbers.begin(),
+									otherInnovationNumbers.end());
+
+		const int thisExcessCount = std::count_if(thisInnovationNumbers.begin(),
+		thisInnovationNumbers.end(), [otherMaxInnovationNumber](const uint16_t innovationNumber)
+		{return innovationNumber > otherMaxInnovationNumber;});
+
+		const int otherExcessCount = std::count_if(otherInnovationNumbers.begin(), otherInnovationNumbers.end(),
+			[thisMaxInnovationNumber](const uint16_t innovationNumber)
+			{return innovationNumber > thisMaxInnovationNumber;});
+
+		return thisExcessCount + otherExcessCount;
+	}
+
+	int Genome::disjointGenes(const Genome& other) const
+	{
+		const auto thisInnovationNumbers = getInnovationNumbers();
+		const auto otherInnovationNumbers = other.getInnovationNumbers();
+
+		if (thisInnovationNumbers.empty() && otherInnovationNumbers.empty())
+			return 0;
+
+		std::vector<uint16_t> sortedThisInnovationNumbers = thisInnovationNumbers;
+		std::vector<uint16_t> sortedOtherInnovationNumbers = otherInnovationNumbers;
+
+		std::sort(sortedThisInnovationNumbers.begin(), sortedThisInnovationNumbers.end());
+		std::sort(sortedOtherInnovationNumbers.begin(), sortedOtherInnovationNumbers.end());
+
+		std::vector<uint16_t> thisDisjointInnovationNumbers, otherDisjointInnovationNumbers;
+
+		// Get the elements in sortedThisInnovationNumbers that are not in sortedOtherInnovationNumbers
+		std::set_difference(sortedThisInnovationNumbers.begin(), sortedThisInnovationNumbers.end(),
+						sortedOtherInnovationNumbers.begin(), sortedOtherInnovationNumbers.end(),
+						std::inserter(thisDisjointInnovationNumbers, thisDisjointInnovationNumbers.begin()));
+		// Get the elements in sortedOtherInnovationNumbers that are not in sortedThisInnovationNumbers
+		std::set_difference(sortedOtherInnovationNumbers.begin(), sortedOtherInnovationNumbers.end(),
+									sortedThisInnovationNumbers.begin(), sortedThisInnovationNumbers.end(),
+									std::inserter(otherDisjointInnovationNumbers, otherDisjointInnovationNumbers.begin()));
+
+		// Calculate the maximum and minimum innovation numbers
+		const int thisMaxInnovationNumber = !thisInnovationNumbers.empty() ? *std::max_element(thisInnovationNumbers.begin(),
+									thisInnovationNumbers.end()) : 0;
+		const int otherMaxInnovationNumber = !otherInnovationNumbers.empty() ? *std::max_element(otherInnovationNumbers.begin(),
+												otherInnovationNumbers.end()) : 0;
+		int minMaxInnovationNumber = std::min(thisMaxInnovationNumber, otherMaxInnovationNumber);
+
+		// Filter out the disjoint genes that are beyond the range of the other genome
+		const int thisDisjointCount = std::count_if(thisDisjointInnovationNumbers.begin(),
+						thisDisjointInnovationNumbers.end(), [minMaxInnovationNumber](const uint16_t innovationNumber)
+					{return innovationNumber <= minMaxInnovationNumber; });
+		const int otherDisjointCount = std::count_if(otherDisjointInnovationNumbers.begin(),
+									otherDisjointInnovationNumbers.end(), [minMaxInnovationNumber](const uint16_t innovationNumber)
+							{return innovationNumber <= minMaxInnovationNumber; });
+
+		return thisDisjointCount + otherDisjointCount;
+	}
+
+	double Genome::averageConnectionDifference(const Genome& other) const
+	{
+		const auto thisConnectionGenes = getConnectionGenes();
+		const auto otherConnectionGenes = other.getConnectionGenes();
+
+		if (thisConnectionGenes.empty() && otherConnectionGenes.empty())
+			return 0.0;
+
+		double sumAmpDiff = 0.0;
+		double sumWidthDiff = 0.0;
+		static constexpr double ampDiffCoeff = 0.8;
+		static constexpr double widthDiffCoeff = 0.2;
+
+		for (const auto& thisConnectionGene : thisConnectionGenes)
+		{
+			for (const auto& otherConnectionGene : otherConnectionGenes)
+			{
+				if (thisConnectionGene.getInnovationNumber() == otherConnectionGene.getInnovationNumber())
+				{
+					const double ampDiff = 
+						std::abs(thisConnectionGene.getKernelAmplitude() - otherConnectionGene.getKernelAmplitude());
+					const double widthDiff =
+						std::abs(thisConnectionGene.getKernelWidth() - otherConnectionGene.getKernelWidth());
+					sumAmpDiff += ampDiff;
+					sumWidthDiff += widthDiff;
+				}
+			}
+		}
+		const double totalDiff = ampDiffCoeff * sumAmpDiff + widthDiffCoeff * sumWidthDiff;
+		return totalDiff;
+	}
+
 }

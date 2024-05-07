@@ -8,8 +8,7 @@ namespace neat_dnfs
 	class TemplateSolution : public Solution
 	{
 	public:
-		TemplateSolution(const SolutionParameters& parameters);
-		~TemplateSolution() override = default;
+		TemplateSolution(const SolutionTopology& initialTopology);
 
 		void evaluate() override;
 		SolutionPtr clone() const override;

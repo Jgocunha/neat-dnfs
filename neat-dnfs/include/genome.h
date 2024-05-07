@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gene.h"
+#include "field_gene.h"
 #include "connection_gene.h"
 
 namespace neat_dnfs
@@ -8,9 +8,9 @@ namespace neat_dnfs
 	class Genome
 	{
 	private:
-		std::vector<Gene> genes;
+		std::vector<FieldGene> fieldGenes;
 		std::vector<ConnectionGene> connectionGenes;
-		static std::map<std::tuple<uint16_t, uint16_t>, uint16_t> generationalInnovations;
+		static std::map<ConnectionTuple, uint16_t> connectionToInnovationNumberMap;
 	public:
 		Genome() = default;
 
@@ -20,17 +20,23 @@ namespace neat_dnfs
 		void mutate();
 		static void clearGenerationalInnovations();
 
-		std::vector<Gene> getGenes() const;
+		std::vector<FieldGene> getGenes() const;
 		std::vector<ConnectionGene> getConnectionGenes() const;
 		std::vector<uint16_t> getInnovationNumbers() const;
 	private:
-		std::tuple<uint16_t, uint16_t> getNewRandomGeneTuple() const;
-		void addConnectionGeneIfNewWithinGeneration(std::tuple<uint16_t, uint16_t> geneTuple);
-		uint16_t getRandomGeneIdByType(GeneType type) const;
+		ConnectionTuple getNewRandomConnectionGeneTuple() const;
+		uint16_t getRandomGeneIdByType(FieldGeneType type) const;
 		ConnectionGene getEnabledConnectionGene() const;
+
+		void addConnectionGeneIfNewWithinGeneration(ConnectionTuple connectionTuple);
 		void addGene();
-		void mutateGene();
+		void mutateGene() const;
 		void addConnectionGene();
 		void mutateConnectionGene();
+		void toggleConnectionGene();
+	public:
+		int excessGenes(const Genome& other) const;
+		int disjointGenes(const Genome& other) const;
+		double averageConnectionDifference(const Genome& other) const;
 	};
 }

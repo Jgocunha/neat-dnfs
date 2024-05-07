@@ -8,33 +8,29 @@ namespace neat_dnfs
 	class Population
 	{
 	private:
-		int size;
+		uint8_t size;
 		uint16_t currentGeneration;
 		std::vector<SolutionPtr> solutions;
-		std::vector<Species> species;
+		std::vector<Species> speciesList;
 		SolutionPtr bestSolution;
 	public:
-		Population(int size, const SolutionPtr& initialSolution);
+		Population(uint8_t size, const SolutionPtr& initialSolution);
 		void initialize() const;
+		void evolve(uint16_t maxGeneration);
 		void evaluate() const;
-		void evolve(int maxGeneration);
+		void speciate();
+		void select();
+		void reproduce() const;
 		SolutionPtr getBestSolution() const;
 	private:
 		void createInitialEmptySolutions(const SolutionPtr& initialSolution);
 		void buildInitialSolutionsGenome() const;
-		void speciate();
-		void reproduce() const;
 		void mutate() const;
 		void upkeepBestSolution();
-		double calculateCompatibilityDistanceBetweenTwoSolutions(const SolutionPtr& solution1, 
-			const SolutionPtr& solution2) const;
-		int getNumberOfDisjointGenesBetweenTwoSolutions(const SolutionPtr& solution1, 
-			const SolutionPtr& solution2) const;
-		static int getNumberOfExcessGenesBetweenTwoSolutions(const SolutionPtr& solution1, 
-			const SolutionPtr& solution2);
-		void createSpeciesAndAddSolutionToIt(const SolutionPtr& solution);
 		void updateGenerationAndAges();
-		double getAverageConnectionDifferenceBetweenTwoSolutions(const SolutionPtr& solution1, 
-						const SolutionPtr& solution2) const;
+		void assignToSpecies(const SolutionPtr& solution);
+		Species* findSpecies(const SolutionPtr& solution);
+		void calculateAdjustedFitness();
+		void calculateSpeciesOffspring();
 	};
 }

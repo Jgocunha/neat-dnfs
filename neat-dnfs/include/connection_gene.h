@@ -8,20 +8,45 @@
 namespace neat_dnfs
 {
 	static uint16_t currentInnovationNumber = 1;
+	typedef std::shared_ptr<dnf_composer::element::Kernel> KernelPtr;
+
+	struct ConnectionTuple
+	{
+		uint16_t inFieldGeneId;
+		uint16_t outFieldGeneId;
+
+		ConnectionTuple(uint16_t inFieldGeneId, uint16_t outFieldGeneId)
+			: inFieldGeneId(inFieldGeneId), outFieldGeneId(outFieldGeneId)
+		{}
+
+		bool operator==(const ConnectionTuple& other) const
+		{
+			return inFieldGeneId == other.inFieldGeneId &&
+				outFieldGeneId == other.outFieldGeneId;
+		}
+
+		bool operator<(const ConnectionTuple& other) const {
+			if (inFieldGeneId == other.inFieldGeneId) {
+				return outFieldGeneId < other.outFieldGeneId;
+			}
+			return inFieldGeneId < other.inFieldGeneId;
+		}
+	};
 
 	struct ConnectionGeneParameters
 	{
-		uint16_t inGeneId;
-		uint16_t outGeneId;
+		ConnectionTuple connectionTuple;
 		uint16_t innovationNumber;
 		bool enabled;
 
-		ConnectionGeneParameters(uint16_t inGeneId, 
-			uint16_t outGeneId)
-			: inGeneId(inGeneId),
-			outGeneId(outGeneId),
-			innovationNumber(currentInnovationNumber++),
-			enabled(true)
+		ConnectionGeneParameters(ConnectionTuple connectionTuple)
+			: connectionTuple(connectionTuple),
+			innovationNumber(currentInnovationNumber++), enabled(true)
+		{}
+
+		ConnectionGeneParameters(uint16_t inFieldGeneId, uint16_t outFieldGeneId)
+			: connectionTuple(inFieldGeneId, outFieldGeneId),
+			innovationNumber(currentInnovationNumber++), enabled(true)
 		{}
 	};
 
@@ -29,21 +54,26 @@ namespace neat_dnfs
 	{
 	private:
 		ConnectionGeneParameters parameters;
-		std::shared_ptr<dnf_composer::element::Kernel> kernel;
+		KernelPtr kernel;
 	public:
-		ConnectionGene(uint16_t inGeneId, uint16_t outGeneId);
-		ConnectionGene(uint16_t inGeneId, uint16_t outGeneId, const dnf_composer::element::GaussKernelParameters& gkp);
-		ConnectionGeneParameters getParameters() const;
-		std::shared_ptr<dnf_composer::element::Kernel> getKernel() const;
-		uint16_t getInnovationNumber() const;
-		uint16_t getInGeneId() const;
-		uint16_t getOutGeneId() const;
-		bool isEnabled() const;
+		ConnectionGene(ConnectionTuple connectionTuple);
+		ConnectionGene(ConnectionTuple connectionTuple,
+			const dnf_composer::element::GaussKernelParameters& gkp);
+
 		void mutate();
-		void setInnovationNumber(uint16_t innovationNumber);
 		void disable();
 		void toggle();
+
+		bool isEnabled() const;
+
+		void setInnovationNumber(uint16_t innovationNumber);
+
+		ConnectionGeneParameters getParameters() const;
+		KernelPtr getKernel() const;
+		uint16_t getInnovationNumber() const;
+		uint16_t getInFieldGeneId() const;
+		uint16_t getOutFieldGeneId() const;
 		double getKernelAmplitude() const;
-		double getKernelSigma() const;
+		double getKernelWidth() const;
 	};
 }

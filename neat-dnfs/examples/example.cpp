@@ -15,8 +15,8 @@ int main(int argc, char* argv[])
 	{
 		using namespace neat_dnfs;
 
-		const SolutionParameters parameters{10, 1};
-		TemplateSolution solution(parameters);
+		const SolutionTopology initialTopology{10, 1};
+		TemplateSolution solution(initialTopology);
 		Population population(10, std::make_shared<TemplateSolution>(solution));
 		constexpr int numGenerations = 1000;
 

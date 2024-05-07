@@ -2,14 +2,14 @@
 
 namespace neat_dnfs
 {
-	TemplateSolution::TemplateSolution(const SolutionParameters& parameters)
-		:Solution(parameters)
+	TemplateSolution::TemplateSolution(const SolutionTopology& initialTopology)
+		:Solution(initialTopology)
 	{
 	}
 
 	SolutionPtr TemplateSolution::clone() const
 	{
-		TemplateSolution solution(parameters);
+		TemplateSolution solution(initialTopology);
 		auto clonedSolution = std::make_shared<TemplateSolution>(solution);
 
 		return clonedSolution;
@@ -33,7 +33,7 @@ namespace neat_dnfs
 		phenotype.createInteraction(gauss_stimulus->getUniqueName(), "output", "nf 1");
 
 		// simulate behavior
-		static constexpr int numSteps = 1000;
+		static constexpr int numSteps = 10;
 		phenotype.init();
 		for(int i = 0; i < numSteps; i++)
 			phenotype.step();
@@ -58,7 +58,7 @@ namespace neat_dnfs
 	void TemplateSolution::createRandomInitialConnectionGenes()
 	{
 		static constexpr double connectionProbability = 0.0;
-		for(int i = 0; i < parameters.numInputGenes * parameters.numOutputGenes; ++i)
+		for(int i = 0; i < initialTopology.numInputGenes * initialTopology.numOutputGenes; ++i)
 			if(dnf_composer::tools::utils::generateRandomNumber(0.0, 1.0) < connectionProbability)
 				genome.addRandomInitialConnectionGene();
 	}

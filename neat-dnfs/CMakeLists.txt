@@ -45,7 +45,7 @@ add_compile_definitions(OUTPUT_DIRECTORY="${OUTPUT_DIRECTORY}")
 # Header and source files
 set(header 
 "include/connection_gene.h"
-"include/gene.h"
+"include/field_gene.h"
 "include/genome.h"
 "include/population.h"
 "include/solution.h"
@@ -55,7 +55,7 @@ set(header
 )
 set(src 
 "src/connection_gene.cpp"
-"src/gene.cpp"
+"src/field_gene.cpp"
 "src/genome.cpp"
 "src/population.cpp"
 "src/solution.cpp"

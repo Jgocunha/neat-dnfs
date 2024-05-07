@@ -2,11 +2,12 @@
 
 namespace neat_dnfs
 {
-	Solution::Solution(const SolutionParameters& parameters)
-		:parameters(parameters)
+	Solution::Solution(const SolutionTopology& initialTopology)
+		:initialTopology(initialTopology)
 	{
-		if (parameters.numInputGenes < 1 || parameters.numOutputGenes < 1)
+		if (initialTopology.numInputGenes < 1 || initialTopology.numOutputGenes < 1)
 			throw std::invalid_argument("Number of input and output genes must be greater than 0");
+		parameters = SolutionParameters();
 		genome = Genome();
 		phenotype = Phenotype();
 	}
@@ -53,11 +54,6 @@ namespace neat_dnfs
 		return genome.getInnovationNumbers();
 	}
 
-	void Solution::setSpecies(int species)
-	{
-		parameters.species = species;
-	}
-
 	void Solution::buildPhenotype()
 	{
 		translateGenesToPhenotype();
@@ -66,13 +62,13 @@ namespace neat_dnfs
 
 	void Solution::createInputGenes()
 	{
-		for (int j = 0; j < parameters.numInputGenes; j++)
+		for (int j = 0; j < initialTopology.numInputGenes; j++)
 			genome.addInputGene();
 	}
 
 	void Solution::createOutputGenes()
 	{
-		for (int j = 0; j < parameters.numOutputGenes; j++)
+		for (int j = 0; j < initialTopology.numOutputGenes; j++)
 			genome.addOutputGene();
 	}
 
@@ -96,12 +92,14 @@ namespace neat_dnfs
 			if (connectionGene.isEnabled())
 			{
 				const auto kernel = connectionGene.getKernel();
-				const auto sourceId = connectionGene.getInGeneId();
-				const auto targetId = connectionGene.getOutGeneId();
+				const auto sourceId = connectionGene.getInFieldGeneId();
+				const auto targetId = connectionGene.getOutFieldGeneId();
 
 				phenotype.addElement(kernel);
-				phenotype.createInteraction("nf " + std::to_string(sourceId), "output", kernel->getUniqueName());
-				phenotype.createInteraction(kernel->getUniqueName(), "output", "nf " + std::to_string(targetId));
+				phenotype.createInteraction("nf " + std::to_string(sourceId),
+					"output", kernel->getUniqueName());
+				phenotype.createInteraction(kernel->getUniqueName(), 
+					"output", "nf " + std::to_string(targetId));
 			}
 		}
 	}
@@ -114,5 +112,10 @@ namespace neat_dnfs
 	void Solution::incrementAge()
 	{
 		parameters.age++;
+	}
+
+	void Solution::setAdjustedFitness(double adjustedFitness)
+	{
+		parameters.adjustedFitness = adjustedFitness;
 	}
 }
