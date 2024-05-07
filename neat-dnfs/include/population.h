@@ -20,7 +20,7 @@ namespace neat_dnfs
 		void evaluate() const;
 		void speciate();
 		void select();
-		void reproduce() const;
+		void reproduce();
 		SolutionPtr getBestSolution() const;
 	private:
 		void createInitialEmptySolutions(const SolutionPtr& initialSolution);
@@ -33,5 +33,6 @@ namespace neat_dnfs
 		void calculateAdjustedFitness();
 		void calculateSpeciesOffspring();
 		void killLeastFitSolutions();
+		void crossover();
 	};
 }

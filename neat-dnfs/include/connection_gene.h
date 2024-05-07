@@ -75,5 +75,7 @@ namespace neat_dnfs
 		uint16_t getOutFieldGeneId() const;
 		double getKernelAmplitude() const;
 		double getKernelWidth() const;
+
+		bool operator==(const ConnectionGene&) const;
 	};
 }

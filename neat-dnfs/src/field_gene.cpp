@@ -125,4 +125,10 @@ namespace neat_dnfs
 	{
 		return kernel;
 	}
+
+	bool FieldGene::operator==(const FieldGene& other) const
+	{
+		return parameters.type == other.parameters.type &&
+			parameters.id == other.parameters.id;
+	}
 }

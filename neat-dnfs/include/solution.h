@@ -71,6 +71,11 @@ namespace neat_dnfs
 		void createOutputGenes();
 		void translateGenesToPhenotype();
 		void translateConnectionGenesToPhenotype();
+	public:
+		static SolutionPtr crossover(const SolutionPtr& parent1, const SolutionPtr& parent2);
+		void addFieldGene(const FieldGene& gene);
+		void addConnectionGene(const ConnectionGene& gene);
+		bool containsConnectionGene(const ConnectionGene& gene) const;
 	};
 }
 

@@ -76,4 +76,17 @@ namespace neat_dnfs
 		members.erase(members.begin(), members.begin() + numSurvivors);
 	}
 
+	void Species::crossover()
+	{
+		std::vector<SolutionPtr> offspring;
+		for (size_t i = 0; i < offspringCount; ++i)
+		{
+			const SolutionPtr parent1 = members[rand() % members.size()];
+			const SolutionPtr parent2 = members[rand() % members.size()];
+			offspring.push_back(Solution::crossover(parent1, parent2));
+		}
+
+		members.insert(members.end(), offspring.begin(), offspring.end());
+	}
+
 }

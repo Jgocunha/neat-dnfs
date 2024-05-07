@@ -113,4 +113,9 @@ namespace neat_dnfs
 	{
 		return std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(kernel)->getParameters().sigma;
 	}
+
+	bool ConnectionGene::operator==(const ConnectionGene& other) const
+	{
+		return parameters.innovationNumber == other.parameters.innovationNumber;
+	}
 }

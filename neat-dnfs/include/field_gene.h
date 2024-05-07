@@ -44,5 +44,7 @@ namespace neat_dnfs
 		FieldGeneParameters getParameters() const;
 		std::shared_ptr<dnf_composer::element::NeuralField> getNeuralField() const;
 		std::shared_ptr<dnf_composer::element::Kernel> getKernel() const;
+
+		bool operator==(const FieldGene&) const;
 	};
 }

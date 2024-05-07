@@ -59,7 +59,7 @@ namespace neat_dnfs
 		connectionToInnovationNumberMap.clear();
 	}
 	
-	std::vector<FieldGene> Genome::getGenes() const
+	std::vector<FieldGene> Genome::getFieldGenes() const
 	{
 		return fieldGenes;
 	}
@@ -328,6 +328,44 @@ namespace neat_dnfs
 		}
 		const double totalDiff = ampDiffCoeff * sumAmpDiff + widthDiffCoeff * sumWidthDiff;
 		return totalDiff;
+	}
+
+	void Genome::addFieldGene(const FieldGene& fieldGene)
+	{
+		if (containsFieldGene(fieldGene))
+			return;
+		fieldGenes.push_back(fieldGene);
+	}
+
+	void Genome::addConnectionGene(const ConnectionGene& connectionGene)
+	{
+		if(containsConnectionGene(connectionGene))
+			return;
+		connectionGenes.push_back(connectionGene);
+	}
+
+	bool Genome::containsConnectionGene(const ConnectionGene& connectionGene) const
+	{
+		return std::find(connectionGenes.begin(), connectionGenes.end(), connectionGene) != connectionGenes.end();
+	}
+
+	bool Genome::containsFieldGene(const FieldGene& fieldGene) const
+	{
+		return std::find(fieldGenes.begin(), fieldGenes.end(), fieldGene) != fieldGenes.end();
+	}
+
+	ConnectionGene Genome::getConnectionGeneByInnovationNumber(uint16_t innovationNumber) const
+	{
+		const auto it = std::find_if(connectionGenes.begin(), connectionGenes.end(),
+		[innovationNumber](const ConnectionGene& connectionGene)
+		{
+			return connectionGene.getInnovationNumber() == innovationNumber;
+		});
+
+		//if (it == connectionGenes.end())
+			//throw std::invalid_argument("Connection gene with the specified innovation number does not exist.");
+
+		return *it;
 	}
 
 }

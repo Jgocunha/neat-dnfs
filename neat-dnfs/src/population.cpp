@@ -42,14 +42,13 @@ namespace neat_dnfs
 	{
 		calculateAdjustedFitness();
 		calculateSpeciesOffspring();
-		//killLeastFitSolutions();
+		killLeastFitSolutions();
 	}
 
-	void Population::reproduce() const
+	void Population::reproduce()
 	{
-		//crossover();
+		crossover();
 		mutate();
-		
 	}
 
 	SolutionPtr Population::getBestSolution() const
@@ -190,4 +189,11 @@ namespace neat_dnfs
 		for (auto& species : speciesList)
 			species.killLeastFitSolutions();
 	}
+
+	void Population::crossover()
+	{
+		for (auto& species : speciesList)
+			species.crossover();
+	}
+
 }

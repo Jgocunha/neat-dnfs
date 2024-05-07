@@ -15,10 +15,10 @@ int main(int argc, char* argv[])
 	{
 		using namespace neat_dnfs;
 
-		const SolutionTopology initialTopology{10, 1};
+		const SolutionTopology initialTopology{3, 1};
 		TemplateSolution solution(initialTopology);
-		Population population(10, std::make_shared<TemplateSolution>(solution));
-		constexpr int numGenerations = 100;
+		Population population(100, std::make_shared<TemplateSolution>(solution));
+		constexpr int numGenerations = 1000;
 
 		population.initialize();
 		population.evolve(numGenerations);

@@ -33,5 +33,7 @@ namespace neat_dnfs
         uint16_t getOffspringCount() const { return offspringCount; }
 
         void killLeastFitSolutions();
+
+        void crossover();
    };
 }
