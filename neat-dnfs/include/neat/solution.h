@@ -2,7 +2,6 @@
 
 
 #include "genome.h"
-#include "phenotype.h"
 
 namespace neat_dnfs
 {

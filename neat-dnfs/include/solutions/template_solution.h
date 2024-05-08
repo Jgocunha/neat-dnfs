@@ -1,6 +1,6 @@
 #pragma once
 
-#include "solution.h"
+#include "neat/solution.h"
 
 
 namespace neat_dnfs

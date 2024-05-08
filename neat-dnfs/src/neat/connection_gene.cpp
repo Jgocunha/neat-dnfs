@@ -1,4 +1,4 @@
-#include "connection_gene.h"
+#include "neat/connection_gene.h"
 
 
 namespace neat_dnfs

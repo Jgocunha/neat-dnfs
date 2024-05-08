@@ -1,4 +1,4 @@
-#include "population.h"
+#include "neat/population.h"
 
 namespace neat_dnfs
 {
@@ -15,6 +15,7 @@ namespace neat_dnfs
 
 	void Population::evolve(uint16_t maxGeneration)
 	{
+		constexpr double targetFitness = 0.8;
 		do
 		{
 			evaluate();
@@ -23,7 +24,7 @@ namespace neat_dnfs
 			reproduce();
 			upkeepBestSolution();
 			updateGenerationAndAges();
-		} while (currentGeneration < maxGeneration);
+		} while (currentGeneration < maxGeneration || bestSolution->getFitness() > targetFitness);
 	}
 
 	void Population::evaluate() const

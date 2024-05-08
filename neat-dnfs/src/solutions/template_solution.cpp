@@ -1,4 +1,4 @@
-#include "template_solution.h"
+#include "solutions/template_solution.h"
 
 namespace neat_dnfs
 {
@@ -40,7 +40,7 @@ namespace neat_dnfs
 		phenotype.createInteraction(gauss_stimulus_b->getUniqueName(), "output", "nf 2");
 
 		// simulate behavior
-		static constexpr int numSteps = 100;
+		static constexpr int numSteps = 1000;
 		phenotype.init();
 		for(int i = 0; i < numSteps; i++)
 			phenotype.step();
@@ -52,14 +52,6 @@ namespace neat_dnfs
 		// Calculate fitness
 		static constexpr double targetCentroid = 50;
 		parameters.fitness = 1 / (1 + std::abs(centroid - targetCentroid));
-
-		std::cout << "Fitness: " << parameters.fitness << std::endl;
-		if( parameters.fitness > 0.8)
-		{
-			std::cout << "Solution found!" << std::endl;
-			//std::cout << "Genome: " << genome << std::endl;
-			//std::cout << "Phenotype: " << phenotype << std::endl;
-		}
 	}
 
 	void TemplateSolution::createRandomInitialConnectionGenes()

@@ -6,8 +6,10 @@
 #include <exception>
 #include <iostream>
 
-#include "population.h"
-#include "template_solution.h"
+#include "neat/population.h"
+#include "solutions/template_solution.h"
+#include "application/application.h"
+#include "ui_windows/population_control_window.h"
 
 int main(int argc, char* argv[])
 {
@@ -19,9 +21,19 @@ int main(int argc, char* argv[])
 		TemplateSolution solution(initialTopology);
 		Population population(100, std::make_shared<TemplateSolution>(solution));
 		constexpr int numGenerations = 1000;
-
+/*
 		population.initialize();
 		population.evolve(numGenerations);
+		SolutionPtr bestSolution = population.getBestSolution();*/
+
+		Application app;
+		app.addWindow<imgui_kit::LogWindow>();
+		app.addWindow<PopulationControlWindow>(std::make_shared<Population>(population));
+		app.initialize();
+		do
+		{
+			app.render();
+		} while (!app.hasCloseBeenRequested());
 
 		return 0;
 	}

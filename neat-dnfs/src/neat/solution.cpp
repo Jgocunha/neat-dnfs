@@ -1,6 +1,6 @@
-#include "solution.h"
+#include "neat/solution.h"
 
-#include "template_solution.h"
+#include "solutions/template_solution.h" // this should not be here
 
 namespace neat_dnfs
 {

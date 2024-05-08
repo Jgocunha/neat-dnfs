@@ -1,4 +1,4 @@
-#include "species.h"
+#include "neat/species.h"
 
 namespace neat_dnfs
 {

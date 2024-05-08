@@ -44,24 +44,32 @@ add_compile_definitions(OUTPUT_DIRECTORY="${OUTPUT_DIRECTORY}")
 
 # Header and source files
 set(header 
-"include/connection_gene.h"
-"include/field_gene.h"
-"include/genome.h"
-"include/population.h"
-"include/solution.h"
-"include/template_solution.h"
-"include/phenotype.h"
-"include/species.h"
+"include/neat/connection_gene.h"
+"include/neat/field_gene.h"
+"include/neat/genome.h"
+"include/neat/population.h"
+"include/neat/solution.h"
+"include/neat/species.h"
+
+"include/solutions/template_solution.h"
+
+"include/application/application.h"
+
+"include/ui_windows/population_control_window.h"
 )
 set(src 
-"src/connection_gene.cpp"
-"src/field_gene.cpp"
-"src/genome.cpp"
-"src/population.cpp"
-"src/solution.cpp"
-"src/phenotype.cpp"
-"src/template_solution.cpp"
-"src/species.cpp"
+"src/neat/connection_gene.cpp"
+"src/neat/field_gene.cpp"
+"src/neat/genome.cpp"
+"src/neat/population.cpp"
+"src/neat/solution.cpp"
+"src/neat/species.cpp"
+
+"src/solutions/template_solution.cpp"
+
+"src/application/application.cpp"
+
+"src/ui_windows/population_control_window.cpp"
 )
 
 # Library target definition

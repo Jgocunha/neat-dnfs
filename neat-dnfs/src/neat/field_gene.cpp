@@ -1,4 +1,4 @@
-#include "field_gene.h"
+#include "neat/field_gene.h"
 
 namespace neat_dnfs
 {

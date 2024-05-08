@@ -1,4 +1,4 @@
-#include "genome.h"
+#include "neat/genome.h"
 
 namespace neat_dnfs
 {
