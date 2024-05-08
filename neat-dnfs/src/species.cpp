@@ -64,28 +64,45 @@ namespace neat_dnfs
 		return total;
 	}
 
-	void Species::killLeastFitSolutions()
+	std::vector<SolutionPtr> Species::killLeastFitSolutions()
 	{
-		std::sort(members.begin(), members.end(), 
-		[](const SolutionPtr& a, const SolutionPtr& b)
-		{
-			return a->getParameters().adjustedFitness > b->getParameters().adjustedFitness;
-		});
+		if (members.size() <= 2)
+			return {};
+
+		std::vector<SolutionPtr> removed;
+
+		std::sort(members.begin(), members.end(), [](const SolutionPtr& a, const SolutionPtr& b) {
+			return a->getParameters().adjustedFitness > b->getParameters().adjustedFitness;  // higher is better
+			});
 
 		const size_t numSurvivors = members.size() / 2;
-		members.erase(members.begin(), members.begin() + numSurvivors);
+		removed.assign(members.begin() + numSurvivors, members.end());
+		members.erase(members.begin() + numSurvivors, members.end());
+
+		return removed;
 	}
+
 
 	void Species::crossover()
 	{
 		std::vector<SolutionPtr> offspring;
-		for (size_t i = 0; i < offspringCount; ++i)
+		if(members.size() <= 1)
 		{
-			const SolutionPtr parent1 = members[rand() % members.size()];
-			const SolutionPtr parent2 = members[rand() % members.size()];
-			offspring.push_back(Solution::crossover(parent1, parent2));
+			for (size_t i = 0; i < offspringCount; ++i)
+			{
+				const SolutionPtr parent1 = members[rand() % members.size()];
+				offspring.push_back(parent1);
+			}
 		}
-
+		else
+		{
+			for (size_t i = 0; i < offspringCount; ++i)
+			{
+				const SolutionPtr parent1 = members[rand() % members.size()];
+				const SolutionPtr parent2 = members[rand() % members.size()];
+				offspring.push_back(Solution::crossover(parent1, parent2));
+			}
+		}
 		members.insert(members.end(), offspring.begin(), offspring.end());
 	}
 

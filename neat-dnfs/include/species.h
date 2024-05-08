@@ -32,7 +32,7 @@ namespace neat_dnfs
         void setOffspringCount(uint16_t offspring) { offspringCount = offspring; }
         uint16_t getOffspringCount() const { return offspringCount; }
 
-        void killLeastFitSolutions();
+        std::vector<SolutionPtr> killLeastFitSolutions();
 
         void crossover();
    };

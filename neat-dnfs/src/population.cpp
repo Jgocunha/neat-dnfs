@@ -186,9 +186,22 @@ namespace neat_dnfs
 
 	void Population::killLeastFitSolutions()
 	{
-		for (auto& species : speciesList)
-			species.killLeastFitSolutions();
+		std::vector<SolutionPtr> toRemove;
+
+		// Gather all solutions that need to be removed from each species
+		for (auto& species : speciesList) {
+			std::vector<SolutionPtr> removed = species.killLeastFitSolutions();
+			toRemove.insert(toRemove.end(), removed.begin(), removed.end());
+		}
+
+		// Remove dead solutions from the main population vector
+		auto newEnd = std::remove_if(solutions.begin(), solutions.end(),
+			[&toRemove](const SolutionPtr& solution) {
+				return std::find(toRemove.begin(), toRemove.end(), solution) != toRemove.end();
+			});
+		solutions.erase(newEnd, solutions.end());
 	}
+
 
 	void Population::crossover()
 	{
