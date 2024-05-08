@@ -3,6 +3,7 @@
 #include <imgui-platform-kit/user_interface.h>
 
 #include "neat/population.h"
+#include "ui_windows/population_control_window.h"
 
 namespace neat_dnfs
 {
@@ -19,11 +20,6 @@ namespace neat_dnfs
 		void initialize() const;
 		void render() const;
 		void shutdown() const;
-
-		template<typename WindowType, typename... Args>
-		void addWindow(Args&&... args) const {
-			ui->addWindow<WindowType>(std::forward<Args>(args)...);
-		}
 
 		bool hasCloseBeenRequested() const;
 	};

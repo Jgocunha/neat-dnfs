@@ -16,7 +16,7 @@ namespace neat_dnfs
 		int numHiddenGenes;
 		int numConnections;
 
-		SolutionTopology(int numInputGenes, int numOutputGenes, 
+		SolutionTopology(int numInputGenes = 3, int numOutputGenes = 1, 
 			int numHiddenGenes = 0, int numConnections = 0)
 			: numInputGenes(numInputGenes), numOutputGenes(numOutputGenes),
 			numHiddenGenes(numHiddenGenes), numConnections(numConnections)

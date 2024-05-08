@@ -2,8 +2,8 @@
 
 namespace neat_dnfs
 {
-	Population::Population(uint16_t size, const SolutionPtr& initialSolution)
-		: size(size), currentGeneration(0)
+	Population::Population(const PopulationParameters& parameters, const SolutionPtr& initialSolution)
+		: parameters(parameters)
 	{
 		createInitialEmptySolutions(initialSolution);
 	}
@@ -13,9 +13,8 @@ namespace neat_dnfs
 		buildInitialSolutionsGenome();
 	}
 
-	void Population::evolve(uint16_t maxGeneration)
+	void Population::evolve()
 	{
-		constexpr double targetFitness = 0.8;
 		do
 		{
 			evaluate();
@@ -24,7 +23,7 @@ namespace neat_dnfs
 			reproduce();
 			upkeepBestSolution();
 			updateGenerationAndAges();
-		} while (currentGeneration < maxGeneration || bestSolution->getFitness() > targetFitness);
+		} while (!endConditionMet());
 	}
 
 	void Population::evaluate() const
@@ -59,7 +58,7 @@ namespace neat_dnfs
 
 	void Population::createInitialEmptySolutions(const SolutionPtr& initialSolution)
 	{
-		for (int i = 0; i < size; i++)
+		for (int i = 0; i < parameters.size; i++)
 			solutions.push_back(initialSolution->clone());
 	}
 
@@ -88,7 +87,7 @@ namespace neat_dnfs
 
 	void Population::updateGenerationAndAges()
 	{
-		currentGeneration++;
+		parameters.currentGeneration++;
 		for (const auto& solution : solutions)
 			solution->incrementAge();
 	}
@@ -150,7 +149,7 @@ namespace neat_dnfs
 			totalAdjustedFitness += species.totalAdjustedFitness();
 
 		// Adjust size to be half for offspring distribution
-		const int offspringPoolSize = size / 2;
+		const int offspringPoolSize = parameters.size / 2;
 		double accumulatedOffspring = 0.0;
 
 		for (auto& species : speciesList)
@@ -209,5 +208,11 @@ namespace neat_dnfs
 		for (auto& species : speciesList)
 			species.crossover();
 	}
+
+	bool Population::endConditionMet() const
+	{
+		return parameters.currentGeneration > parameters.numGenerations || bestSolution->getFitness() > parameters.targetFitness;
+	}
+
 
 }

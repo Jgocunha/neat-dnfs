@@ -5,23 +5,43 @@
 
 namespace neat_dnfs
 {
+	struct PopulationParameters
+	{
+		uint16_t size;
+		uint16_t currentGeneration;
+		uint16_t numGenerations;
+		double targetFitness;
+
+		PopulationParameters(uint16_t size = 100, 
+			uint16_t numGenerations = 1000, 
+			double targetFitness = 0.95)
+			: size(size), currentGeneration(0),
+				numGenerations(numGenerations),
+				targetFitness(targetFitness)
+		{}
+	};
+	
 	class Population
 	{
 	private:
-		uint16_t size;
-		uint16_t currentGeneration;
+		PopulationParameters parameters;
 		std::vector<SolutionPtr> solutions;
 		std::vector<Species> speciesList;
 		SolutionPtr bestSolution;
 	public:
-		Population(uint16_t size, const SolutionPtr& initialSolution);
+		Population(const PopulationParameters& parameters, const SolutionPtr& initialSolution);
 		void initialize() const;
-		void evolve(uint16_t maxGeneration);
+		void evolve();
 		void evaluate() const;
 		void speciate();
 		void select();
 		void reproduce();
 		SolutionPtr getBestSolution() const;
+		void setSize(uint16_t size) { parameters.size = size; }
+		void setNumGenerations(uint16_t numGenerations) { parameters.numGenerations = numGenerations; }
+		uint16_t getSize() const { return parameters.size; }
+		uint16_t getCurrentGeneration() const { return parameters.currentGeneration; }
+		uint16_t getNumGenerations() const { return parameters.numGenerations; }
 	private:
 		void createInitialEmptySolutions(const SolutionPtr& initialSolution);
 		void buildInitialSolutionsGenome() const;
@@ -34,5 +54,6 @@ namespace neat_dnfs
 		void calculateSpeciesOffspring();
 		void killLeastFitSolutions();
 		void crossover();
+		bool endConditionMet() const;
 	};
 }

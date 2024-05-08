@@ -19,7 +19,11 @@ namespace neat_dnfs
 	void Application::initialize() const
 	{
 		if (activateUI)
+		{
+			ui->addWindow<imgui_kit::LogWindow>();
+			ui->addWindow<PopulationControlWindow>(population);
 			ui->initialize();
+		}
 	}
 
 	void Application::render() const
