@@ -1,4 +1,4 @@
-<img src="./neat-dnfs/resources/images/logo.png" alt="logo" width="400" height="550">
+<img src="./neat-dnfs/resources/images/logo.png" alt="logo" width="500" height="500">
 
 
 # neat-dnfs
