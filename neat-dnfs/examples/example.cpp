@@ -6,9 +6,8 @@
 #include <exception>
 #include <iostream>
 
-#include "neat/population.h"
-#include "solutions/template_solution.h"
 #include "application/application.h"
+#include "tools/logger.h"
 
 int main(int argc, char* argv[])
 {
@@ -18,18 +17,26 @@ int main(int argc, char* argv[])
 
 		const Application app;
 		app.initialize();
+
 		do { app.render(); } while (!app.hasCloseBeenRequested());
+
+		app.shutdown();
 
 		return 0;
 	}
+	catch (const dnf_composer::Exception& ex)
+	{
+		log(neat_dnfs::tools::logger::LogLevel::FATAL, "Exception caught: " + std::string(ex.what()) + ".");
+		return static_cast<int>(ex.getErrorCode());
+	}
 	catch (const std::exception& ex)
 	{
-		std::cerr << ex.what() << std::endl;
+		log(neat_dnfs::tools::logger::LogLevel::FATAL, "Exception caught: " + std::string(ex.what()) + ".");
 		return 1;
 	}
 	catch (...)
 	{
-		std::cerr << "Unknown exception" << std::endl;
+		log(neat_dnfs::tools::logger::LogLevel::FATAL, "Unknown exception occurred.");
 		return 1;
 	}
 }

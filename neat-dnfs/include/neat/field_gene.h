@@ -21,8 +21,7 @@ namespace neat_dnfs
 		uint16_t id;
 
 		FieldGeneParameters(FieldGeneType type, uint16_t id)
-			: type(type),
-			id(id)
+			: type(type), id(id)
 		{}
 	};
 

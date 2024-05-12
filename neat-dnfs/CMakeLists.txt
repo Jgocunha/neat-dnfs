@@ -56,6 +56,8 @@ set(header
 "include/application/application.h"
 
 "include/ui_windows/population_control_window.h"
+
+"include/tools/logger.h"
 )
 set(src 
 "src/neat/connection_gene.cpp"
@@ -70,6 +72,8 @@ set(src
 "src/application/application.cpp"
 
 "src/ui_windows/population_control_window.cpp"
+
+"src/tools/logger.cpp"
 )
 
 # Library target definition

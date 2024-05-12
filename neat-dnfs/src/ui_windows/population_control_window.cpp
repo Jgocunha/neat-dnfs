@@ -133,7 +133,7 @@ namespace neat_dnfs
             const auto simulation = std::make_shared<dnf_composer::Simulation>(phenotype);
             simulationWindow = std::make_shared<dnf_composer::user_interface::SimulationWindow>(simulation);
             elementWindow = std::make_shared<dnf_composer::user_interface::ElementWindow>(simulation);
-            centroidMonitoringWindow = std::make_shared<dnf_composer::user_interface::CentroidMonitoringWindow>(simulation);
+            centroidMonitoringWindow = std::make_shared<dnf_composer::user_interface::FieldMetricsWindow>(simulation);
 
             const auto visualization = createVisualization(simulation);
             visualization->addPlottingData("nf 1", "activation");

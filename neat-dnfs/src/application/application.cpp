@@ -10,7 +10,7 @@ namespace neat_dnfs
 		const FontParameters fontParams{ std::string(PROJECT_DIR) + "/resources/fonts/Lexend-Light.ttf", 22 };
 		const StyleParameters styleParams{ ImVec4(0.7f, 0.9f, 0.7f, 0.6f) };
 		const IconParameters iconParams{ std::string(PROJECT_DIR) + "/resources/icons/icon.ico" };
-		const BackgroundImageParameters bgParams{ std::string(PROJECT_DIR) + "/resources/images/background.png", 0.6 };
+		const BackgroundImageParameters bgParams{ std::string(PROJECT_DIR) + "/resources/images/background.png", 0.4 };
 		uiParameters = UserInterfaceParameters{ winParams, fontParams, styleParams, iconParams, bgParams };
 
 		ui = std::make_shared<UserInterface>(uiParameters);
