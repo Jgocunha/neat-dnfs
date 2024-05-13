@@ -99,12 +99,12 @@ namespace neat_dnfs
             {
                 switch (level)
                 {
-                case DEBUG:     return imgui_kit::colours::Green;  // Green
-                case INFO:      return imgui_kit::colours::White;  // White
-                case WARNING:   return imgui_kit::colours::Yellow; // Yellow
+                case DEBUG:     return imgui_kit::colours::Green;  
+                case INFO:      return imgui_kit::colours::Black;  
+                case WARNING:   return imgui_kit::colours::Yellow; 
                 case ERROR:
-                case FATAL:     return imgui_kit::colours::Red;    // Red
-                default:        return imgui_kit::colours::White;  // White
+                case FATAL:     return imgui_kit::colours::Red;    
+                default:        return imgui_kit::colours::Black; 
                 }
             }
 

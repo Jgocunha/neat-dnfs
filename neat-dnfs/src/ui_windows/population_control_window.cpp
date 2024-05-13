@@ -28,7 +28,7 @@ namespace neat_dnfs
 
         ImGui::SetColumnWidth(0, columnWidth);
 
-        static int populationSize = 100;
+        static int populationSize = 10;
         ImGui::Text("Population size");
         ImGui::NextColumn();
         ImGui::SetNextItemWidth(inputWidth);
@@ -65,7 +65,7 @@ namespace neat_dnfs
 
         ImGui::SetColumnWidth(0, columnWidth);
 
-        static int numberOfInputFields = 3;
+        static int numberOfInputFields = 2;
         ImGui::Text("Number of input fields");
         ImGui::NextColumn();
         ImGui::SetNextItemWidth(inputWidth);
@@ -144,19 +144,18 @@ namespace neat_dnfs
             const auto plot = std::make_shared<dnf_composer::user_interface::PlotWindow>(visualization);
             plotWindows.push_back(plot);
 
+        	simulationThread = std::make_shared<std::thread>(&PopulationControlWindow::runSimulation, this, simulation);
             showBestSolution = true;
 		}
 
         if (showBestSolution)
         {
-            simulationWindow->render();
+        	simulationWindow->render();
             elementWindow->render();
             centroidMonitoringWindow->render();
 
             for (const auto& plot : plotWindows)
-			{
 				plot->render();
-			}
         }
     }
 
@@ -164,5 +163,18 @@ namespace neat_dnfs
 	{
 		if (evolveThread && evolveThread->joinable())
 			evolveThread->join();
+        if (simulationThread && simulationThread->joinable())
+			simulationThread->join();
 	}
+
+    void PopulationControlWindow::runSimulation(const std::shared_ptr<dnf_composer::Simulation>& simulation)
+    {
+        simulation->init();
+        do
+        {
+	        simulation->step();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        } while (true);
+    }
+
 }

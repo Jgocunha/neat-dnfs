@@ -58,6 +58,8 @@ set(header
 "include/ui_windows/population_control_window.h"
 
 "include/tools/logger.h"
+
+"include/simulate_behaviour_wizard.h"
 )
 set(src 
 "src/neat/connection_gene.cpp"
@@ -74,6 +76,8 @@ set(src
 "src/ui_windows/population_control_window.cpp"
 
 "src/tools/logger.cpp"
+
+"src/simulate_behaviour_wizard.cpp"
 )
 
 # Library target definition

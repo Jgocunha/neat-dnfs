@@ -11,7 +11,7 @@ namespace neat_dnfs
 			throw std::invalid_argument("Number of input and output genes must be greater than 0");
 		parameters = SolutionParameters();
 		genome = Genome();
-		phenotype = Phenotype();
+		phenotype = Phenotype{ "simulation", 25, 0, 0 };
 	}
 
 	void Solution::initialize()

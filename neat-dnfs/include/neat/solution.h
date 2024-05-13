@@ -1,7 +1,7 @@
 #pragma once
 
-
 #include "genome.h"
+#include "simulate_behaviour_wizard.h"
 
 namespace neat_dnfs
 {

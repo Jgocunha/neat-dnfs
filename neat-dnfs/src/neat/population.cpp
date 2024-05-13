@@ -23,6 +23,7 @@ namespace neat_dnfs
 			reproduce();
 			upkeepBestSolution();
 			updateGenerationAndAges();
+			tools::logger::log(tools::logger::INFO, "Current generation: " + std::to_string(parameters.currentGeneration) + " Best fitness: " + std::to_string(bestSolution->getFitness()));
 		} while (!endConditionMet());
 	}
 

@@ -16,6 +16,7 @@ namespace neat_dnfs
 	{
 	private:
 		std::shared_ptr<std::thread> evolveThread;
+		std::shared_ptr<std::thread> simulationThread;
 		std::shared_ptr<dnf_composer::user_interface::SimulationWindow> simulationWindow;
 		std::shared_ptr<dnf_composer::user_interface::ElementWindow> elementWindow;
 		std::shared_ptr<dnf_composer::user_interface::FieldMetricsWindow> centroidMonitoringWindow;
@@ -32,5 +33,7 @@ namespace neat_dnfs
 		void renderSolutionInfo();
 		void renderPopulationMethods();
 		void renderShowBestSolution();
+
+		void runSimulation(const std::shared_ptr<dnf_composer::Simulation>& simulation);
 	};
 }

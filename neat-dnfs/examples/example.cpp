@@ -8,6 +8,7 @@
 
 #include "application/application.h"
 #include "tools/logger.h"
+#include "simulate_behaviour_wizard.h"
 
 int main(int argc, char* argv[])
 {
