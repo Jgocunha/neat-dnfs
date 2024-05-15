@@ -23,7 +23,14 @@ namespace neat_dnfs
 			reproduce();
 			upkeepBestSolution();
 			updateGenerationAndAges();
-			tools::logger::log(tools::logger::INFO, "Current generation: " + std::to_string(parameters.currentGeneration) + " Best fitness: " + std::to_string(bestSolution->getFitness()));
+			tools::logger::log(tools::logger::INFO, 
+				"Current generation: " + std::to_string(parameters.currentGeneration) + 
+				" Best fitness: " + std::to_string(bestSolution->getFitness()) + 
+				" Adjusted fitness: " + std::to_string(bestSolution->getParameters().adjustedFitness) +
+				" Number of species: " + std::to_string(speciesList.size()) +
+				" Number of solutions: " + std::to_string(solutions.size())
+			);
+
 		} while (!endConditionMet());
 	}
 
@@ -71,10 +78,10 @@ namespace neat_dnfs
 
 	void Population::mutate() const
 	{
-		for (const auto& solution : solutions)
+		/*for (const auto& solution : solutions)
 			solution->mutate();
 		for (const auto& solution : solutions)
-			solution->clearGenerationalInnovations();
+			solution->clearGenerationalInnovations();*/
 	}
 
 	void Population::upkeepBestSolution()
@@ -145,44 +152,54 @@ namespace neat_dnfs
 
 	void Population::calculateSpeciesOffspring()
 	{
-		double totalAdjustedFitness = 0;
-		for (const auto& species : speciesList)
-			totalAdjustedFitness += species.totalAdjustedFitness();
+		static constexpr double killRatio = 0.5;
+		static const int offspringPoolSize = static_cast<int>(parameters.size * killRatio);
 
-		// Adjust size to be half for offspring distribution
-		const int offspringPoolSize = parameters.size / 2;
-		double accumulatedOffspring = 0.0;
+		double totalAdjustedFitnessAcrossSpecies = 0.0;
+		for (const auto& species : speciesList)
+			totalAdjustedFitnessAcrossSpecies += species.totalAdjustedFitness();
 
 		for (auto& species : speciesList)
 		{
-			const double speciesProportion = species.totalAdjustedFitness() / totalAdjustedFitness;
-			const double exactOffspring = speciesProportion * offspringPoolSize;
-
-			// Accumulate the exact decimal offspring count to handle rounding error in final distribution
-			accumulatedOffspring += exactOffspring;
-			const auto roundedOffspring = static_cast<uint16_t>(round(exactOffspring));
-
-			species.setOffspringCount(roundedOffspring);
+			const double speciesProportion = species.totalAdjustedFitness() / totalAdjustedFitnessAcrossSpecies;
+			const auto exactOffspring = static_cast<uint16_t>(speciesProportion * offspringPoolSize);
+			species.setOffspringCount(exactOffspring);
 		}
 
-		// To ensure that the total offspring is exactly half of size, adjust the rounding error
-		const int totalRoundedOffspring = std::accumulate(speciesList.begin(), speciesList.end(), 0,
-			[](int sum, const auto& species) { return sum + species.getOffspringCount(); });
+		// Adjust offspring count to match the offspring pool size
+		int totalOffspringAcrossSpecies = 0.0;
+		for (const auto& species : speciesList)
+			totalOffspringAcrossSpecies += species.getOffspringCount();
 
-		if (totalRoundedOffspring != offspringPoolSize)
+		if(totalOffspringAcrossSpecies != offspringPoolSize)
 		{
-			int error = abs(static_cast<int>(offspringPoolSize) - totalRoundedOffspring);
-			do
+			const int error = totalOffspringAcrossSpecies - offspringPoolSize;
+			if(error > 0)
 			{
-				// select a random species to decrement offspring
-				const int randomIndex = rand() % speciesList.size();
-				if (speciesList[randomIndex].getOffspringCount() > 0)
+				for (int i = 0; i < error; i++)
 				{
+					const int randomIndex = rand() % speciesList.size();
+					//if (speciesList[randomIndex].getOffspringCount() > 0)
 					speciesList[randomIndex].setOffspringCount(speciesList[randomIndex].getOffspringCount() - 1);
-					--error;
 				}
-			} while (error > 0);
+			}
+			if (error < 0)
+			{
+				for (int i = 0; i < abs(error); i++)
+				{
+					const int randomIndex = rand() % speciesList.size();
+					speciesList[randomIndex].setOffspringCount(speciesList[randomIndex].getOffspringCount() + 1);
+				}
+			}
+			log(tools::logger::LogLevel::INFO, "Offspring pool size error: " + std::to_string(error) +
+				" Total offspring: " + std::to_string(totalOffspringAcrossSpecies) + 
+				" Offspring pool size: " + std::to_string(offspringPoolSize));
 		}
+
+		// log offspring count for each species
+		for (const auto& species : speciesList)
+			log(tools::logger::LogLevel::INFO, "Species: " + std::to_string(species.getId()) + 
+				" Offspring count: " + std::to_string(species.getOffspringCount()));
 	}
 
 	void Population::killLeastFitSolutions()
@@ -190,13 +207,14 @@ namespace neat_dnfs
 		std::vector<SolutionPtr> toRemove;
 
 		// Gather all solutions that need to be removed from each species
-		for (auto& species : speciesList) {
+		for (auto& species : speciesList) 
+		{
 			std::vector<SolutionPtr> removed = species.killLeastFitSolutions();
 			toRemove.insert(toRemove.end(), removed.begin(), removed.end());
 		}
 
 		// Remove dead solutions from the main population vector
-		auto newEnd = std::remove_if(solutions.begin(), solutions.end(),
+		const auto newEnd = std::remove_if(solutions.begin(), solutions.end(),
 			[&toRemove](const SolutionPtr& solution) {
 				return std::find(toRemove.begin(), toRemove.end(), solution) != toRemove.end();
 			});
@@ -208,12 +226,22 @@ namespace neat_dnfs
 	{
 		for (auto& species : speciesList)
 			species.crossover();
+		// Add offspring to the population
+		for (auto& species : speciesList)
+		{
+			const auto offspring = species.getOffspring();
+			for (const auto& solution : offspring)
+				solution->mutate();
+			for (const auto& solution : offspring)
+				solution->clearGenerationalInnovations();
+			solutions.insert(solutions.end(), offspring.begin(), offspring.end());
+		}
 	}
 
 	bool Population::endConditionMet() const
 	{
-		return parameters.currentGeneration > parameters.numGenerations || bestSolution->getFitness() > parameters.targetFitness;
+		const bool fitnessCondition = bestSolution->getFitness() > parameters.targetFitness;
+		const bool generationCondition = parameters.currentGeneration > parameters.numGenerations;
+		return fitnessCondition || generationCondition;
 	}
-
-
 }

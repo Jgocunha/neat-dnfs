@@ -67,15 +67,22 @@ namespace neat_dnfs
 	std::vector<SolutionPtr> Species::killLeastFitSolutions()
 	{
 		if (members.size() <= 2)
+		{
+			log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has " + std::to_string(members.size()) + " members. Killing none.");
 			return {};
+		}
 
 		std::vector<SolutionPtr> removed;
 
-		std::sort(members.begin(), members.end(), [](const SolutionPtr& a, const SolutionPtr& b) {
-			return a->getParameters().adjustedFitness > b->getParameters().adjustedFitness;  // higher is better
-			});
+		std::sort(members.begin(), members.end(), [](const SolutionPtr& a, const SolutionPtr& b)
+			{
+			return a->getParameters().fitness > b->getParameters().fitness;  // higher is better
+			}
+		); 
 
-		const size_t numSurvivors = members.size() / 2;
+		const size_t numSurvivors = members.size() - offspringCount;
+		log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has " + std::to_string(members.size()) + " members. Killing " 
+			+ std::to_string(numSurvivors) + " least fit members. Remaining: " + std::to_string(offspringCount));
 		removed.assign(members.begin() + numSurvivors, members.end());
 		members.erase(members.begin() + numSurvivors, members.end());
 
@@ -85,7 +92,7 @@ namespace neat_dnfs
 
 	void Species::crossover()
 	{
-		std::vector<SolutionPtr> offspring;
+		offspring.clear();
 		if(members.size() <= 1)
 		{
 			for (size_t i = 0; i < offspringCount; ++i)
@@ -103,7 +110,8 @@ namespace neat_dnfs
 				offspring.push_back(Solution::crossover(parent1, parent2));
 			}
 		}
-		members.insert(members.end(), offspring.begin(), offspring.end());
+		log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has " + std::to_string(members.size()) + " members. Created " + std::to_string(offspringCount) + " offspring.");
+		//members.insert(members.end(), offspring.begin(), offspring.end());
 	}
 
 }

@@ -80,7 +80,7 @@ namespace neat_dnfs
 
 	void TemplateSolution::runSimulation()
 	{
-		static constexpr int numIterations = 100;
+		static constexpr int numIterations = 200;
 
 		phenotype.init();
 		for (int i = 0; i < numIterations; ++i)
@@ -145,93 +145,53 @@ namespace neat_dnfs
 		phenotype.close();
 	}
 
-	//void TemplateSolution::updateFitness()
-	//{
-	//	using namespace dnf_composer::element;
-	//	std::map<std::string, std::vector<double>> expectedOutputFieldBumps;
-	//	expectedOutputFieldBumps["nf 3"] = { 50.0 }; // nf1 {25} * nf2 {25.0, 50.0, 75} = nf3 {50.0}
-	//	expectedOutputFieldBumps["nf 3"] = { 25.0 }; // nf1 {50} * nf2 {25.0, 50.0} = nf3 {25.0}
-	//	expectedOutputFieldBumps["nf 3"] = { }; // nf1 {75} * nf2 {25.0} = nf3 {}
-
-	//	// fitness function has to reward for:
-	//	// only one bump in the output field for each round of stimulus (or no bumps in the last scenario)
-	//	// the centroids of the bumps in the output field are close to the target centroid (+/- 5)
-	//	// the presence of bumps in the output field should be rewarded with the same weight (1/3)
-	//	// the bumps in the output field are not too wide (width < 10)
-	//	// the bumps in the output field are not too narrow (width > 5)
-	//	// the bumps in the output field are not too high (amplitude < 20)
-	//	// the bumps in the output field are not too low (amplitude > 5)
-	//	// parameters.fitness = ??;
-	//}
-
 	void TemplateSolution::updateFitness()
 	{
-		using namespace dnf_composer::element;
-		// Expected output mapping for different scenarios
-		std::map<std::string, std::vector<double>> expectedOutputFieldBumps;
-		//expectedOutputFieldBumps["nf 3"] = { {50.0}, {25.0}, {} }; // Correct expectations for three scenarios
-		expectedOutputFieldBumps["nf 3 1"] = { 50.0 }; // nf1 {25} * nf2 {25.0, 50.0, 75} = nf3 {50.0}
-		expectedOutputFieldBumps["nf 3 2"] = { 25.0 }; // nf1 {50} * nf2 {25.0, 50.0} = nf3 {25.0}
-		expectedOutputFieldBumps["nf 3 3"] = { }; // nf1 {75} * nf2 {25.0} = nf3 {}
+		// remove last element from outputFieldsBumps
+		outputFieldsBumps.pop_back();
 
-		double totalFitness = 0.0;
-		const double bumpPresenceWeight = 1.0 / 3.0; // Each part of the scenario contributes equally
-		const double centroidAccuracyThreshold = 5.0; // Within 5 units is considered accurate
-		const double widthMin = 5.0, widthMax = 10.0;
-		const double amplitudeMin = 5.0, amplitudeMax = 20.0;
+		static const std::vector<double> expectedCentroidPositions = { 50.0, 25.0, 0.0 };
+		static constexpr int targetNumBumps = 1;
+		static constexpr double targetBumpWidth = 5.0;
+		static constexpr double targetBumpAmplitude = 10.0;
 
-		for (size_t i = 0; i < outputFieldsBumps.size(); ++i) {
+		std::vector<double> fitnessValues = {0.0, 0.0, 0.0};
+		parameters.fitness = 0.0;
+
+		for (size_t i = 0; i < outputFieldsBumps.size(); ++i) 
+		{
 			const auto& observedBumps = outputFieldsBumps[i]["nf 3"];
-			const auto& expectedBumps = expectedOutputFieldBumps["nf 3 " + std::to_string(i)];
-
-			// Evaluate bump presence
-			if (expectedBumps.empty()) {
-				if (observedBumps.empty()) {
-					totalFitness += bumpPresenceWeight;
-				}
-				else {
-					totalFitness -= bumpPresenceWeight;
-				}
+			if(observedBumps.empty())
+			{
+				if (expectedCentroidPositions[i] == 0.0)
+					fitnessValues[i] = 1;
+				else
+					fitnessValues[i] = 0;
 			}
-			else {
-				if (observedBumps.size() == 1) {
-					totalFitness += bumpPresenceWeight;
-					const auto& bump = observedBumps.front();
+			else
+			{
+				const int numBumps = static_cast<int>(observedBumps.size());
+				//fitnessValues[i] += 1 - std::abs(numBumps - targetNumBumps);
+			//}
+			//if(!observedBumps.empty())
+			//{
+				const auto& bump = observedBumps.front();
+				const double centroidDifference = std::abs(bump.centroid - expectedCentroidPositions[i]);
+				const double widthDifference = std::abs(bump.width - targetBumpWidth);
+				const double amplitudeDifference = std::abs(bump.amplitude - targetBumpAmplitude);
 
-					// Evaluate centroid accuracy
-					if (std::abs(bump.centroid - expectedBumps[0]) <= centroidAccuracyThreshold) {
-						totalFitness += bumpPresenceWeight;
-					}
-					else {
-						totalFitness -= bumpPresenceWeight;
-					}
-
-					// Evaluate bump width
-					if (bump.width >= widthMin && bump.width <= widthMax) {
-						totalFitness += bumpPresenceWeight;
-					}
-					else {
-						totalFitness -= bumpPresenceWeight;
-					}
-
-					// Evaluate bump amplitude
-					if (bump.amplitude >= amplitudeMin && bump.amplitude <= amplitudeMax) {
-						totalFitness += bumpPresenceWeight;
-					}
-					else {
-						totalFitness -= bumpPresenceWeight;
-					}
-				}
-				else {
-					totalFitness -= 4 * bumpPresenceWeight; // Heavy penalty for wrong number of bumps
-				}
+				fitnessValues[i] += 1 / (1 + centroidDifference);
+				//fitnessValues[i] += 0.5 / (1 + widthDifference);
+				//fitnessValues[i] += 0.5 / (1 + amplitudeDifference);
 			}
 		}
 
-		// Normalize total fitness score
-		totalFitness = std::max(0.1, totalFitness); // Ensure fitness is not negative
-		parameters.fitness = totalFitness; // Store the computed fitness in a member variable
+		parameters.fitness = std::accumulate(fitnessValues.begin(), fitnessValues.end(), 0.0);
+
+		outputFieldsBumps.clear();
+		//parameters.fitness = 0.4;
 	}
+
 }
 
 

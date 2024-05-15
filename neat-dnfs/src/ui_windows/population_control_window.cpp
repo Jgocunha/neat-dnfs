@@ -139,7 +139,6 @@ namespace neat_dnfs
             visualization->addPlottingData("nf 1", "activation");
             visualization->addPlottingData("nf 2", "activation");
             visualization->addPlottingData("nf 3", "activation");
-            visualization->addPlottingData("nf 4", "activation");
 
             const auto plot = std::make_shared<dnf_composer::user_interface::PlotWindow>(visualization);
             plotWindows.push_back(plot);

@@ -151,3 +151,14 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
     dynamic-neural-field-composer 
     ${CMAKE_PROJECT_NAME}
 )
+
+# Main executable
+set(EXE_PROJECT_EXAMPLE ${CMAKE_PROJECT_NAME}-exe)
+add_executable(${EXE_PROJECT_EXAMPLE} "examples/neat_dnfs.cpp")
+target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
+target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE 
+    imgui::imgui 
+    imgui-platform-kit 
+    dynamic-neural-field-composer 
+    ${CMAKE_PROJECT_NAME}
+)

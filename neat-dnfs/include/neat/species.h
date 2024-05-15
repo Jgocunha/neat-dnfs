@@ -16,6 +16,7 @@ namespace neat_dnfs
         uint16_t offspringCount;
 		SolutionPtr representative;
 		std::vector<SolutionPtr> members;
+        std::vector<SolutionPtr> offspring;
     public:
         Species();
     	SolutionPtr getRepresentative() const;
@@ -29,10 +30,12 @@ namespace neat_dnfs
 
         size_t size() const { return members.size(); }
         double totalAdjustedFitness() const;
-        void setOffspringCount(uint16_t offspring) { offspringCount = offspring; }
+        void setOffspringCount(uint16_t count) { offspringCount = count; }
         uint16_t getOffspringCount() const { return offspringCount; }
 
         std::vector<SolutionPtr> killLeastFitSolutions();
+        std::vector<SolutionPtr> getOffspring() const { return offspring; }
+
 
         void crossover();
    };
