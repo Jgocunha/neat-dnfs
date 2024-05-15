@@ -10,7 +10,7 @@ namespace neat_dnfs
 		std::vector<std::map<std::string, std::vector<dnf_composer::element::NeuralFieldBump>>> outputFieldsBumps;
 
 	public:
-		TemplateSolution(const SolutionTopology& initialTopology);
+		TemplateSolution(const SolutionTopology& topology);
 
 		void evaluate() override;
 		SolutionPtr clone() const override;
@@ -20,9 +20,9 @@ namespace neat_dnfs
 
 
 		void addStimulus(const std::string& name, const double& position);
-		void removeStimulus();
 		void runSimulation();
-		void recordSimulationResults();
-		void updateFitness();
+		void removeStimulus();
+		/*void recordSimulationResults();*/
+		void updateFitness(double expectedOutput);
 	};
 }

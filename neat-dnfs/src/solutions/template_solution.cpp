@@ -2,8 +2,8 @@
 
 namespace neat_dnfs
 {
-	TemplateSolution::TemplateSolution(const SolutionTopology& initialTopology)
-		:Solution(initialTopology)
+	TemplateSolution::TemplateSolution(const SolutionTopology& topology)
+		:Solution(topology)
 	{
 	}
 
@@ -34,61 +34,33 @@ namespace neat_dnfs
 		using namespace dnf_composer;
 		using namespace dnf_composer::element;
 
-		std::map<std::string, std::vector<std::vector<double>>> inputFieldsBumpPositions;
-		inputFieldsBumpPositions["nf 1"] = { {25.0}, {50.0}, {75.0} };
-		inputFieldsBumpPositions["nf 2"] = { {25.0, 50.0, 75}, {25.0, 50.0}, {25.0} };
+		// XOR
+		// 0 0 -> 0
+		// 0 1 -> 1
+		// 1 0 -> 1
+		// 1 1 -> 0
 
-		static const ElementSpatialDimensionParameters dimension = { 100, 1 };
-		static constexpr double width = 5.0;
-		static constexpr double amplitude = 25.0;
-		static constexpr bool circular = false;
-		static constexpr bool normalize = false;
+		constexpr uint8_t numBehaviors = 4;
+		const std::vector<double> stimulusFieldA { 0.0, 0.0, 50.0, 50.0 };
+		const std::vector<double> stimulusFieldB { 0.0, 50.0, 0.0, 50.0 };
+		const std::vector<double> expectedOutput { 0.0, 50.0, 50.0, 0.0 };
+		std::vector<double> output(numBehaviors);
 
-		// Vector to store iterators for each vector in the map
-		std::vector<std::vector<std::vector<double>>::const_iterator> iterators;
-		// Initialize iterators for each vector in the map
-		for (const auto& entry : inputFieldsBumpPositions)
-			iterators.push_back(entry.second.begin());
-
-		// Loop through the vectors
-		bool moreData = true;
-		while (moreData)
+		parameters.fitness = 0.0;
+		for( uint8_t i = 0; i < numBehaviors; i++)
 		{
-			moreData = false; // Assume this is the last row unless proven otherwise
-
-			// Iterate over each iterator and output its current value
-			auto it = iterators.begin();
-			for (auto& entry : inputFieldsBumpPositions)
-			{
-				if (*it != entry.second.end())
-				{
-					for (const double val : **it)
-						addStimulus(entry.first, val);
-
-					// Check if there is more data
-					if (*it != entry.second.end()) moreData = true;
-					++(*it);  // Move to next element
-				}
-				++it;  // Move to next iterator
-			}
+			addStimulus("nf 1", stimulusFieldA[i]);
+			addStimulus("nf 2", stimulusFieldB[i]);
 			runSimulation();
-			recordSimulationResults();
+			updateFitness(expectedOutput[i]);
 			removeStimulus();
 		}
-		updateFitness();
 	}
 
-	void TemplateSolution::runSimulation()
+	void TemplateSolution::addStimulus(const std::string& name, const double& position)
 	{
-		static constexpr int numIterations = 200;
-
-		phenotype.init();
-		for (int i = 0; i < numIterations; ++i)
-			phenotype.step();
-	}
-
-	void TemplateSolution::addStimulus(const std::string & name, const double& position)
-	{
+		if (position < 0.1)
+			return;
 		using namespace dnf_composer;
 		using namespace dnf_composer::element;
 
@@ -108,6 +80,15 @@ namespace neat_dnfs
 		phenotype.createInteraction(gsId, "output", name);
 	}
 
+	void TemplateSolution::runSimulation()
+	{
+		static constexpr int numIterations = 1000;
+
+		phenotype.init();
+		for (int i = 0; i < numIterations; ++i)
+			phenotype.step();
+	}
+
 	void TemplateSolution::removeStimulus()
 	{
 		using namespace dnf_composer::element;
@@ -119,79 +100,39 @@ namespace neat_dnfs
 		}
 	}
 
-	void TemplateSolution::recordSimulationResults()
+	void TemplateSolution::updateFitness(double expectedOutput)
 	{
+		using namespace dnf_composer;
 		using namespace dnf_composer::element;
 
-		const std::vector<std::string> outputFieldsNames = { "nf 3" };
+		constexpr double targetBumpWidth = 5.0;
+		constexpr double targetBumpAmplitude = 10.0;
 
-		for (const auto& outputFieldName : outputFieldsNames)
+		const auto field = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement("nf 3"));
+		const auto fieldBumps = field->getBumps();
+
+		if(fieldBumps.empty())
 		{
-			const auto field =
-				std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(outputFieldName));
-			const auto fieldBumps = field->getBumps();
-			std::map<std::string, std::vector<NeuralFieldBump>> correspondingFieldBumps;
-			correspondingFieldBumps[outputFieldName] = fieldBumps;
-			outputFieldsBumps.push_back(correspondingFieldBumps);
-			//// log the bump centroids
-			//if (!fieldBumps.empty())
-			//{
-			//	std::string logMessage = "Bumps for field " + outputFieldName + ":";
-			//	for (const auto& bump : fieldBumps)
-			//		logMessage += " " + std::to_string(bump.centroid);
-			//	log(tools::logger::LogLevel::INFO, logMessage);
-			//}
-		}
-		phenotype.close();
-	}
-
-	void TemplateSolution::updateFitness()
-	{
-		// remove last element from outputFieldsBumps
-		outputFieldsBumps.pop_back();
-
-		static const std::vector<double> expectedCentroidPositions = { 50.0, 25.0, 0.0 };
-		static constexpr int targetNumBumps = 1;
-		static constexpr double targetBumpWidth = 5.0;
-		static constexpr double targetBumpAmplitude = 10.0;
-
-		std::vector<double> fitnessValues = {0.0, 0.0, 0.0};
-		parameters.fitness = 0.0;
-
-		for (size_t i = 0; i < outputFieldsBumps.size(); ++i) 
-		{
-			const auto& observedBumps = outputFieldsBumps[i]["nf 3"];
-			if(observedBumps.empty())
-			{
-				if (expectedCentroidPositions[i] == 0.0)
-					fitnessValues[i] = 1;
-				else
-					fitnessValues[i] = 0;
-			}
+			if (expectedOutput == 0.0)
+				parameters.fitness += 3.0;
 			else
-			{
-				const int numBumps = static_cast<int>(observedBumps.size());
-				//fitnessValues[i] += 1 - std::abs(numBumps - targetNumBumps);
-			//}
-			//if(!observedBumps.empty())
-			//{
-				const auto& bump = observedBumps.front();
-				const double centroidDifference = std::abs(bump.centroid - expectedCentroidPositions[i]);
-				const double widthDifference = std::abs(bump.width - targetBumpWidth);
-				const double amplitudeDifference = std::abs(bump.amplitude - targetBumpAmplitude);
-
-				fitnessValues[i] += 1 / (1 + centroidDifference);
-				//fitnessValues[i] += 0.5 / (1 + widthDifference);
-				//fitnessValues[i] += 0.5 / (1 + amplitudeDifference);
-			}
+				parameters.fitness += 0.0;
+			return;
 		}
+		if (fieldBumps.size() > 1)
+		{
+			parameters.fitness += 0.0;
+			return;
+		}
+		const auto& bump = fieldBumps.front();
+		const double centroidDifference = std::abs(bump.centroid - expectedOutput);
+		const double widthDifference = std::abs(bump.width - targetBumpWidth);
+		const double amplitudeDifference = std::abs(bump.amplitude - targetBumpAmplitude);
 
-		parameters.fitness = std::accumulate(fitnessValues.begin(), fitnessValues.end(), 0.0);
-
-		outputFieldsBumps.clear();
-		//parameters.fitness = 0.4;
+		parameters.fitness += 1 / (1 + centroidDifference);
+		parameters.fitness += 1 / (1 + widthDifference);
+		parameters.fitness += 1 / (1 + amplitudeDifference);
 	}
-
 }
 
 

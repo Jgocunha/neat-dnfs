@@ -13,10 +13,10 @@ namespace neat_dnfs
 		static constexpr double dx = 1.0;
 
 		const double randomSigmaBetween0And10 = 10.0 * (static_cast<double>(rand()) / RAND_MAX);
-		const double randomAmplitudeBetween0And10 = 10.0 * (static_cast<double>(rand()) / RAND_MAX);
+		const double randomAmplitudeBetweenMinus5And5 = 10.0 * (static_cast<double>(rand()) / RAND_MAX) - 5.0;
 
 		const GaussKernelParameters gkp{ randomSigmaBetween0And10,
-			randomAmplitudeBetween0And10,
+			randomAmplitudeBetweenMinus5And5,
 			circularity, normalization };
 		const ElementCommonParameters gkcp{ "gk cg " + std::to_string(connectionTuple.inFieldGeneId) + 
 			" - " + std::to_string(connectionTuple.outFieldGeneId), {xSize, dx} };
@@ -53,7 +53,7 @@ namespace neat_dnfs
 		const double amplitudeMutation = 
 			0.5 * (2.0 * (static_cast<double>(rand()) / RAND_MAX) - 1.0); 
 		gkp.amplitude += amplitudeMutation;
-		gkp.amplitude = std::max(0.0, std::min(10.0, gkp.amplitude)); 
+		gkp.amplitude = std::max(-10.0, std::min(10.0, gkp.amplitude)); 
 
 		const ElementCommonParameters gkcp = kernel->getElementCommonParameters();
 		kernel = std::make_shared<GaussKernel>(gkcp, gkp);

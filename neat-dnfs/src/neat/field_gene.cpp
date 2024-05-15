@@ -91,6 +91,9 @@ namespace neat_dnfs
 
 	void FieldGene::mutate() const
 	{
+		if (parameters.type == FieldGeneType::INPUT)
+			return;
+
 		using namespace dnf_composer::element;
 
 		GaussKernelParameters gkp = 

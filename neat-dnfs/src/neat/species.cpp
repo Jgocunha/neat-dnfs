@@ -5,7 +5,6 @@ namespace neat_dnfs
 	Species::Species()
 	{
 		id = currentSpeciesId++;
-		offspringCount = 0;
 	}
 
 	std::shared_ptr<Solution> Species::getRepresentative() const
@@ -64,54 +63,74 @@ namespace neat_dnfs
 		return total;
 	}
 
-	std::vector<SolutionPtr> Species::killLeastFitSolutions()
+	void Species::killLeastFitSolution()
 	{
-		if (members.size() <= 2)
-		{
-			log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has " + std::to_string(members.size()) + " members. Killing none.");
-			return {};
-		}
+		if (members.empty())
+			return;
 
-		std::vector<SolutionPtr> removed;
-
-		std::sort(members.begin(), members.end(), [](const SolutionPtr& a, const SolutionPtr& b)
-			{
-			return a->getParameters().fitness > b->getParameters().fitness;  // higher is better
-			}
-		); 
-
-		const size_t numSurvivors = members.size() - offspringCount;
-		log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has " + std::to_string(members.size()) + " members. Killing " 
-			+ std::to_string(numSurvivors) + " least fit members. Remaining: " + std::to_string(offspringCount));
-		removed.assign(members.begin() + numSurvivors, members.end());
-		members.erase(members.begin() + numSurvivors, members.end());
-
-		return removed;
+		sortSolutionsByFitness();
+		members.pop_back();
 	}
 
-
-	void Species::crossover()
+	void Species::updateRepresentative()
 	{
-		offspring.clear();
-		if(members.size() <= 1)
+		representative = getMostFitSolution();
+	}
+
+	void Species::calculateAdjustedFitness() const
+	{
+		for (const auto& member : members)
 		{
-			for (size_t i = 0; i < offspringCount; ++i)
-			{
-				const SolutionPtr parent1 = members[rand() % members.size()];
-				offspring.push_back(parent1);
-			}
+			const double adjustedFitness = 
+				member->getParameters().fitness / static_cast<double>(members.size());
+			member->setAdjustedFitness(adjustedFitness);
 		}
-		else
+	}
+
+	SolutionPtr Species::getLeastFitSolution() const
+	{
+		if (members.empty())
+			return nullptr;
+
+		SolutionPtr leastFit = members.front();
+		for (const auto& member : members)
 		{
-			for (size_t i = 0; i < offspringCount; ++i)
-			{
-				const SolutionPtr parent1 = members[rand() % members.size()];
-				const SolutionPtr parent2 = members[rand() % members.size()];
-				offspring.push_back(Solution::crossover(parent1, parent2));
-			}
+			if (member->getParameters().fitness < leastFit->getParameters().fitness)
+				leastFit = member;
 		}
-		log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has " + std::to_string(members.size()) + " members. Created " + std::to_string(offspringCount) + " offspring.");
-		//members.insert(members.end(), offspring.begin(), offspring.end());
+
+		return leastFit;
+	}
+
+	SolutionPtr Species::getMostFitSolution() const
+	{
+		if (members.empty())
+			return nullptr;
+
+		SolutionPtr mostFit = members.front();
+		for (const auto& member : members)
+		{
+			if (member->getParameters().fitness > mostFit->getParameters().fitness)
+				mostFit = member;
+		}
+
+		return mostFit;
+	}
+
+	SolutionPtr Species::getRandomSolution() const
+	{
+		if (members.empty())
+			return nullptr;
+
+		return members[rand() % members.size()];
+	}
+
+	void Species::sortSolutionsByFitness()
+	{
+		std::sort(members.begin(), members.end(), [](const SolutionPtr& a, const SolutionPtr& b)
+		{
+			return a->getParameters().fitness > b->getParameters().fitness;  // higher is better
+		});
 	}
 
 }

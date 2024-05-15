@@ -4,6 +4,16 @@
 
 namespace neat_dnfs
 {
+	SolutionTopology::SolutionTopology(int numInputGenes, int numOutputGenes, int numHiddenGenes, int numConnections)
+		: numInputGenes(numInputGenes), numOutputGenes(numOutputGenes),
+		numHiddenGenes(numHiddenGenes), numConnections(numConnections)
+	{}
+
+	SolutionParameters::SolutionParameters(double fitness, double adjustedFitness, int age)
+		: fitness(fitness), adjustedFitness(adjustedFitness),
+		reproductionProbability(0.0), age(age)
+	{}
+
 	Solution::Solution(const SolutionTopology& initialTopology)
 		:initialTopology(initialTopology)
 	{
@@ -11,7 +21,7 @@ namespace neat_dnfs
 			throw std::invalid_argument("Number of input and output genes must be greater than 0");
 		parameters = SolutionParameters();
 		genome = Genome();
-		phenotype = Phenotype{ "simulation", 25, 0, 0 };
+		phenotype = Phenotype{ "simulation", 1, 0, 0 };
 	}
 
 	void Solution::initialize()
@@ -46,9 +56,14 @@ namespace neat_dnfs
 		return parameters.fitness;
 	}
 
-	int Solution::getGenomeSize() const
+	size_t Solution::getGenomeSize() const
 	{
 		return genome.getConnectionGenes().size();
+	}
+
+	std::vector<uint16_t> Solution::getInnovationNumbers() const
+	{
+		return genome.getInnovationNumbers();
 	}
 
 	void Solution::clearGenerationalInnovations() const
@@ -56,9 +71,14 @@ namespace neat_dnfs
 		genome.clearGenerationalInnovations();
 	}
 
-	std::vector<uint16_t> Solution::getInnovationNumbers() const
+	void Solution::incrementAge()
 	{
-		return genome.getInnovationNumbers();
+		parameters.age++;
+	}
+
+	void Solution::setAdjustedFitness(double adjustedFitness)
+	{
+		parameters.adjustedFitness = adjustedFitness;
 	}
 
 	void Solution::buildPhenotype()
@@ -111,16 +131,6 @@ namespace neat_dnfs
 		}
 	}
 
-
-	void Solution::incrementAge()
-	{
-		parameters.age++;
-	}
-
-	void Solution::setAdjustedFitness(double adjustedFitness)
-	{
-		parameters.adjustedFitness = adjustedFitness;
-	}
 
 	SolutionPtr Solution::crossover(const SolutionPtr& parent1, const SolutionPtr& parent2)
 	{
