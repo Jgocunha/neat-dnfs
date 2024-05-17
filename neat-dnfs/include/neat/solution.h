@@ -47,7 +47,7 @@ namespace neat_dnfs
 
 		void initialize();
 		void mutate();
-		Phenotype getPhenotype() const;
+		Phenotype getPhenotype();
 		Genome getGenome() const;
 		SolutionParameters getParameters() const;
 		double getFitness() const;

@@ -138,7 +138,7 @@ namespace neat_dnfs
             const auto visualization = createVisualization(simulation);
             visualization->addPlottingData("nf 1", "activation");
             visualization->addPlottingData("nf 2", "activation");
-            visualization->addPlottingData("nf 3", "activation");
+            //visualization->addPlottingData("nf 3", "activation");
 
             const auto plot = std::make_shared<dnf_composer::user_interface::PlotWindow>(visualization);
             plotWindows.push_back(plot);
@@ -172,7 +172,7 @@ namespace neat_dnfs
         do
         {
 	        simulation->step();
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			std::this_thread::sleep_for(std::chrono::milliseconds(5));
         } while (true);
     }
 

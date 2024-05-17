@@ -35,7 +35,7 @@ namespace neat_dnfs
 			HeavisideFunction{0.0}};
 		const ElementCommonParameters nfcp{ "nf " + 
 			std::to_string(parameters.id), {xSize, dx} };
-		const GaussKernelParameters gkp{ 2, 1,
+		const GaussKernelParameters gkp{ 1, 3,
 			circularity, normalization };
 		const ElementCommonParameters gkcp{ "gk " + 
 			std::to_string(parameters.id), {xSize, dx} };

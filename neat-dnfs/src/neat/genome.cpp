@@ -92,9 +92,13 @@ namespace neat_dnfs
 			geneIndex2 = dis(gen);
 		} while (geneIndex2 == geneIndex1);
 
-		// if gene with index 2 is an input gene return
+		// if gene with index 2 is an input gene swap the indices
 		if (fieldGenes[geneIndex2 - 1].getParameters().type == FieldGeneType::INPUT)
-			return {0,0};
+		{
+			const uint16_t temp = geneIndex1;
+			geneIndex1 = geneIndex2;
+			geneIndex2 = temp;
+		}
 
 		// If a connection gene between the two genes already exists, return
 		if (std::find_if(connectionGenes.begin(), connectionGenes.end(),

@@ -21,7 +21,7 @@ namespace neat_dnfs
 			throw std::invalid_argument("Number of input and output genes must be greater than 0");
 		parameters = SolutionParameters();
 		genome = Genome();
-		phenotype = Phenotype{ "simulation", 1, 0, 0 };
+		phenotype = Phenotype{ "simulation", 10, 0, 0 };
 	}
 
 	void Solution::initialize()
@@ -36,8 +36,9 @@ namespace neat_dnfs
 		genome.mutate();
 	}
 
-	Phenotype Solution::getPhenotype() const
+	Phenotype Solution::getPhenotype()
 	{
+		buildPhenotype();
 		return phenotype;
 	}
 
@@ -83,6 +84,10 @@ namespace neat_dnfs
 
 	void Solution::buildPhenotype()
 	{
+		phenotype.close();
+		for (auto const& element : phenotype.getElements())
+			phenotype.removeElement(element->getUniqueName());
+
 		translateGenesToPhenotype();
 		translateConnectionGenesToPhenotype();
 	}
@@ -103,8 +108,13 @@ namespace neat_dnfs
 	{
 		for (auto const& gene : genome.getFieldGenes())
 		{
-			const auto nf = gene.getNeuralField();
+			//const auto nf = gene.getNeuralField();
 			const auto kernel = gene.getKernel();
+			const auto nfcp = gene.getNeuralField()->getElementCommonParameters();
+			const auto nfp = gene.getNeuralField()->getParameters();
+			const auto nf = std::make_shared<dnf_composer::element::NeuralField>( nfcp, nfp );
+			//const auto kcp = gene.getKernel()->getElementCommonParameters();
+			//const auto kfp = gene.getKernel()->
 			phenotype.addElement(nf);
 			phenotype.addElement(kernel);
 			phenotype.createInteraction(nf->getUniqueName(), "output", kernel->getUniqueName());
