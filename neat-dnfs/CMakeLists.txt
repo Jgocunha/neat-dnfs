@@ -60,6 +60,7 @@ set(header
 "include/tools/logger.h"
 
 "include/simulate_behaviour_wizard.h"
+"include/constants.h"
 )
 set(src 
 "src/neat/connection_gene.cpp"
@@ -162,3 +163,20 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
     dynamic-neural-field-composer 
     ${CMAKE_PROJECT_NAME}
 )
+
+# Setup Catch2
+enable_testing()
+find_package(Catch2 CONFIG REQUIRED)
+include(CTest)
+include(Catch)
+
+# Add test project
+set(TEST_PROJECT ${CMAKE_PROJECT_NAME}-test)
+add_executable(${TEST_PROJECT} 
+    "tests/entry.cpp" 
+    "tests/test_field_gene.cpp" 
+)
+target_include_directories(${TEST_PROJECT} PRIVATE include)
+target_link_libraries(${TEST_PROJECT} PRIVATE Catch2::Catch2 Catch2::Catch2WithMain imgui-platform-kit  dynamic-neural-field-composer ${CMAKE_PROJECT_NAME})
+# Automatically discover and add tests
+catch_discover_tests(${TEST_PROJECT})

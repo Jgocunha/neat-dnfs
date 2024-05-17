@@ -1,12 +1,14 @@
 #pragma once
 
 #include <elements/element_factory.h>
-
+#include "constants.h"
 
 namespace neat_dnfs
 {
 	typedef std::shared_ptr<dnf_composer::element::NeuralField> NeuralFieldPtr;
 	typedef std::shared_ptr<dnf_composer::element::Kernel> KernelPtr;
+
+	static uint16_t currentFieldGeneId = 1;
 
 	enum class FieldGeneType
 	{
@@ -20,8 +22,8 @@ namespace neat_dnfs
 		FieldGeneType type;
 		uint16_t id;
 
-		FieldGeneParameters(FieldGeneType type, uint16_t id)
-			: type(type), id(id)
+		FieldGeneParameters(FieldGeneType type)
+			: type(type), id(currentFieldGeneId++)
 		{}
 	};
 

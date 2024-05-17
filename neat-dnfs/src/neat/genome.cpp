@@ -7,15 +7,15 @@ namespace neat_dnfs
 	void Genome::addInputGene()
 	{
 		const auto index = fieldGenes.size() + 1;
-		fieldGenes.push_back(FieldGene({FieldGeneType::INPUT,
-			static_cast<uint16_t>(index) }));
+		//fieldGenes.push_back(FieldGene({FieldGeneType::INPUT,
+		//	static_cast<uint16_t>(index) }));
 	}
 
 	void Genome::addOutputGene()
 	{
 		const auto index = fieldGenes.size() + 1;
-		fieldGenes.push_back(FieldGene({ FieldGeneType::OUTPUT,
-			static_cast<uint16_t>(index) }));
+		//fieldGenes.push_back(FieldGene({ FieldGeneType::OUTPUT,
+		//	static_cast<uint16_t>(index) }));
 	}
 
 	void Genome::addRandomInitialConnectionGene()
@@ -175,8 +175,8 @@ namespace neat_dnfs
 			std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
 
 		const auto index = fieldGenes.size() + 1;
-		fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN,
-			static_cast<uint16_t>(index) }));
+		//fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN,
+			//static_cast<uint16_t>(index) }));
 
 		// create two new connection genes
 		const auto connectionGeneKernelParametersIn = 
