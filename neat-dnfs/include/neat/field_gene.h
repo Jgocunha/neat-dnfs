@@ -5,10 +5,7 @@
 
 namespace neat_dnfs
 {
-	typedef std::shared_ptr<dnf_composer::element::NeuralField> NeuralFieldPtr;
-	typedef std::shared_ptr<dnf_composer::element::Kernel> KernelPtr;
-
-	static uint16_t currentFieldGeneId = 1;
+	static uint16_t currentFieldGeneId = 0;
 
 	enum class FieldGeneType
 	{
