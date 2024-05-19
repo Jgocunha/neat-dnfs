@@ -19,7 +19,6 @@ namespace neat_dnfs
 		fieldGenes.emplace_back(FieldGeneType::HIDDEN);
 	}
 
-
 	void Genome::addRandomInitialConnectionGene()
 	{
 		if (fieldGenes.size() < 2)
@@ -125,7 +124,7 @@ namespace neat_dnfs
 		if (geneIds.empty())
 			return 0;
 
-		const double randomValue = dnf_composer::tools::utils::generateRandomNumber(0, static_cast<int>(geneIds.size()) + 1);
+		const double randomValue = dnf_composer::tools::utils::generateRandomNumber(0, static_cast<int>(geneIds.size()));
 
 		return geneIds[static_cast<int>(randomValue)];
 	}
@@ -142,7 +141,7 @@ namespace neat_dnfs
 		if (geneIds.empty())
 			return 0;
 
-		const double randomValue = dnf_composer::tools::utils::generateRandomNumber(0, static_cast<int>(geneIds.size()) + 1);
+		const double randomValue = dnf_composer::tools::utils::generateRandomNumber(0, static_cast<int>(geneIds.size()));
 
 		return geneIds[static_cast<int>(randomValue)];
 	}

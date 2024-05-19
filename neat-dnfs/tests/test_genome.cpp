@@ -30,17 +30,22 @@ TEST_CASE("Add Genes", "[Genome]")
 
 TEST_CASE("Add Random Initial Connection Gene", "[Genome]")
 {
-    Genome genome;
+    constexpr uint8_t attempts = 100;
 
-    genome.addInputGene();
-    genome.addOutputGene();
+    for (uint8_t i = 0; i < attempts; ++i)
+	{
+		Genome genome;
 
-    genome.addRandomInitialConnectionGene();
+		genome.addInputGene();
+		genome.addOutputGene();
 
-    const auto connectionGenes = genome.getConnectionGenes();
-    REQUIRE(connectionGenes.size() == 1);
-    REQUIRE(connectionGenes[0].getParameters().connectionTuple.inFieldGeneId != 0);
-    REQUIRE(connectionGenes[0].getParameters().connectionTuple.outFieldGeneId != 0);
+		genome.addRandomInitialConnectionGene();
+
+		const auto connectionGenes = genome.getConnectionGenes();
+		REQUIRE(connectionGenes.size() == 1);
+		REQUIRE(connectionGenes[0].getParameters().connectionTuple.inFieldGeneId != 0);
+		REQUIRE(connectionGenes[0].getParameters().connectionTuple.outFieldGeneId != 0);
+	}
 }
 
 TEST_CASE("Mutate Genome", "[Genome]")
@@ -62,17 +67,18 @@ TEST_CASE("Excess Genes", "[Genome]")
 
     genome1.addInputGene();
     genome1.addOutputGene();
-    genome1.addRandomInitialConnectionGene();
+    genome1.addRandomInitialConnectionGene(); // Innovation number 1
 
     genome2.addInputGene();
     genome2.addOutputGene();
-    genome2.addRandomInitialConnectionGene();
+    genome2.addRandomInitialConnectionGene(); // Innovation number 2
 
     genome2.addHiddenGene();
-    genome2.addRandomInitialConnectionGene();
+    genome2.addRandomInitialConnectionGene(); // Innovation number 3
 
+    // E = 2 && 3
     const int excess = genome1.excessGenes(genome2);
-    REQUIRE(excess >= 0);
+    REQUIRE(excess == 2);
 }
 
 TEST_CASE("Disjoint Genes", "[Genome]")
@@ -82,17 +88,20 @@ TEST_CASE("Disjoint Genes", "[Genome]")
 
     genome1.addInputGene();
     genome1.addOutputGene();
-    genome1.addRandomInitialConnectionGene();
+    genome1.addRandomInitialConnectionGene(); // Innovation number 1
+    genome1.addHiddenGene();
+    genome1.addRandomInitialConnectionGene(); // Innovation number 2
 
     genome2.addInputGene();
     genome2.addOutputGene();
-    genome2.addRandomInitialConnectionGene();
+    genome2.addRandomInitialConnectionGene(); // Innovation number 3
 
     genome2.addHiddenGene();
-    genome2.addRandomInitialConnectionGene();
+    genome2.addRandomInitialConnectionGene(); // Innovation number 4
 
+    // D = 1 && 2
     const int disjoint = genome1.disjointGenes(genome2);
-    REQUIRE(disjoint >= 0);
+    REQUIRE(disjoint == 2);
 }
 
 TEST_CASE("Average Connection Difference", "[Genome]")
