@@ -28,7 +28,12 @@ namespace neat_dnfs
 		const auto inGeneId = getRandomGeneIdByType(FieldGeneType::INPUT);
 		const auto outGeneId = getRandomGeneIdByType(FieldGeneType::OUTPUT);
 
-		connectionGenes.push_back(ConnectionTuple{ inGeneId, outGeneId });
+		if (inGeneId == -1 || outGeneId == -1)
+			throw std::invalid_argument(
+			"Could not find input and output genes to add a connection gene.");
+
+		connectionGenes.push_back(ConnectionTuple{ static_cast<uint16_t>(inGeneId), 
+			static_cast<uint16_t>(outGeneId)});
 	}
 
 	void Genome::mutate()
@@ -93,11 +98,15 @@ namespace neat_dnfs
 
 	ConnectionTuple Genome::getNewRandomConnectionGeneTuple() const
 	{
-		uint16_t geneIndex1 = getRandomGeneIdByTypes({ FieldGeneType::HIDDEN, FieldGeneType::INPUT });
+		int geneIndex1 = getRandomGeneIdByTypes({ FieldGeneType::HIDDEN, FieldGeneType::INPUT });
+		if (geneIndex1 == -1)
+			return { 0, 0 };
 
-		uint16_t geneIndex2;
+		int geneIndex2;
 		do {
 			geneIndex2 = getRandomGeneIdByTypes({ FieldGeneType::HIDDEN, FieldGeneType::OUTPUT });
+			if (geneIndex2 == -1)
+				return { 0, 0 };
 		} while (geneIndex2 == geneIndex1);
 
 		if (std::ranges::find_if(connectionGenes, [geneIndex1, geneIndex2](const ConnectionGene& connectionGene)
@@ -109,10 +118,10 @@ namespace neat_dnfs
 			return { 0, 0 };
 		}
 
-		return { geneIndex1, geneIndex2 };
+		return { static_cast<uint16_t>(geneIndex1), static_cast<uint16_t>(geneIndex2) };
 	}
 
-	uint16_t Genome::getRandomGeneIdByType(FieldGeneType type) const
+	int Genome::getRandomGeneIdByType(FieldGeneType type) const
 	{
 		std::vector<uint16_t> geneIds;
 		for (const auto& gene : fieldGenes)
@@ -122,14 +131,14 @@ namespace neat_dnfs
 		}
 
 		if (geneIds.empty())
-			return 0;
+			return -1;
 
-		const double randomValue = dnf_composer::tools::utils::generateRandomNumber(0, static_cast<int>(geneIds.size()));
+		const int randomValue = dnf_composer::tools::utils::generateRandomNumber(0, static_cast<int>(geneIds.size()));
 
-		return geneIds[static_cast<int>(randomValue)];
+		return geneIds[randomValue];
 	}
 
-	uint16_t Genome::getRandomGeneIdByTypes(const std::vector<FieldGeneType>& types) const
+	int Genome::getRandomGeneIdByTypes(const std::vector<FieldGeneType>& types) const
 	{
 		std::vector<uint16_t> geneIds;
 		for (const auto& gene : fieldGenes)
@@ -139,11 +148,11 @@ namespace neat_dnfs
 		}
 
 		if (geneIds.empty())
-			return 0;
+			return -1;
 
-		const double randomValue = dnf_composer::tools::utils::generateRandomNumber(0, static_cast<int>(geneIds.size()));
+		const int randomValue = dnf_composer::tools::utils::generateRandomNumber(0, static_cast<int>(geneIds.size()));
 
-		return geneIds[static_cast<int>(randomValue)];
+		return geneIds[randomValue];
 	}
 
 	ConnectionGene Genome::getEnabledConnectionGene() const
@@ -158,7 +167,7 @@ namespace neat_dnfs
 		if (enabledConnectionGenes.empty())
 			return ConnectionGene{ {0, 0}};
 
-		const double randomValue = dnf_composer::tools::utils::generateRandomNumber(0, static_cast<int>(enabledConnectionGenes.size()) + 1);
+		const double randomValue = dnf_composer::tools::utils::generateRandomNumber(0, static_cast<int>(enabledConnectionGenes.size()));
 
 		return enabledConnectionGenes[static_cast<int>(randomValue)];
 	}
@@ -184,6 +193,8 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 
 		auto randEnabledConnectionGene = getEnabledConnectionGene();
+		if (randEnabledConnectionGene.getParameters().connectionTuple == ConnectionTuple{0, 0})
+			return;
 		randEnabledConnectionGene.disable();
 
 		const auto inGeneId= randEnabledConnectionGene.getParameters().connectionTuple.inFieldGeneId;
@@ -213,8 +224,11 @@ namespace neat_dnfs
 
 	void Genome::mutateGene() const
 	{
-		const auto geneId = getRandomGeneIdByType(FieldGeneType::HIDDEN);
-		fieldGenes[geneId].mutate();
+		const int geneId = getRandomGeneIdByType(FieldGeneType::HIDDEN);
+		if (geneId == -1)
+			return;
+		const auto gene = getFieldGeneById(static_cast<uint16_t>(geneId));
+		gene.mutate();
 	}
 
 	void Genome::addConnectionGene()
@@ -388,6 +402,20 @@ namespace neat_dnfs
 		if (it == connectionGenes.end())
 			throw std::invalid_argument("Connection gene with the specified innovation number " +
 				std::to_string(innovationNumber) + " does not exist.");
+
+		return *it;
+	}
+
+	FieldGene Genome::getFieldGeneById(uint16_t id) const
+	{
+		const auto it = std::ranges::find_if(fieldGenes, [id](const FieldGene& fieldGene)
+			{
+				return fieldGene.getParameters().id == id;
+			});
+
+		if (it == fieldGenes.end())
+			throw std::invalid_argument("Field gene with the specified id " +
+				std::to_string(id) + " does not exist.");
 
 		return *it;
 	}

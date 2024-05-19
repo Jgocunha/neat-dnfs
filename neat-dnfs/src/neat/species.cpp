@@ -107,7 +107,7 @@ namespace neat_dnfs
 			{
 				const SolutionPtr parent1 = members[rand() % members.size()];
 				const SolutionPtr parent2 = members[rand() % members.size()];
-				offspring.push_back(Solution::crossover(parent1, parent2));
+				//offspring.push_back(Solution::crossover(parent1, parent2));
 			}
 		}
 		log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has " + std::to_string(members.size()) + " members. Created " + std::to_string(offspringCount) + " offspring.");

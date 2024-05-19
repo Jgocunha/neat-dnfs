@@ -1,17 +1,16 @@
 #include "neat/solution.h"
 
-#include "solutions/template_solution.h" // this should not be here
-
 namespace neat_dnfs
 {
 	Solution::Solution(const SolutionTopology& initialTopology)
-		:initialTopology(initialTopology)
+		: initialTopology(initialTopology),
+		parameters(),
+		phenotype(SimulationConstants::name, SimulationConstants::deltaT),
+		genome()
 	{
-		if (initialTopology.numInputGenes < 1 || initialTopology.numOutputGenes < 1)
+		if (initialTopology.numInputGenes < SolutionConstants::minInitialInputGenes ||
+			initialTopology.numOutputGenes < SolutionConstants::minInitialOutputGenes)
 			throw std::invalid_argument("Number of input and output genes must be greater than 0");
-		parameters = SolutionParameters();
-		genome = Genome();
-		phenotype = Phenotype{ "simulation", 25, 0, 0 };
 	}
 
 	void Solution::initialize()
@@ -19,6 +18,14 @@ namespace neat_dnfs
 		createInputGenes();
 		createOutputGenes();
 		createRandomInitialConnectionGenes();
+	}
+
+
+	void Solution::createRandomInitialConnectionGenes()
+	{
+		for (int i = 0; i < initialTopology.numInputGenes * initialTopology.numOutputGenes; ++i)
+			if (dnf_composer::tools::utils::generateRandomNumber(0.0, 1.0) < SolutionConstants::initialConnectionProbability)
+				genome.addRandomInitialConnectionGene();
 	}
 
 	void Solution ::mutate()
@@ -46,13 +53,14 @@ namespace neat_dnfs
 		return parameters.fitness;
 	}
 
-	int Solution::getGenomeSize() const
+	size_t Solution::getGenomeSize() const
 	{
 		return genome.getConnectionGenes().size();
 	}
 
 	void Solution::clearGenerationalInnovations() const
 	{
+		// static member accessed through instance - readability?
 		genome.clearGenerationalInnovations();
 	}
 
@@ -111,7 +119,6 @@ namespace neat_dnfs
 		}
 	}
 
-
 	void Solution::incrementAge()
 	{
 		parameters.age++;
@@ -120,34 +127,6 @@ namespace neat_dnfs
 	void Solution::setAdjustedFitness(double adjustedFitness)
 	{
 		parameters.adjustedFitness = adjustedFitness;
-	}
-
-	SolutionPtr Solution::crossover(const SolutionPtr& parent1, const SolutionPtr& parent2)
-	{
-		const SolutionPtr moreFitParent = parent1->getFitness() > parent2->getFitness() ? parent1 : parent2;
-		const SolutionPtr lessFitParent = parent1->getFitness() > parent2->getFitness() ? parent2 : parent1;
-
-		SolutionPtr offspring = std::make_shared<TemplateSolution>(moreFitParent->initialTopology);
-
-		for (const auto& gene : moreFitParent->getGenome().getFieldGenes())
-			offspring->addFieldGene(gene);
-
-		const auto& parentConnectionGenes = moreFitParent->getGenome().getConnectionGenes();
-		for(const auto& gene : parentConnectionGenes)
-		{
-			if (lessFitParent->containsConnectionGene(gene))
-			{
-				const auto lessFitGene = lessFitParent->getGenome().getConnectionGeneByInnovationNumber(gene.getInnovationNumber());
-				if (rand() % 2 == 0)
-					offspring->addConnectionGene(gene);
-				else
-					offspring->addConnectionGene(lessFitGene);
-			}
-			else
-				offspring->addConnectionGene(gene);
-		}
-
-		return offspring;
 	}
 
 	void Solution::addFieldGene(const FieldGene& gene)

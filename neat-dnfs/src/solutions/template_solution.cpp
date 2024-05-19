@@ -21,13 +21,7 @@ namespace neat_dnfs
 		evaluatePhenotype();
 	}
 
-	void TemplateSolution::createRandomInitialConnectionGenes()
-	{
-		static constexpr double connectionProbability = 0.0;
-		for(int i = 0; i < initialTopology.numInputGenes * initialTopology.numOutputGenes; ++i)
-			if(dnf_composer::tools::utils::generateRandomNumber(0.0, 1.0) < connectionProbability)
-				genome.addRandomInitialConnectionGene();
-	}
+	
 
 	void TemplateSolution::evaluatePhenotype()
 	{

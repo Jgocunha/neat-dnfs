@@ -73,5 +73,20 @@ namespace neat_dnfs
 	};
 
 
+	struct SimulationConstants
+	{
+		static constexpr std::string name = "simulation";
+		static constexpr double deltaT = 25.0;
+
+	};
+
+	struct SolutionConstants
+	{
+		static constexpr uint8_t minInitialInputGenes = 1;
+		static constexpr uint8_t minInitialOutputGenes = 1;
+		static constexpr double initialConnectionProbability = 0.0;
+	};
+
+
 
 }

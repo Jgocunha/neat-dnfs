@@ -1,5 +1,7 @@
 #pragma once
 
+#include <tools/utils.h>
+
 #include "genome.h"
 #include "simulate_behaviour_wizard.h"
 
@@ -35,7 +37,7 @@ namespace neat_dnfs
 		{}
 	};
 
-	class Solution
+	class Solution : public std::enable_shared_from_this<Solution>
 	{
 	protected:
 		SolutionTopology initialTopology;
@@ -55,7 +57,7 @@ namespace neat_dnfs
 		Genome getGenome() const;
 		SolutionParameters getParameters() const;
 		double getFitness() const;
-		int getGenomeSize() const;
+		size_t getGenomeSize() const;
 		std::vector<uint16_t> getInnovationNumbers() const;
 
 		void clearGenerationalInnovations() const;
@@ -64,14 +66,13 @@ namespace neat_dnfs
 	protected:
 		void buildPhenotype();
 	private:
-		virtual void evaluatePhenotype() = 0;
-		virtual void createRandomInitialConnectionGenes() = 0;
 		void createInputGenes();
 		void createOutputGenes();
+		void createRandomInitialConnectionGenes();
 		void translateGenesToPhenotype();
 		void translateConnectionGenesToPhenotype();
 	public:
-		static SolutionPtr crossover(const SolutionPtr& parent1, const SolutionPtr& parent2);
+		virtual SolutionPtr crossover(const SolutionPtr& other) = 0;
 		void addFieldGene(const FieldGene& gene);
 		void addConnectionGene(const ConnectionGene& gene);
 		bool containsConnectionGene(const ConnectionGene& gene) const;

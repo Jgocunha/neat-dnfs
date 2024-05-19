@@ -30,9 +30,9 @@ TEST_CASE("Add Genes", "[Genome]")
 
 TEST_CASE("Add Random Initial Connection Gene", "[Genome]")
 {
-    constexpr uint8_t attempts = 100;
+    constexpr uint16_t attempts = 1000;
 
-    for (uint8_t i = 0; i < attempts; ++i)
+    for (uint16_t i = 0; i < attempts; ++i)
 	{
 		Genome genome;
 
@@ -46,18 +46,6 @@ TEST_CASE("Add Random Initial Connection Gene", "[Genome]")
 		REQUIRE(connectionGenes[0].getParameters().connectionTuple.inFieldGeneId != 0);
 		REQUIRE(connectionGenes[0].getParameters().connectionTuple.outFieldGeneId != 0);
 	}
-}
-
-TEST_CASE("Mutate Genome", "[Genome]")
-{
-    Genome genome;
-
-    genome.addInputGene();
-    genome.addOutputGene();
-    genome.addHiddenGene();
-    genome.addRandomInitialConnectionGene();
-
-    REQUIRE_NOTHROW(genome.mutate());
 }
 
 TEST_CASE("Excess Genes", "[Genome]")
@@ -197,4 +185,25 @@ TEST_CASE("Clear Generational Innovations", "[Genome]")
     Genome::clearGenerationalInnovations();
 
     REQUIRE(Genome::getConnectionToInnovationNumberMap().empty());
+}
+
+TEST_CASE("Mutate Genome", "[Genome]")
+{
+    constexpr uint16_t attempts = 1000;
+
+    for (uint16_t i = 0; i < attempts; ++i)
+	{
+        Genome genome;
+
+        genome.addInputGene();
+        genome.addOutputGene();
+        genome.addHiddenGene();
+        genome.addHiddenGene();
+        genome.addHiddenGene();
+
+        genome.addRandomInitialConnectionGene();
+    	genome.addRandomInitialConnectionGene();
+
+		REQUIRE_NOTHROW(genome.mutate());
+	}
 }

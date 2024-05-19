@@ -51,7 +51,8 @@ set(header
 "include/neat/solution.h"
 "include/neat/species.h"
 
-"include/solutions/template_solution.h"
+#"include/solutions/template_solution.h"
+"include/solutions/empty_solution.h"
 
 "include/application/application.h"
 
@@ -70,7 +71,8 @@ set(src
 "src/neat/solution.cpp"
 "src/neat/species.cpp"
 
-"src/solutions/template_solution.cpp"
+#"src/solutions/template_solution.cpp"
+"src/solutions/empty_solution.cpp"
 
 "src/application/application.cpp"
 
@@ -177,6 +179,7 @@ add_executable(${TEST_PROJECT}
     "tests/test_field_gene.cpp" 
     "tests/test_connection_gene.cpp"
     "tests/test_genome.cpp"
+    "tests/test_solution.cpp"
 )
 target_include_directories(${TEST_PROJECT} PRIVATE include)
 target_link_libraries(${TEST_PROJECT} PRIVATE Catch2::Catch2 Catch2::Catch2WithMain imgui-platform-kit  dynamic-neural-field-composer ${CMAKE_PROJECT_NAME})

@@ -88,39 +88,39 @@ namespace neat_dnfs
 
     void PopulationControlWindow::renderPopulationMethods()
     {
-        static ImVec2 buttonSize = ImVec2(120, 40);
-        static bool isInitialized = false;
+        //static ImVec2 buttonSize = ImVec2(120, 40);
+        //static bool isInitialized = false;
 
-        if (ImGui::Button("Initialize", buttonSize))
-        {
-            TemplateSolution solution(solutionParameters);
-            population = std::make_shared<Population>(populationParameters,
-                std::make_shared<TemplateSolution>(solution));
-            population->initialize();
-            isInitialized = true;
-        }
-        ImGui::SameLine(); 
+        //if (ImGui::Button("Initialize", buttonSize))
+        //{
+        //   // TemplateSolution solution(solutionParameters);
+        //    population = std::make_shared<Population>(populationParameters,
+        //        std::make_shared<TemplateSolution>(solution));
+        //    population->initialize();
+        //    isInitialized = true;
+        //}
+        //ImGui::SameLine(); 
 
-        // Small spacer between buttons
-        ImGui::Dummy(ImVec2(5, 0));
-        ImGui::SameLine();
+        //// Small spacer between buttons
+        //ImGui::Dummy(ImVec2(5, 0));
+        //ImGui::SameLine();
 
-        if (!isInitialized) 
-            ImGui::BeginDisabled(); 
-        
-        if (ImGui::Button("Evolve", buttonSize))
-        {
-            if (evolveThread && evolveThread->joinable()) {
-                evolveThread->join();  // Ensure the previous thread is finished before starting a new one
-            }
-            // Launch the evolve function in a new thread
-            evolveThread = std::make_shared<std::thread>(&Population::evolve, population);
-        }
+        //if (!isInitialized) 
+        //    ImGui::BeginDisabled(); 
+        //
+        //if (ImGui::Button("Evolve", buttonSize))
+        //{
+        //    if (evolveThread && evolveThread->joinable()) {
+        //        evolveThread->join();  // Ensure the previous thread is finished before starting a new one
+        //    }
+        //    // Launch the evolve function in a new thread
+        //    evolveThread = std::make_shared<std::thread>(&Population::evolve, population);
+        //}
 
-        if (!isInitialized) 
-            ImGui::EndDisabled(); 
+        //if (!isInitialized) 
+        //    ImGui::EndDisabled(); 
 
-        ImGui::Spacing();
+        //ImGui::Spacing();
     }
 
     void PopulationControlWindow::renderShowBestSolution()

@@ -28,8 +28,8 @@ namespace neat_dnfs
 		std::vector<uint16_t> getInnovationNumbers() const;
 	private:
 		ConnectionTuple getNewRandomConnectionGeneTuple() const;
-		uint16_t getRandomGeneIdByType(FieldGeneType type) const;
-		uint16_t getRandomGeneIdByTypes(const std::vector<FieldGeneType>& types) const;
+		int getRandomGeneIdByType(FieldGeneType type) const;
+		int getRandomGeneIdByTypes(const std::vector<FieldGeneType>& types) const;
 		ConnectionGene getEnabledConnectionGene() const;
 
 		void addConnectionGeneIfNewWithinGeneration(ConnectionTuple connectionTuple);
@@ -50,6 +50,7 @@ namespace neat_dnfs
 		bool containsFieldGene(const FieldGene& fieldGene) const;
 
 		ConnectionGene getConnectionGeneByInnovationNumber(uint16_t innovationNumber) const;
+		FieldGene getFieldGeneById(uint16_t id) const;
 
 		static std::map<ConnectionTuple, uint16_t> getConnectionToInnovationNumberMap() { return connectionToInnovationNumberMap; }
 	};
