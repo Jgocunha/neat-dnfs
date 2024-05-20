@@ -1,7 +1,5 @@
 #pragma once
 
-#include <tools/utils.h>
-
 #include "genome.h"
 #include "simulate_behaviour_wizard.h"
 

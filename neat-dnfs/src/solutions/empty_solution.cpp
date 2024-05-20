@@ -35,7 +35,7 @@ namespace neat_dnfs
 			if (lessFitParent->containsConnectionGene(gene))
 			{
 				const auto lessFitGene = lessFitParent->getGenome().getConnectionGeneByInnovationNumber(gene.getInnovationNumber());
-				if (dnf_composer::tools::utils::generateRandomNumber(0, 1))
+				if (tools::utils::generateRandomInt(0, 1))
 					offspring->addConnectionGene(gene);
 				else
 					offspring->addConnectionGene(lessFitGene);

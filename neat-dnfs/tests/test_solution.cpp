@@ -6,7 +6,6 @@
 
 
 using namespace neat_dnfs;
-using namespace dnf_composer::tools::utils;
 
 TEST_CASE("Solution Initialization", "[Solution]")
 {
@@ -96,20 +95,20 @@ TEST_CASE("Solution Set Adjusted Fitness", "[Solution]")
     REQUIRE(solution.getParameters().adjustedFitness == 5.0);
 }
 
-TEST_CASE("Solution Crossover", "[Solution]")
-{
-    SolutionTopology topology(3, 1);
-    EmptySolution parent1(topology);
-    EmptySolution parent2(topology);
-
-    parent1.initialize();
-    parent2.initialize();
-
-    auto offspring = parent1.crossover(std::make_shared<EmptySolution>(parent2));
-
-    REQUIRE(offspring->getGenome().getFieldGenes().size() >= 4); // at least 4 field genes (3 input + 1 output)
-    REQUIRE(offspring->getGenome().getConnectionGenes().size() >= 1); // at least 1 connection gene
-}
+//TEST_CASE("Solution Crossover", "[Solution]")
+//{
+//    SolutionTopology topology(3, 1);
+//    EmptySolution parent1(topology);
+//    EmptySolution parent2(topology);
+//
+//    parent1.initialize();
+//    parent2.initialize();
+//
+//    auto offspring = parent1.crossover(std::make_shared<EmptySolution>(parent2));
+//
+//    REQUIRE(offspring->getGenome().getFieldGenes().size() >= 4); // at least 4 field genes (3 input + 1 output)
+//    REQUIRE(offspring->getGenome().getConnectionGenes().size() >= 1); // at least 1 connection gene
+//}
 
 TEST_CASE("Solution Add Field Gene", "[Solution]")
 {

@@ -1,9 +1,9 @@
 #pragma once
 
-#include <tools/utils.h>
 
 #include "field_gene.h"
 #include "connection_gene.h"
+#include "tools/utils.h"
 
 namespace neat_dnfs
 {

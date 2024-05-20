@@ -47,7 +47,7 @@ namespace neat_dnfs
 		if constexpr (totalProbability != 1.0)
 			throw std::runtime_error("Mutation probabilities must sum up to 1.");
 
-		const double randomValue = dnf_composer::tools::utils::generateRandomNumber(0.0, 1.0);
+		const double randomValue = tools::utils::generateRandomDouble(0.0, 1.0);
 
 		if (randomValue < MutationConstants::addGeneProbability) {
 			addGene();
@@ -133,7 +133,7 @@ namespace neat_dnfs
 		if (geneIds.empty())
 			return -1;
 
-		const int randomValue = dnf_composer::tools::utils::generateRandomNumber(0, static_cast<int>(geneIds.size()));
+		const int randomValue = tools::utils::generateRandomInt(0, static_cast<int>(geneIds.size()) - 1);
 
 		return geneIds[randomValue];
 	}
@@ -150,7 +150,7 @@ namespace neat_dnfs
 		if (geneIds.empty())
 			return -1;
 
-		const int randomValue = dnf_composer::tools::utils::generateRandomNumber(0, static_cast<int>(geneIds.size()));
+		const int randomValue = tools::utils::generateRandomInt(0, static_cast<int>(geneIds.size()) - 1);
 
 		return geneIds[randomValue];
 	}
@@ -167,7 +167,7 @@ namespace neat_dnfs
 		if (enabledConnectionGenes.empty())
 			return ConnectionGene{ {0, 0}};
 
-		const double randomValue = dnf_composer::tools::utils::generateRandomNumber(0, static_cast<int>(enabledConnectionGenes.size()));
+		const double randomValue = tools::utils::generateRandomDouble(0, static_cast<int>(enabledConnectionGenes.size()) - 1);
 
 		return enabledConnectionGenes[static_cast<int>(randomValue)];
 	}
@@ -244,7 +244,7 @@ namespace neat_dnfs
 		if (connectionGenes.empty())
 			return;
 
-		const auto connectionGeneId = dnf_composer::tools::utils::generateRandomNumber(0, static_cast<int>(connectionGenes.size()) - 1);
+		const auto connectionGeneId = tools::utils::generateRandomInt(0, static_cast<int>(connectionGenes.size()) - 1);
 		connectionGenes[connectionGeneId].mutate();
 	}
 
@@ -252,7 +252,7 @@ namespace neat_dnfs
 	{
 		if (connectionGenes.empty())
 			return;
-		const auto connectionGeneId = dnf_composer::tools::utils::generateRandomNumber(0, static_cast<int>(connectionGenes.size()) - 1);
+		const auto connectionGeneId = tools::utils::generateRandomInt(0, static_cast<int>(connectionGenes.size()) - 1);
 		connectionGenes[connectionGeneId].toggle();
 	}
 

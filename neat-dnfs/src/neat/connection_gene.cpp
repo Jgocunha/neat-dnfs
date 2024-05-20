@@ -7,11 +7,11 @@ namespace neat_dnfs
 		: parameters(connectionTuple)
 	{
 		using namespace dnf_composer::element;
-		using namespace dnf_composer::tools::utils;
+		using namespace neat_dnfs::tools::utils;
 
-		const double randomSigmaBetween0And10 = generateRandomNumber(GaussKernelConstants::initialSigmaMin, 
+		const double randomSigmaBetween0And10 = generateRandomDouble(GaussKernelConstants::initialSigmaMin, 
 																	GaussKernelConstants::initialSigmaMax);
-		const double randomAmplitudeBetween0And10 = generateRandomNumber(GaussKernelConstants::initialAmplitudeMin,
+		const double randomAmplitudeBetween0And10 = generateRandomDouble(GaussKernelConstants::initialAmplitudeMin,
 																		GaussKernelConstants::initialAmplitudeMax);
 
 		const GaussKernelParameters gkp{	randomSigmaBetween0And10,

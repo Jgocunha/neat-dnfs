@@ -59,6 +59,7 @@ set(header
 "include/ui_windows/population_control_window.h"
 
 "include/tools/logger.h"
+"include/tools/utils.h"
 
 "include/simulate_behaviour_wizard.h"
 "include/constants.h"
@@ -180,6 +181,7 @@ add_executable(${TEST_PROJECT}
     "tests/test_connection_gene.cpp"
     "tests/test_genome.cpp"
     "tests/test_solution.cpp"
+    "tests/test_utils.cpp"
 )
 target_include_directories(${TEST_PROJECT} PRIVATE include)
 target_link_libraries(${TEST_PROJECT} PRIVATE Catch2::Catch2 Catch2::Catch2WithMain imgui-platform-kit  dynamic-neural-field-composer ${CMAKE_PROJECT_NAME})

@@ -3,8 +3,7 @@
 #include <random>
 
 #include <elements/gauss_kernel.h>
-#include <tools/utils.h>
-
+#include "tools/utils.h"
 #include "constants.h"
 
 namespace neat_dnfs

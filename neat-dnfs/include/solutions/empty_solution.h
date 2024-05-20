@@ -1,7 +1,7 @@
 #pragma once
 
 #include "neat/solution.h"
-#include "tools/logger.h"
+#include "tools/utils.h"
 
 namespace neat_dnfs
 {

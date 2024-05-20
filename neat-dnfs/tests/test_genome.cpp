@@ -3,7 +3,6 @@
 #include "neat/genome.h"
 
 using namespace neat_dnfs;
-using namespace dnf_composer::tools::utils;
 
 TEST_CASE("Genome Initialization", "[Genome]")
 {

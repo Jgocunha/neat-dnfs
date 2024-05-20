@@ -24,7 +24,7 @@ namespace neat_dnfs
 	void Solution::createRandomInitialConnectionGenes()
 	{
 		for (int i = 0; i < initialTopology.numInputGenes * initialTopology.numOutputGenes; ++i)
-			if (dnf_composer::tools::utils::generateRandomNumber(0.0, 1.0) < SolutionConstants::initialConnectionProbability)
+			if (tools::utils::generateRandomDouble(0.0, 1.0) < SolutionConstants::initialConnectionProbability)
 				genome.addRandomInitialConnectionGene();
 	}
 
