@@ -64,18 +64,35 @@ TEST_CASE("Solution Getters", "[Solution]")
     REQUIRE(solution.getInnovationNumbers().empty());
 }
 
-//TEST_CASE("Solution Build Phenotype", "[Solution]")
-//{
-//    SolutionTopology topology(3, 1);
-//    EmptySolution solution(topology);
-//    solution.initialize();
-//    //solution.buildPhenotype();
-//
-//    auto phenotype = solution.getPhenotype();
-//
-//    REQUIRE_FALSE(phenotype.getElements().empty());
-//    //REQUIRE_FALSE(phenotype.getInteractions().empty());
-//}
+TEST_CASE("Solution Build Phenotype", "[Solution]")
+{
+    SolutionTopology topology(3, 1, 1);
+    EmptySolution solution(topology);
+    solution.initialize();
+    const auto genome = solution.getGenome();
+    const auto fieldGenes = genome.getFieldGenes();
+    const FieldGene& fieldGeneFirst = fieldGenes[0];
+    REQUIRE(fieldGeneFirst.getParameters().type == FieldGeneType::INPUT);
+    const FieldGene& fieldGeneSecondToLast = fieldGenes[3];
+    REQUIRE(fieldGeneSecondToLast.getParameters().type == FieldGeneType::OUTPUT);
+    solution.addConnectionGene(ConnectionGene(ConnectionTuple(fieldGeneFirst.getParameters().id, fieldGeneSecondToLast.getParameters().id)));
+
+    solution.buildPhenotype();
+
+    auto phenotype = solution.getPhenotype();
+    phenotype.init();
+    // 3 input genes = 3 * (1 neural field, 1 self-excitation kernel)
+    // 1 output gene = 1 * (1 neural field, 1 self-excitation kernel)
+    // 1 hidden gene = 1 * (1 neural field, 1 self-excitation kernel)
+    // 1 connection gene = 1 * 1 interaction-kernel
+    // total num. elements = (3 * 2) + (1 * 2) + (1 * 2) + (1 * 1) = 11
+
+    REQUIRE(phenotype.getNumberOfElements() == 11);
+
+    const auto elements = phenotype.getElements();
+    // "nf 0" is input to "nf 3" and its own self-excitation kernel
+    REQUIRE(phenotype.getElementsThatHaveSpecifiedElementAsInput(elements[0]->getUniqueName()).size() == 2);
+}
 
 TEST_CASE("Solution Increment Age", "[Solution]")
 {
@@ -94,21 +111,6 @@ TEST_CASE("Solution Set Adjusted Fitness", "[Solution]")
 
     REQUIRE(solution.getParameters().adjustedFitness == 5.0);
 }
-
-//TEST_CASE("Solution Crossover", "[Solution]")
-//{
-//    SolutionTopology topology(3, 1);
-//    EmptySolution parent1(topology);
-//    EmptySolution parent2(topology);
-//
-//    parent1.initialize();
-//    parent2.initialize();
-//
-//    auto offspring = parent1.crossover(std::make_shared<EmptySolution>(parent2));
-//
-//    REQUIRE(offspring->getGenome().getFieldGenes().size() >= 4); // at least 4 field genes (3 input + 1 output)
-//    REQUIRE(offspring->getGenome().getConnectionGenes().size() >= 1); // at least 1 connection gene
-//}
 
 TEST_CASE("Solution Add Field Gene", "[Solution]")
 {

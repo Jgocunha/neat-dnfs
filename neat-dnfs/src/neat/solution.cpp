@@ -17,9 +17,9 @@ namespace neat_dnfs
 	{
 		createInputGenes();
 		createOutputGenes();
+		createHiddenGenes();
 		createRandomInitialConnectionGenes();
 	}
-
 
 	void Solution::createRandomInitialConnectionGenes()
 	{
@@ -85,6 +85,12 @@ namespace neat_dnfs
 	{
 		for (int j = 0; j < initialTopology.numOutputGenes; j++)
 			genome.addOutputGene();
+	}
+
+	void Solution::createHiddenGenes()
+	{
+		for (int j = 0; j < initialTopology.numHiddenGenes; j++)
+			genome.addHiddenGene();
 	}
 
 	void Solution::translateGenesToPhenotype()

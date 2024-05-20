@@ -15,7 +15,7 @@ namespace neat_dnfs
 
 	struct NeuralFieldConstants
 	{
-		static constexpr std::string namePrefix = "nf ";
+		inline static std::string namePrefix = "nf ";
 		static constexpr double tau = 25;
 		static constexpr double restingLevel = -10;
 		inline static dnf_composer::element::HeavisideFunction activationFunction{ 0.0 };
@@ -29,7 +29,7 @@ namespace neat_dnfs
 
 	struct GaussKernelConstants
 	{
-		static constexpr std::string namePrefix = "gk ";
+		inline static std::string namePrefix = "gk ";
 		static constexpr std::string namePrefixConnectionGene = "gk cg ";
 		static constexpr double sigma = 2;
 		static constexpr double amplitude = 1;
@@ -41,7 +41,7 @@ namespace neat_dnfs
 
 	struct LateralInteractionsConstants
 	{
-		static constexpr std::string namePrefix = "lik ";
+		inline static std::string namePrefix = "lik ";
 		static constexpr double sigmaExc = 5.3;
 		static constexpr double sigmaInh = 7.4;
 		static constexpr double amplitudeExc = 6;
@@ -75,7 +75,7 @@ namespace neat_dnfs
 
 	struct SimulationConstants
 	{
-		static constexpr std::string name = "simulation";
+		inline static std::string name = "simulation";
 		static constexpr double deltaT = 25.0;
 
 	};

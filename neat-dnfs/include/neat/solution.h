@@ -61,11 +61,11 @@ namespace neat_dnfs
 		void clearGenerationalInnovations() const;
 		void incrementAge();
 		void setAdjustedFitness(double adjustedFitness);
-	protected:
 		void buildPhenotype();
 	private:
 		void createInputGenes();
 		void createOutputGenes();
+		void createHiddenGenes();
 		void createRandomInitialConnectionGenes();
 		void translateGenesToPhenotype();
 		void translateConnectionGenesToPhenotype();

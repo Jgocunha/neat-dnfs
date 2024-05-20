@@ -80,7 +80,7 @@ set(src
 "src/ui_windows/population_control_window.cpp"
 
 "src/tools/logger.cpp"
-
+ 
 "src/simulate_behaviour_wizard.cpp"
 )
 
