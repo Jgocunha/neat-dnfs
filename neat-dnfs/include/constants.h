@@ -87,6 +87,13 @@ namespace neat_dnfs
 		static constexpr double initialConnectionProbability = 0.0;
 	};
 
+	struct SpeciesConstants
+	{
+		static constexpr double compatibilityThreshold = 3.0;
+		static constexpr double excessGenesCompatibilityWeight = 0.5;
+		static constexpr double disjointGenesCompatibilityWeight = 0.5;
+		static constexpr double averageConnectionDifferenceCompatibilityWeight = 0.5;
+	};
 
 
 }

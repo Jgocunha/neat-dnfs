@@ -6,7 +6,7 @@
 namespace neat_dnfs
 {
 	class Species;
-	static uint16_t currentSpeciesId = 1;
+	static uint16_t currentSpeciesId = 0;
     typedef std::unique_ptr<Species> SpeciesPtr;
 
     class Species
@@ -35,8 +35,9 @@ namespace neat_dnfs
 
         std::vector<SolutionPtr> killLeastFitSolutions();
         std::vector<SolutionPtr> getOffspring() const { return offspring; }
-
-
+        void clearOffspring() { offspring.clear(); }
         void crossover();
+        void sortMembersByFitness();
+        std::vector<SolutionPtr> getMembers() const { return members; }
    };
 }

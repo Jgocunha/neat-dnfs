@@ -26,33 +26,37 @@ namespace neat_dnfs
 
 	void Species::removeSolution(const SolutionPtr& solution)
 	{
-		const auto it = std::find(members.begin(), members.end(), solution);
-		if (it != members.end()) 
+		const auto it = std::ranges::find(members, solution);
+		if (it != members.end())
 			members.erase(it);
 	}
 
 	bool Species::isCompatible(const SolutionPtr& solution) const
 	{
-		constexpr double compatibilityThreshold = 3.0;
-		constexpr double c1 = 0.5, c2 = 0.4, c3 = 0.1;
-		int N = std::max(representative->getGenomeSize(), solution->getGenomeSize());
+		if (representative == nullptr)
+			throw std::runtime_error("Species " + std::to_string(id) + " has no representative.");
+
+		int N = static_cast<int>(std::max(representative->getGenomeSize(), solution->getGenomeSize()));
 		if (N < 20) N = 1; // Normalize for small genomes
 
 		const auto representativeGenome = representative->getGenome();
 		const auto solutionGenome = solution->getGenome();
 
-		const double excessCoeff = c1 * representativeGenome.excessGenes(solutionGenome);
-		const double disjointCoeff = c2 * representativeGenome.disjointGenes(solutionGenome);
-		const double weightCoeff = c3 * representativeGenome.averageConnectionDifference(solutionGenome);
+		const double excessCoefficient = SpeciesConstants::excessGenesCompatibilityWeight
+									* representativeGenome.excessGenes(solutionGenome);
+		const double disjointCoefficient = SpeciesConstants::disjointGenesCompatibilityWeight
+										* representativeGenome.disjointGenes(solutionGenome);
+		const double weightCoefficient = SpeciesConstants::averageConnectionDifferenceCompatibilityWeight
+										* representativeGenome.averageConnectionDifference(solutionGenome);
 
-		const double geneticDistance = (excessCoeff + disjointCoeff + weightCoeff) / N;
+		const double geneticDistance = (excessCoefficient + disjointCoefficient + weightCoefficient) / N;
 
-		return geneticDistance < compatibilityThreshold;
+		return geneticDistance < SpeciesConstants::compatibilityThreshold;
 	}
 
 	bool Species::contains(const SolutionPtr& solution) const
 	{
-		return std::find(members.begin(), members.end(), solution) != members.end();
+		return std::ranges::find(members, solution) != members.end();
 	}
 
 	double Species::totalAdjustedFitness() const
@@ -68,27 +72,27 @@ namespace neat_dnfs
 	{
 		if (members.size() <= 2)
 		{
-			log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has " + std::to_string(members.size()) + " members. Killing none.");
+			log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + 
+				" has " + std::to_string(members.size()) + " members. Killing no individuals.");
 			return {};
 		}
 
+		sortMembersByFitness();
+
+		const size_t numSurvivors = offspringCount; // Keep only the number of offspring specified
+		const size_t numToRemove = members.size() - numSurvivors;
+
 		std::vector<SolutionPtr> removed;
+		removed.reserve(numToRemove);
+		std::move(members.end() - static_cast<uint16_t>(numToRemove), members.end(), std::back_inserter(removed));
+		members.resize(numSurvivors);
 
-		std::sort(members.begin(), members.end(), [](const SolutionPtr& a, const SolutionPtr& b)
-			{
-			return a->getParameters().fitness > b->getParameters().fitness;  // higher is better
-			}
-		); 
-
-		const size_t numSurvivors = members.size() - offspringCount;
-		log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has " + std::to_string(members.size()) + " members. Killing " 
-			+ std::to_string(numSurvivors) + " least fit members. Remaining: " + std::to_string(offspringCount));
-		removed.assign(members.begin() + numSurvivors, members.end());
-		members.erase(members.begin() + numSurvivors, members.end());
+		log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has " + 
+			std::to_string(members.size()) + " members. Killing " + 
+			std::to_string(numToRemove) + " least fit members. Remaining: " + std::to_string(numSurvivors));
 
 		return removed;
 	}
-
 
 	void Species::crossover()
 	{
@@ -97,7 +101,7 @@ namespace neat_dnfs
 		{
 			for (size_t i = 0; i < offspringCount; ++i)
 			{
-				const SolutionPtr parent1 = members[rand() % members.size()];
+				const SolutionPtr parent1 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
 				offspring.push_back(parent1);
 			}
 		}
@@ -105,13 +109,21 @@ namespace neat_dnfs
 		{
 			for (size_t i = 0; i < offspringCount; ++i)
 			{
-				const SolutionPtr parent1 = members[rand() % members.size()];
-				const SolutionPtr parent2 = members[rand() % members.size()];
-				//offspring.push_back(Solution::crossover(parent1, parent2));
+				const SolutionPtr parent1 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
+				const SolutionPtr parent2 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
+				offspring.push_back(parent1->crossover(parent2));
 			}
 		}
-		log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has " + std::to_string(members.size()) + " members. Created " + std::to_string(offspringCount) + " offspring.");
-		//members.insert(members.end(), offspring.begin(), offspring.end());
+		log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has " + 
+			std::to_string(members.size()) + " members. Created " + std::to_string(offspringCount) + " offspring.");
 	}
 
+	void Species::sortMembersByFitness()
+	{
+		std::ranges::sort(members, [](const SolutionPtr& a, const SolutionPtr& b)
+		{
+			return a->getParameters().fitness > b->getParameters().fitness;
+		}
+		);
+	}
 }
