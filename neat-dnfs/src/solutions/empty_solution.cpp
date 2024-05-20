@@ -49,7 +49,7 @@ namespace neat_dnfs
 	        {
 				// Disjoint and excess genes are inherited from the more fit parent
 				// unless the fitness difference is 0, in which case the gene is inherited randomly
-		        if (fitnessDifference == 0.0)
+		        if (fitnessDifference < 1e-6)
 		        {
 					const auto lessFitGene = lessFitParent->getGenome().getConnectionGeneByInnovationNumber(gene.getInnovationNumber());
 					if (tools::utils::generateRandomInt(0, 1))

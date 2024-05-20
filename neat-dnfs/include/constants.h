@@ -30,7 +30,7 @@ namespace neat_dnfs
 	struct GaussKernelConstants
 	{
 		inline static std::string namePrefix = "gk ";
-		static constexpr std::string namePrefixConnectionGene = "gk cg ";
+		inline static std::string namePrefixConnectionGene = "gk cg ";
 		static constexpr double sigma = 2;
 		static constexpr double amplitude = 1;
 		static constexpr double initialSigmaMin = 0.0;

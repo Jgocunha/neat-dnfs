@@ -182,6 +182,7 @@ add_executable(${TEST_PROJECT}
     "tests/test_genome.cpp"
     "tests/test_solution.cpp"
     "tests/test_utils.cpp"
+    "tests/test_empty_solution.cpp"
 )
 target_include_directories(${TEST_PROJECT} PRIVATE include)
 target_link_libraries(${TEST_PROJECT} PRIVATE Catch2::Catch2 Catch2::Catch2WithMain imgui-platform-kit  dynamic-neural-field-composer ${CMAKE_PROJECT_NAME})
