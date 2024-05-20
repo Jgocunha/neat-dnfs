@@ -45,7 +45,6 @@ namespace neat_dnfs
 	private:
 		void createInitialEmptySolutions(const SolutionPtr& initialSolution);
 		void buildInitialSolutionsGenome() const;
-		void mutate() const;
 		void upkeepBestSolution();
 		void updateGenerationAndAges();
 		void assignToSpecies(const SolutionPtr& solution);

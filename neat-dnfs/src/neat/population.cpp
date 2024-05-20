@@ -56,7 +56,6 @@ namespace neat_dnfs
 	void Population::reproduce()
 	{
 		crossover();
-		mutate();
 	}
 
 	SolutionPtr Population::getBestSolution() const
@@ -74,14 +73,6 @@ namespace neat_dnfs
 	{
 		for (const auto& solution : solutions)
 			solution->initialize();
-	}
-
-	void Population::mutate() const
-	{
-		/*for (const auto& solution : solutions)
-			solution->mutate();
-		for (const auto& solution : solutions)
-			solution->clearGenerationalInnovations();*/
 	}
 
 	void Population::upkeepBestSolution()
@@ -152,8 +143,7 @@ namespace neat_dnfs
 
 	void Population::calculateSpeciesOffspring()
 	{
-		static constexpr double killRatio = 0.5;
-		static const int offspringPoolSize = static_cast<int>(parameters.size * killRatio);
+		static const int offspringPoolSize = static_cast<int>(parameters.size * PopulationConstants::killRatio);
 
 		double totalAdjustedFitnessAcrossSpecies = 0.0;
 		for (const auto& species : speciesList)
@@ -178,6 +168,7 @@ namespace neat_dnfs
 			{
 				for (int i = 0; i < error; i++)
 				{
+					// use randomNumberGeneratorInt
 					const int randomIndex = rand() % speciesList.size();
 					//if (speciesList[randomIndex].getOffspringCount() > 0)
 					speciesList[randomIndex].setOffspringCount(speciesList[randomIndex].getOffspringCount() - 1);
@@ -187,6 +178,7 @@ namespace neat_dnfs
 			{
 				for (int i = 0; i < abs(error); i++)
 				{
+					// use randomNumberGeneratorInt
 					const int randomIndex = rand() % speciesList.size();
 					speciesList[randomIndex].setOffspringCount(speciesList[randomIndex].getOffspringCount() + 1);
 				}
@@ -196,7 +188,6 @@ namespace neat_dnfs
 				" Offspring pool size: " + std::to_string(offspringPoolSize));
 		}
 
-		// log offspring count for each species
 		for (const auto& species : speciesList)
 			log(tools::logger::LogLevel::INFO, "Species: " + std::to_string(species.getId()) + 
 				" Offspring count: " + std::to_string(species.getOffspringCount()));
@@ -214,8 +205,11 @@ namespace neat_dnfs
 		}
 
 		// Remove dead solutions from the main population vector
+		// // use ranges remove if instead of remove_if
 		const auto newEnd = std::remove_if(solutions.begin(), solutions.end(),
-			[&toRemove](const SolutionPtr& solution) {
+			[&toRemove](const SolutionPtr& solution) 
+			{
+				// use ranges find instead of find
 				return std::find(toRemove.begin(), toRemove.end(), solution) != toRemove.end();
 			});
 		solutions.erase(newEnd, solutions.end());

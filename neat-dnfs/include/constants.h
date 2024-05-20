@@ -95,5 +95,9 @@ namespace neat_dnfs
 		static constexpr double averageConnectionDifferenceCompatibilityWeight = 0.5;
 	};
 
+	struct PopulationConstants
+	{
+		static constexpr double killRatio = 0.5;
+	};
 
 }
