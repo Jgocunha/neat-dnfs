@@ -8,7 +8,7 @@
 #include <user_interface/field_metrics_window.h>
 
 #include "neat/population.h"
-#include "solutions/template_solution.h"
+#include "solutions/single_bump.h"
 
 namespace neat_dnfs
 {

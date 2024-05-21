@@ -34,9 +34,9 @@ namespace neat_dnfs
 		static constexpr double sigma = 2;
 		static constexpr double amplitude = 1;
 		static constexpr double initialSigmaMin = 0.0;
-		static constexpr double initialSigmaMax = 10.0;
-		static constexpr double initialAmplitudeMin = 0.0;
-		static constexpr double initialAmplitudeMax = 10.0;
+		static constexpr double initialSigmaMax = 5.0;
+		static constexpr double initialAmplitudeMin = -5.0;
+		static constexpr double initialAmplitudeMax = 5.0;
 	};
 
 	struct LateralInteractionsConstants
@@ -53,7 +53,7 @@ namespace neat_dnfs
 	{
 		static constexpr double mutationStep = 0.5;
 		static constexpr double minSigma = 0.0;
-		static constexpr double maxSigma = 10.0;
+		static constexpr double maxSigma = 5.0;
 		static constexpr double minAmplitude = -10.0;
 		static constexpr double maxAmplitude = 10.0;
 

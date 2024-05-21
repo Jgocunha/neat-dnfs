@@ -88,39 +88,39 @@ namespace neat_dnfs
 
     void PopulationControlWindow::renderPopulationMethods()
     {
-        //static ImVec2 buttonSize = ImVec2(120, 40);
-        //static bool isInitialized = false;
+        static ImVec2 buttonSize = ImVec2(120, 40);
+        static bool isInitialized = false;
 
-        //if (ImGui::Button("Initialize", buttonSize))
-        //{
-        //   // TemplateSolution solution(solutionParameters);
-        //    population = std::make_shared<Population>(populationParameters,
-        //        std::make_shared<TemplateSolution>(solution));
-        //    population->initialize();
-        //    isInitialized = true;
-        //}
-        //ImGui::SameLine(); 
+        if (ImGui::Button("Initialize", buttonSize))
+        {
+            SingleBumpSolution solution(solutionParameters);
+            population = std::make_shared<Population>(populationParameters,
+                std::make_shared<SingleBumpSolution>(solution));
+            population->initialize();
+            isInitialized = true;
+        }
+        ImGui::SameLine(); 
 
-        //// Small spacer between buttons
-        //ImGui::Dummy(ImVec2(5, 0));
-        //ImGui::SameLine();
+        // Small spacer between buttons
+        ImGui::Dummy(ImVec2(5, 0));
+        ImGui::SameLine();
 
-        //if (!isInitialized) 
-        //    ImGui::BeginDisabled(); 
-        //
-        //if (ImGui::Button("Evolve", buttonSize))
-        //{
-        //    if (evolveThread && evolveThread->joinable()) {
-        //        evolveThread->join();  // Ensure the previous thread is finished before starting a new one
-        //    }
-        //    // Launch the evolve function in a new thread
-        //    evolveThread = std::make_shared<std::thread>(&Population::evolve, population);
-        //}
+        if (!isInitialized) 
+            ImGui::BeginDisabled(); 
+        
+        if (ImGui::Button("Evolve", buttonSize))
+        {
+            if (evolveThread && evolveThread->joinable()) {
+                evolveThread->join();  // Ensure the previous thread is finished before starting a new one
+            }
+            // Launch the evolve function in a new thread
+            evolveThread = std::make_shared<std::thread>(&Population::evolve, population);
+        }
 
-        //if (!isInitialized) 
-        //    ImGui::EndDisabled(); 
+        if (!isInitialized) 
+            ImGui::EndDisabled(); 
 
-        //ImGui::Spacing();
+        ImGui::Spacing();
     }
 
     void PopulationControlWindow::renderShowBestSolution()
@@ -129,6 +129,7 @@ namespace neat_dnfs
 	    if (ImGui::Button("Show best solution"))
 		{
 			const auto bestSolution = population->getBestSolution();
+            bestSolution->buildPhenotype();
             const auto phenotype = bestSolution->getPhenotype();
             const auto simulation = std::make_shared<dnf_composer::Simulation>(phenotype);
             simulationWindow = std::make_shared<dnf_composer::user_interface::SimulationWindow>(simulation);
@@ -138,7 +139,7 @@ namespace neat_dnfs
             const auto visualization = createVisualization(simulation);
             visualization->addPlottingData("nf 1", "activation");
             visualization->addPlottingData("nf 2", "activation");
-            visualization->addPlottingData("nf 3", "activation");
+            //visualization->addPlottingData("nf 3", "activation");
 
             const auto plot = std::make_shared<dnf_composer::user_interface::PlotWindow>(visualization);
             plotWindows.push_back(plot);
@@ -172,7 +173,7 @@ namespace neat_dnfs
         do
         {
 	        simulation->step();
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			std::this_thread::sleep_for(std::chrono::milliseconds(5));
         } while (true);
     }
 

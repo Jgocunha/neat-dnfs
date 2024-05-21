@@ -53,6 +53,7 @@ set(header
 
 #"include/solutions/template_solution.h"
 "include/solutions/empty_solution.h"
+"include/solutions/single_bump.h"
 
 "include/application/application.h"
 
@@ -74,6 +75,7 @@ set(src
 
 #"src/solutions/template_solution.cpp"
 "src/solutions/empty_solution.cpp"
+"src/solutions/single_bump.cpp"
 
 "src/application/application.cpp"
 

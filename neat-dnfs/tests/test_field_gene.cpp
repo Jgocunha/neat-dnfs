@@ -8,7 +8,7 @@ TEST_CASE("FieldGene Initialization", "[FieldGene]")
 {
     SECTION("Initialize FieldGene as INPUT")
 	{
-        FieldGeneParameters params(FieldGeneType::INPUT);
+        FieldGeneParameters params(FieldGeneType::INPUT, 1);
         FieldGene fieldGene(params);
 
         REQUIRE(fieldGene.getParameters().type == FieldGeneType::INPUT);
@@ -18,7 +18,7 @@ TEST_CASE("FieldGene Initialization", "[FieldGene]")
 
     SECTION("Initialize FieldGene as OUTPUT")
 	{
-        FieldGeneParameters params(FieldGeneType::OUTPUT);
+        FieldGeneParameters params(FieldGeneType::OUTPUT, 2);
         FieldGene fieldGene(params);
 
         REQUIRE(fieldGene.getParameters().type == FieldGeneType::OUTPUT);
@@ -28,7 +28,7 @@ TEST_CASE("FieldGene Initialization", "[FieldGene]")
 
     SECTION("Initialize FieldGene as HIDDEN")
 	{
-        FieldGeneParameters params(FieldGeneType::HIDDEN);
+        FieldGeneParameters params(FieldGeneType::HIDDEN, 3);
         FieldGene fieldGene(params);
 
         REQUIRE(fieldGene.getParameters().type == FieldGeneType::HIDDEN);
@@ -37,20 +37,19 @@ TEST_CASE("FieldGene Initialization", "[FieldGene]")
     }
 }
 
-TEST_CASE("FieldGene ID Incrementation", "[FieldGene]")
+TEST_CASE("FieldGene ID Verification", "[FieldGene]")
 {
     // Reset the static variable currentFieldGeneId for testing purposes
-    neat_dnfs::currentFieldGeneId = 1;
 
-    const FieldGeneParameters params1(FieldGeneType::INPUT);
+    const FieldGeneParameters params1(FieldGeneType::INPUT, 1);
     const FieldGene fieldGene1(params1);
     REQUIRE(fieldGene1.getParameters().id == 1);
 
-    const FieldGeneParameters params2(FieldGeneType::OUTPUT);
+    const FieldGeneParameters params2(FieldGeneType::OUTPUT, 2);
     const FieldGene fieldGene2(params2);
     REQUIRE(fieldGene2.getParameters().id == 2);
 
-    const FieldGeneParameters params3(FieldGeneType::HIDDEN);
+    const FieldGeneParameters params3(FieldGeneType::HIDDEN, 3);
     const FieldGene fieldGene3(params3);
     REQUIRE(fieldGene3.getParameters().id == 3);
 }
@@ -58,7 +57,7 @@ TEST_CASE("FieldGene ID Incrementation", "[FieldGene]")
 
 TEST_CASE("FieldGene Mutation Only One Parameter", "[FieldGene]")
 {
-    const FieldGeneParameters params(FieldGeneType::HIDDEN);
+    const FieldGeneParameters params({ FieldGeneType::HIDDEN, 4 });
     const FieldGene fieldGene(params);
 
 	const auto initialKernel = std::dynamic_pointer_cast<GaussKernel>(fieldGene.getKernel());
@@ -77,7 +76,7 @@ TEST_CASE("FieldGene Mutation Only One Parameter", "[FieldGene]")
 
 TEST_CASE("FieldGene Mutation Constraints", "[FieldGene]")
 {
-    FieldGeneParameters params(FieldGeneType::HIDDEN);
+    FieldGeneParameters params(FieldGeneType::HIDDEN, 5);
     FieldGene fieldGene(params);
 
     auto initialKernel = std::dynamic_pointer_cast<GaussKernel>(fieldGene.getKernel());
@@ -98,8 +97,8 @@ TEST_CASE("FieldGene Mutation Constraints", "[FieldGene]")
 
 TEST_CASE("FieldGene Comparison Operator", "[FieldGene]")
 {
-    const FieldGeneParameters params1(FieldGeneType::INPUT);
-    const FieldGeneParameters params2(FieldGeneType::INPUT);
+    const FieldGeneParameters params1(FieldGeneType::INPUT, 1);
+    const FieldGeneParameters params2(FieldGeneType::INPUT, 2);
 
     const FieldGene fieldGene1(params1);
     const FieldGene fieldGene2(params2);
@@ -110,7 +109,7 @@ TEST_CASE("FieldGene Comparison Operator", "[FieldGene]")
 
 TEST_CASE("FieldGene Invalid Mutation", "[FieldGene]")
 {
-    const FieldGeneParameters params(FieldGeneType::INPUT);
+    const FieldGeneParameters params(FieldGeneType::INPUT, 1);
     const FieldGene fieldGene(params);
 
     auto initialKernel = fieldGene.getKernel();

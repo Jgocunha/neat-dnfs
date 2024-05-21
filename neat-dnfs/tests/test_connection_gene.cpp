@@ -19,8 +19,8 @@ TEST_CASE("ConnectionGene Initialization", "[ConnectionGene]")
 
         auto kernel = std::dynamic_pointer_cast<GaussKernel>(connectionGene.getKernel());
         REQUIRE(kernel != nullptr);
-        REQUIRE(kernel->getParameters().sigma >= 0.0);
-        REQUIRE(kernel->getParameters().sigma <= 10.0);
+        REQUIRE(kernel->getParameters().sigma >= GaussKernelConstants::initialSigmaMin);
+        REQUIRE(kernel->getParameters().sigma <= GaussKernelConstants::initialSigmaMax);
         REQUIRE(kernel->getParameters().amplitude >= 0.0);
         REQUIRE(kernel->getParameters().amplitude <= 10.0);
     }

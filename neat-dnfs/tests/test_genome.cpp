@@ -112,7 +112,7 @@ TEST_CASE("Add Field Gene", "[Genome]")
 {
     Genome genome;
 
-    FieldGene fieldGene(FieldGeneType::HIDDEN);
+    FieldGene fieldGene({ FieldGeneType::HIDDEN, 1 });
     genome.addFieldGene(fieldGene);
 
     auto fieldGenes = genome.getFieldGenes();
@@ -140,7 +140,7 @@ TEST_CASE("Contains Field Gene", "[Genome]")
 {
     Genome genome;
 
-    const FieldGene fieldGene(FieldGeneType::HIDDEN);
+    const FieldGene fieldGene({ FieldGeneType::HIDDEN, 1 });
     genome.addFieldGene(fieldGene);
 
     REQUIRE(genome.containsFieldGene(fieldGene) == true);

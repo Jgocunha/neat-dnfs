@@ -118,7 +118,7 @@ TEST_CASE("Solution Add Field Gene", "[Solution]")
     EmptySolution solution(topology);
     solution.initialize();
 
-    const FieldGene newGene(FieldGeneType::HIDDEN);
+    const FieldGene newGene({ FieldGeneType::HIDDEN, 1 });
     solution.addFieldGene(newGene);
 
     auto fieldGenes = solution.getGenome().getFieldGenes();

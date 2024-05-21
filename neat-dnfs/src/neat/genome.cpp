@@ -6,17 +6,22 @@ namespace neat_dnfs
 
 	void Genome::addInputGene()
 	{
-		fieldGenes.emplace_back(FieldGeneType::INPUT);
+		const auto index = fieldGenes.size() + 1;
+		fieldGenes.push_back(FieldGene({ FieldGeneType::INPUT, static_cast<uint16_t>(index) }));
 	}
 
 	void Genome::addOutputGene()
 	{
-		fieldGenes.emplace_back(FieldGeneType::OUTPUT);
+		const auto index = fieldGenes.size() + 1;
+		fieldGenes.push_back(FieldGene({ FieldGeneType::OUTPUT,
+			static_cast<uint16_t>(index) }));
 	}
 
 	void Genome::addHiddenGene()
 	{
-		fieldGenes.emplace_back(FieldGeneType::HIDDEN);
+		const auto index = fieldGenes.size() + 1;
+		fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN,
+			static_cast<uint16_t>(index) }));
 	}
 
 	void Genome::addRandomInitialConnectionGene()
@@ -98,6 +103,10 @@ namespace neat_dnfs
 
 	ConnectionTuple Genome::getNewRandomConnectionGeneTuple() const
 	{
+		// if there aren't enough genes to create a connection gene
+		if (fieldGenes.size() < 2)
+			return { 0, 0 };
+
 		int geneIndex1 = getRandomGeneIdByTypes({ FieldGeneType::HIDDEN, FieldGeneType::INPUT });
 		if (geneIndex1 == -1)
 			return { 0, 0 };
@@ -107,6 +116,8 @@ namespace neat_dnfs
 			geneIndex2 = getRandomGeneIdByTypes({ FieldGeneType::HIDDEN, FieldGeneType::OUTPUT });
 			if (geneIndex2 == -1)
 				return { 0, 0 };
+			if (geneIndex2 == 3)
+				std::cout << "Gene index 2 is 3" << std::endl;
 		} while (geneIndex2 == geneIndex1);
 
 		if (std::ranges::find_if(connectionGenes, [geneIndex1, geneIndex2](const ConnectionGene& connectionGene)
@@ -402,6 +413,7 @@ namespace neat_dnfs
 		if (it == connectionGenes.end())
 			throw std::invalid_argument("Connection gene with the specified innovation number " +
 				std::to_string(innovationNumber) + " does not exist.");
+			//return ConnectionGene{ {0, 0} };
 
 		return *it;
 	}

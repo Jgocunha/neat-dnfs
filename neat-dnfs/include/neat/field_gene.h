@@ -5,8 +5,6 @@
 
 namespace neat_dnfs
 {
-	static uint16_t currentFieldGeneId = 0;
-
 	enum class FieldGeneType
 	{
 		INPUT = 1,
@@ -19,8 +17,8 @@ namespace neat_dnfs
 		FieldGeneType type;
 		uint16_t id;
 
-		FieldGeneParameters(FieldGeneType type)
-			: type(type), id(currentFieldGeneId++)
+		FieldGeneParameters(FieldGeneType type, uint16_t id)
+			: type(type), id(id)
 		{}
 	};
 
