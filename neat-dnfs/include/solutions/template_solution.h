@@ -15,10 +15,7 @@ namespace neat_dnfs
 		void evaluate() override;
 		SolutionPtr clone() const override;
 	private:
-		void evaluatePhenotype() override; 
-		void createRandomInitialConnectionGenes() override;
-
-
+		void evaluatePhenotype(); 
 		void addStimulus(const std::string& name, const double& position);
 		void runSimulation();
 		void removeStimulus();

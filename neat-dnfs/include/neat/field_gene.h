@@ -1,13 +1,10 @@
 #pragma once
 
 #include <elements/element_factory.h>
-
+#include "constants.h"
 
 namespace neat_dnfs
 {
-	typedef std::shared_ptr<dnf_composer::element::NeuralField> NeuralFieldPtr;
-	typedef std::shared_ptr<dnf_composer::element::Kernel> KernelPtr;
-
 	enum class FieldGeneType
 	{
 		INPUT = 1,

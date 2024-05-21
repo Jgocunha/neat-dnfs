@@ -3,12 +3,12 @@
 #include <random>
 
 #include <elements/gauss_kernel.h>
-
+#include "tools/utils.h"
+#include "constants.h"
 
 namespace neat_dnfs
 {
-	static uint16_t currentInnovationNumber = 1;
-	typedef std::shared_ptr<dnf_composer::element::Kernel> KernelPtr;
+	static uint16_t currentInnovationNumber = 0;
 
 	struct ConnectionTuple
 	{
@@ -60,7 +60,7 @@ namespace neat_dnfs
 		ConnectionGene(ConnectionTuple connectionTuple,
 			const dnf_composer::element::GaussKernelParameters& gkp);
 
-		void mutate();
+		void mutate() const;
 		void disable();
 		void toggle();
 

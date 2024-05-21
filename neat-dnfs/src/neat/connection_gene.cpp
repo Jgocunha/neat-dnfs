@@ -7,20 +7,21 @@ namespace neat_dnfs
 		: parameters(connectionTuple)
 	{
 		using namespace dnf_composer::element;
-		static constexpr bool circularity = false;
-		static constexpr bool normalization = false;
-		static constexpr int xSize = 100;
-		static constexpr double dx = 1.0;
+		using namespace neat_dnfs::tools::utils;
 
-		const double randomSigmaBetween0And10 = 10.0 * (static_cast<double>(rand()) / RAND_MAX);
-		//const double randomAmplitudeBetweenMinus5And5 = 10.0 * (static_cast<double>(rand()) / RAND_MAX) - 5.0;
-		const double randomAmplitudeBetweenMinus5And5 = 10.0 * (static_cast<double>(rand()) / RAND_MAX);
+		const double randomSigmaBetween0And10 = generateRandomDouble(GaussKernelConstants::initialSigmaMin,
+			GaussKernelConstants::initialSigmaMax);
+		const double randomAmplitudeBetween0And10 = generateRandomDouble(GaussKernelConstants::initialAmplitudeMin,
+			GaussKernelConstants::initialAmplitudeMax);
 
 		const GaussKernelParameters gkp{ randomSigmaBetween0And10,
-			randomAmplitudeBetweenMinus5And5,
-			circularity, normalization };
-		const ElementCommonParameters gkcp{ "gk cg " + std::to_string(connectionTuple.inFieldGeneId) + 
-			" - " + std::to_string(connectionTuple.outFieldGeneId), {xSize, dx} };
+										randomAmplitudeBetween0And10,
+									KernelConstants::circularity,
+									KernelConstants::normalization };
+		const ElementCommonParameters gkcp{ GaussKernelConstants::namePrefixConnectionGene +
+														std::to_string(connectionTuple.inFieldGeneId) +
+															" - " + std::to_string(connectionTuple.outFieldGeneId),
+			{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
 	}
 
@@ -29,37 +30,44 @@ namespace neat_dnfs
 		: parameters(connectionTuple)
 	{
 		using namespace dnf_composer::element;
-		static constexpr int xSize = 100;
-		static constexpr double dx = 1.0;
 
-		const ElementCommonParameters gkcp{ "gk cg " + std::to_string(connectionTuple.inFieldGeneId) + 
-			" - " + std::to_string(connectionTuple.outFieldGeneId), {xSize, dx} };
+		const ElementCommonParameters gkcp{ GaussKernelConstants::namePrefixConnectionGene +
+												std::to_string(connectionTuple.inFieldGeneId) +
+													" - " + std::to_string(connectionTuple.outFieldGeneId),
+	{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
 	}
 
-	void ConnectionGene::mutate()
+	void ConnectionGene::mutate() const
 	{
 		using namespace dnf_composer::element;
 
-		GaussKernelParameters gkp = 
-			std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
+		const auto gaussKernel = std::dynamic_pointer_cast<GaussKernel>(kernel);
+		if (!gaussKernel)
+		{
+			const std::string message = "Calling mutate() on ConnectionGene with ConnectionTuple: " +
+				std::to_string(parameters.connectionTuple.inFieldGeneId) + " - " +
+				std::to_string(parameters.connectionTuple.outFieldGeneId) + " but kernel is not a GaussKernel";
+			tools::logger::log(tools::logger::ERROR, message);
+			return;
+		}
 
-		// Mutate sigma value
-		const double sigmaMutation =
-			0.5 * (2.0 * (static_cast<double>(rand()) / RAND_MAX) - 1.0); 
-		gkp.sigma += sigmaMutation;
-		gkp.sigma = std::max(0.0, std::min(10.0, gkp.sigma)); 
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> mutationStep(-MutationConstants::mutationStep,
+			MutationConstants::mutationStep);
+		std::uniform_int_distribution<> mutationSelection(0, 1);
 
-		// Mutate amplitude value
-		const double amplitudeMutation = 
-			0.5 * (2.0 * (static_cast<double>(rand()) / RAND_MAX) - 1.0); 
-		gkp.amplitude += amplitudeMutation;
-		//gkp.amplitude = std::max(-10.0, std::min(10.0, gkp.amplitude)); 
-		gkp.amplitude = std::max(0.0, std::min(10.0, gkp.amplitude));
+		GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
 
+		if (mutationSelection(gen) == 0)
+			gkp.sigma = std::clamp(gkp.sigma + mutationStep(gen), MutationConstants::minSigma,
+				MutationConstants::maxSigma);
+		else
+			gkp.amplitude = std::clamp(gkp.amplitude + mutationStep(gen), MutationConstants::minAmplitude,
+				MutationConstants::maxAmplitude);
 
-		const ElementCommonParameters gkcp = kernel->getElementCommonParameters();
-		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
+		std::dynamic_pointer_cast<GaussKernel>(kernel)->setParameters(gkp);
 	}
 
 	void ConnectionGene::disable()

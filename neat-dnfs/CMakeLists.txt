@@ -51,15 +51,19 @@ set(header
 "include/neat/solution.h"
 "include/neat/species.h"
 
-"include/solutions/template_solution.h"
+#"include/solutions/template_solution.h"
+"include/solutions/empty_solution.h"
+"include/solutions/single_bump.h"
 
 "include/application/application.h"
 
 "include/ui_windows/population_control_window.h"
 
 "include/tools/logger.h"
+"include/tools/utils.h"
 
 "include/simulate_behaviour_wizard.h"
+"include/constants.h"
 )
 set(src 
 "src/neat/connection_gene.cpp"
@@ -69,14 +73,16 @@ set(src
 "src/neat/solution.cpp"
 "src/neat/species.cpp"
 
-"src/solutions/template_solution.cpp"
+#"src/solutions/template_solution.cpp"
+"src/solutions/empty_solution.cpp"
+"src/solutions/single_bump.cpp"
 
 "src/application/application.cpp"
 
 "src/ui_windows/population_control_window.cpp"
 
 "src/tools/logger.cpp"
-
+ 
 "src/simulate_behaviour_wizard.cpp"
 )
 
@@ -162,3 +168,27 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
     dynamic-neural-field-composer 
     ${CMAKE_PROJECT_NAME}
 )
+
+# Setup Catch2
+enable_testing()
+find_package(Catch2 CONFIG REQUIRED)
+include(CTest)
+include(Catch)
+
+# Add test project
+set(TEST_PROJECT ${CMAKE_PROJECT_NAME}-test)
+add_executable(${TEST_PROJECT} 
+    "tests/entry.cpp" 
+    "tests/test_field_gene.cpp" 
+    "tests/test_connection_gene.cpp"
+    "tests/test_genome.cpp"
+    "tests/test_solution.cpp"
+    "tests/test_utils.cpp"
+    "tests/test_empty_solution.cpp"
+    "tests/test_species.cpp"
+    "tests/test_population.cpp"
+)
+target_include_directories(${TEST_PROJECT} PRIVATE include)
+target_link_libraries(${TEST_PROJECT} PRIVATE Catch2::Catch2 Catch2::Catch2WithMain imgui-platform-kit  dynamic-neural-field-composer ${CMAKE_PROJECT_NAME})
+# Automatically discover and add tests
+catch_discover_tests(${TEST_PROJECT})

@@ -93,9 +93,9 @@ namespace neat_dnfs
 
         if (ImGui::Button("Initialize", buttonSize))
         {
-            TemplateSolution solution(solutionParameters);
+            SingleBumpSolution solution(solutionParameters);
             population = std::make_shared<Population>(populationParameters,
-                std::make_shared<TemplateSolution>(solution));
+                std::make_shared<SingleBumpSolution>(solution));
             population->initialize();
             isInitialized = true;
         }
@@ -129,6 +129,7 @@ namespace neat_dnfs
 	    if (ImGui::Button("Show best solution"))
 		{
 			const auto bestSolution = population->getBestSolution();
+            bestSolution->buildPhenotype();
             const auto phenotype = bestSolution->getPhenotype();
             const auto simulation = std::make_shared<dnf_composer::Simulation>(phenotype);
             simulationWindow = std::make_shared<dnf_composer::user_interface::SimulationWindow>(simulation);

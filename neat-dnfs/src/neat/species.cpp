@@ -5,6 +5,7 @@ namespace neat_dnfs
 	Species::Species()
 	{
 		id = currentSpeciesId++;
+		offspringCount = 0;
 	}
 
 	std::shared_ptr<Solution> Species::getRepresentative() const
@@ -25,33 +26,37 @@ namespace neat_dnfs
 
 	void Species::removeSolution(const SolutionPtr& solution)
 	{
-		const auto it = std::find(members.begin(), members.end(), solution);
-		if (it != members.end()) 
+		const auto it = std::ranges::find(members, solution);
+		if (it != members.end())
 			members.erase(it);
 	}
 
 	bool Species::isCompatible(const SolutionPtr& solution) const
 	{
-		constexpr double compatibilityThreshold = 3.0;
-		constexpr double c1 = 0.5, c2 = 0.4, c3 = 0.1;
-		int N = std::max(representative->getGenomeSize(), solution->getGenomeSize());
+		if (representative == nullptr)
+			throw std::runtime_error("Species " + std::to_string(id) + " has no representative.");
+
+		int N = static_cast<int>(std::max(representative->getGenomeSize(), solution->getGenomeSize()));
 		if (N < 20) N = 1; // Normalize for small genomes
 
 		const auto representativeGenome = representative->getGenome();
 		const auto solutionGenome = solution->getGenome();
 
-		const double excessCoeff = c1 * representativeGenome.excessGenes(solutionGenome);
-		const double disjointCoeff = c2 * representativeGenome.disjointGenes(solutionGenome);
-		const double weightCoeff = c3 * representativeGenome.averageConnectionDifference(solutionGenome);
+		const double excessCoefficient = SpeciesConstants::excessGenesCompatibilityWeight
+			* representativeGenome.excessGenes(solutionGenome);
+		const double disjointCoefficient = SpeciesConstants::disjointGenesCompatibilityWeight
+			* representativeGenome.disjointGenes(solutionGenome);
+		const double weightCoefficient = SpeciesConstants::averageConnectionDifferenceCompatibilityWeight
+			* representativeGenome.averageConnectionDifference(solutionGenome);
 
-		const double geneticDistance = (excessCoeff + disjointCoeff + weightCoeff) / N;
+		const double geneticDistance = (excessCoefficient + disjointCoefficient + weightCoefficient) / N;
 
-		return geneticDistance < compatibilityThreshold;
+		return geneticDistance < SpeciesConstants::compatibilityThreshold;
 	}
 
 	bool Species::contains(const SolutionPtr& solution) const
 	{
-		return std::find(members.begin(), members.end(), solution) != members.end();
+		return std::ranges::find(members, solution) != members.end();
 	}
 
 	double Species::totalAdjustedFitness() const
@@ -63,74 +68,69 @@ namespace neat_dnfs
 		return total;
 	}
 
-	void Species::killLeastFitSolution()
+	uint16_t Species::getKillCount() const
 	{
-		if (members.empty())
-			return;
-
-		sortSolutionsByFitness();
-		members.pop_back();
+		if (members.size() <= 2)
+			return 0;
+		return std::ceil(static_cast<double>(members.size()) * PopulationConstants::killRatio);
 	}
 
-	void Species::updateRepresentative()
+	std::vector<SolutionPtr> Species::killLeastFitSolutions()
 	{
-		representative = getMostFitSolution();
-	}
-
-	void Species::calculateAdjustedFitness() const
-	{
-		for (const auto& member : members)
+		if (members.size() <= 2)
 		{
-			const double adjustedFitness = 
-				member->getParameters().fitness / static_cast<double>(members.size());
-			member->setAdjustedFitness(adjustedFitness);
-		}
-	}
-
-	SolutionPtr Species::getLeastFitSolution() const
-	{
-		if (members.empty())
-			return nullptr;
-
-		SolutionPtr leastFit = members.front();
-		for (const auto& member : members)
-		{
-			if (member->getParameters().fitness < leastFit->getParameters().fitness)
-				leastFit = member;
+			log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) +
+				" has " + std::to_string(members.size()) + " members. Killing no individuals.");
+			return {};
 		}
 
-		return leastFit;
+		sortMembersByFitness();
+
+		const size_t numToRemove = getKillCount();
+		const size_t numSurvivors = members.size() - numToRemove; // Keep only the number of offspring specified
+
+		log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has " +
+			std::to_string(members.size()) + " members. Killing " +
+			std::to_string(numToRemove) + " least fit members. Remaining: " + std::to_string(numSurvivors));
+
+		std::vector<SolutionPtr> removed;
+		removed.reserve(numToRemove);
+		std::move(members.end() - static_cast<uint16_t>(numToRemove), members.end(), std::back_inserter(removed));
+		members.resize(numSurvivors);
+
+		return removed;
 	}
 
-	SolutionPtr Species::getMostFitSolution() const
+	void Species::crossover()
 	{
-		if (members.empty())
-			return nullptr;
-
-		SolutionPtr mostFit = members.front();
-		for (const auto& member : members)
+		offspring.clear();
+		if (members.size() <= 1)
 		{
-			if (member->getParameters().fitness > mostFit->getParameters().fitness)
-				mostFit = member;
+			for (size_t i = 0; i < offspringCount; ++i)
+			{
+				const SolutionPtr parent1 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
+				offspring.push_back(parent1);
+			}
 		}
-
-		return mostFit;
-	}
-
-	SolutionPtr Species::getRandomSolution() const
-	{
-		if (members.empty())
-			return nullptr;
-
-		return members[rand() % members.size()];
-	}
-
-	void Species::sortSolutionsByFitness()
-	{
-		std::sort(members.begin(), members.end(), [](const SolutionPtr& a, const SolutionPtr& b)
+		else
 		{
-			return a->getParameters().fitness > b->getParameters().fitness;  // higher is better
-		});
+			for (size_t i = 0; i < offspringCount; ++i)
+			{
+				const SolutionPtr parent1 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
+				const SolutionPtr parent2 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
+				offspring.push_back(parent1->crossover(parent2));
+			}
+		}
+		log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has " +
+			std::to_string(members.size()) + " members. Created " + std::to_string(offspringCount) + " offspring.");
 	}
 
+	void Species::sortMembersByFitness()
+	{
+		std::ranges::sort(members, [](const SolutionPtr& a, const SolutionPtr& b)
+			{
+				return a->getParameters().fitness > b->getParameters().fitness;
+			}
+		);
+	}
 }

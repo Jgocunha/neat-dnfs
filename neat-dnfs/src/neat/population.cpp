@@ -2,38 +2,15 @@
 
 namespace neat_dnfs
 {
-	PopulationParameters::PopulationParameters(uint16_t size, uint16_t numGenerations, double targetFitness)
-		: size(size), currentGeneration(0), numGenerations(numGenerations), targetFitness(targetFitness)
-	{
-		if (size == 0)
-			throw std::invalid_argument("Population size must be greater than 0.");
-		if (numGenerations == 0)
-			throw std::invalid_argument("Number of generations must be greater than 0.");
-	}
-
 	Population::Population(const PopulationParameters& parameters, const SolutionPtr& initialSolution)
 		: parameters(parameters)
 	{
 		createInitialEmptySolutions(initialSolution);
 	}
 
-	void Population::createInitialEmptySolutions(const SolutionPtr& initialSolution)
-	{
-		Species firstSpecies;
-		for (int i = 0; i < parameters.size; i++)
-		{
-			SolutionPtr initialSolutionClone = initialSolution->clone();
-			firstSpecies.addSolution(initialSolutionClone);
-		}
-		firstSpecies.updateRepresentative();
-		speciesList.push_back(firstSpecies);
-	}
-
 	void Population::initialize() const
 	{
-		for (const auto& species : speciesList)
-			for (const auto& solution : species.getSolutions())
-				solution->initialize();
+		buildInitialSolutionsGenome();
 	}
 
 	void Population::evolve()
@@ -42,37 +19,91 @@ namespace neat_dnfs
 		{
 			evaluate();
 			speciate();
+			select();
 			reproduce();
-			trackBestSolution();
-			if( bestSolution->getFitness() > 7)
-				std::cout << "Best fitness: " << bestSolution->getFitness() << std::endl;
-			trackGenerationalInfo();
-			logGenerationalInfo();
+			upkeepBestSolution();
+			updateGenerationAndAges();
+			tools::logger::log(tools::logger::INFO,
+				"Current generation: " + std::to_string(parameters.currentGeneration) +
+				" Best fitness: " + std::to_string(bestSolution->getFitness()) +
+				" Adjusted fitness: " + std::to_string(bestSolution->getParameters().adjustedFitness) +
+				" Number of species: " + std::to_string(speciesList.size()) +
+				" Number of solutions: " + std::to_string(solutions.size())
+			);
+
 		} while (!endConditionMet());
 	}
 
 	void Population::evaluate() const
 	{
-		for (const auto& species : speciesList)
-		{
-			for (const auto& solution : species.getSolutions())
-				solution->evaluate();
-		}
+		for (const auto& solution : solutions)
+			solution->evaluate();
 	}
 
 	void Population::speciate()
 	{
+		for (const auto& solution : solutions)
+			assignToSpecies(solution);
+	}
+
+	void Population::select()
+	{
+		calculateAdjustedFitness();
+		calculateSpeciesOffspring();
+		killLeastFitSolutions();
+	}
+
+	void Population::reproduce()
+	{
+		crossover();
+	}
+
+	SolutionPtr Population::getBestSolution() const
+	{
+		return bestSolution;
+	}
+
+	void Population::createInitialEmptySolutions(const SolutionPtr& initialSolution)
+	{
+		for (int i = 0; i < parameters.size; i++)
+			solutions.push_back(initialSolution->clone());
+	}
+
+	void Population::buildInitialSolutionsGenome() const
+	{
+		for (const auto& solution : solutions)
+			solution->initialize();
+	}
+
+	void Population::upkeepBestSolution()
+	{
 		for (const auto& species : speciesList)
 		{
-			for (const auto& solution : species.getSolutions())
-				assignToSpecies(solution);
+			for (const auto& solution : species.getMembers())
+			{
+				if (bestSolution == nullptr || solution->getFitness() > bestSolution->getFitness())
+					bestSolution = solution;
+			}
 		}
+
+		/*for (const auto& solution : solutions)
+		{
+			if (bestSolution == nullptr || solution->getFitness() > bestSolution->getFitness())
+				bestSolution = solution;
+		}*/
+	}
+
+	void Population::updateGenerationAndAges()
+	{
+		parameters.currentGeneration++;
+		for (const auto& solution : solutions)
+			solution->incrementAge();
 	}
 
 	void Population::assignToSpecies(const SolutionPtr& solution)
 	{
 		bool assigned = false;
-		Species* currentSpecies = findSpeciesOfSolution(solution);
+		Species* currentSpecies = findSpecies(solution);
 
 		for (auto& species : speciesList)
 		{
@@ -94,161 +125,117 @@ namespace neat_dnfs
 				currentSpecies->removeSolution(solution);
 			Species newSpecies;
 			newSpecies.addSolution(solution);
-			newSpecies.updateRepresentative();
+			newSpecies.setRepresentative(solution);
 			speciesList.push_back(newSpecies);
 		}
 	}
 
-	Species* Population::findSpeciesOfSolution(const SolutionPtr& solution)
+	Species* Population::findSpecies(const SolutionPtr& solution)
 	{
 		for (auto& species : speciesList)
 			if (species.contains(solution))
 				return &species;
 
 		return nullptr;
-	}	
+	}
 
-	void Population::reproduce()
+	void Population::calculateAdjustedFitness()
 	{
-		calculateAdjustedFitness();
-		calculateReproductionProbabilities();
-
-		const uint16_t numSolutionsToKill = getNumSolutionsToKill();
-		const uint16_t numOffspring = numSolutionsToKill;
-
-		// Crossover and mutation
-		std::vector<SolutionPtr> offspring;
-		for(int i = 0; i< numOffspring; i++)
-			offspring.push_back(crossover());
-		for (const auto& solution : offspring)
-			solution->mutate();
-		for (const auto& solution : offspring)
-			solution->clearGenerationalInnovations();
-
-		// Selection
-		static constexpr double killRatio = 0.9;
-		uint16_t numSolutionsKilled = 0;
-		for (auto& species : speciesList)
+		for (const auto& solution : solutions)
 		{
-			const int numSolutionsToKillInSpecies = static_cast<int>(static_cast<double>(species.size()) * killRatio);
-			for (int i = 0; i < numSolutionsToKillInSpecies; i++)
-				species.killLeastFitSolution();
-			numSolutionsKilled += numSolutionsToKillInSpecies;
+			const Species* species = findSpecies(solution);
+			const size_t speciesSize = species->size();
+			const double adjustedFitness = solution->getFitness() / static_cast<double>(speciesSize);
+			solution->setAdjustedFitness(adjustedFitness);
 		}
-		assert(numSolutionsKilled == numSolutionsToKill);
-
-		for (const auto& solution : offspring)
-			assignToSpecies(solution);
-		assert(size() == parameters.size);
 	}
 
-	void Population::calculateAdjustedFitness() const
+	void Population::calculateSpeciesOffspring()
 	{
-		for (const auto& species : speciesList)
-			species.calculateAdjustedFitness();
-	}
+		static const int offspringPoolSize =
+			static_cast<int>(parameters.size * PopulationConstants::killRatio);
 
-	void Population::calculateReproductionProbabilities() const
-	{
-		double totalAdjustedFitness = 0;
+		double totalAdjustedFitnessAcrossSpecies = 0.0;
 		for (const auto& species : speciesList)
-			totalAdjustedFitness += species.totalAdjustedFitness();
+			totalAdjustedFitnessAcrossSpecies += species.totalAdjustedFitness();
 
 		for (auto& species : speciesList)
 		{
-			for (const auto& solution : species.getSolutions())
+			const double speciesProportion =
+				species.totalAdjustedFitness() / totalAdjustedFitnessAcrossSpecies;
+			const auto exactOffspring = static_cast<uint16_t>(speciesProportion * offspringPoolSize);
+			species.setOffspringCount(exactOffspring);
+		}
+
+		// Adjust offspring count to match the offspring pool size
+		const int totalOffspringAcrossSpecies =
+			std::accumulate(speciesList.begin(), speciesList.end(), 0,
+				[](int sum, const Species& species) {
+					return sum + species.getOffspringCount();
+				});
+
+		int totalIndividualsKilled = 0;
+		for (const auto& species : speciesList)
+			totalIndividualsKilled += species.getKillCount();
+		const int totalIndividualsRemaining = static_cast<uint16_t>(solutions.size()) - totalIndividualsKilled;
+
+		const int totalOffspringAvailable = static_cast<uint16_t>(solutions.size()) - totalIndividualsRemaining;
+		int error = totalOffspringAcrossSpecies - totalOffspringAvailable;
+		while (error != 0)
+		{
+			const int randomIndex = tools::utils::generateRandomInt(0, static_cast<int>(speciesList.size() - 1));
+			if (error > 0 && speciesList[randomIndex].getOffspringCount() > 0)
 			{
-				const double reproductionProbability = solution->getParameters().adjustedFitness / totalAdjustedFitness;
-				solution->setReproductionProbability(reproductionProbability);
+				speciesList[randomIndex].setOffspringCount(speciesList[randomIndex].getOffspringCount() - 1);
+				error--;
+			}
+			else if (error < 0)
+			{
+				speciesList[randomIndex].setOffspringCount(speciesList[randomIndex].getOffspringCount() + 1);
+				error++;
 			}
 		}
+
+		log(tools::logger::LogLevel::INFO, "Offspring pool size adjusted. Total offspring: " + std::to_string(totalOffspringAcrossSpecies) +
+			" Offspring pool size: " + std::to_string(offspringPoolSize));
 	}
 
-	uint16_t Population::getNumSolutionsToKill() const
+	void Population::killLeastFitSolutions()
 	{
-		static constexpr double killRatio = 0.9;
-		uint16_t numSolutionsToKill = 0;
+		std::vector<SolutionPtr> toRemove;
 
+		// Gather all solutions that need to be removed from each species
 		for (auto& species : speciesList)
 		{
-			const size_t numSolutionsInSpecies = species.size();
-			numSolutionsToKill += static_cast<int>(static_cast<double>(numSolutionsInSpecies) * killRatio);
+			std::vector<SolutionPtr> removed = species.killLeastFitSolutions();
+			toRemove.insert(toRemove.end(), removed.begin(), removed.end());
 		}
 
-		return numSolutionsToKill;
-	}
-
-	SolutionPtr Population::crossover() const
-	{
-		std::vector<SolutionPtr> solutions;
-		for (const auto& species : speciesList) 
-		{
-			const auto& speciesSolutions = species.getSolutions();
-			solutions.insert(solutions.end(), speciesSolutions.begin(), speciesSolutions.end());
-		}
-		std::vector<double> cumulativeProbabilities;
-		for (const auto& member : solutions)
-		{
-			const double reproductionProbability = member->getParameters().reproductionProbability;
-			if (cumulativeProbabilities.empty())
-				cumulativeProbabilities.push_back(reproductionProbability);
-			else
-				cumulativeProbabilities.push_back(reproductionProbability + cumulativeProbabilities.back());
-		}
-
-		double random1, random2;
-		constexpr double tolerance = 1e-10;
-		do {
-			random1 = static_cast<double>(std::rand()) / RAND_MAX;
-			random2 = static_cast<double>(std::rand()) / RAND_MAX;
-		} while (std::fabs(random1 - random2) < tolerance);
-
-		const auto it1 = std::lower_bound(cumulativeProbabilities.begin(), cumulativeProbabilities.end(), random1);
-		const auto it2 = std::lower_bound(cumulativeProbabilities.begin(), cumulativeProbabilities.end(), random2);
-		const auto parent1 = solutions[std::distance(cumulativeProbabilities.begin(), it1)];
-		const auto parent2 = solutions[std::distance(cumulativeProbabilities.begin(), it2)];
-
-		return Solution::crossover(parent1, parent2);
-	}
-
-	uint16_t Population::size() const
-	{
-		return std::accumulate(speciesList.begin(), speciesList.end(), 0,
-						[](int sum, const Species& species) { return sum + species.size(); });
-	}
-
-	void Population::trackBestSolution()
-	{
-		for (const auto& species : speciesList)
-		{
-			for (const auto& solution : species.getSolutions())
+		// Remove dead solutions from the main population vector
+		// // use ranges remove if instead of remove_if
+		const auto newEnd = std::remove_if(solutions.begin(), solutions.end(),
+			[&toRemove](const SolutionPtr& solution)
 			{
-				if (bestSolution == nullptr || solution->getFitness() > bestSolution->getFitness())
-					bestSolution = solution;
-			}
-		}
+				// use ranges find instead of find
+				return std::find(toRemove.begin(), toRemove.end(), solution) != toRemove.end();
+			});
+		solutions.erase(newEnd, solutions.end());
 	}
 
-	void Population::trackGenerationalInfo()
+	void Population::crossover()
 	{
 		for (auto& species : speciesList)
+			species.crossover();
+		// Add offspring to the population
+		for (auto& species : speciesList)
 		{
-			species.updateRepresentative();
-			for (const auto& solution : species.getSolutions())
-				solution->incrementAge();
+			const auto offspring = species.getOffspring();
+			for (const auto& solution : offspring)
+				solution->mutate();
+			for (const auto& solution : offspring)
+				solution->clearGenerationalInnovations();
+			solutions.insert(solutions.end(), offspring.begin(), offspring.end());
 		}
-		parameters.currentGeneration++;
-	}
-
-	void Population::logGenerationalInfo() const
-	{
-		tools::logger::log(tools::logger::INFO,
-			"Current generation: " + std::to_string(parameters.currentGeneration) +
-			" Best fitness: " + std::to_string(bestSolution->getFitness()) +
-			" Adjusted fitness: " + std::to_string(bestSolution->getParameters().adjustedFitness) +
-			" Number of species: " + std::to_string(speciesList.size()) +
-			" Number of solutions: " + std::to_string(size())
-		);
 	}
 
 	bool Population::endConditionMet() const
