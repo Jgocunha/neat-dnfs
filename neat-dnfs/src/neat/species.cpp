@@ -68,6 +68,13 @@ namespace neat_dnfs
 		return total;
 	}
 
+	uint16_t Species::getKillCount() const
+	{
+		if (members.size() <= 2)
+			return 0;
+		return std::ceil(static_cast<double>(members.size()) * PopulationConstants::killRatio);
+	}
+
 	std::vector<SolutionPtr> Species::killLeastFitSolutions()
 	{
 		if (members.size() <= 2)
@@ -79,17 +86,17 @@ namespace neat_dnfs
 
 		sortMembersByFitness();
 
-		const size_t numSurvivors = offspringCount; // Keep only the number of offspring specified
-		const size_t numToRemove = members.size() - numSurvivors;
+		const size_t numToRemove = getKillCount();
+		const size_t numSurvivors = members.size() - numToRemove; // Keep only the number of offspring specified
+
+		log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has " + 
+			std::to_string(members.size()) + " members. Killing " + 
+			std::to_string(numToRemove) + " least fit members. Remaining: " + std::to_string(numSurvivors));
 
 		std::vector<SolutionPtr> removed;
 		removed.reserve(numToRemove);
 		std::move(members.end() - static_cast<uint16_t>(numToRemove), members.end(), std::back_inserter(removed));
 		members.resize(numSurvivors);
-
-		log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has " + 
-			std::to_string(members.size()) + " members. Killing " + 
-			std::to_string(numToRemove) + " least fit members. Remaining: " + std::to_string(numSurvivors));
 
 		return removed;
 	}

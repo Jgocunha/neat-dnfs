@@ -33,6 +33,8 @@ namespace neat_dnfs
         void setOffspringCount(uint16_t count) { offspringCount = count; }
         uint16_t getOffspringCount() const { return offspringCount; }
 
+        uint16_t getKillCount() const;
+
         std::vector<SolutionPtr> killLeastFitSolutions();
         std::vector<SolutionPtr> getOffspring() const { return offspring; }
         void clearOffspring() { offspring.clear(); }

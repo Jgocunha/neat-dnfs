@@ -8,7 +8,9 @@ namespace neat_dnfs
 
 	void EmptySolution::evaluate()
 	{
-		parameters.fitness = tools::utils::generateRandomDouble(0.0, 1.0);
+		const double newFitness = tools::utils::generateRandomDouble(0.0, 1.0);
+		if (newFitness > parameters.fitness)
+			parameters.fitness = newFitness;
 	}
 
 	SolutionPtr EmptySolution::clone() const

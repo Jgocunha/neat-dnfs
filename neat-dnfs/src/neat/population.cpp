@@ -77,6 +77,15 @@ namespace neat_dnfs
 
 	void Population::upkeepBestSolution()
 	{
+		/*for (const auto& species : speciesList)
+		{
+			for (const auto& solution : species.getMembers())
+			{
+				if (bestSolution == nullptr || solution->getFitness() > bestSolution->getFitness())
+					bestSolution = solution;
+			}
+		}*/
+
 		for (const auto& solution : solutions)
 		{
 			if (bestSolution == nullptr || solution->getFitness() > bestSolution->getFitness())
@@ -143,7 +152,8 @@ namespace neat_dnfs
 
 	void Population::calculateSpeciesOffspring()
 	{
-		static const int offspringPoolSize = static_cast<int>(parameters.size * PopulationConstants::killRatio);
+		static const int offspringPoolSize =
+			static_cast<int>(parameters.size * PopulationConstants::killRatio);
 
 		double totalAdjustedFitnessAcrossSpecies = 0.0;
 		for (const auto& species : speciesList)
@@ -151,47 +161,96 @@ namespace neat_dnfs
 
 		for (auto& species : speciesList)
 		{
-			const double speciesProportion = species.totalAdjustedFitness() / totalAdjustedFitnessAcrossSpecies;
+			const double speciesProportion = 
+				species.totalAdjustedFitness() / totalAdjustedFitnessAcrossSpecies;
 			const auto exactOffspring = static_cast<uint16_t>(speciesProportion * offspringPoolSize);
 			species.setOffspringCount(exactOffspring);
 		}
 
 		// Adjust offspring count to match the offspring pool size
-		int totalOffspringAcrossSpecies = 0.0;
-		for (const auto& species : speciesList)
-			totalOffspringAcrossSpecies += species.getOffspringCount();
+		const int totalOffspringAcrossSpecies = 
+			std::accumulate(speciesList.begin(), speciesList.end(), 0,
+			[](int sum, const Species& species) {
+				return sum + species.getOffspringCount();
+			});
 
-		if(totalOffspringAcrossSpecies != offspringPoolSize)
+		int totalIndividualsKilled = 0;
+		for (const auto& species : speciesList)
+			totalIndividualsKilled += species.getKillCount();
+		const int totalIndividualsRemaining = static_cast<uint16_t>(solutions.size()) - totalIndividualsKilled;
+
+		const int totalOffspringAvailable = static_cast<uint16_t>(solutions.size()) - totalIndividualsRemaining;
+		int error = totalOffspringAcrossSpecies - totalOffspringAvailable;
+		while (error != 0)
 		{
-			const int error = totalOffspringAcrossSpecies - offspringPoolSize;
-			if(error > 0)
+			const int randomIndex = tools::utils::generateRandomInt(0, static_cast<int>(speciesList.size() - 1));
+			if (error > 0 && speciesList[randomIndex].getOffspringCount() > 0)
 			{
-				for (int i = 0; i < error; i++)
-				{
-					// use randomNumberGeneratorInt
-					const int randomIndex = rand() % speciesList.size();
-					//if (speciesList[randomIndex].getOffspringCount() > 0)
-					speciesList[randomIndex].setOffspringCount(speciesList[randomIndex].getOffspringCount() - 1);
-				}
+				speciesList[randomIndex].setOffspringCount(speciesList[randomIndex].getOffspringCount() - 1);
+				error--;
 			}
-			if (error < 0)
+			else if (error < 0)
 			{
-				for (int i = 0; i < abs(error); i++)
-				{
-					// use randomNumberGeneratorInt
-					const int randomIndex = rand() % speciesList.size();
-					speciesList[randomIndex].setOffspringCount(speciesList[randomIndex].getOffspringCount() + 1);
-				}
+				speciesList[randomIndex].setOffspringCount(speciesList[randomIndex].getOffspringCount() + 1);
+				error++;
 			}
-			log(tools::logger::LogLevel::INFO, "Offspring pool size error: " + std::to_string(error) +
-				" Total offspring: " + std::to_string(totalOffspringAcrossSpecies) + 
-				" Offspring pool size: " + std::to_string(offspringPoolSize));
 		}
 
-		for (const auto& species : speciesList)
-			log(tools::logger::LogLevel::INFO, "Species: " + std::to_string(species.getId()) + 
-				" Offspring count: " + std::to_string(species.getOffspringCount()));
+		log(tools::logger::LogLevel::INFO, "Offspring pool size adjusted. Total offspring: " + std::to_string(totalOffspringAcrossSpecies) +
+			" Offspring pool size: " + std::to_string(offspringPoolSize));
 	}
+
+	//void Population::calculateSpeciesOffspring()
+	//{
+	//	static const int offspringPoolSize = static_cast<int>(parameters.size * PopulationConstants::killRatio);
+
+	//	double totalAdjustedFitnessAcrossSpecies = 0.0;
+	//	for (const auto& species : speciesList)
+	//		totalAdjustedFitnessAcrossSpecies += species.totalAdjustedFitness();
+
+	//	for (auto& species : speciesList)
+	//	{
+	//		const double speciesProportion = species.totalAdjustedFitness() / totalAdjustedFitnessAcrossSpecies;
+	//		const auto exactOffspring = static_cast<uint16_t>(speciesProportion * offspringPoolSize);
+	//		species.setOffspringCount(exactOffspring);
+	//	}
+
+	//	// Adjust offspring count to match the offspring pool size
+	//	int totalOffspringAcrossSpecies = 0.0;
+	//	for (const auto& species : speciesList)
+	//		totalOffspringAcrossSpecies += species.getOffspringCount();
+
+	//	if (totalOffspringAcrossSpecies != offspringPoolSize)
+	//	{
+	//		const int error = totalOffspringAcrossSpecies - offspringPoolSize;
+	//		if (error > 0)
+	//		{
+	//			for (int i = 0; i < error; i++)
+	//			{
+	//				// use randomNumberGeneratorInt
+	//				const int randomIndex = rand() % speciesList.size();
+	//				//if (speciesList[randomIndex].getOffspringCount() > 0)
+	//				speciesList[randomIndex].setOffspringCount(speciesList[randomIndex].getOffspringCount() - 1);
+	//			}
+	//		}
+	//		if (error < 0)
+	//		{
+	//			for (int i = 0; i < abs(error); i++)
+	//			{
+	//				// use randomNumberGeneratorInt
+	//				const int randomIndex = rand() % speciesList.size();
+	//				speciesList[randomIndex].setOffspringCount(speciesList[randomIndex].getOffspringCount() + 1);
+	//			}
+	//		}
+	//		log(tools::logger::LogLevel::INFO, "Offspring pool size error: " + std::to_string(error) +
+	//			" Total offspring: " + std::to_string(totalOffspringAcrossSpecies) +
+	//			" Offspring pool size: " + std::to_string(offspringPoolSize));
+	//	}
+
+	//	for (const auto& species : speciesList)
+	//		log(tools::logger::LogLevel::INFO, "Species: " + std::to_string(species.getId()) +
+	//			" Offspring count: " + std::to_string(species.getOffspringCount()));
+	//}
 
 	void Population::killLeastFitSolutions()
 	{
@@ -214,7 +273,6 @@ namespace neat_dnfs
 			});
 		solutions.erase(newEnd, solutions.end());
 	}
-
 
 	void Population::crossover()
 	{
