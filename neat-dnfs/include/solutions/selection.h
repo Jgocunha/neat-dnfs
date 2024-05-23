@@ -11,10 +11,10 @@
 
 namespace neat_dnfs
 {
-	class SingleBumpSolution : public Solution
+	class SelectionSolution : public Solution
 	{
 	public:
-		SingleBumpSolution(const SolutionTopology& topology);
+		SelectionSolution(const SolutionTopology& topology);
 
 		void evaluate() override;
 		SolutionPtr clone() const override;

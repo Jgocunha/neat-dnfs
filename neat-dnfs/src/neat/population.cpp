@@ -3,7 +3,7 @@
 namespace neat_dnfs
 {
 	Population::Population(const PopulationParameters& parameters, const SolutionPtr& initialSolution)
-		: parameters(parameters)
+		: parameters(parameters), bestSolution(nullptr)
 	{
 		createInitialEmptySolutions(initialSolution);
 	}

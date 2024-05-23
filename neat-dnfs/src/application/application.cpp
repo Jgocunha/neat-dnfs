@@ -3,12 +3,13 @@
 namespace neat_dnfs
 {
 	Application::Application(bool activateUI)
-		: population{nullptr}, ui {nullptr}, activateUI{ activateUI }
+		: ui {nullptr}, activateUI{ activateUI }
 	{
 		using namespace imgui_kit;
 		const WindowParameters winParams{ "neat dnfs" };
 		const FontParameters fontParams{ std::string(PROJECT_DIR) + "/resources/fonts/Lexend-Light.ttf", 22 };
-		const StyleParameters styleParams{ ImVec4(0.7f, 0.9f, 0.7f, 0.6f) };
+		 StyleParameters styleParams{ ImVec4(0.7f, 0.9f, 0.7f, 0.6f) };
+		styleParams.textColor = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
 		const IconParameters iconParams{ std::string(PROJECT_DIR) + "/resources/icons/icon.ico" };
 		const BackgroundImageParameters bgParams{ std::string(PROJECT_DIR) + "/resources/images/background.png", 0.4 };
 		uiParameters = UserInterfaceParameters{ winParams, fontParams, styleParams, iconParams, bgParams };
@@ -21,7 +22,7 @@ namespace neat_dnfs
 		if (activateUI)
 		{
 			ui->addWindow<imgui_kit::LogWindow>();
-			ui->addWindow<PopulationControlWindow>(population);
+			ui->addWindow<MainWindow>();
 			ui->initialize();
 		}
 	}

@@ -95,19 +95,63 @@ namespace neat_dnfs
 
 	void Solution::translateGenesToPhenotype()
 	{
+		using namespace dnf_composer::element;
+
 		for (auto const& gene : genome.getFieldGenes())
 		{
-			const auto nf = gene.getNeuralField();
-			const auto kernel = gene.getKernel();
+			const auto nfcp = gene.getNeuralField()->getElementCommonParameters();
+			const auto nfp = gene.getNeuralField()->getParameters();
+			const auto nf = std::make_shared<NeuralField>(nfcp, nfp);
 			phenotype.addElement(nf);
-			phenotype.addElement(kernel);
-			phenotype.createInteraction(nf->getUniqueName(), "output", kernel->getUniqueName());
-			phenotype.createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
+
+
+			const auto kcp = gene.getKernel()->getElementCommonParameters();
+			switch (kcp.identifiers.label)
+			{
+				case ElementLabel::GAUSS_KERNEL:
+				{
+					const auto gkp = std::dynamic_pointer_cast<GaussKernel>(gene.getKernel())->getParameters();
+					const auto kernel = std::make_shared<GaussKernel>(kcp, gkp);
+					phenotype.addElement(kernel);
+					phenotype.createInteraction(nf->getUniqueName(), "output", kernel->getUniqueName());
+					phenotype.createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
+					break;
+				}
+				case ElementLabel::MEXICAN_HAT_KERNEL:
+				{
+					const auto mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(gene.getKernel())->getParameters();
+					const auto kernel = std::make_shared<MexicanHatKernel>(kcp, mhkp);
+					phenotype.addElement(kernel);
+					phenotype.createInteraction(nf->getUniqueName(), "output", kernel->getUniqueName());
+					phenotype.createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
+					break;
+				}
+				case ElementLabel::LATERAL_INTERACTIONS:
+				{
+					const auto lip = std::dynamic_pointer_cast<LateralInteractions>(gene.getKernel())->getParameters();
+					const auto kernel = std::make_shared<LateralInteractions>(kcp, lip);
+					phenotype.addElement(kernel);
+					phenotype.createInteraction(nf->getUniqueName(), "output", kernel->getUniqueName());
+					phenotype.createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
+					break;
+				}
+				default:
+					throw std::invalid_argument("Invalid kernel label");
+			}
 		}
+	}
+
+	void Solution::clearPhenotype()
+	{
+		for (auto const& element : phenotype.getElements())
+			phenotype.removeElement(element->getUniqueName());
 	}
 
 	void Solution::translateConnectionGenesToPhenotype()
 	{
+		if (phenotype.getElement("nf 2")->getInputs().size() > 1)
+			std::cout << "nf 2 inputs: " << phenotype.getElement("nf 2")->getInputs().size() << std::endl;
+
 		for (auto const& connectionGene : genome.getConnectionGenes())
 		{
 			if (connectionGene.isEnabled())

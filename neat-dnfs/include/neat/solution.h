@@ -1,7 +1,6 @@
 #pragma once
 
 #include "genome.h"
-#include "simulate_behaviour_wizard.h"
 
 namespace neat_dnfs
 {
@@ -62,6 +61,7 @@ namespace neat_dnfs
 		void incrementAge();
 		void setAdjustedFitness(double adjustedFitness);
 		void buildPhenotype();
+		void clearPhenotype();
 	private:
 		void createInputGenes();
 		void createOutputGenes();

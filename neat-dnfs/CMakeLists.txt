@@ -54,15 +54,14 @@ set(header
 #"include/solutions/template_solution.h"
 "include/solutions/empty_solution.h"
 "include/solutions/single_bump.h"
+#"include/solutions/selection.h"
 
 "include/application/application.h"
-
-"include/ui_windows/population_control_window.h"
-
+"include/user_interface/main_window.h"
+"include/user_interface/solution_window.h"
 "include/tools/logger.h"
 "include/tools/utils.h"
 
-"include/simulate_behaviour_wizard.h"
 "include/constants.h"
 )
 set(src 
@@ -76,14 +75,12 @@ set(src
 #"src/solutions/template_solution.cpp"
 "src/solutions/empty_solution.cpp"
 "src/solutions/single_bump.cpp"
+#"src/solutions/selection.cpp"
 
 "src/application/application.cpp"
-
-"src/ui_windows/population_control_window.cpp"
-
+"src/user_interface/main_window.cpp"
+"src/user_interface/solution_window.cpp"
 "src/tools/logger.cpp"
- 
-"src/simulate_behaviour_wizard.cpp"
 )
 
 # Library target definition

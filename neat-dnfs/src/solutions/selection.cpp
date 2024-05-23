@@ -1,29 +1,29 @@
-#include "solutions/single_bump.h"
+#include "solutions/selection.h"
 
 namespace neat_dnfs
 {
-	SingleBumpSolution::SingleBumpSolution(const SolutionTopology& topology)
+	SelectionSolution::SingleBumpSolution(const SolutionTopology& topology)
 		: Solution(topology)
 	{}
 
-	void SingleBumpSolution::evaluate()
+	void SelectionSolution::evaluate()
 	{
 		buildPhenotype();
 		testPhenotype();
 		clearPhenotype();
 	}
 
-	SolutionPtr SingleBumpSolution::clone() const
+	SolutionPtr SelectionSolution::clone() const
 	{
-		SingleBumpSolution solution(initialTopology);
-		auto clonedSolution = std::make_shared<SingleBumpSolution>(solution);
+		SelectionSolution solution(initialTopology);
+		auto clonedSolution = std::make_shared<SelectionSolution>(solution);
 
 		return clonedSolution;
 	}
 
-	SolutionPtr SingleBumpSolution::crossover(const SolutionPtr& other)
+	SolutionPtr SelectionSolution::crossover(const SolutionPtr& other)
 	{
-		const SolutionPtr self = std::make_shared<SingleBumpSolution>(*this);
+		const SolutionPtr self = std::make_shared<SelectionSolution>(*this);
 
 		const double fitnessDifference = std::abs(this->getFitness() - other->getFitness());
 
@@ -90,15 +90,15 @@ namespace neat_dnfs
 			}
 
 		}
-		
+
 
 		return offspring;
 	}
 
-	void SingleBumpSolution::testPhenotype()
+	void SelectionSolution::testPhenotype()
 	{
-		static constexpr double expectedBumpPosition = 50;
-		addStimulus("nf 1", expectedBumpPosition);
+		addStimulus("nf 1", 25.0);
+		addStimulus("nf 2", 50.0);
 		runSimulation();
 		updateFitness();
 		removeStimulus();
@@ -107,19 +107,26 @@ namespace neat_dnfs
 		phenotype.close();
 	}
 
-	void SingleBumpSolution::updateFitness()
+	void SelectionSolution::updateFitness()
 	{
 		using namespace dnf_composer::element;
 
-		static constexpr double expectedBumpPosition = 100;
+		static constexpr double expectedBumpPosition = 50.0;
 		static constexpr double expectedBumpWidth = 6;
 		static constexpr double expectedBumpAmplitude = 5;
 
 		const auto field =
 			std::dynamic_pointer_cast<NeuralField>(phenotype.getElement("nf 2"));
 		const auto fieldBumps = field->getBumps();
+		//const size_t inputs = field->getInputs().size();
 
 		if (fieldBumps.empty())
+		{
+			parameters.fitness = 0.0;
+			return;
+		}
+
+		if (fieldBumps.size() > 2)
 		{
 			parameters.fitness = 0.0;
 			return;
@@ -135,7 +142,7 @@ namespace neat_dnfs
 		parameters.fitness += 0.1 / (1.0 + amplitudeDifference);
 	}
 
-	void SingleBumpSolution::runSimulation()
+	void SelectionSolution::runSimulation()
 	{
 		static constexpr int numIterations = 200;
 
@@ -144,12 +151,12 @@ namespace neat_dnfs
 			phenotype.step();
 	}
 
-	void SingleBumpSolution::addStimulus(const std::string& targetElement, const double& position)
+	void SelectionSolution::addStimulus(const std::string& targetElement, const double& position)
 	{
 		using namespace dnf_composer;
 		using namespace dnf_composer::element;
 
-		static const ElementSpatialDimensionParameters dimension = 
+		static const ElementSpatialDimensionParameters dimension =
 		{ DimensionConstants::xSize, DimensionConstants::dx };
 		static constexpr double width = 5.0;
 		static constexpr double amplitude = 15.0;
@@ -166,7 +173,7 @@ namespace neat_dnfs
 		phenotype.createInteraction(gsId, "output", targetElement);
 	}
 
-	void SingleBumpSolution::removeStimulus()
+	void SelectionSolution::removeStimulus()
 	{
 		using namespace dnf_composer::element;
 

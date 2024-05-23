@@ -104,6 +104,15 @@ namespace neat_dnfs
 	void Species::crossover()
 	{
 		offspring.clear();
+
+		if (members.empty())
+		{
+			log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has no members. No offspring created.");
+			if (offspringCount > 0)
+				log(tools::logger::LogLevel::ERROR, "Species " + std::to_string(id) + " has offspring count > 0.");
+			return;
+		}
+
 		if (members.size() <= 1)
 		{
 			for (size_t i = 0; i < offspringCount; ++i)

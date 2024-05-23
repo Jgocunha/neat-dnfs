@@ -97,7 +97,7 @@ namespace neat_dnfs
 
 	struct PopulationConstants
 	{
-		static constexpr double killRatio = 0.5;
+		static constexpr double killRatio = 0.9;
 	};
 
 }

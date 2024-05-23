@@ -1,34 +1,40 @@
-#include "ui_windows/population_control_window.h"
+#include "user_interface/main_window.h"
 
 namespace neat_dnfs
 {
-	PopulationControlWindow::PopulationControlWindow(const std::shared_ptr<Population>& population)
-		: population(population), populationParameters(), solutionParameters()
+	MainWindow::MainWindow()
+		: population{ nullptr }
 	{
 	}
 
-	void PopulationControlWindow::render()
+	void MainWindow::render()
 	{
-		if(ImGui::Begin("Population control"))
-		{
-			renderPopulationInfo();
+        if(ImGui::Begin("Main Window"))
+        {
+	        renderPopulationInfo();
 			renderSolutionInfo();
             renderPopulationMethods();
-            renderShowBestSolution();
+            renderSolutionMethods();
 		}
-		ImGui::End();
+        ImGui::End();
 	}
 
-    void PopulationControlWindow::renderPopulationInfo()
-    {
-        static constexpr int columnWidth = 250;
+    MainWindow::~MainWindow()
+	{
+		if (evolveThread && evolveThread->joinable())
+			evolveThread->join();
+	}
+
+	void MainWindow::renderPopulationInfo()
+	{
+		static constexpr int columnWidth = 250;
         static constexpr int inputWidth = 150;
 
         ImGui::Columns(2, "PopulationColumns", false);
 
         ImGui::SetColumnWidth(0, columnWidth);
 
-        static int populationSize = 10;
+        static int populationSize = 100;
         ImGui::Text("Population size");
         ImGui::NextColumn();
         ImGui::SetNextItemWidth(inputWidth);
@@ -42,7 +48,7 @@ namespace neat_dnfs
         ImGui::InputInt("##NumberGenerations", &numberOfGenerations, 10, 100);
         ImGui::NextColumn();
 
-        static double targetFitness = 0.95f;
+        static double targetFitness = 0.90f;
         ImGui::Text("Target fitness");
         ImGui::NextColumn();
         ImGui::SetNextItemWidth(inputWidth);
@@ -54,18 +60,18 @@ namespace neat_dnfs
         populationParameters.size = static_cast<uint16_t>(populationSize);
         populationParameters.numGenerations = static_cast<uint16_t>(numberOfGenerations);
         populationParameters.targetFitness = targetFitness;
-    }
+	}
 
-    void PopulationControlWindow::renderSolutionInfo()
-    {
-        static constexpr int columnWidth = 250;
+	void MainWindow::renderSolutionInfo()
+	{
+		static constexpr int columnWidth = 250;
         static constexpr int inputWidth = 150;
 
         ImGui::Columns(2, "SolutionColumns", false);
 
         ImGui::SetColumnWidth(0, columnWidth);
 
-        static int numberOfInputFields = 2;
+        static int numberOfInputFields = 1;
         ImGui::Text("Number of input fields");
         ImGui::NextColumn();
         ImGui::SetNextItemWidth(inputWidth);
@@ -84,9 +90,9 @@ namespace neat_dnfs
         solutionParameters.numInputGenes = static_cast<uint16_t>(numberOfInputFields);
         solutionParameters.numOutputGenes = static_cast<uint16_t>(numberOfOutputFields);
         solutionParameters.numHiddenGenes = 0;
-    }
+	}
 
-    void PopulationControlWindow::renderPopulationMethods()
+    void MainWindow::renderPopulationMethods()
     {
         static ImVec2 buttonSize = ImVec2(120, 40);
         static bool isInitialized = false;
@@ -110,11 +116,10 @@ namespace neat_dnfs
         
         if (ImGui::Button("Evolve", buttonSize))
         {
-            if (evolveThread && evolveThread->joinable()) {
+            if (evolveThread && evolveThread->joinable())
                 evolveThread->join();  // Ensure the previous thread is finished before starting a new one
-            }
-            // Launch the evolve function in a new thread
-            evolveThread = std::make_shared<std::thread>(&Population::evolve, population);
+
+        	evolveThread = std::make_shared<std::thread>(&Population::evolve, population);
         }
 
         if (!isInitialized) 
@@ -123,58 +128,69 @@ namespace neat_dnfs
         ImGui::Spacing();
     }
 
-    void PopulationControlWindow::renderShowBestSolution()
-    {
+    void MainWindow::renderSolutionMethods()
+	{
+		if (!population)
+			return;
+		if (!population->getBestSolution())
+            return;
+
+        static ImVec2 buttonSize = ImVec2(180, 40);
         static bool showBestSolution = false;
-	    if (ImGui::Button("Show best solution"))
-		{
-			const auto bestSolution = population->getBestSolution();
+
+        if (ImGui::Button("Show best solution", buttonSize))
+        {
+        	bestSolution = population->getBestSolution();
             bestSolution->buildPhenotype();
-            const auto phenotype = bestSolution->getPhenotype();
-            const auto simulation = std::make_shared<dnf_composer::Simulation>(phenotype);
+        	auto phenotype = bestSolution->getPhenotype();
+            phenotype.init();
+        	simulation = std::make_shared<dnf_composer::Simulation>(phenotype);
             simulationWindow = std::make_shared<dnf_composer::user_interface::SimulationWindow>(simulation);
             elementWindow = std::make_shared<dnf_composer::user_interface::ElementWindow>(simulation);
-            centroidMonitoringWindow = std::make_shared<dnf_composer::user_interface::FieldMetricsWindow>(simulation);
+            fieldMetricsWindow = std::make_shared<dnf_composer::user_interface::FieldMetricsWindow>(simulation);
 
             const auto visualization = createVisualization(simulation);
-            visualization->addPlottingData("nf 1", "activation");
-            visualization->addPlottingData("nf 2", "activation");
-            //visualization->addPlottingData("nf 3", "activation");
+            for (const auto& element : simulation->getElements())
+            {
+                if (element->getLabel() == dnf_composer::element::ElementLabel::NEURAL_FIELD)
+                    visualization->addPlottingData(element->getUniqueName(), "activation");
+            }
 
             const auto plot = std::make_shared<dnf_composer::user_interface::PlotWindow>(visualization);
             plotWindows.push_back(plot);
 
-        	simulationThread = std::make_shared<std::thread>(&PopulationControlWindow::runSimulation, this, simulation);
+            simulationThread = std::make_shared<std::thread>(&MainWindow::renderShowBestSolution, this);
             showBestSolution = true;
-		}
-
+        }
         if (showBestSolution)
         {
-        	simulationWindow->render();
+            simulationWindow->render();
             elementWindow->render();
-            centroidMonitoringWindow->render();
+            fieldMetricsWindow->render();
 
             for (const auto& plot : plotWindows)
-				plot->render();
+            	plot->render();
         }
-    }
-
-    PopulationControlWindow::~PopulationControlWindow()
-	{
-		if (evolveThread && evolveThread->joinable())
-			evolveThread->join();
-        if (simulationThread && simulationThread->joinable())
-			simulationThread->join();
 	}
 
-    void PopulationControlWindow::runSimulation(const std::shared_ptr<dnf_composer::Simulation>& simulation)
+    void MainWindow::renderShowBestSolution()
     {
+        using namespace dnf_composer::element;
+        const ElementCommonParameters elementCommonParameters{ "gauss stimulus", {100, 1.0} };
+        const GaussStimulusParameters gaussStimulusParameters{ 5, 15, 50, false, false };
+        const auto gaussStimulus = std::make_shared<GaussStimulus>(elementCommonParameters, gaussStimulusParameters);
+        simulation->addElement(gaussStimulus);
+        simulation->createInteraction("gauss stimulus", "output", "nf 1");
+        simulation->createInteraction("nf 1", "output", "gk cg 1 - 2");
+        simulation->createInteraction("gk cg 1 - 2", "output", "nf 2");
+
         simulation->init();
         do
         {
-	        simulation->step();
-			std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            simulation->step();
+        	std::this_thread::sleep_for(std::chrono::milliseconds(5));
         } while (true);
     }
+
 
 }
