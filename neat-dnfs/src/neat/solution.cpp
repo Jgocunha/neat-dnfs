@@ -13,6 +13,13 @@ namespace neat_dnfs
 			throw std::invalid_argument("Number of input and output genes must be greater than 0");
 	}
 
+	void Solution::evaluate()
+	{
+		buildPhenotype();
+		testPhenotype();
+		clearPhenotype();
+	}
+
 	void Solution::initialize()
 	{
 		createInputGenes();
@@ -136,7 +143,7 @@ namespace neat_dnfs
 					break;
 				}
 				default:
-					throw std::invalid_argument("Invalid kernel label");
+					throw std::invalid_argument("Invalid kernel label while translating genes to phenotype.");
 			}
 		}
 	}
@@ -149,9 +156,6 @@ namespace neat_dnfs
 
 	void Solution::translateConnectionGenesToPhenotype()
 	{
-		if (phenotype.getElement("nf 2")->getInputs().size() > 1)
-			std::cout << "nf 2 inputs: " << phenotype.getElement("nf 2")->getInputs().size() << std::endl;
-
 		for (auto const& connectionGene : genome.getConnectionGenes())
 		{
 			if (connectionGene.isEnabled())
@@ -192,6 +196,120 @@ namespace neat_dnfs
 	bool Solution::containsConnectionGene(const ConnectionGene& gene) const
 	{
 		return genome.containsConnectionGene(gene);
+	}
+
+	SolutionPtr Solution::crossover(const SolutionPtr& other)
+	{
+		//const SolutionPtr self = this->shared_from_this();
+
+		const double fitnessDifference = std::abs(this->getFitness() - other->getFitness());
+
+		const SolutionPtr moreFitParent = this->getFitness() > other->getFitness() ? shared_from_this() : other;
+		const SolutionPtr lessFitParent = this->getFitness() > other->getFitness() ? other : shared_from_this();
+
+		SolutionPtr offspring = moreFitParent->clone();
+
+		for (const auto& gene : moreFitParent->getGenome().getFieldGenes())
+			offspring->addFieldGene(gene);
+
+		const auto& parentConnectionGenes = moreFitParent->getGenome().getConnectionGenes();
+		for (const auto& gene : parentConnectionGenes)
+		{
+			// Matching genes are inherited randomly from either parent
+			if (lessFitParent->containsConnectionGene(gene))
+			{
+				const auto lessFitGene = lessFitParent->getGenome().getConnectionGeneByInnovationNumber(gene.getInnovationNumber());
+				if (tools::utils::generateRandomInt(0, 1))
+					offspring->addConnectionGene(gene);
+				else
+					offspring->addConnectionGene(lessFitGene);
+			}
+			else
+			{
+				// Disjoint and excess genes are inherited from the more fit parent
+				// unless the fitness difference is 0, in which case the gene is inherited randomly
+				// here we are only considering the most fit parent
+				// later add randomly from the less fit parent
+				if (fitnessDifference < 1e-6)
+				{
+					if (tools::utils::generateRandomInt(0, 1))
+						offspring->addConnectionGene(gene);
+				}
+				else
+					offspring->addConnectionGene(gene);
+			}
+		}
+
+		// If the fitness is the same we still have to randomly inherit the excess and disjoint genes
+		// from the less fit parent
+		if (fitnessDifference < 1e-6)
+		{
+			const auto& lessFitParentConnectionGenes = lessFitParent->getGenome().getConnectionGenes();
+			for (const auto& gene : lessFitParentConnectionGenes)
+			{
+				// Non-matching genes are inherited randomly from the less fit parent
+				if (!moreFitParent->containsConnectionGene(gene))
+				{
+					if (tools::utils::generateRandomInt(0, 1))
+					{
+						offspring->addConnectionGene(gene);
+						// make sure the field genes are also added
+						const uint16_t inFieldGeneId = gene.getInFieldGeneId();
+						const uint16_t outFieldGeneId = gene.getOutFieldGeneId();
+						for (const auto& fieldGene : lessFitParent->getGenome().getFieldGenes())
+						{
+							if (fieldGene.getParameters().id == inFieldGeneId || fieldGene.getParameters().id == outFieldGeneId)
+								offspring->addFieldGene(fieldGene);
+						}
+
+					}
+				}
+			}
+
+		}
+		return offspring;
+	}
+
+	void Solution::initSimulation()
+	{
+		phenotype.init();
+	}
+
+	void Solution::stopSimulation()
+	{
+		phenotype.close();
+	}
+
+	void Solution::runSimulation(const uint16_t iterations)
+	{
+		for (int i = 0; i < iterations; ++i)
+			phenotype.step();
+	}
+
+	void Solution::addGaussianStimulus(const std::string& targetElement, const dnf_composer::element::GaussStimulusParameters& parameters)
+	{
+		using namespace dnf_composer;
+		using namespace dnf_composer::element;
+
+		static const ElementSpatialDimensionParameters dimension = 
+			phenotype.getElement(targetElement)->getElementCommonParameters().dimensionParameters;
+
+		const std::string gsId = "gs " + targetElement + " " + std::to_string(parameters.position);
+		const auto gaussStimulus = GaussStimulus{
+			{gsId, dimension}, parameters };
+		phenotype.addElement(std::make_shared<GaussStimulus>(gaussStimulus));
+		phenotype.createInteraction(gsId, "output", targetElement);
+	}
+
+	void Solution::removeGaussianStimuli()
+	{
+		using namespace dnf_composer::element;
+
+		for (const auto& element : phenotype.getElements())
+		{
+			if (element->getLabel() == GAUSS_STIMULUS)
+				phenotype.removeElement(element->getUniqueName());
+		}
 	}
 
 }

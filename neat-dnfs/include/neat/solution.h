@@ -44,7 +44,7 @@ namespace neat_dnfs
 	public:
 		Solution(const SolutionTopology& initialTopology);
 
-		virtual void evaluate() = 0;
+		void evaluate();
 		virtual SolutionPtr clone() const = 0;
 
 		void initialize();
@@ -70,9 +70,18 @@ namespace neat_dnfs
 		void translateGenesToPhenotype();
 		void translateConnectionGenesToPhenotype();
 	public:
-		virtual SolutionPtr crossover(const SolutionPtr& other) = 0;
+		virtual SolutionPtr crossover(const SolutionPtr& other);
 		void addFieldGene(const FieldGene& gene);
 		void addConnectionGene(const ConnectionGene& gene);
 		bool containsConnectionGene(const ConnectionGene& gene) const;
+	protected:
+		virtual void updateFitness() = 0;
+		virtual void testPhenotype() = 0;
+		void initSimulation();
+		void stopSimulation();
+		void runSimulation(const uint16_t iterations);
+		void addGaussianStimulus(const std::string& targetElement, 
+			const dnf_composer::element::GaussStimulusParameters& parameters);
+		void removeGaussianStimuli();
 	};
 }
