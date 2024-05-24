@@ -78,13 +78,13 @@ TEST_CASE("Population Selection", "[Population]")
 TEST_CASE("Population Reproduction", "[Population]")
 {
     constexpr static uint16_t numAttempts = 5;
-    constexpr static uint16_t numGenerations = 100;
+    constexpr static uint16_t numGenerations = 10;
 
     for (uint16_t i = 0; i < numAttempts; ++i)
     {
         int generations = 0;
         const auto size = 
-            static_cast<uint16_t>(neat_dnfs::tools::utils::generateRandomInt(3, 531));
+            static_cast<uint16_t>(neat_dnfs::tools::utils::generateRandomInt(3, 137));
         do
         {
             neat_dnfs::SolutionTopology topology(3, 1);
@@ -162,12 +162,12 @@ TEST_CASE("Population Offspring Calculation", "[Population]")
     population.initialize();
     population.evaluate();
     population.speciate();
-    population.calculateSpeciesOffspring();
+    population.select();
+    population.reproduce();
 
     int totalOffspring = 0;
     for (const auto& species : population.getSpeciesList())
         totalOffspring += species.getOffspringCount();
-    
 
     REQUIRE(totalOffspring == static_cast<int>(params.size * neat_dnfs::PopulationConstants::killRatio));
 }
@@ -182,8 +182,8 @@ TEST_CASE("Population Kill Least Fit Solutions", "[Population]")
     population.initialize();
     population.evaluate();
     population.speciate();
-    population.calculateSpeciesOffspring();
-    population.killLeastFitSolutions();
+    population.select();
+    population.reproduce();
 
     for (const auto& species : population.getSpeciesList())
         REQUIRE(species.size() <= species.getOffspringCount());

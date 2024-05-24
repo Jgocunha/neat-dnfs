@@ -17,6 +17,7 @@ namespace neat_dnfs
         SolutionPtr representative;
         std::vector<SolutionPtr> members;
         std::vector<SolutionPtr> offspring;
+        uint16_t killCount;
     public:
         Species();
         SolutionPtr getRepresentative() const;
@@ -33,7 +34,8 @@ namespace neat_dnfs
         void setOffspringCount(uint16_t count) { offspringCount = count; }
         uint16_t getOffspringCount() const { return offspringCount; }
 
-        uint16_t getKillCount() const;
+        uint16_t getKillCount() const { return killCount; }
+        uint16_t updateKillCountAndReturn();
 
         std::vector<SolutionPtr> killLeastFitSolutions();
         std::vector<SolutionPtr> getOffspring() const { return offspring; }
@@ -41,5 +43,7 @@ namespace neat_dnfs
         void crossover();
         void sortMembersByFitness();
         std::vector<SolutionPtr> getMembers() const { return members; }
+    private:
+        void computeKillCount();
     };
 }

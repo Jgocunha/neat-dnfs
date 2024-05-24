@@ -3,9 +3,8 @@
 namespace neat_dnfs
 {
 	Species::Species()
+		: id(currentSpeciesId++), offspringCount(0), killCount(0)
 	{
-		id = currentSpeciesId++;
-		offspringCount = 0;
 	}
 
 	std::shared_ptr<Solution> Species::getRepresentative() const
@@ -68,13 +67,6 @@ namespace neat_dnfs
 		return total;
 	}
 
-	uint16_t Species::getKillCount() const
-	{
-		if (members.size() <= 2)
-			return 0;
-		return std::ceil(static_cast<double>(members.size()) * PopulationConstants::killRatio);
-	}
-
 	std::vector<SolutionPtr> Species::killLeastFitSolutions()
 	{
 		if (members.size() <= 2)
@@ -85,17 +77,16 @@ namespace neat_dnfs
 		}
 
 		sortMembersByFitness();
-
-		const size_t numToRemove = getKillCount();
-		const size_t numSurvivors = members.size() - numToRemove; // Keep only the number of offspring specified
+		computeKillCount();
+		const size_t numSurvivors = members.size() - killCount; // Keep only the number of offspring specified
 
 		log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has " +
 			std::to_string(members.size()) + " members. Killing " +
-			std::to_string(numToRemove) + " least fit members. Remaining: " + std::to_string(numSurvivors));
+			std::to_string(killCount) + " least fit members. Remaining: " + std::to_string(numSurvivors));
 
 		std::vector<SolutionPtr> removed;
-		removed.reserve(numToRemove);
-		std::move(members.end() - static_cast<uint16_t>(numToRemove), members.end(), std::back_inserter(removed));
+		removed.reserve(killCount);
+		std::move(members.end() - static_cast<uint16_t>(killCount), members.end(), std::back_inserter(removed));
 		members.resize(numSurvivors);
 
 		return removed;
@@ -141,5 +132,19 @@ namespace neat_dnfs
 				return a->getParameters().fitness > b->getParameters().fitness;
 			}
 		);
+	}
+
+	void Species::computeKillCount()
+	{
+		if (members.size() <= 2)
+			killCount = 0;
+		else
+			killCount = static_cast<uint16_t>(std::ceil(static_cast<double>(members.size()) * PopulationConstants::killRatio));
+	}
+
+	uint16_t Species::updateKillCountAndReturn()
+	{
+		computeKillCount();
+		return killCount;
 	}
 }

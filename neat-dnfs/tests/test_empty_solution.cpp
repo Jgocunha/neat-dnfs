@@ -43,24 +43,26 @@ TEST_CASE("EmptySolution::crossover", "[EmptySolution]")
     for (uint16_t i = 0; i < attempts; ++i)
     {
         SolutionTopology topology(3, 1); // 3 input genes, 1 output gene
-        EmptySolution solution1(topology);
-        EmptySolution solution2(topology);
+        const std::shared_ptr<EmptySolution> solution1 = std::make_shared<EmptySolution>(topology);
+        const std::shared_ptr<EmptySolution> solution2 = std::make_shared<EmptySolution>(topology);
 
-        solution1.evaluate();
-        solution2.evaluate();
+        solution1->initialize();
+        solution2->initialize();
+        solution1->evaluate();
+        solution2->evaluate();
 
-        SolutionPtr offspring = solution1.crossover(std::make_shared<EmptySolution>(solution2));
+        SolutionPtr offspring = solution1->crossover(solution2);
 
         REQUIRE(offspring != nullptr);
 
-        auto fitness1 = solution1.getParameters().fitness;
-        auto fitness2 = solution2.getParameters().fitness;
+        auto fitness1 = solution1->getParameters().fitness;
+        auto fitness2 = solution2->getParameters().fitness;
         auto offspringFitness = offspring->getParameters().fitness;
 
         // Ensure offspring has inherited genes from either parent
         const auto& offspringFieldGenes = offspring->getGenome().getFieldGenes();
-        const auto& parent1FieldGenes = solution1.getGenome().getFieldGenes();
-        const auto& parent2FieldGenes = solution2.getGenome().getFieldGenes();
+        const auto& parent1FieldGenes = solution1->getGenome().getFieldGenes();
+        const auto& parent2FieldGenes = solution2->getGenome().getFieldGenes();
 
         for (const auto& gene : offspringFieldGenes) {
             bool foundInParent1 = std::any_of(parent1FieldGenes.begin(), parent1FieldGenes.end(),
@@ -76,8 +78,8 @@ TEST_CASE("EmptySolution::crossover", "[EmptySolution]")
         }
 
         const auto& offspringConnectionGenes = offspring->getGenome().getConnectionGenes();
-        const auto& parent1ConnectionGenes = solution1.getGenome().getConnectionGenes();
-        const auto& parent2ConnectionGenes = solution2.getGenome().getConnectionGenes();
+        const auto& parent1ConnectionGenes = solution1->getGenome().getConnectionGenes();
+        const auto& parent2ConnectionGenes = solution2->getGenome().getConnectionGenes();
 
         for (const auto& gene : offspringConnectionGenes) {
             bool foundInParent1 = std::any_of(parent1ConnectionGenes.begin(), parent1ConnectionGenes.end(),

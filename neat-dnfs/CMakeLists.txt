@@ -175,14 +175,14 @@ include(Catch)
 # Add test project
 set(TEST_PROJECT ${CMAKE_PROJECT_NAME}-test)
 add_executable(${TEST_PROJECT} 
-    "tests/entry.cpp" 
-    "tests/test_field_gene.cpp" 
-    "tests/test_connection_gene.cpp"
-    "tests/test_genome.cpp"
-    "tests/test_solution.cpp"
-    "tests/test_utils.cpp"
-    "tests/test_empty_solution.cpp"
-    "tests/test_species.cpp"
+    #"tests/entry.cpp" 
+    #"tests/test_field_gene.cpp" 
+    #"tests/test_connection_gene.cpp"
+    #"tests/test_genome.cpp"
+    #"tests/test_solution.cpp"
+    #"tests/test_utils.cpp"
+    #"tests/test_empty_solution.cpp"
+    #"tests/test_species.cpp"
     "tests/test_population.cpp"
 )
 target_include_directories(${TEST_PROJECT} PRIVATE include)

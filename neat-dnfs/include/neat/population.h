@@ -36,6 +36,9 @@ namespace neat_dnfs
 		void speciate();
 		void select();
 		void reproduce();
+		void upkeepBestSolution();
+		void updateGenerationAndAges();
+		bool endConditionMet() const;
 		std::vector<Species>& getSpeciesList() { return speciesList; }
 		std::vector<SolutionPtr> getSolutions() const { return solutions; }
 		SolutionPtr getBestSolution() const;
@@ -44,17 +47,14 @@ namespace neat_dnfs
 		uint16_t getSize() const { return parameters.size; }
 		uint16_t getCurrentGeneration() const { return parameters.currentGeneration; }
 		uint16_t getNumGenerations() const { return parameters.numGenerations; }
-		void upkeepBestSolution();
-		void calculateSpeciesOffspring();
-		void killLeastFitSolutions();
 	private:
 		void createInitialEmptySolutions(const SolutionPtr& initialSolution);
 		void buildInitialSolutionsGenome() const;
-		void updateGenerationAndAges();
 		void assignToSpecies(const SolutionPtr& solution);
 		Species* findSpecies(const SolutionPtr& solution);
 		void calculateAdjustedFitness();
 		void crossover();
-		bool endConditionMet() const;
+		void calculateSpeciesOffspring();
+		void killLeastFitSolutions();
 	};
 }

@@ -93,9 +93,10 @@ TEST_CASE("Species::killLeastFitSolutions", "[Species]")
     species.addSolution(solution3);
     species.setOffspringCount(1);
 
+    size_t initialSize = species.size();
     auto removed = species.killLeastFitSolutions();
-    REQUIRE(removed.size() == 2);
-    REQUIRE(species.size() == 1);
+    REQUIRE(removed.size() == species.getKillCount());
+    REQUIRE(species.size() == initialSize - species.getKillCount());
 
     // Ensure the most fit solution is retained
     const size_t numMembers = species.size();

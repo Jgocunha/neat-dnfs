@@ -200,12 +200,11 @@ namespace neat_dnfs
 
 	SolutionPtr Solution::crossover(const SolutionPtr& other)
 	{
-		//const SolutionPtr self = this->shared_from_this();
+		const SolutionPtr self = shared_from_this();
 
-		const double fitnessDifference = std::abs(this->getFitness() - other->getFitness());
-
-		const SolutionPtr moreFitParent = this->getFitness() > other->getFitness() ? shared_from_this() : other;
-		const SolutionPtr lessFitParent = this->getFitness() > other->getFitness() ? other : shared_from_this();
+		const double fitnessDifference = std::abs(self->getFitness() - other->getFitness());
+		const SolutionPtr moreFitParent = self->getFitness() > other->getFitness() ? self : other;
+		const SolutionPtr lessFitParent = self->getFitness() > other->getFitness() ? other : self;
 
 		SolutionPtr offspring = moreFitParent->clone();
 

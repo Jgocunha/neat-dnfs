@@ -17,7 +17,7 @@ namespace neat_dnfs
 	void SingleBumpSolution::testPhenotype()
 	{
 		const dnf_composer::element::GaussStimulusParameters stimParams = {
-			10.0,
+			5.0,
 			15.0,
 			50.0,
 			false,
@@ -37,8 +37,8 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 
 		static constexpr double expectedBumpPosition = 50.0;
-		static constexpr double expectedBumpWidth = 6.0;
-		static constexpr double expectedBumpAmplitude = 5.0;
+		static constexpr double expectedBumpWidth = 10.0;
+		static constexpr double expectedBumpAmplitude = 10.0;
 
 		const auto field =
 			std::dynamic_pointer_cast<NeuralField>(phenotype.getElement("nf 2"));

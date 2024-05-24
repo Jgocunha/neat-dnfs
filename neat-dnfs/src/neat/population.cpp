@@ -175,8 +175,8 @@ namespace neat_dnfs
 				});
 
 		int totalIndividualsKilled = 0;
-		for (const auto& species : speciesList)
-			totalIndividualsKilled += species.getKillCount();
+		for (auto& species : speciesList)
+			totalIndividualsKilled += species.updateKillCountAndReturn();
 		const int totalIndividualsRemaining = static_cast<uint16_t>(solutions.size()) - totalIndividualsKilled;
 
 		const int totalOffspringAvailable = static_cast<uint16_t>(solutions.size()) - totalIndividualsRemaining;
