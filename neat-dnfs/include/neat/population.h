@@ -57,5 +57,6 @@ namespace neat_dnfs
 		void calculateSpeciesOffspring();
 		void killLeastFitSolutions();
 		void validateElitism() const;
+		void validateUniqueSolutions() const;
 	};
 }

@@ -94,6 +94,7 @@ namespace neat_dnfs
 		}*/
 
 		validateElitism();
+		validateUniqueSolutions();
 	}
 
 	void Population::updateGenerationAndAges()
@@ -257,4 +258,17 @@ namespace neat_dnfs
 			log(tools::logger::LogLevel::ERROR, "Elitism failed. Best solution fitness decreased.");
 		prevBestSolution = bestSolution;
 	}
+
+	void Population::validateUniqueSolutions() const
+	{
+		for (size_t i = 0; i < solutions.size(); ++i)
+		{
+			for (size_t j = i + 1; j < solutions.size(); ++j)
+			{
+				if (solutions[i] == solutions[j])
+					log(tools::logger::LogLevel::ERROR, "Duplicate solutions found in the population.");
+			}
+		}
+	}
+
 }
