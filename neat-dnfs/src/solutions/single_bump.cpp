@@ -25,10 +25,10 @@ namespace neat_dnfs
 		};
 		addGaussianStimulus("nf 1", stimParams);
 		initSimulation();
-		runSimulation(250);
+		runSimulation(200);
 		updateFitness();
 		removeGaussianStimuli();
-		runSimulation(250);
+		runSimulation(200);
 		stopSimulation();
 	}
 

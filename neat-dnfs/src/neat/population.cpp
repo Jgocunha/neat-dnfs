@@ -77,6 +77,7 @@ namespace neat_dnfs
 
 	void Population::upkeepBestSolution()
 	{
+		bestSolution = nullptr;
 		for (const auto& species : speciesList)
 		{
 			for (const auto& solution : species.getMembers())
@@ -91,6 +92,8 @@ namespace neat_dnfs
 			if (bestSolution == nullptr || solution->getFitness() > bestSolution->getFitness())
 				bestSolution = solution;
 		}*/
+
+		validateElitism();
 	}
 
 	void Population::updateGenerationAndAges()
@@ -243,5 +246,15 @@ namespace neat_dnfs
 		const bool fitnessCondition = bestSolution->getFitness() > parameters.targetFitness;
 		const bool generationCondition = parameters.currentGeneration > parameters.numGenerations;
 		return fitnessCondition || generationCondition;
+	}
+
+	void Population::validateElitism() const
+	{
+		static SolutionPtr prevBestSolution = nullptr;
+		if (bestSolution == nullptr)
+			return;
+		if (prevBestSolution != nullptr && bestSolution->getFitness() < prevBestSolution->getFitness())
+			log(tools::logger::LogLevel::ERROR, "Elitism failed. Best solution fitness decreased.");
+		prevBestSolution = bestSolution;
 	}
 }

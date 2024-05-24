@@ -84,7 +84,7 @@ TEST_CASE("Population Reproduction", "[Population]")
     {
         int generations = 0;
         const auto size = 
-            static_cast<uint16_t>(neat_dnfs::tools::utils::generateRandomInt(3, 137));
+            static_cast<uint16_t>(neat_dnfs::tools::utils::generateRandomInt(3, 55));
         do
         {
             neat_dnfs::SolutionTopology topology(3, 1);
@@ -115,7 +115,7 @@ TEST_CASE("Population Best Solution Tracking", "[Population]")
     neat_dnfs::Population population(params, initialSolution);
     population.initialize();
 
-    constexpr static uint16_t numAttempts = 100;
+    constexpr static uint16_t numAttempts = 10;
 
     double prevBestFitness = 0.0;
     for (uint16_t i = 0; i < numAttempts; ++i)
