@@ -15,7 +15,7 @@ TEST_CASE("EmptySolution::evaluate", "[EmptySolution]")
 
 		solution.evaluate();
 
-		double fitness = solution.getParameters().fitness;
+		const double fitness = solution.getParameters().fitness;
 		REQUIRE(fitness >= 0.0);
 		REQUIRE(fitness <= 1.0);
 	}

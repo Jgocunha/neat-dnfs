@@ -34,10 +34,12 @@ namespace neat_dnfs
 		void evolve();
 		void evaluate() const;
 		void speciate();
-		void select();
-		void reproduce();
-		void upkeepBestSolution();
-		void updateGenerationAndAges();
+		void reproduceAndSelect();
+		std::vector<SolutionPtr> selectElites() const;
+		std::vector<SolutionPtr> selectLessFit() const;
+		std::vector<SolutionPtr> reproduce() const;
+		//void select();
+		//void reproduce();
 		bool endConditionMet() const;
 		std::vector<Species>& getSpeciesList() { return speciesList; }
 		std::vector<SolutionPtr> getSolutions() const { return solutions; }
@@ -47,6 +49,7 @@ namespace neat_dnfs
 		uint16_t getSize() const { return parameters.size; }
 		uint16_t getCurrentGeneration() const { return parameters.currentGeneration; }
 		uint16_t getNumGenerations() const { return parameters.numGenerations; }
+		void upkeep();
 	private:
 		void createInitialEmptySolutions(const SolutionPtr& initialSolution);
 		void buildInitialSolutionsGenome() const;
@@ -54,9 +57,12 @@ namespace neat_dnfs
 		Species* findSpecies(const SolutionPtr& solution);
 		void calculateAdjustedFitness();
 		void crossover();
-		void calculateSpeciesOffspring();
+		void calculateSpeciesOffspring(const size_t eliteCount, const size_t killCount);
+		void upkeepBestSolution();
+		void updateGenerationAndAges();
 		void killLeastFitSolutions();
 		void validateElitism() const;
-		void validateUniqueSolutions() const;
+		//void validateUniqueSolutions() const;
+		static int validateUniqueSolutions(const std::vector<SolutionPtr>& solutions);
 	};
 }

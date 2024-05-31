@@ -18,17 +18,17 @@ namespace neat_dnfs
 	{
 		const dnf_composer::element::GaussStimulusParameters stimParams = {
 			5.0,
-			15.0,
+			25.0,
 			50.0,
 			false,
 			false
 		};
 		addGaussianStimulus("nf 1", stimParams);
 		initSimulation();
-		runSimulation(200);
+		runSimulation(500);
 		updateFitness();
 		removeGaussianStimuli();
-		runSimulation(200);
+		runSimulation(500);
 		stopSimulation();
 	}
 
@@ -51,12 +51,12 @@ namespace neat_dnfs
 		}
 
 		const auto bump = fieldBumps.front();
-		const double centroidDifference = std::abs(bump.centroid - expectedBumpPosition);
-		const double widthDifference = std::abs(bump.width - expectedBumpWidth);
-		const double amplitudeDifference = std::abs(bump.amplitude - expectedBumpAmplitude);
+		const double centroidDifference = std::abs(std::ceil(bump.centroid) - expectedBumpPosition);
+		const double widthDifference = std::abs(std::ceil(bump.width) - expectedBumpWidth);
+		const double amplitudeDifference = std::abs(std::ceil(bump.amplitude) - expectedBumpAmplitude);
 
 		parameters.fitness = 0.8 / (1.0 + centroidDifference);
-		parameters.fitness += 0.1 / (1.0 + widthDifference);
-		parameters.fitness += 0.1 / (1.0 + amplitudeDifference);
+		//parameters.fitness += 0.1 / (1.0 + widthDifference);
+		//parameters.fitness += 0.1 / (1.0 + amplitudeDifference);
 	}
 }

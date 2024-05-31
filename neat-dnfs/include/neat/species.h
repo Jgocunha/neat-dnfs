@@ -16,34 +16,32 @@ namespace neat_dnfs
         uint16_t offspringCount;
         SolutionPtr representative;
         std::vector<SolutionPtr> members;
+        std::vector<SolutionPtr> elites;
+        std::vector<SolutionPtr> leastFit;
         std::vector<SolutionPtr> offspring;
-        uint16_t killCount;
     public:
         Species();
-        SolutionPtr getRepresentative() const;
         void setRepresentative(const SolutionPtr& newRepresentative);
+        size_t size() const { return members.size(); }
+        void setOffspringCount(uint16_t count) { offspringCount = count; }
+        SolutionPtr getRepresentative() const;
         uint16_t getId() const { return id; }
+        double totalAdjustedFitness() const;
+        uint16_t getOffspringCount() const { return offspringCount; }
+        std::vector<SolutionPtr> getMembers() const { return members; }
+        std::vector<SolutionPtr> getElites() const { return elites; }
+        std::vector<SolutionPtr> getLeastFit() const { return leastFit; }
+        std::vector<SolutionPtr> getOffspring() const { return offspring; }
 
         void addSolution(const SolutionPtr& solution);
         void removeSolution(const SolutionPtr& solution);
         bool isCompatible(const SolutionPtr& solution) const;
         bool contains(const SolutionPtr& solution) const;
-
-        size_t size() const { return members.size(); }
-        double totalAdjustedFitness() const;
-        void setOffspringCount(uint16_t count) { offspringCount = count; }
-        uint16_t getOffspringCount() const { return offspringCount; }
-
-        uint16_t getKillCount() const { return killCount; }
-        uint16_t updateKillCountAndReturn();
-
-        std::vector<SolutionPtr> killLeastFitSolutions();
-        std::vector<SolutionPtr> getOffspring() const { return offspring; }
         void clearOffspring() { offspring.clear(); }
-        void crossover();
         void sortMembersByFitness();
-        std::vector<SolutionPtr> getMembers() const { return members; }
-    private:
-        void computeKillCount();
+
+        void selectElitesAndLeastFit();
+        void crossover();
+        void updateMembers();
     };
 }

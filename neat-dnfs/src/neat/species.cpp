@@ -3,7 +3,7 @@
 namespace neat_dnfs
 {
 	Species::Species()
-		: id(currentSpeciesId++), offspringCount(0), killCount(0)
+		: id(currentSpeciesId++), offspringCount(0)
 	{
 	}
 
@@ -67,29 +67,40 @@ namespace neat_dnfs
 		return total;
 	}
 
-	std::vector<SolutionPtr> Species::killLeastFitSolutions()
+	void Species::sortMembersByFitness()
 	{
-		if (members.size() <= 2)
-		{
-			log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) +
-				" has " + std::to_string(members.size()) + " members. Killing no individuals.");
-			return {};
-		}
+		std::ranges::sort(members, [](const SolutionPtr& a, const SolutionPtr& b)
+			{
+				return a->getParameters().fitness > b->getParameters().fitness;
+			}
+		);
+	}
 
+	void Species::selectElitesAndLeastFit()
+	{
+		elites.clear();
+		leastFit.clear();
 		sortMembersByFitness();
-		computeKillCount();
-		const size_t numSurvivors = members.size() - killCount; // Keep only the number of offspring specified
 
-		log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has " +
-			std::to_string(members.size()) + " members. Killing " +
-			std::to_string(killCount) + " least fit members. Remaining: " + std::to_string(numSurvivors));
+		const auto numElites = static_cast<size_t>(std::ceil((1 - PopulationConstants::killRatio) * static_cast<double>(members.size())));
+		const size_t numLeastFit = members.size() - numElites;
+		assert(members.size() == numElites + numLeastFit);
 
-		std::vector<SolutionPtr> removed;
-		removed.reserve(killCount);
-		std::move(members.end() - static_cast<uint16_t>(killCount), members.end(), std::back_inserter(removed));
-		members.resize(numSurvivors);
+		elites.reserve(numElites);
+		for (size_t i = 0; i < numElites; ++i)
+			elites.push_back(members[i]);
 
-		return removed;
+		leastFit.reserve(numLeastFit);
+		for (size_t i = numElites; i < members.size(); ++i)
+			leastFit.push_back(members[i]);
+
+		// make sure no solution is in both lists
+		for (const auto& elite : elites)
+		{
+			const auto it = std::ranges::find(leastFit, elite);
+			if (it != leastFit.end())
+				throw std::runtime_error("Solution is both elite and least fit.");
+		}
 	}
 
 	void Species::crossover()
@@ -98,9 +109,8 @@ namespace neat_dnfs
 
 		if (members.empty())
 		{
-			log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has no members. No offspring created.");
 			if (offspringCount > 0)
-				log(tools::logger::LogLevel::ERROR, "Species " + std::to_string(id) + " has offspring count > 0.");
+				log(tools::logger::LogLevel::FATAL, "Species " + std::to_string(id) + " with no members has offspring count > 0.");
 			return;
 		}
 
@@ -121,30 +131,18 @@ namespace neat_dnfs
 				offspring.push_back(parent1->crossover(parent2));
 			}
 		}
-		log(tools::logger::LogLevel::INFO, "Species " + std::to_string(id) + " has " +
-			std::to_string(members.size()) + " members. Created " + std::to_string(offspringCount) + " offspring.");
+		updateMembers();
 	}
 
-	void Species::sortMembersByFitness()
+	void Species::updateMembers()
 	{
-		std::ranges::sort(members, [](const SolutionPtr& a, const SolutionPtr& b)
-			{
-				return a->getParameters().fitness > b->getParameters().fitness;
-			}
-		);
+		members.clear();
+		members.reserve(elites.size() + offspring.size());
+		for (const auto& elite : elites)
+			members.push_back(elite);
+		for (const auto& child : offspring)
+			members.push_back(child);
 	}
 
-	void Species::computeKillCount()
-	{
-		if (members.size() <= 2)
-			killCount = 0;
-		else
-			killCount = static_cast<uint16_t>(std::ceil(static_cast<double>(members.size()) * PopulationConstants::killRatio));
-	}
 
-	uint16_t Species::updateKillCountAndReturn()
-	{
-		computeKillCount();
-		return killCount;
-	}
 }
