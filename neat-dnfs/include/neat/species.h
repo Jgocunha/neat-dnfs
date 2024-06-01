@@ -43,5 +43,7 @@ namespace neat_dnfs
         void selectElitesAndLeastFit();
         void crossover();
         void updateMembers();
+    private:
+        static int validateUniqueSolutions(const std::vector<SolutionPtr>& solutions);
     };
 }

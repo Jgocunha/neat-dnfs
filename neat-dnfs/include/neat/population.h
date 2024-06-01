@@ -62,7 +62,7 @@ namespace neat_dnfs
 		void updateGenerationAndAges();
 		void killLeastFitSolutions();
 		void validateElitism() const;
-		//void validateUniqueSolutions() const;
 		static int validateUniqueSolutions(const std::vector<SolutionPtr>& solutions);
+		//void validateUniqueSolutions() const;
 	};
 }

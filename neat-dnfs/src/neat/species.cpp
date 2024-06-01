@@ -1,5 +1,6 @@
 #include "neat/species.h"
 
+
 namespace neat_dnfs
 {
 	Species::Species()
@@ -119,7 +120,9 @@ namespace neat_dnfs
 			for (size_t i = 0; i < offspringCount; ++i)
 			{
 				const SolutionPtr parent1 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
-				offspring.push_back(parent1);
+				//offspring.push_back(parent1);
+				//offspring.push_back(parent1->clone());
+				offspring.push_back(parent1->crossover(parent1));
 			}
 		}
 		else
@@ -131,6 +134,11 @@ namespace neat_dnfs
 				offspring.push_back(parent1->crossover(parent2));
 			}
 		}
+
+		int counter = validateUniqueSolutions(offspring);
+		if (counter > 0)
+			log(tools::logger::LogLevel::WARNING, "Species " + std::to_string(id) + " produced " + std::to_string(counter) + " duplicate offspring.");
+
 		updateMembers();
 	}
 
@@ -140,9 +148,30 @@ namespace neat_dnfs
 		members.reserve(elites.size() + offspring.size());
 		for (const auto& elite : elites)
 			members.push_back(elite);
+		int counter = validateUniqueSolutions(members);
+		if (counter > 0)
+			log(tools::logger::LogLevel::WARNING, "Species " + std::to_string(id) + " produced " + std::to_string(counter) + " duplicate elites.");
 		for (const auto& child : offspring)
 			members.push_back(child);
+		counter = validateUniqueSolutions(members);
+		if (counter > 0)
+			log(tools::logger::LogLevel::WARNING, "Species " + std::to_string(id) + " produced " + std::to_string(counter) + " duplicate offspring.");
 	}
 
+	int Species::validateUniqueSolutions(const std::vector<SolutionPtr>& solutions)
+	{
+		int counter = 0;
+		for (size_t i = 0; i < solutions.size(); ++i)
+		{
+			for (size_t j = i + 1; j < solutions.size(); ++j)
+			{
+				if (solutions[i] == solutions[j])
+				{
+					counter++;
+				}
+			}
+		}
+		return counter;
+	}
 
 }

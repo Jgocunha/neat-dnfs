@@ -55,7 +55,7 @@ namespace neat_dnfs
 		const double widthDifference = std::abs(std::ceil(bump.width) - expectedBumpWidth);
 		const double amplitudeDifference = std::abs(std::ceil(bump.amplitude) - expectedBumpAmplitude);
 
-		parameters.fitness = 0.8 / (1.0 + centroidDifference);
+		parameters.fitness = 1.0 / (1.0 + centroidDifference);
 		//parameters.fitness += 0.1 / (1.0 + widthDifference);
 		//parameters.fitness += 0.1 / (1.0 + amplitudeDifference);
 	}
