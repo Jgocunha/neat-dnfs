@@ -24,7 +24,7 @@ namespace neat_dnfs
         void setRepresentative(const SolutionPtr& newRepresentative);
         size_t size() const { return members.size(); }
         void setOffspringCount(uint16_t count) { offspringCount = count; }
-        SolutionPtr getRepresentative() const;
+        SolutionPtr getRepresentative() const { return representative; }
         uint16_t getId() const { return id; }
         double totalAdjustedFitness() const;
         uint16_t getOffspringCount() const { return offspringCount; }
@@ -43,7 +43,5 @@ namespace neat_dnfs
         void selectElitesAndLeastFit();
         void crossover();
         void updateMembers();
-    private:
-        static int validateUniqueSolutions(const std::vector<SolutionPtr>& solutions);
     };
 }

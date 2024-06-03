@@ -3,7 +3,7 @@
 namespace neat_dnfs
 {
 	Population::Population(const PopulationParameters& parameters, const SolutionPtr& initialSolution)
-		: parameters(parameters), bestSolution(nullptr)
+		: parameters(parameters), bestSolution(initialSolution->clone())
 	{
 		createInitialEmptySolutions(initialSolution);
 	}
@@ -18,17 +18,8 @@ namespace neat_dnfs
 		do
 		{
 			evaluate();
-			int counter = validateUniqueSolutions(solutions);
-			if (counter > 0)
-				log(tools::logger::LogLevel::WARNING, "Number of duplicate solutions: " + std::to_string(counter));
 			speciate();
-			counter = validateUniqueSolutions(solutions);
-			if (counter > 0)
-				log(tools::logger::LogLevel::WARNING, "Number of duplicate solutions: " + std::to_string(counter));
 			reproduceAndSelect();
-			counter = validateUniqueSolutions(solutions);
-			if (counter > 0)
-				log(tools::logger::LogLevel::WARNING, "Number of duplicate solutions: " + std::to_string(counter));
 			upkeep();
 
 		} while (!endConditionMet());
@@ -48,29 +39,15 @@ namespace neat_dnfs
 
 	void Population::reproduceAndSelect()
 	{
-		std::vector<SolutionPtr> elites;
-		std::vector<SolutionPtr> lessFit;
-		std::vector<SolutionPtr> offspring;
-
 		calculateAdjustedFitness();
 		for (auto& species : speciesList)
 			species.selectElitesAndLeastFit();
-		elites = selectElites();
-		int counter = validateUniqueSolutions(elites);
-		if (counter > 0)
-			log(tools::logger::LogLevel::WARNING, "Number of duplicate elites: " + std::to_string(counter));
-		lessFit = selectLessFit();
-		counter = validateUniqueSolutions(lessFit);
-		if (counter > 0)
-			log(tools::logger::LogLevel::WARNING, "Number of duplicate less fit: " + std::to_string(counter));
+		std::vector<SolutionPtr> elites = selectElites();
+		const std::vector<SolutionPtr> lessFit = selectLessFit();
 		calculateSpeciesOffspring(elites.size(), lessFit.size());
 		for (auto& species : speciesList)
 			species.crossover();
-		offspring = reproduce();
-		counter = validateUniqueSolutions(offspring);
-		if (counter > 0)
-			log(tools::logger::LogLevel::WARNING, "Number of duplicate offspring: " + std::to_string(counter));
-
+		std::vector<SolutionPtr> offspring = reproduce();
 		for (const auto& solution : offspring)
 			solution->mutate();
 		for (const auto& solution : offspring)
@@ -79,10 +56,6 @@ namespace neat_dnfs
 		solutions.clear();
 		solutions.insert(solutions.end(), elites.begin(), elites.end());
 		solutions.insert(solutions.end(), offspring.begin(), offspring.end());
-		assert(solutions.size() == parameters.size);
-		counter = validateUniqueSolutions(solutions);
-		if (counter > 0)
-			log(tools::logger::LogLevel::WARNING, "Number of duplicate solutions: " + std::to_string(counter));
 	}
 
 	std::vector<SolutionPtr> Population::selectElites() const
@@ -114,31 +87,22 @@ namespace neat_dnfs
 		for (auto& species : speciesList)
 		{
 			const auto speciesOffspring = species.getOffspring();
-			int counter = validateUniqueSolutions(speciesOffspring);
-			if (counter > 0)
-			{
-				int numSpecies = speciesList.size();
-				log(tools::logger::LogLevel::INFO, "Number of species: " + std::to_string(numSpecies));
-				log(tools::logger::LogLevel::WARNING, "Number of duplicate species offspring: " + std::to_string(counter));
-			}
 			offspring.insert(offspring.end(), speciesOffspring.begin(), speciesOffspring.end());
 		}
-		int counter = validateUniqueSolutions(offspring);
-		if (counter > 0)
-			log(tools::logger::LogLevel::WARNING, "Number of duplicate offspring: " + std::to_string(counter));
 		return offspring;
 	}
 
 	void Population::upkeep()
 	{
-		//evaluate();
 		upkeepBestSolution();
 		updateGenerationAndAges();
-		validateElitism();
+		if (PopulationConstants::validatePopulationSize)
+			validatePopulationSize();
+		if (PopulationConstants::validateUniqueSolutions)
+			validateUniqueSolutions();
+		if (PopulationConstants::validateElitism)
+			validateElitism();
 
-		int counter = validateUniqueSolutions(solutions);
-		if (counter > 0)
-			log(tools::logger::LogLevel::WARNING, "Number of duplicate solutions: " + std::to_string(counter));
 		tools::logger::log(tools::logger::INFO,
 			"Current generation: " + std::to_string(parameters.currentGeneration) +
 			" Best fitness: " + std::to_string(bestSolution->getFitness()) +
@@ -234,8 +198,6 @@ namespace neat_dnfs
 	void Population::calculateSpeciesOffspring(const size_t eliteCount, const size_t killCount)
 	{
 		const auto offspringPoolSize = static_cast<uint16_t>(killCount);
-		//for (auto& species : speciesList)
-			//offspringPoolSize += species.getLeastFit().size();
 
 		double totalAdjustedFitnessAcrossSpecies = 0.0;
 		for (const auto& species : speciesList)
@@ -276,9 +238,6 @@ namespace neat_dnfs
 				error++;
 			}
 		}
-
-		//log(tools::logger::LogLevel::INFO, "Offspring pool size adjusted. Total offspring: " + std::to_string(totalOffspringAcrossSpecies) +
-		//	" Offspring pool size: " + std::to_string(offspringPoolSize));
 	}
 
 	bool Population::endConditionMet() const
@@ -294,8 +253,11 @@ namespace neat_dnfs
 		static SolutionPtr pbsclone = nullptr;
 		static double prevBestSolutionFitness = 0.0;
 
-		if (bestSolution == nullptr)
+		if (parameters.currentGeneration == 1)
+		{
+			prevBestSolutionFitness = 0.0;
 			return;
+		}
 
 		if (bestSolution->getFitness() < prevBestSolutionFitness)
 		{
@@ -323,19 +285,7 @@ namespace neat_dnfs
 		prevBestSolutionFitness = bestSolution->getFitness();
 	}
 
-	/*void Population::validateUniqueSolutions() const
-	{
-		for (size_t i = 0; i < solutions.size(); ++i)
-		{
-			for (size_t j = i + 1; j < solutions.size(); ++j)
-			{
-				if (solutions[i] == solutions[j])
-					log(tools::logger::LogLevel::FATAL, "Duplicate solutions found in the population.");
-			}
-		}
-	}*/
-
-	int Population::validateUniqueSolutions(const std::vector<SolutionPtr>& solutions)
+	void Population::validateUniqueSolutions() const
 	{
 		int counter = 0;
 		for (size_t i = 0; i < solutions.size(); ++i)
@@ -348,7 +298,20 @@ namespace neat_dnfs
 				}
 			}
 		}
-		return counter;
+		if(counter>0)
+		{
+			log(tools::logger::LogLevel::FATAL, "Duplicate solutions found.");
+			throw std::runtime_error("Duplicate solutions found.");
+		}
+	}
+
+	void Population::validatePopulationSize() const
+	{
+		if (solutions.size() != parameters.size)
+		{
+			log(tools::logger::LogLevel::FATAL, "Population size does not match parameters.");
+			throw std::runtime_error("Population size does not match parameters.");
+		}
 	}
 
 }

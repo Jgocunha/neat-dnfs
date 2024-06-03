@@ -38,8 +38,6 @@ namespace neat_dnfs
 		std::vector<SolutionPtr> selectElites() const;
 		std::vector<SolutionPtr> selectLessFit() const;
 		std::vector<SolutionPtr> reproduce() const;
-		//void select();
-		//void reproduce();
 		bool endConditionMet() const;
 		std::vector<Species>& getSpeciesList() { return speciesList; }
 		std::vector<SolutionPtr> getSolutions() const { return solutions; }
@@ -56,13 +54,11 @@ namespace neat_dnfs
 		void assignToSpecies(const SolutionPtr& solution);
 		Species* findSpecies(const SolutionPtr& solution);
 		void calculateAdjustedFitness();
-		void crossover();
 		void calculateSpeciesOffspring(const size_t eliteCount, const size_t killCount);
 		void upkeepBestSolution();
 		void updateGenerationAndAges();
-		void killLeastFitSolutions();
 		void validateElitism() const;
-		static int validateUniqueSolutions(const std::vector<SolutionPtr>& solutions);
-		//void validateUniqueSolutions() const;
+		void validateUniqueSolutions() const;
+		void validatePopulationSize() const;
 	};
 }

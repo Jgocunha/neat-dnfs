@@ -411,7 +411,6 @@ namespace neat_dnfs
 		if (it == connectionGenes.end())
 			throw std::invalid_argument("Connection gene with the specified innovation number " +
 				std::to_string(innovationNumber) + " does not exist.");
-		//return ConnectionGene{ {0, 0} };
 
 		return *it;
 	}

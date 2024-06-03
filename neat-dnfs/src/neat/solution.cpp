@@ -200,6 +200,12 @@ namespace neat_dnfs
 
 	SolutionPtr Solution::crossover(const SolutionPtr& other)
 	{
+		// if you are getting bad_weak_ptr exception when calling this function
+		// you are probably calling it with a stack allocated object
+		// use a heap allocated object instead
+		// e.g. auto solution = std::make_shared<Solution>(topology);
+		// instead of Solution solution(topology);
+		// and then call solution->crossover(other);
 		const SolutionPtr self = shared_from_this();
 
 		const double fitnessDifference = std::abs(self->getFitness() - other->getFitness());

@@ -98,6 +98,10 @@ namespace neat_dnfs
 	struct PopulationConstants
 	{
 		static constexpr double killRatio = 0.5;
+		static constexpr bool validateUniqueSolutions = true;
+		static constexpr bool validatePopulationSize = true;
+		static constexpr bool validateElitism = true;
+		static constexpr bool logs = true;
 	};
 
 }

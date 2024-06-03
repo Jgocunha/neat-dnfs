@@ -118,3 +118,42 @@ TEST_CASE("FieldGene Invalid Mutation", "[FieldGene]")
     auto kernelAfterMutation = fieldGene.getKernel();
     REQUIRE(initialKernel == kernelAfterMutation);
 }
+
+TEST_CASE("FieldGene Mutate Non-GaussKernel", "[FieldGene]")
+{
+    const FieldGeneParameters params(FieldGeneType::OUTPUT, 6);
+    const FieldGene fieldGene(params);
+
+    auto initialKernel = fieldGene.getKernel();
+    fieldGene.mutate();  // This should log an error and throw an exception because it's not a GaussKernel
+
+    auto kernelAfterMutation = fieldGene.getKernel();
+    REQUIRE(initialKernel == kernelAfterMutation);
+}
+
+TEST_CASE("FieldGene NeuralField Parameters", "[FieldGene]")
+{
+    const FieldGeneParameters params(FieldGeneType::INPUT, 9);
+    const FieldGene fieldGene(params);
+
+    auto neuralField = fieldGene.getNeuralField();
+    REQUIRE(neuralField != nullptr);
+
+    const auto neuralFieldParams = neuralField->getParameters();
+    REQUIRE(neuralFieldParams.tau == NeuralFieldConstants::tau);
+    REQUIRE(neuralFieldParams.startingRestingLevel == NeuralFieldConstants::restingLevel);
+}
+
+TEST_CASE("FieldGene Kernel Parameters Access", "[FieldGene]")
+{
+    const FieldGeneParameters params(FieldGeneType::HIDDEN, 10);
+    const FieldGene fieldGene(params);
+
+    const auto kernel = std::dynamic_pointer_cast<GaussKernel>(fieldGene.getKernel());
+    REQUIRE(kernel != nullptr);
+    const auto gkp = kernel->getParameters();
+    REQUIRE(gkp.sigma >= GaussKernelConstants::initialAmplitudeMin);
+    REQUIRE(gkp.sigma <= GaussKernelConstants::initialAmplitudeMax);
+    REQUIRE(gkp.amplitude >= GaussKernelConstants::initialAmplitudeMin);
+    REQUIRE(gkp.amplitude <= GaussKernelConstants::initialAmplitudeMax);
+}

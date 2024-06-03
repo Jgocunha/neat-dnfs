@@ -133,3 +133,40 @@ TEST_CASE("ConnectionGene Kernel Parameters Access", "[ConnectionGene]")
     REQUIRE(connectionGene.getKernelWidth() == 5.0);
     REQUIRE(connectionGene.getKernelAmplitude() == 3.0);
 }
+
+TEST_CASE("ConnectionGene Initialization with Edge Values", "[ConnectionGene]")
+{
+    const ConnectionTuple connectionTuple(0, 0);
+    const ConnectionGene connectionGene(connectionTuple);
+
+    REQUIRE(connectionGene.getInFieldGeneId() == 0);
+    REQUIRE(connectionGene.getOutFieldGeneId() == 0);
+    REQUIRE(connectionGene.isEnabled() == true);
+    REQUIRE(connectionGene.getKernel() != nullptr);
+}
+
+TEST_CASE("ConnectionGene Set Max Innovation Number", "[ConnectionGene]")
+{
+    const ConnectionTuple connectionTuple(1, 2);
+    ConnectionGene connectionGene(connectionTuple);
+
+    connectionGene.setInnovationNumber(std::numeric_limits<uint16_t>::max());
+    REQUIRE(connectionGene.getInnovationNumber() == std::numeric_limits<uint16_t>::max());
+}
+
+TEST_CASE("ConnectionGene Multiple Mutations Consistency", "[ConnectionGene]")
+{
+    const ConnectionTuple connectionTuple(1, 2);
+    const ConnectionGene connectionGene(connectionTuple);
+
+    for (int i = 0; i < 1000; ++i)
+        connectionGene.mutate();
+
+    const auto mutatedKernel = std::dynamic_pointer_cast<GaussKernel>(connectionGene.getKernel());
+    const auto mutatedParams = mutatedKernel->getParameters();
+
+    REQUIRE(mutatedParams.sigma >= MutationConstants::minSigma);
+    REQUIRE(mutatedParams.sigma <= MutationConstants::maxSigma);
+    REQUIRE(mutatedParams.amplitude >= MutationConstants::minAmplitude);
+    REQUIRE(mutatedParams.amplitude <= MutationConstants::maxAmplitude);
+}

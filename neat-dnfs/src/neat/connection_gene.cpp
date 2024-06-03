@@ -48,23 +48,22 @@ namespace neat_dnfs
 			const std::string message = "Calling mutate() on ConnectionGene with ConnectionTuple: " +
 				std::to_string(parameters.connectionTuple.inFieldGeneId) + " - " +
 				std::to_string(parameters.connectionTuple.outFieldGeneId) + " but kernel is not a GaussKernel";
-			tools::logger::log(tools::logger::ERROR, message);
-			return;
+			tools::logger::log(tools::logger::FATAL, message);
+			throw std::runtime_error(message);
 		}
 
-		std::random_device rd;
-		std::mt19937 gen(rd());
-		std::uniform_real_distribution<> mutationStep(-MutationConstants::mutationStep,
-			MutationConstants::mutationStep);
-		std::uniform_int_distribution<> mutationSelection(0, 1);
+		using namespace neat_dnfs::tools::utils;
+		const double mutationStep = 
+			generateRandomDouble(-MutationConstants::mutationStep, MutationConstants::mutationStep);
+		const int mutationSelection = generateRandomInt(0, 1);
 
 		GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
 
-		if (mutationSelection(gen) == 0)
-			gkp.sigma = std::clamp(gkp.sigma + mutationStep(gen), MutationConstants::minSigma,
+		if (mutationSelection == 0)
+			gkp.sigma = std::clamp(gkp.sigma + mutationStep, MutationConstants::minSigma,
 				MutationConstants::maxSigma);
 		else
-			gkp.amplitude = std::clamp(gkp.amplitude + mutationStep(gen), MutationConstants::minAmplitude,
+			gkp.amplitude = std::clamp(gkp.amplitude + mutationStep, MutationConstants::minAmplitude,
 				MutationConstants::maxAmplitude);
 
 		std::dynamic_pointer_cast<GaussKernel>(kernel)->setParameters(gkp);

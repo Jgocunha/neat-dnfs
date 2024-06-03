@@ -111,24 +111,23 @@ namespace neat_dnfs
 		{
 			const std::string message = "Calling mutate() on FieldGene with id " + std::to_string(parameters.id) +
 				" and type " + std::to_string(static_cast<int>(parameters.type)) +
-				" is not possible, because the type is not a HIDDEN.";
+				" is not possible, because the type is not HIDDEN.";
 			tools::logger::log(tools::logger::ERROR, message);
 			return;
 		}
 
-		std::random_device rd;
-		std::mt19937 gen(rd());
-		std::uniform_real_distribution<> mutationStep(-MutationConstants::mutationStep,
-			MutationConstants::mutationStep);
-		std::uniform_int_distribution<> mutationSelection(0, 1);
+		using namespace neat_dnfs::tools::utils;
+		const double mutationStep =
+			generateRandomDouble(-MutationConstants::mutationStep, MutationConstants::mutationStep);
+		const int mutationSelection = generateRandomInt(0, 1);
 
 		GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
 
-		if (mutationSelection(gen) == 0)
-			gkp.sigma = std::clamp(gkp.sigma + mutationStep(gen), MutationConstants::minSigma,
+		if (mutationSelection == 0)
+			gkp.sigma = std::clamp(gkp.sigma + mutationStep, MutationConstants::minSigma,
 				MutationConstants::maxSigma);
 		else
-			gkp.amplitude = std::clamp(gkp.amplitude + mutationStep(gen), MutationConstants::minAmplitude,
+			gkp.amplitude = std::clamp(gkp.amplitude + mutationStep, MutationConstants::minAmplitude,
 				MutationConstants::maxAmplitude);
 
 		std::dynamic_pointer_cast<GaussKernel>(kernel)->setParameters(gkp);

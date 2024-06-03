@@ -3,6 +3,8 @@
 #include "neat/population.h"
 #include "solutions/empty_solution.h"
 
+using namespace neat_dnfs;
+
 //TEST_CASE("Population Initialization", "[Population]")
 //{
 //    neat_dnfs::SolutionTopology topology(3, 1);
@@ -190,101 +192,361 @@
 //}
 
 
-TEST_CASE("Population Initialization", "[Population]")
+//TEST_CASE("Population Initialization", "[Population]")
+//{
+//    neat_dnfs::SolutionTopology topology(3, 1);
+//    const neat_dnfs::PopulationParameters params(10, 100, 0.95);
+//    const auto initialSolution = std::make_shared<neat_dnfs::EmptySolution>(topology);
+//
+//    const neat_dnfs::Population population(params, initialSolution);
+//    population.initialize();
+//
+//    REQUIRE(population.getSize() == 10);
+//    for (const auto& solution : population.getSolutions())
+//        REQUIRE(solution->getGenome().getFieldGenes().size() == 4); // 3 input + 1 output
+//    // All solutions should be unique
+//	for (size_t i = 0; i < population.getSolutions().size(); i++)
+//	    for (size_t j = i + 1; j < population.getSolutions().size(); j++)
+//	    	REQUIRE(population.getSolutions()[i] != population.getSolutions()[j]);
+//}
+//
+//TEST_CASE("Population Evaluation", "[Population]")
+//{
+//    neat_dnfs::SolutionTopology topology(3, 1);
+//    const neat_dnfs::PopulationParameters params(10, 100, 0.95);
+//    const auto initialSolution = std::make_shared<neat_dnfs::EmptySolution>(topology);
+//
+//    const neat_dnfs::Population population(params, initialSolution);
+//    population.initialize();
+//    population.evaluate();
+//
+//    for (const auto& solution : population.getSolutions()) 
+//    {
+//        REQUIRE(solution->getFitness() >= 0.0);
+//        REQUIRE(solution->getFitness() <= 1.0);
+//    }
+//    REQUIRE(population.getSize() == 10);
+//    for (size_t i = 0; i < population.getSolutions().size(); i++)
+//        for (size_t j = i + 1; j < population.getSolutions().size(); j++)
+//            REQUIRE(population.getSolutions()[i] != population.getSolutions()[j]);
+//}
+//
+//TEST_CASE("Population Speciation", "[Population]")
+//{
+//    neat_dnfs::SolutionTopology topology(3, 1);
+//    const neat_dnfs::PopulationParameters params(10, 100, 0.95);
+//    const auto initialSolution = std::make_shared<neat_dnfs::EmptySolution>(topology);
+//
+//    neat_dnfs::Population population(params, initialSolution);
+//    population.initialize();
+//    population.evaluate();
+//    population.speciate();
+//
+//    // Each solution should belong to some species
+//    for (const auto& solution : population.getSolutions()) 
+//    {
+//        bool found = false;
+//        for (const auto& species : population.getSpeciesList()) 
+//        {
+//            if (species.contains(solution)) 
+//            {
+//                found = true;
+//                break;
+//            }
+//        }
+//        REQUIRE(found);
+//    }
+//    REQUIRE(population.getSize() == 10);
+//    for (size_t i = 0; i < population.getSolutions().size(); i++)
+//        for (size_t j = i + 1; j < population.getSolutions().size(); j++)
+//            REQUIRE(population.getSolutions()[i] != population.getSolutions()[j]);
+//}
+//
+//TEST_CASE("Population Evolutionary Run", "[Population]")
+//{
+//    neat_dnfs::SolutionTopology topology(1, 1);
+//    const neat_dnfs::PopulationParameters params(10, 1000, 1.0);
+//    const auto initialSolution = std::make_shared<neat_dnfs::EmptySolution>(topology);
+//
+//    neat_dnfs::Population population(params, initialSolution);
+//    population.initialize();
+//
+//    constexpr static uint16_t numAttempts = 100;
+//
+//    double prevBestFitness = 0.0;
+//    for (uint16_t i = 0; i < numAttempts; ++i)
+//    {
+//        population.evaluate();
+//        population.speciate();
+//        population.reproduceAndSelect();
+//        population.upkeep();
+//
+//        const auto bestSolution = population.getBestSolution();
+//        REQUIRE(bestSolution != nullptr);
+//        REQUIRE(bestSolution->getFitness() >= prevBestFitness);
+//
+//        for (const auto& solution : population.getSolutions())
+//            REQUIRE(solution->getFitness() <= bestSolution->getFitness());
+//        prevBestFitness = bestSolution->getFitness();
+//    }
+//}
+
+
+TEST_CASE("Population::initialize", "[Population]")
 {
-    neat_dnfs::SolutionTopology topology(3, 1);
-    const neat_dnfs::PopulationParameters params(10, 100, 0.95);
-    const auto initialSolution = std::make_shared<neat_dnfs::EmptySolution>(topology);
+    const PopulationParameters parameters(31, 50, 0.9);
+    const auto initialSolution = std::make_shared<EmptySolution>(SolutionTopology(3, 1));
 
-    const neat_dnfs::Population population(params, initialSolution);
-    population.initialize();
+    const Population population(parameters, initialSolution);
 
-    REQUIRE(population.getSize() == 10);
-    for (const auto& solution : population.getSolutions())
-        REQUIRE(solution->getGenome().getFieldGenes().size() == 4); // 3 input + 1 output
-    // All solutions should be unique
-	for (size_t i = 0; i < population.getSolutions().size(); i++)
-	    for (size_t j = i + 1; j < population.getSolutions().size(); j++)
-	    	REQUIRE(population.getSolutions()[i] != population.getSolutions()[j]);
+    SECTION("Initialize population")
+	{
+        REQUIRE_NOTHROW(population.initialize());
+        const auto solutions = population.getSolutions();
+        REQUIRE(solutions.size() == parameters.size);
+        for (const auto& solution : solutions)
+            REQUIRE(!solution->getGenome().getFieldGenes().empty());
+    }
 }
 
-TEST_CASE("Population Evaluation", "[Population]")
+TEST_CASE("Population::evolve", "[Population]")
 {
-    neat_dnfs::SolutionTopology topology(3, 1);
-    const neat_dnfs::PopulationParameters params(10, 100, 0.95);
-    const auto initialSolution = std::make_shared<neat_dnfs::EmptySolution>(topology);
+    const PopulationParameters parameters(65, 50, 0.9);
+    const auto initialSolution = std::make_shared<EmptySolution>(SolutionTopology(3, 1));
 
-    const neat_dnfs::Population population(params, initialSolution);
+    Population population(parameters, initialSolution);
+    population.initialize();
+
+    SECTION("Evolve population")
+	{
+        REQUIRE_NOTHROW(population.evolve());
+        REQUIRE(population.getCurrentGeneration() <= parameters.numGenerations);
+        const bool validEndCondition = population.getBestSolution()->getFitness() >= parameters.targetFitness ||
+			population.getCurrentGeneration() >= parameters.numGenerations;
+        REQUIRE(validEndCondition);
+    }
+}
+
+TEST_CASE("Population::evaluate", "[Population]")
+{
+    const PopulationParameters parameters(11, 50, 0.9);
+    const auto initialSolution = std::make_shared<EmptySolution>(SolutionTopology(3, 1));
+
+    const Population population(parameters, initialSolution);
+    population.initialize();
+
+    SECTION("Evaluate population")
+	{
+        REQUIRE_NOTHROW(population.evaluate());
+        const auto solutions = population.getSolutions();
+        for (const auto& solution : solutions)
+            REQUIRE(solution->getFitness() > 0.0);
+    }
+}
+
+TEST_CASE("Population::speciate", "[Population]")
+{
+    const PopulationParameters parameters(81, 50, 0.9);
+    const auto initialSolution = std::make_shared<EmptySolution>(SolutionTopology(3, 1));
+
+    Population population(parameters, initialSolution);
     population.initialize();
     population.evaluate();
 
-    for (const auto& solution : population.getSolutions()) 
-    {
-        REQUIRE(solution->getFitness() >= 0.0);
-        REQUIRE(solution->getFitness() <= 1.0);
+    SECTION("Speciate population")
+	{
+        REQUIRE_NOTHROW(population.speciate());
+        const auto speciesList = population.getSpeciesList();
+        REQUIRE(!speciesList.empty());
+        for (const auto& species : speciesList)
+            REQUIRE(species.getMembers().size() == 81);
     }
-    REQUIRE(population.getSize() == 10);
-    for (size_t i = 0; i < population.getSolutions().size(); i++)
-        for (size_t j = i + 1; j < population.getSolutions().size(); j++)
-            REQUIRE(population.getSolutions()[i] != population.getSolutions()[j]);
 }
 
-TEST_CASE("Population Speciation", "[Population]")
+TEST_CASE("Population::reproduceAndSelect", "[Population]")
 {
-    neat_dnfs::SolutionTopology topology(3, 1);
-    const neat_dnfs::PopulationParameters params(10, 100, 0.95);
-    const auto initialSolution = std::make_shared<neat_dnfs::EmptySolution>(topology);
+    const PopulationParameters parameters(13, 50, 0.9);
+    const auto initialSolution = std::make_shared<EmptySolution>(SolutionTopology(3, 1));
 
-    neat_dnfs::Population population(params, initialSolution);
+    Population population(parameters, initialSolution);
     population.initialize();
     population.evaluate();
     population.speciate();
 
-    // Each solution should belong to some species
-    for (const auto& solution : population.getSolutions()) 
-    {
-        bool found = false;
-        for (const auto& species : population.getSpeciesList()) 
-        {
-            if (species.contains(solution)) 
-            {
-                found = true;
-                break;
-            }
-        }
-        REQUIRE(found);
+    SECTION("Reproduce and select population")
+	{
+        REQUIRE_NOTHROW(population.reproduceAndSelect());
+        const auto solutions = population.getSolutions();
+        REQUIRE(solutions.size() == parameters.size);
     }
-    REQUIRE(population.getSize() == 10);
-    for (size_t i = 0; i < population.getSolutions().size(); i++)
-        for (size_t j = i + 1; j < population.getSolutions().size(); j++)
-            REQUIRE(population.getSolutions()[i] != population.getSolutions()[j]);
 }
 
-TEST_CASE("Population Evolutionary Run", "[Population]")
+TEST_CASE("Population::upkeep", "[Population]")
 {
-    neat_dnfs::SolutionTopology topology(1, 1);
-    const neat_dnfs::PopulationParameters params(10, 1000, 1.0);
-    const auto initialSolution = std::make_shared<neat_dnfs::EmptySolution>(topology);
+    const PopulationParameters parameters(91, 50, 0.9);
+    const auto initialSolution = std::make_shared<EmptySolution>(SolutionTopology(3, 1));
 
-    neat_dnfs::Population population(params, initialSolution);
+    Population population(parameters, initialSolution);
     population.initialize();
+    population.evaluate();
+    population.speciate();
+    population.reproduceAndSelect();
 
-    constexpr static uint16_t numAttempts = 100;
-
-    double prevBestFitness = 0.0;
-    for (uint16_t i = 0; i < numAttempts; ++i)
-    {
-        population.evaluate();
-        population.speciate();
-        population.reproduceAndSelect();
-        population.upkeep();
-
-        const auto bestSolution = population.getBestSolution();
-        REQUIRE(bestSolution != nullptr);
-        REQUIRE(bestSolution->getFitness() >= prevBestFitness);
-
-        for (const auto& solution : population.getSolutions())
-            REQUIRE(solution->getFitness() <= bestSolution->getFitness());
-        prevBestFitness = bestSolution->getFitness();
+    SECTION("Upkeep population")
+	{
+        REQUIRE_NOTHROW(population.upkeep());
+        REQUIRE(population.getCurrentGeneration() == 1);
+        REQUIRE(population.getBestSolution()->getFitness() > 0.0);
     }
 }
+
+TEST_CASE("Population::endConditionMet", "[Population]")
+{
+    const PopulationParameters parameters(10, 50, 0.9);
+    const auto initialSolution = std::make_shared<EmptySolution>(SolutionTopology(3, 1));
+
+    Population population(parameters, initialSolution);
+    population.initialize();
+    population.evaluate();
+
+    SECTION("End condition not met")
+	{
+        REQUIRE_FALSE(population.endConditionMet());
+    }
+
+    SECTION("End condition met by fitness")
+	{
+        const auto bestSolution = population.getBestSolution();
+        do
+        {
+	        bestSolution->evaluate();
+        } while (bestSolution->getFitness() < 0.9);
+        REQUIRE(population.endConditionMet());
+    }
+
+    SECTION("End condition met by generation")
+	{
+        for (uint16_t i = 0; i <= parameters.numGenerations; ++i)
+            population.upkeep();
+        REQUIRE(population.endConditionMet());
+    }
+}
+
+//TEST_CASE("Population::selectElites", "[Population]")
+//{
+//    const PopulationParameters parameters(10, 50, 0.9);
+//    const auto initialSolution = std::make_shared<EmptySolution>(SolutionTopology(3, 1));
+//
+//    Population population(parameters, initialSolution);
+//    population.initialize();
+//    population.evaluate();
+//    population.speciate();
+//
+//    SECTION("Select elites")
+//	{
+//        const auto elites = population.selectElites();
+//        REQUIRE(!elites.empty());
+//        for (const auto& elite : elites) 
+//        {
+//            REQUIRE(elite->getFitness() > 0.0);
+//        }
+//    }
+//}
+//
+//TEST_CASE("Population::selectLessFit", "[Population]")
+//{
+//    const PopulationParameters parameters(10, 50, 0.9);
+//    const auto initialSolution = std::make_shared<EmptySolution>(SolutionTopology(3, 1));
+//
+//    Population population(parameters, initialSolution);
+//    population.initialize();
+//    population.evaluate();
+//    population.speciate();
+//
+//    SECTION("Select less fit solutions")
+//	{
+//        const auto lessFit = population.selectLessFit();
+//        REQUIRE(!lessFit.empty());
+//        for (const auto& solution : lessFit) {
+//            REQUIRE(solution->getFitness() > 0.0);
+//        }
+//    }
+//}
+//
+//TEST_CASE("Population::reproduce", "[Population]")
+//{
+//    const PopulationParameters parameters(10, 50, 0.9);
+//    const auto initialSolution = std::make_shared<EmptySolution>(SolutionTopology(3, 1));
+//
+//    Population population(parameters, initialSolution);
+//    population.initialize();
+//    population.evaluate();
+//    population.speciate();
+//    population.reproduceAndSelect();
+//
+//    SECTION("Reproduce population")
+//	{
+//        const auto offspring = population.reproduce();
+//        REQUIRE(!offspring.empty());
+//        for (const auto& solution : offspring)
+//            REQUIRE(solution->getGenomeSize() > 0);
+//    }
+//}
+
+//TEST_CASE("Population::validateElitism", "[Population]") {
+//    PopulationParameters parameters(10, 50, 0.9);
+//    auto initialSolution = std::make_shared<EmptySolution>(SolutionTopology(3, 1));
+//
+//    Population population(parameters, initialSolution);
+//    population.initialize();
+//    population.evaluate();
+//
+//    SECTION("Validate elitism without error") {
+//        population.upkeep();
+//        REQUIRE_NOTHROW(population.validateElitism());
+//    }
+//
+//    SECTION("Validate elitism with error") {
+//        auto bestSolution = population.getBestSolution();
+//        bestSolution->setAdjustedFitness(bestSolution->getFitness() - 1.0);  // Force an elitism failure
+//        REQUIRE_THROWS_AS(population.validateElitism(), std::runtime_error);
+//    }
+//}
+//
+//TEST_CASE("Population::validateUniqueSolutions", "[Population]") {
+//    PopulationParameters parameters(10, 50, 0.9);
+//    auto initialSolution = std::make_shared<EmptySolution>(SolutionTopology(3, 1));
+//
+//    Population population(parameters, initialSolution);
+//    population.initialize();
+//    population.evaluate();
+//
+//    SECTION("Validate unique solutions without error") {
+//        REQUIRE_NOTHROW(population.validateUniqueSolutions());
+//    }
+//
+//    SECTION("Validate unique solutions with duplicates") {
+//        auto solutions = population.getSolutions();
+//        solutions.push_back(solutions[0]);  // Force a duplicate
+//        REQUIRE_THROWS_AS(population.validateUniqueSolutions(), std::runtime_error);
+//    }
+//}
+//
+//TEST_CASE("Population::validatePopulationSize", "[Population]") {
+//    PopulationParameters parameters(10, 50, 0.9);
+//    auto initialSolution = std::make_shared<EmptySolution>(SolutionTopology(3, 1));
+//
+//    Population population(parameters, initialSolution);
+//    population.initialize();
+//    population.evaluate();
+//
+//    SECTION("Validate population size without error") {
+//        REQUIRE_NOTHROW(population.validatePopulationSize());
+//    }
+//
+//    SECTION("Validate population size with error") {
+//        auto solutions = population.getSolutions();
+//        solutions.pop_back();  // Force an incorrect size
+//        REQUIRE_THROWS_AS(population.validatePopulationSize(), std::runtime_error);
+//    }
+//}

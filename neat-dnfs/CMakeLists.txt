@@ -51,10 +51,8 @@ set(header
 "include/neat/solution.h"
 "include/neat/species.h"
 
-#"include/solutions/template_solution.h"
 "include/solutions/empty_solution.h"
 "include/solutions/single_bump.h"
-#"include/solutions/selection.h"
 
 "include/application/application.h"
 "include/user_interface/main_window.h"
@@ -72,10 +70,8 @@ set(src
 "src/neat/solution.cpp"
 "src/neat/species.cpp"
 
-#"src/solutions/template_solution.cpp"
 "src/solutions/empty_solution.cpp"
 "src/solutions/single_bump.cpp"
-#"src/solutions/selection.cpp"
 
 "src/application/application.cpp"
 "src/user_interface/main_window.cpp"
@@ -175,16 +171,15 @@ include(Catch)
 # Add test project
 set(TEST_PROJECT ${CMAKE_PROJECT_NAME}-test)
 add_executable(${TEST_PROJECT} 
-    #"tests/entry.cpp" 
-    #"tests/test_field_gene.cpp" 
-    #"tests/test_connection_gene.cpp"
-    #"tests/test_genome.cpp"
-    #"tests/test_solution.cpp"
-    #"tests/test_utils.cpp"
-    #"tests/test_empty_solution.cpp"
-    #"tests/test_species.cpp"
-    #"tests/test_population.cpp"
-    "tests/test_single_bump.cpp"
+    "tests/entry.cpp" 
+    "tests/test_utils.cpp"
+    "tests/test_field_gene.cpp" 
+    "tests/test_connection_gene.cpp"
+    "tests/test_genome.cpp"
+    "tests/test_solution.cpp"
+    "tests/test_species.cpp"
+    "tests/test_population.cpp"
+    #"tests/test_single_bump.cpp"
 )
 target_include_directories(${TEST_PROJECT} PRIVATE include)
 target_link_libraries(${TEST_PROJECT} PRIVATE Catch2::Catch2 Catch2::Catch2WithMain imgui-platform-kit  dynamic-neural-field-composer ${CMAKE_PROJECT_NAME})

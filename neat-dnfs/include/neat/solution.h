@@ -43,25 +43,25 @@ namespace neat_dnfs
 		Genome genome;
 	public:
 		Solution(const SolutionTopology& initialTopology);
-
-		void evaluate();
 		virtual SolutionPtr clone() const = 0;
-
+		virtual SolutionPtr crossover(const SolutionPtr& other);
+		void evaluate();
 		void initialize();
 		void mutate();
-
 		Phenotype getPhenotype() const;
 		Genome getGenome() const;
 		SolutionParameters getParameters() const;
 		double getFitness() const;
 		size_t getGenomeSize() const;
 		std::vector<uint16_t> getInnovationNumbers() const;
-
 		void clearGenerationalInnovations() const;
 		void incrementAge();
 		void setAdjustedFitness(double adjustedFitness);
 		void buildPhenotype();
 		void clearPhenotype();
+		void addFieldGene(const FieldGene& gene);
+		void addConnectionGene(const ConnectionGene& gene);
+		bool containsConnectionGene(const ConnectionGene& gene) const;
 	private:
 		void createInputGenes();
 		void createOutputGenes();
@@ -70,10 +70,6 @@ namespace neat_dnfs
 		void translateGenesToPhenotype();
 		void translateConnectionGenesToPhenotype();
 	public:
-		virtual SolutionPtr crossover(const SolutionPtr& other);
-		void addFieldGene(const FieldGene& gene);
-		void addConnectionGene(const ConnectionGene& gene);
-		bool containsConnectionGene(const ConnectionGene& gene) const;
 	protected:
 		virtual void updateFitness() = 0;
 		virtual void testPhenotype() = 0;
