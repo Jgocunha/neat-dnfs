@@ -103,8 +103,12 @@ namespace neat_dnfs
 		if (PopulationConstants::validateElitism)
 			validateElitism();
 
+		std::stringstream addr_bs;
+		addr_bs << bestSolution.get();
+
 		tools::logger::log(tools::logger::INFO,
 			"Current generation: " + std::to_string(parameters.currentGeneration) +
+			" Best solution address: " + addr_bs.str() +
 			" Best fitness: " + std::to_string(bestSolution->getFitness()) +
 			" Adjusted fitness: " + std::to_string(bestSolution->getParameters().adjustedFitness) +
 			" Number of species: " + std::to_string(speciesList.size()) +
@@ -243,46 +247,69 @@ namespace neat_dnfs
 	bool Population::endConditionMet() const
 	{
 		const bool fitnessCondition = bestSolution->getFitness() > parameters.targetFitness;
-		const bool generationCondition = parameters.currentGeneration > parameters.numGenerations;
+		const bool generationCondition = parameters.currentGeneration >= parameters.numGenerations;
 		return fitnessCondition || generationCondition;
 	}
 
 	void Population::validateElitism() const
 	{
-		static SolutionPtr prevBestSolution = nullptr;
-		static SolutionPtr pbsclone = nullptr;
-		static double prevBestSolutionFitness = 0.0;
+		static SolutionPtr pbs = nullptr; // previous best solution
+		static SolutionPtr bs = nullptr; // best solution
+
+		static double pbsf = 0.0;
+		static double bsf = 0.0;
 
 		if (parameters.currentGeneration == 1)
 		{
-			prevBestSolutionFitness = 0.0;
+			pbs = nullptr;
+			bs = bestSolution;
+			pbsf = 0.0;
+			bsf = bestSolution->getFitness();
 			return;
 		}
 
-		if (bestSolution->getFitness() < prevBestSolutionFitness)
+		bs = bestSolution;
+		bsf = bs->getFitness();
+
+		const bool bsDecreased = bsf < pbsf;
+		bool pbsInPopulation = false;
+
+		if (bsDecreased)
 		{
-			log(tools::logger::LogLevel::FATAL, "Elitism failed. Best solution fitness decreased.");
-			// is previous best solution still in the population?
 			for (auto& solution : solutions)
 			{
-				if (solution == prevBestSolution)
+				if (solution == pbs)
 				{
-					SolutionPtr pbs = prevBestSolution;
-					SolutionPtr cpbs = solution;
-					SolutionPtr bs = bestSolution;
-					log(tools::logger::LogLevel::WARNING, "Previous best solution is still in the population.");
-					double fitness = solution->getFitness();
-					log(tools::logger::LogLevel::WARNING, "*old* Previous best solution fitness: " + std::to_string(prevBestSolutionFitness));
-					log(tools::logger::LogLevel::WARNING, "*new* Previous best solution fitness: " + std::to_string(fitness));
-					log(tools::logger::LogLevel::WARNING, "Current best solution fitness: " + std::to_string(bestSolution->getFitness()));
+
+					std::stringstream addr_bs;
+					addr_bs << bs.get();
+					std::stringstream addr_npbs;
+					addr_npbs << solution.get();
+					std::stringstream addr_opbs;
+					addr_opbs << pbs.get();
+
+					const double opbsf = pbsf;
+					const double npbsf = solution->getFitness();
+
+					log(tools::logger::LogLevel::WARNING, "Fitness decreased but previous best solution is in the population.");
+					log(tools::logger::LogLevel::WARNING, "Best solution address: " + addr_bs.str() + " Fitness: " + std::to_string(bsf));
+					log(tools::logger::LogLevel::WARNING, "New previous best solution address: " + addr_npbs.str() + " Fitness: " + std::to_string(npbsf));
+					log(tools::logger::LogLevel::WARNING, "Old previous best solution address: " + addr_opbs.str() + " Fitness: " + std::to_string(opbsf));
+
+					pbsInPopulation = true;
 					break;
 				}
 			}
 		}
 
-		prevBestSolution = bestSolution;
-		pbsclone = bestSolution->clone();
-		prevBestSolutionFitness = bestSolution->getFitness();
+		if (bsDecreased && !pbsInPopulation)
+		{
+			log(tools::logger::LogLevel::FATAL, "Fitness decreased and previous best solution is not in the population.");
+			//throw std::runtime_error("Best solution decreased and previous best solution not in population.");
+		}
+
+		pbs = bs;
+		pbsf = bsf;
 	}
 
 	void Population::validateUniqueSolutions() const

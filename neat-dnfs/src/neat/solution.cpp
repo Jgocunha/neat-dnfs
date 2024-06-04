@@ -15,9 +15,9 @@ namespace neat_dnfs
 
 	void Solution::evaluate()
 	{
+		clearPhenotype();
 		buildPhenotype();
 		testPhenotype();
-		clearPhenotype();
 	}
 
 	void Solution::initialize()
@@ -156,6 +156,21 @@ namespace neat_dnfs
 
 	void Solution::translateConnectionGenesToPhenotype()
 	{
+		// check if the connection genes are different from each other
+		for(auto const& connectionGene1 : genome.getConnectionGenes())
+		{
+			for (auto const& connectionGene2 : genome.getConnectionGenes())
+			{
+				if (connectionGene1 != connectionGene2)
+				{
+					if (connectionGene1.getInFieldGeneId() == connectionGene2.getInFieldGeneId() &&
+						connectionGene1.getOutFieldGeneId() == connectionGene2.getOutFieldGeneId())
+						log(tools::logger::LogLevel::FATAL, "Connection genes are the same.");
+				}
+			}
+		}
+
+
 		for (auto const& connectionGene : genome.getConnectionGenes())
 		{
 			if (connectionGene.isEnabled())
@@ -282,6 +297,7 @@ namespace neat_dnfs
 
 	void Solution::stopSimulation()
 	{
+		phenotype.init();
 		phenotype.close();
 	}
 

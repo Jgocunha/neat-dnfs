@@ -42,11 +42,11 @@ namespace neat_dnfs
 	struct LateralInteractionsConstants
 	{
 		inline static std::string namePrefix = "lik ";
-		static constexpr double sigmaExc = 5.3;
-		static constexpr double sigmaInh = 7.4;
-		static constexpr double amplitudeExc = 6;
-		static constexpr double amplitudeInh = 6;
-		static constexpr double amplitudeGlobal = -0.55;
+		static constexpr double sigmaExc = 1;//5.3
+		static constexpr double sigmaInh = 1; //7.4
+		static constexpr double amplitudeExc = 2; //6
+		static constexpr double amplitudeInh = 1; //6
+		static constexpr double amplitudeGlobal = 0.0; //-0.55
 	};
 
 	struct MutationConstants
@@ -97,7 +97,7 @@ namespace neat_dnfs
 
 	struct PopulationConstants
 	{
-		static constexpr double killRatio = 0.5;
+		static constexpr double killRatio = 0.8;
 		static constexpr bool validateUniqueSolutions = true;
 		static constexpr bool validatePopulationSize = true;
 		static constexpr bool validateElitism = true;

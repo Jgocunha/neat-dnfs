@@ -181,8 +181,16 @@ namespace neat_dnfs
         const auto gaussStimulus = std::make_shared<GaussStimulus>(elementCommonParameters, gaussStimulusParameters);
         simulation->addElement(gaussStimulus);
         simulation->createInteraction("gauss stimulus", "output", "nf 1");
-        simulation->createInteraction("nf 1", "output", "gk cg 1 - 2");
-        simulation->createInteraction("gk cg 1 - 2", "output", "nf 2");
+       
+        // re-declare interactions for all elements
+        for (const auto& element : simulation->getElements())
+        {
+            const auto inputs = element->getInputs();
+            for(const auto& input : inputs)
+            {
+                simulation->createInteraction(input->getUniqueName(), "output", element->getUniqueName());
+			}
+		}
 
         simulation->init();
         do
