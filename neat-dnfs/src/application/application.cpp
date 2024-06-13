@@ -7,11 +7,11 @@ namespace neat_dnfs
 	{
 		using namespace imgui_kit;
 		const WindowParameters winParams{ "neat dnfs" };
-		const FontParameters fontParams{ std::string(PROJECT_DIR) + "/resources/fonts/Lexend-Light.ttf", 22 };
-		 StyleParameters styleParams{ ImVec4(0.7f, 0.9f, 0.7f, 0.6f) };
-		styleParams.textColor = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
+		const FontParameters fontParams{ std::string(PROJECT_DIR) + "/resources/fonts/Lexend-Light.ttf", 15 };
+		 StyleParameters styleParams{ ImVec4(0.7f, 0.9f, 0.7f, 0.8f) };
+		styleParams.textColor = imgui_kit::colours::White;
 		const IconParameters iconParams{ std::string(PROJECT_DIR) + "/resources/icons/icon.ico" };
-		const BackgroundImageParameters bgParams{ std::string(PROJECT_DIR) + "/resources/images/background.png", 0.4 };
+		const BackgroundImageParameters bgParams{ std::string(PROJECT_DIR) + "/resources/images/background.png", ImageFitType::ZOOM_TO_FIT};
 		uiParameters = UserInterfaceParameters{ winParams, fontParams, styleParams, iconParams, bgParams };
 
 		ui = std::make_shared<UserInterface>(uiParameters);

@@ -53,6 +53,7 @@ set(header
 
 "include/solutions/empty_solution.h"
 "include/solutions/single_bump.h"
+"include/solutions/self_sustained_single_bump.h"
 
 "include/application/application.h"
 "include/user_interface/main_window.h"
@@ -72,6 +73,7 @@ set(src
 
 "src/solutions/empty_solution.cpp"
 "src/solutions/single_bump.cpp"
+"src/solutions/self_sustained_single_bump.cpp"
 
 "src/application/application.cpp"
 "src/user_interface/main_window.cpp"
@@ -92,6 +94,9 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE imgui::imgui)
 
 # Setup implot
 find_package(implot CONFIG REQUIRED)
+
+# Setup imgui-node-editor
+find_package(unofficial-imgui-node-editor CONFIG REQUIRED)
 
 # Setup nlohmann-json
 find_package(nlohmann_json CONFIG REQUIRED)

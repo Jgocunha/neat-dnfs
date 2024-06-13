@@ -6,7 +6,7 @@
 #include <iostream>
 
 #include "neat/population.h"
-#include "solutions/template_solution.h"
+#include "solutions/self_sustained_single_bump.h"
 
 int main(int argc, char* argv[])
 {
@@ -14,9 +14,9 @@ int main(int argc, char* argv[])
 	{
 		using namespace neat_dnfs;
 
-		TemplateSolution solution{ SolutionTopology{2, 1} };
-		const PopulationParameters parameters{ 10, 1000, 0.95 };
-		Population population{ parameters, std::make_shared<TemplateSolution>(solution) };
+		SelfSustainedSingleBumpSolution solution{ SolutionTopology{1, 1} };
+		const PopulationParameters parameters{ 100, 1000, 0.90 };
+		Population population{ parameters, std::make_shared<SelfSustainedSingleBumpSolution>(solution) };
 
 		population.initialize();
 

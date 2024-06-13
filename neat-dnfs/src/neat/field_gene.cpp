@@ -31,7 +31,7 @@ namespace neat_dnfs
 						{DimensionConstants::xSize,
 											DimensionConstants::dx}
 		};
-		const GaussKernelParameters gkp{ GaussKernelConstants::sigma,
+		const GaussKernelParameters gkp{ GaussKernelConstants::width,
 										GaussKernelConstants::amplitude,
 									KernelConstants::circularity,
 									KernelConstants::normalization };
@@ -55,9 +55,9 @@ namespace neat_dnfs
 						{DimensionConstants::xSize,
 											DimensionConstants::dx}
 		};
-		const LateralInteractionsParameters lip{ LateralInteractionsConstants::sigmaExc,
+		const LateralInteractionsParameters lip{ LateralInteractionsConstants::widthExc,
 													LateralInteractionsConstants::amplitudeExc,
-													LateralInteractionsConstants::sigmaInh,
+													LateralInteractionsConstants::widthInh,
 											LateralInteractionsConstants::amplitudeExc,
 													LateralInteractionsConstants::amplitudeGlobal,
 											KernelConstants::circularity,
@@ -82,7 +82,7 @@ namespace neat_dnfs
 						{DimensionConstants::xSize,
 											DimensionConstants::dx}
 		};
-		const GaussKernelParameters gkp{ GaussKernelConstants::sigma,
+		const GaussKernelParameters gkp{ GaussKernelConstants::width,
 										GaussKernelConstants::amplitude,
 									KernelConstants::circularity,
 									KernelConstants::normalization };
@@ -124,8 +124,8 @@ namespace neat_dnfs
 		GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
 
 		if (mutationSelection == 0)
-			gkp.sigma = std::clamp(gkp.sigma + mutationStep, MutationConstants::minSigma,
-				MutationConstants::maxSigma);
+			gkp.width = std::clamp(gkp.width + mutationStep, MutationConstants::minWidth,
+				MutationConstants::maxWidth);
 		else
 			gkp.amplitude = std::clamp(gkp.amplitude + mutationStep, MutationConstants::minAmplitude,
 				MutationConstants::maxAmplitude);

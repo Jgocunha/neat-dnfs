@@ -31,10 +31,10 @@ namespace neat_dnfs
 	{
 		inline static std::string namePrefix = "gk ";
 		inline static std::string namePrefixConnectionGene = "gk cg ";
-		static constexpr double sigma = 2;
+		static constexpr double width = 2;
 		static constexpr double amplitude = 1;
-		static constexpr double initialSigmaMin = 0.0;
-		static constexpr double initialSigmaMax = 5.0;
+		static constexpr double initialWidthMin = 0.0;
+		static constexpr double initialWidthMax = 5.0;
 		static constexpr double initialAmplitudeMin = -5.0;
 		static constexpr double initialAmplitudeMax = 5.0;
 	};
@@ -42,8 +42,8 @@ namespace neat_dnfs
 	struct LateralInteractionsConstants
 	{
 		inline static std::string namePrefix = "lik ";
-		static constexpr double sigmaExc = 1;//5.3
-		static constexpr double sigmaInh = 1; //7.4
+		static constexpr double widthExc = 1;//5.3
+		static constexpr double widthInh = 1; //7.4
 		static constexpr double amplitudeExc = 2; //6
 		static constexpr double amplitudeInh = 1; //6
 		static constexpr double amplitudeGlobal = 0.0; //-0.55
@@ -51,17 +51,17 @@ namespace neat_dnfs
 
 	struct MutationConstants
 	{
-		static constexpr double mutationStep = 0.5;
-		static constexpr double minSigma = 0.0;
-		static constexpr double maxSigma = 5.0;
-		static constexpr double minAmplitude = -10.0;
-		static constexpr double maxAmplitude = 10.0;
+		static constexpr double mutationStep = 1.5;
+		static constexpr double minWidth = 0.0;
+		static constexpr double maxWidth = 5.0;
+		static constexpr double minAmplitude = -15.0;
+		static constexpr double maxAmplitude = 15.0;
 
-		static constexpr double addGeneProbability = 0.1;
-		static constexpr double mutateGeneProbability = 0.2;
-		static constexpr double addConnectionGeneProbability = 0.3;
-		static constexpr double mutateConnectionGeneProbability = 0.35;
-		static constexpr double toggleConnectionGeneProbability = 0.05;
+		static constexpr double addGeneProbability = 0.05;
+		static constexpr double mutateGeneProbability = 0.44;
+		static constexpr double addConnectionGeneProbability = 0.05;
+		static constexpr double mutateConnectionGeneProbability = 0.45;
+		static constexpr double toggleConnectionGeneProbability = 0.01;
 	};
 
 	struct CompatibilityCoefficients
@@ -98,10 +98,11 @@ namespace neat_dnfs
 	struct PopulationConstants
 	{
 		static constexpr double killRatio = 0.8;
-		static constexpr bool validateUniqueSolutions = true;
-		static constexpr bool validatePopulationSize = true;
-		static constexpr bool validateElitism = true;
-		static constexpr bool logs = true;
+		static constexpr bool validateUniqueSolutions = false;
+		static constexpr bool validatePopulationSize = false;
+		static constexpr bool validateElitism = false;
+		static constexpr bool validateUniqueGenesInGenomes = false;
+		static constexpr bool logs = false;
 	};
 
 }

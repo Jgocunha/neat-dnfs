@@ -9,18 +9,20 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		using namespace neat_dnfs::tools::utils;
 
-		const double randomSigmaBetween0And10 = generateRandomDouble(GaussKernelConstants::initialSigmaMin,
-			GaussKernelConstants::initialSigmaMax);
+		const double randomWidthBetween0And10 = generateRandomDouble(GaussKernelConstants::initialWidthMin,
+			GaussKernelConstants::initialWidthMax);
 		const double randomAmplitudeBetween0And10 = generateRandomDouble(GaussKernelConstants::initialAmplitudeMin,
 			GaussKernelConstants::initialAmplitudeMax);
 
-		const GaussKernelParameters gkp{ randomSigmaBetween0And10,
+		const GaussKernelParameters gkp{ randomWidthBetween0And10,
 										randomAmplitudeBetween0And10,
 									KernelConstants::circularity,
 									KernelConstants::normalization };
-		const ElementCommonParameters gkcp{ GaussKernelConstants::namePrefixConnectionGene +
-														std::to_string(connectionTuple.inFieldGeneId) +
-															" - " + std::to_string(connectionTuple.outFieldGeneId),
+		const std::string elementName = GaussKernelConstants::namePrefixConnectionGene +
+			std::to_string(connectionTuple.inFieldGeneId) +
+			" - " + std::to_string(connectionTuple.outFieldGeneId) + " " +
+			std::to_string(parameters.innovationNumber);
+		const ElementCommonParameters gkcp{ elementName,
 			{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
 	}
@@ -31,10 +33,12 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer::element;
 
-		const ElementCommonParameters gkcp{ GaussKernelConstants::namePrefixConnectionGene +
-												std::to_string(connectionTuple.inFieldGeneId) +
-													" - " + std::to_string(connectionTuple.outFieldGeneId),
-	{DimensionConstants::xSize, DimensionConstants::dx} };
+		const std::string elementName = GaussKernelConstants::namePrefixConnectionGene +
+			std::to_string(connectionTuple.inFieldGeneId) +
+			" - " + std::to_string(connectionTuple.outFieldGeneId) + " " +
+			std::to_string(parameters.innovationNumber);
+		const ElementCommonParameters gkcp{ elementName,
+			{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
 	}
 
@@ -60,8 +64,8 @@ namespace neat_dnfs
 		GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
 
 		if (mutationSelection == 0)
-			gkp.sigma = std::clamp(gkp.sigma + mutationStep, MutationConstants::minSigma,
-				MutationConstants::maxSigma);
+			gkp.width = std::clamp(gkp.width + mutationStep, MutationConstants::minWidth,
+				MutationConstants::maxWidth);
 		else
 			gkp.amplitude = std::clamp(gkp.amplitude + mutationStep, MutationConstants::minAmplitude,
 				MutationConstants::maxAmplitude);
@@ -121,7 +125,7 @@ namespace neat_dnfs
 
 	double ConnectionGene::getKernelWidth() const
 	{
-		return std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(kernel)->getParameters().sigma;
+		return std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(kernel)->getParameters().width;
 	}
 
 	bool ConnectionGene::operator==(const ConnectionGene& other) const

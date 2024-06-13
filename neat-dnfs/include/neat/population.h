@@ -60,5 +60,6 @@ namespace neat_dnfs
 		void validateElitism() const;
 		void validateUniqueSolutions() const;
 		void validatePopulationSize() const;
+		void validateUniqueGenesInGenomes() const;
 	};
 }

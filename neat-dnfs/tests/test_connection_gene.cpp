@@ -19,8 +19,8 @@ TEST_CASE("ConnectionGene Initialization", "[ConnectionGene]")
 
         auto kernel = std::dynamic_pointer_cast<GaussKernel>(connectionGene.getKernel());
         REQUIRE(kernel != nullptr);
-        REQUIRE(kernel->getParameters().sigma >= GaussKernelConstants::initialSigmaMin);
-        REQUIRE(kernel->getParameters().sigma <= GaussKernelConstants::initialSigmaMax);
+        REQUIRE(kernel->getParameters().width >= GaussKernelConstants::initialWidthMin);
+        REQUIRE(kernel->getParameters().width <= GaussKernelConstants::initialWidthMax);
         REQUIRE(kernel->getParameters().amplitude >= GaussKernelConstants::initialAmplitudeMin);
         REQUIRE(kernel->getParameters().amplitude <= GaussKernelConstants::initialAmplitudeMax);
     }
@@ -38,7 +38,7 @@ TEST_CASE("ConnectionGene Initialization", "[ConnectionGene]")
 
         auto kernel = std::dynamic_pointer_cast<GaussKernel>(connectionGene.getKernel());
         REQUIRE(kernel != nullptr);
-        REQUIRE(kernel->getParameters().sigma == 5.0);
+        REQUIRE(kernel->getParameters().width == 5.0);
         REQUIRE(kernel->getParameters().amplitude == 3.0);
     }
 }
@@ -56,10 +56,10 @@ TEST_CASE("ConnectionGene Mutation", "[ConnectionGene]")
     const auto mutatedKernel = std::dynamic_pointer_cast<GaussKernel>(connectionGene.getKernel());
     const auto mutatedParams = mutatedKernel->getParameters();
 
-    const bool sigmaChanged = initialParams.sigma != mutatedParams.sigma;
+    const bool widthChanged = initialParams.width != mutatedParams.width;
     const bool amplitudeChanged = initialParams.amplitude != mutatedParams.amplitude;
 
-    REQUIRE((sigmaChanged != amplitudeChanged)); // Only one should change
+    REQUIRE((widthChanged != amplitudeChanged)); // Only one should change
 }
 
 TEST_CASE("ConnectionGene Mutation Constraints", "[ConnectionGene]")
@@ -77,8 +77,8 @@ TEST_CASE("ConnectionGene Mutation Constraints", "[ConnectionGene]")
     auto mutatedKernel = std::dynamic_pointer_cast<GaussKernel>(connectionGene.getKernel());
     auto mutatedParams = mutatedKernel->getParameters();
 
-    REQUIRE(mutatedParams.sigma >= MutationConstants::minSigma);
-    REQUIRE(mutatedParams.sigma <= MutationConstants::maxSigma);
+    REQUIRE(mutatedParams.width >= MutationConstants::minWidth);
+    REQUIRE(mutatedParams.width <= MutationConstants::maxWidth);
     REQUIRE(mutatedParams.amplitude >= MutationConstants::minAmplitude);
     REQUIRE(mutatedParams.amplitude <= MutationConstants::maxAmplitude);
 }
@@ -165,8 +165,8 @@ TEST_CASE("ConnectionGene Multiple Mutations Consistency", "[ConnectionGene]")
     const auto mutatedKernel = std::dynamic_pointer_cast<GaussKernel>(connectionGene.getKernel());
     const auto mutatedParams = mutatedKernel->getParameters();
 
-    REQUIRE(mutatedParams.sigma >= MutationConstants::minSigma);
-    REQUIRE(mutatedParams.sigma <= MutationConstants::maxSigma);
+    REQUIRE(mutatedParams.width >= MutationConstants::minWidth);
+    REQUIRE(mutatedParams.width <= MutationConstants::maxWidth);
     REQUIRE(mutatedParams.amplitude >= MutationConstants::minAmplitude);
     REQUIRE(mutatedParams.amplitude <= MutationConstants::maxAmplitude);
 }

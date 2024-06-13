@@ -156,21 +156,6 @@ namespace neat_dnfs
 
 	void Solution::translateConnectionGenesToPhenotype()
 	{
-		// check if the connection genes are different from each other
-		for(auto const& connectionGene1 : genome.getConnectionGenes())
-		{
-			for (auto const& connectionGene2 : genome.getConnectionGenes())
-			{
-				if (connectionGene1 != connectionGene2)
-				{
-					if (connectionGene1.getInFieldGeneId() == connectionGene2.getInFieldGeneId() &&
-						connectionGene1.getOutFieldGeneId() == connectionGene2.getOutFieldGeneId())
-						log(tools::logger::LogLevel::FATAL, "Connection genes are the same.");
-				}
-			}
-		}
-
-
 		for (auto const& connectionGene : genome.getConnectionGenes())
 		{
 			if (connectionGene.isEnabled())
@@ -287,6 +272,7 @@ namespace neat_dnfs
 			}
 
 		}
+
 		return offspring;
 	}
 
@@ -297,15 +283,32 @@ namespace neat_dnfs
 
 	void Solution::stopSimulation()
 	{
-		phenotype.init();
 		phenotype.close();
+		phenotype.step();
 	}
 
 	void Solution::runSimulation(const uint16_t iterations)
 	{
+
 		for (int i = 0; i < iterations; ++i)
 			phenotype.step();
 	}
+
+	void Solution::runSimulationUntilFieldStable(const std::string& targetElement)
+	{
+		const auto neuralField = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(phenotype.getElement(targetElement));
+		//double highestActivation = neuralField->getHighestActivation();
+		//std::cout << "Highest activation before input: " << highestActivation << std::endl;
+		//uint16_t steps = 0;
+		do
+		{
+			//++steps;
+			phenotype.step();
+		} while (!neuralField->isStable());
+		//highestActivation = neuralField->getHighestActivation();
+		//std::cout << "Highest activation after: " << highestActivation << " in " << steps << " steps." << std::endl;
+	}
+
 
 	void Solution::addGaussianStimulus(const std::string& targetElement, const dnf_composer::element::GaussStimulusParameters& parameters)
 	{

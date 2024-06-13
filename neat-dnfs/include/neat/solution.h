@@ -76,6 +76,7 @@ namespace neat_dnfs
 		void initSimulation();
 		void stopSimulation();
 		void runSimulation(const uint16_t iterations);
+		void runSimulationUntilFieldStable(const std::string& targetElement);
 		void addGaussianStimulus(const std::string& targetElement, 
 			const dnf_composer::element::GaussStimulusParameters& parameters);
 		void removeGaussianStimuli();

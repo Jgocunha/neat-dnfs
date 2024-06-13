@@ -102,6 +102,8 @@ namespace neat_dnfs
 			validateUniqueSolutions();
 		if (PopulationConstants::validateElitism)
 			validateElitism();
+		if (PopulationConstants::validateUniqueGenesInGenomes)
+			validateUniqueGenesInGenomes();
 
 		std::stringstream addr_bs;
 		addr_bs << bestSolution.get();
@@ -195,6 +197,13 @@ namespace neat_dnfs
 			const Species* species = findSpecies(solution);
 			const size_t speciesSize = species->size();
 			const double adjustedFitness = solution->getFitness() / static_cast<double>(speciesSize);
+			if (std::isnan (adjustedFitness))
+			{
+				log(tools::logger::LogLevel::FATAL, "Adjusted fitness is NaN.");
+				log(tools::logger::LogLevel::FATAL, "Fitness: " + std::to_string(solution->getFitness()) +
+									" Species size: " + std::to_string(speciesSize));
+				//throw std::runtime_error("Adjusted fitness is NaN.");
+			}
 			solution->setAdjustedFitness(adjustedFitness);
 		}
 	}
@@ -228,6 +237,20 @@ namespace neat_dnfs
 
 		const uint16_t newPopulationSize = eliteCount + totalOffspringAcrossSpecies;
 		int error = parameters.size - newPopulationSize;
+		if (error > 70)
+		{
+			log(tools::logger::LogLevel::WARNING, "Huuuuggggeee error!");
+			log(tools::logger::LogLevel::WARNING, "Error: " + std::to_string(error) +
+				" Elite count: " + std::to_string(eliteCount) +
+				" Total offspring: " + std::to_string(totalOffspringAcrossSpecies) +
+				" New population size: " + std::to_string(newPopulationSize) +
+				" Parameters size: " + std::to_string(parameters.size) +
+				" Offspring pool size: " + std::to_string(offspringPoolSize) +
+				" Total adjusted fitness across species: " + std::to_string(totalAdjustedFitnessAcrossSpecies) +
+				" Total offspring across species: " + std::to_string(totalOffspringAcrossSpecies) +
+				" Species list size: " + std::to_string(speciesList.size()) +
+				" Kill count: " + std::to_string(killCount));
+		}
 		while (error != 0)
 		{
 			const int randomIndex = tools::utils::generateRandomInt(0, static_cast<int>(speciesList.size() - 1));
@@ -338,6 +361,34 @@ namespace neat_dnfs
 		{
 			log(tools::logger::LogLevel::FATAL, "Population size does not match parameters.");
 			throw std::runtime_error("Population size does not match parameters.");
+		}
+	}
+
+	void Population::validateUniqueGenesInGenomes() const
+	{
+		for (const auto& solution : solutions)
+		{
+			const auto genome = solution->getGenome();
+			for (auto const& connectionGene1 : genome.getConnectionGenes())
+			{
+				for (auto const& connectionGene2 : genome.getConnectionGenes())
+				{
+					if (connectionGene1 != connectionGene2)
+					{
+						if (connectionGene1.getInFieldGeneId() == connectionGene2.getInFieldGeneId() &&
+							connectionGene1.getOutFieldGeneId() == connectionGene2.getOutFieldGeneId() &&
+							connectionGene1.getInnovationNumber() == connectionGene2.getInnovationNumber())
+						{
+							const auto inFieldGeneId = connectionGene1.getInFieldGeneId();
+							const auto outFieldGeneId = connectionGene1.getOutFieldGeneId();
+							const auto innovationNumber = connectionGene1.getInnovationNumber();
+							log(tools::logger::LogLevel::FATAL, "Connection genes are the same.");
+							log(tools::logger::LogLevel::FATAL, "InFieldGeneId: " + std::to_string(inFieldGeneId) +
+								" OutFieldGeneId: " + std::to_string(outFieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
+						}
+					}
+				}
+			}
 		}
 	}
 

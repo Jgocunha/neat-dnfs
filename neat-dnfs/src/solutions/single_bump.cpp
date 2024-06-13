@@ -25,10 +25,13 @@ namespace neat_dnfs
 		};
 		addGaussianStimulus("nf 1", stimParams);
 		initSimulation();
+		//runSimulationUntilFieldStable("nf 1");
 		runSimulation(1000);
 		updateFitness();
 		removeGaussianStimuli();
+		//runSimulationUntilFieldStable("nf 1");
 		runSimulation(1000);
+
 		stopSimulation();
 	}
 
@@ -62,8 +65,8 @@ namespace neat_dnfs
 		parameters.fitness = positionFitness + widthFitness + amplitudeFitness;
 
 		{
-			// For debugging purposes.
-		//if (parameters.fitness > 0.97)
+		//	// For debugging purposes.
+		//if (parameters.fitness > 0.95)
 		//{
 		//	log(tools::logger::LogLevel::INFO, "Fitness is: " + std::to_string(parameters.fitness) + " centroidDifference: " + std::to_string(centroidDifference) + " widthDifference: " + std::to_string(widthDifference) + " amplitudeDifference: " + std::to_string(amplitudeDifference));
 		//	log(tools::logger::LogLevel::INFO, "Position contribution: " + std::to_string(positionFitness) + " Width contribution: " + std::to_string(widthFitness) + " Amplitude contribution: " + std::to_string(amplitudeFitness));

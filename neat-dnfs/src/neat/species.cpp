@@ -114,7 +114,8 @@ namespace neat_dnfs
 			for (size_t i = 0; i < offspringCount; ++i)
 			{
 				const SolutionPtr parent1 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
-				offspring.push_back(parent1->crossover(parent1));
+				const SolutionPtr son = parent1->crossover(parent1);
+				offspring.push_back(son);
 			}
 		}
 		else
@@ -123,7 +124,8 @@ namespace neat_dnfs
 			{
 				const SolutionPtr parent1 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
 				const SolutionPtr parent2 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
-				offspring.push_back(parent1->crossover(parent2));
+				const SolutionPtr son = parent1->crossover(parent2);
+				offspring.push_back(son);
 			}
 		}
 

@@ -148,7 +148,7 @@ namespace neat_dnfs
             simulationWindow = std::make_shared<dnf_composer::user_interface::SimulationWindow>(simulation);
             elementWindow = std::make_shared<dnf_composer::user_interface::ElementWindow>(simulation);
             fieldMetricsWindow = std::make_shared<dnf_composer::user_interface::FieldMetricsWindow>(simulation);
-
+            nodeGraphWindow = std::make_shared<dnf_composer::user_interface::NodeGraphWindow>(simulation);
             const auto visualization = createVisualization(simulation);
             for (const auto& element : simulation->getElements())
             {
@@ -167,6 +167,7 @@ namespace neat_dnfs
             simulationWindow->render();
             elementWindow->render();
             fieldMetricsWindow->render();
+            nodeGraphWindow->render();
 
             for (const auto& plot : plotWindows)
             	plot->render();

@@ -68,10 +68,10 @@ TEST_CASE("FieldGene Mutation Only One Parameter", "[FieldGene]")
     const auto mutatedKernel = std::dynamic_pointer_cast<GaussKernel>(fieldGene.getKernel());
     const auto mutatedParams = mutatedKernel->getParameters();
      
-    const bool sigmaChanged = initialParams.sigma != mutatedParams.sigma;
+    const bool widthChanged = initialParams.width != mutatedParams.width;
     const bool amplitudeChanged = initialParams.amplitude != mutatedParams.amplitude;
 
-    REQUIRE((sigmaChanged != amplitudeChanged)); // Only one should change
+    REQUIRE((widthChanged != amplitudeChanged)); // Only one should change
 }
 
 TEST_CASE("FieldGene Mutation Constraints", "[FieldGene]")
@@ -89,8 +89,8 @@ TEST_CASE("FieldGene Mutation Constraints", "[FieldGene]")
     auto mutatedKernel = std::dynamic_pointer_cast<GaussKernel>(fieldGene.getKernel());
     auto mutatedParams = mutatedKernel->getParameters();
 
-    REQUIRE(mutatedParams.sigma >= MutationConstants::minSigma);
-    REQUIRE(mutatedParams.sigma <= MutationConstants::maxSigma);
+    REQUIRE(mutatedParams.width >= MutationConstants::minWidth);
+    REQUIRE(mutatedParams.width <= MutationConstants::maxWidth);
     REQUIRE(mutatedParams.amplitude >= MutationConstants::minAmplitude);
     REQUIRE(mutatedParams.amplitude <= MutationConstants::maxAmplitude);
 }
@@ -152,8 +152,8 @@ TEST_CASE("FieldGene Kernel Parameters Access", "[FieldGene]")
     const auto kernel = std::dynamic_pointer_cast<GaussKernel>(fieldGene.getKernel());
     REQUIRE(kernel != nullptr);
     const auto gkp = kernel->getParameters();
-    REQUIRE(gkp.sigma >= GaussKernelConstants::initialAmplitudeMin);
-    REQUIRE(gkp.sigma <= GaussKernelConstants::initialAmplitudeMax);
+    REQUIRE(gkp.width >= GaussKernelConstants::initialAmplitudeMin);
+    REQUIRE(gkp.width <= GaussKernelConstants::initialAmplitudeMax);
     REQUIRE(gkp.amplitude >= GaussKernelConstants::initialAmplitudeMin);
     REQUIRE(gkp.amplitude <= GaussKernelConstants::initialAmplitudeMax);
 }

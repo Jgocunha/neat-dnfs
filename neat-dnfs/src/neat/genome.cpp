@@ -214,11 +214,11 @@ namespace neat_dnfs
 		addHiddenGene();
 
 		// create two new connection genes
-		const auto connectionGeneKernelParametersIn = GaussKernelParameters{ GaussKernelConstants::sigma,
+		const auto connectionGeneKernelParametersIn = GaussKernelParameters{ GaussKernelConstants::width,
 														GaussKernelConstants::amplitude,
 														KernelConstants::circularity,
 														KernelConstants::normalization };
-		const auto connectionGeneKernelParametersOut = GaussKernelParameters{ kernelParameters.sigma,
+		const auto connectionGeneKernelParametersOut = GaussKernelParameters{ kernelParameters.width,
 													kernelParameters.amplitude,
 														KernelConstants::circularity,
 												KernelConstants::normalization };
