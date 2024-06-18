@@ -25,14 +25,105 @@ namespace neat_dnfs
 		};
 		addGaussianStimulus("nf 1", stimParams);
 		initSimulation();
-		//runSimulationUntilFieldStable("nf 1");
-		runSimulation(1000);
+
+		const auto field_in = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(phenotype.getElement("nf 1"));
+		const auto field_out = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(phenotype.getElement("nf 2"));
+		double u_max_field_in = field_in->getHighestActivation();
+		double u_max_field_out = field_out->getHighestActivation();
+		if (u_max_field_in != 0.0)
+			log(tools::logger::LogLevel::WARNING, "u_max at field in is not 0.0 after init() it is: " + std::to_string(u_max_field_in));
+		if (u_max_field_out != 0.0)
+			log(tools::logger::LogLevel::WARNING, "u_max at field out is not 0.0 after init() it is: " + std::to_string(u_max_field_out));
+
+		runSimulationUntilFieldStable("nf 1");
+		runSimulationUntilFieldStable("nf 2");
+		//runSimulation(1000);
+
+		u_max_field_in = field_in->getHighestActivation();
+		u_max_field_out = field_out->getHighestActivation();
+		if (u_max_field_in != 9.9859044930311960)
+			log(tools::logger::LogLevel::WARNING, "u_max at field in is not 9.9859044930311960 after steps() it is: " + std::to_string(u_max_field_in));
+
 		updateFitness();
 		removeGaussianStimuli();
-		//runSimulationUntilFieldStable("nf 1");
-		runSimulation(1000);
 
-		stopSimulation();
+		//runSimulationUntilFieldStable("nf 1");
+		//runSimulationUntilFieldStable("nf 2");
+		runSimulation(10);
+
+		u_max_field_in = field_in->getHighestActivation();
+		u_max_field_out = field_out->getHighestActivation();
+
+		if (u_max_field_in != -10.0)
+			log(tools::logger::LogLevel::WARNING, "u_max at field in is not -10.0 after close() it is: " + std::to_string(u_max_field_in));
+		if (u_max_field_out != -10.0)
+			log(tools::logger::LogLevel::WARNING, "u_max at field out is not -10.0 after close() it is: " + std::to_string(u_max_field_out));
+		//stopSimulation();
+
+		// Check if fitness decreased.
+		if (parameters.fitness == 0.0 && analysis.previousFitness > 0.0)
+		{
+			std::stringstream address;
+			address << this;
+			log(tools::logger::LogLevel::ERROR, "Fitness is: " + std::to_string(parameters.fitness) 
+				+ " and changed from: " + std::to_string(analysis.previousFitness) + " at address: " + address.str());
+		}
+		// Check if is an elite
+		if(analysis.previousFitness > 0.00)
+		{
+			if (parameters.fitness == 0.0)
+				log(tools::logger::LogLevel::FATAL, "Fitness is 0.0 but previous fitness is greater than 0.0.");
+			// log if previousFitness is greater than 0.0 than i am an elite
+			std::stringstream address;
+			address << this;
+			log(tools::logger::LogLevel::INFO, "Address is: " + address.str() + " and previousFitness is: " 
+				+ std::to_string(analysis.previousFitness) + " and fitness is: " + std::to_string(parameters.fitness));
+			// Check if fitness decreased
+			if (parameters.fitness < analysis.previousFitness)
+			{
+				log(tools::logger::LogLevel::ERROR, "Fitness decreased but previous solution should not have not changed "
+										"because it is an elite.");
+				// compare bumps
+				log(tools::logger::LogLevel::WARNING, "Bump is : " + std::to_string(parameters.bumps.front().centroid) 
+					+ " and previous bump is: " + std::to_string(analysis.previousBump.centroid));
+				// compare the genome to see if it is the same.
+				if (genome != analysis.previousGenome)
+				{
+					log(tools::logger::LogLevel::ERROR, "Genome is not the same as previous genome.");
+				}
+				const auto element = phenotype.getElement("nf 2")->getInputs()[1];
+				const auto kernel = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(element);
+				if (analysis.pgkps != kernel->getParameters())
+				{
+  					log(tools::logger::LogLevel::ERROR, "Gauss kernel parameters are not the same as previous gauss kernel parameters.");
+				}
+			}
+		}
+
+		analysis.previousFitness = parameters.fitness;
+		analysis.previousGenome = genome;
+		if (!parameters.bumps.empty())
+		{
+			analysis.previousBump = parameters.bumps.front();
+			const auto inputs = phenotype.getElement("nf 2")->getInputs();
+			for(const auto& element : inputs)
+			{
+				if (element->getLabel() == dnf_composer::element::ElementLabel::GAUSS_KERNEL)
+				{
+					const auto kernel = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(element);
+					analysis.pgkps = kernel->getParameters();
+					analysis.pgkps.width = kernel->getParameters().width;
+					analysis.pgkps.amplitude = kernel->getParameters().amplitude;
+				}
+			}
+
+			const auto kernel_ = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(genome.getConnectionGenes()[0].getKernel());
+			
+			if (kernel_->getParameters().amplitude != analysis.pgkps.amplitude || kernel_->getParameters().width != analysis.pgkps.width)
+			{
+				log(tools::logger::LogLevel::ERROR, "Kernel is not the same as the kernel in the genome.");
+			}
+		}
 	}
 
 	void SingleBumpSolution::updateFitness()
@@ -47,6 +138,7 @@ namespace neat_dnfs
 			std::dynamic_pointer_cast<NeuralField>(phenotype.getElement("nf 2"));
 		const auto fieldBumps = field->getBumps();
 
+		parameters.bumps = fieldBumps;
 		if (fieldBumps.empty())
 		{
 			parameters.fitness = 0.0;
@@ -58,9 +150,9 @@ namespace neat_dnfs
 		const double widthDifference = std::abs(bump.width - expectedBumpWidth);
 		const double amplitudeDifference = std::abs(bump.amplitude - expectedBumpAmplitude);
 
-		const double positionFitness = 0.8 / (1.0 + centroidDifference);
-		const double widthFitness = 0.1 / (1.0 + widthDifference);
-		const double amplitudeFitness = 0.1 / (1.0 + amplitudeDifference);
+		const double positionFitness = 0.5 / (1.0 + centroidDifference);
+		const double widthFitness = 0.25 / (1.0 + widthDifference);
+		const double amplitudeFitness = 0.25 / (1.0 + amplitudeDifference);
 
 		parameters.fitness = positionFitness + widthFitness + amplitudeFitness;
 

@@ -77,5 +77,7 @@ namespace neat_dnfs
 		double getKernelWidth() const;
 
 		bool operator==(const ConnectionGene&) const;
+		bool isCloneOf(const ConnectionGene&) const;
+		//std::string toString() const;
 	};
 }

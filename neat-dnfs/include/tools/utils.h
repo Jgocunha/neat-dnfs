@@ -34,6 +34,13 @@ namespace neat_dnfs
                 return dist(gen);
             }
 
+            inline double normalize(const double value, const double min, const double max)
+			{
+                if (value < min) return 0.0;
+                if (value > max) return 0.0;
+				return (value - min) / (max - min);
+			}
+
 		}
 	}
 }

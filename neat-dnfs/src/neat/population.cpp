@@ -17,9 +17,105 @@ namespace neat_dnfs
 	{
 		do
 		{
+			for (const auto& solution : solutions)
+			{
+				std::stringstream addr_elite;
+				addr_elite << solution.get();
+				log(tools::logger::LogLevel::INFO, "Elite address: " + addr_elite.str());
+				for (const auto& connectionGene : solution->getGenome().getConnectionGenes())
+				{
+					const auto inFieldGeneId = connectionGene.getInFieldGeneId();
+					const auto outFieldGeneId = connectionGene.getOutFieldGeneId();
+					const auto innovationNumber = connectionGene.getInnovationNumber();
+					const auto kernel = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(connectionGene.getKernel()); \
+						const auto kp = kernel->getParameters();
+					log(tools::logger::LogLevel::INFO, "InFieldGeneId: " + std::to_string(inFieldGeneId) +
+						" OutFieldGeneId: " + std::to_string(outFieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
+					log(tools::logger::LogLevel::INFO, "Amplitude: " + std::to_string(kp.amplitude) + " Width: " + std::to_string(kp.width));
+				}
+				/*for (const auto& nodeGene : solution->getGenome().getFieldGenes())
+				{
+					const auto fieldGeneId = nodeGene.getParameters().id;
+					const auto fieldGeneType = nodeGene.getParameters().type;
+					const auto fieldGeneKernelParameters = nodeGene.getKernel();
+					log(tools::logger::LogLevel::INFO, "FieldGeneId: " + std::to_string(fieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
+				}*/
+			}
 			evaluate();
+			for (const auto& solution : solutions)
+			{
+				std::stringstream addr_elite;
+				addr_elite << solution.get();
+				log(tools::logger::LogLevel::INFO, "Elite address: " + addr_elite.str());
+				for (const auto& connectionGene : solution->getGenome().getConnectionGenes())
+				{
+					const auto inFieldGeneId = connectionGene.getInFieldGeneId();
+					const auto outFieldGeneId = connectionGene.getOutFieldGeneId();
+					const auto innovationNumber = connectionGene.getInnovationNumber();
+					const auto kernel = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(connectionGene.getKernel()); \
+						const auto kp = kernel->getParameters();
+					log(tools::logger::LogLevel::INFO, "InFieldGeneId: " + std::to_string(inFieldGeneId) +
+						" OutFieldGeneId: " + std::to_string(outFieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
+					log(tools::logger::LogLevel::INFO, "Amplitude: " + std::to_string(kp.amplitude) + " Width: " + std::to_string(kp.width));
+				}
+				/*for (const auto& nodeGene : solution->getGenome().getFieldGenes())
+				{
+					const auto fieldGeneId = nodeGene.getParameters().id;
+					const auto fieldGeneType = nodeGene.getParameters().type;
+					const auto fieldGeneKernelParameters = nodeGene.getKernel();
+					log(tools::logger::LogLevel::INFO, "FieldGeneId: " + std::to_string(fieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
+				}*/
+			}
 			speciate();
+			for (const auto& solution : solutions)
+			{
+				std::stringstream addr_elite;
+				addr_elite << solution.get();
+				log(tools::logger::LogLevel::INFO, "Elite address: " + addr_elite.str());
+				for (const auto& connectionGene : solution->getGenome().getConnectionGenes())
+				{
+					const auto inFieldGeneId = connectionGene.getInFieldGeneId();
+					const auto outFieldGeneId = connectionGene.getOutFieldGeneId();
+					const auto innovationNumber = connectionGene.getInnovationNumber();
+					const auto kernel = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(connectionGene.getKernel()); \
+						const auto kp = kernel->getParameters();
+					log(tools::logger::LogLevel::INFO, "InFieldGeneId: " + std::to_string(inFieldGeneId) +
+						" OutFieldGeneId: " + std::to_string(outFieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
+					log(tools::logger::LogLevel::INFO, "Amplitude: " + std::to_string(kp.amplitude) + " Width: " + std::to_string(kp.width));
+				}
+				/*for (const auto& nodeGene : solution->getGenome().getFieldGenes())
+				{
+					const auto fieldGeneId = nodeGene.getParameters().id;
+					const auto fieldGeneType = nodeGene.getParameters().type;
+					const auto fieldGeneKernelParameters = nodeGene.getKernel();
+					log(tools::logger::LogLevel::INFO, "FieldGeneId: " + std::to_string(fieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
+				}*/
+			}
 			reproduceAndSelect();
+			for (const auto& solution : solutions)
+			{
+				std::stringstream addr_elite;
+				addr_elite << solution.get();
+				log(tools::logger::LogLevel::INFO, "Elite address: " + addr_elite.str());
+				for (const auto& connectionGene : solution->getGenome().getConnectionGenes())
+				{
+					const auto inFieldGeneId = connectionGene.getInFieldGeneId();
+					const auto outFieldGeneId = connectionGene.getOutFieldGeneId();
+					const auto innovationNumber = connectionGene.getInnovationNumber();
+					const auto kernel = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(connectionGene.getKernel()); \
+						const auto kp = kernel->getParameters();
+					log(tools::logger::LogLevel::INFO, "InFieldGeneId: " + std::to_string(inFieldGeneId) +
+						" OutFieldGeneId: " + std::to_string(outFieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
+					log(tools::logger::LogLevel::INFO, "Amplitude: " + std::to_string(kp.amplitude) + " Width: " + std::to_string(kp.width));
+				}
+				/*for (const auto& nodeGene : solution->getGenome().getFieldGenes())
+				{
+					const auto fieldGeneId = nodeGene.getParameters().id;
+					const auto fieldGeneType = nodeGene.getParameters().type;
+					const auto fieldGeneKernelParameters = nodeGene.getKernel();
+					log(tools::logger::LogLevel::INFO, "FieldGeneId: " + std::to_string(fieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
+				}*/
+			}
 			upkeep();
 
 		} while (!endConditionMet());
@@ -43,19 +139,71 @@ namespace neat_dnfs
 		for (auto& species : speciesList)
 			species.selectElitesAndLeastFit();
 		std::vector<SolutionPtr> elites = selectElites();
+
+		std::vector<Genome> eliteGenomes;
+		for (const auto& elite : elites)
+			eliteGenomes.push_back(elite->getGenome());
+
 		const std::vector<SolutionPtr> lessFit = selectLessFit();
 		calculateSpeciesOffspring(elites.size(), lessFit.size());
 		for (auto& species : speciesList)
 			species.crossover();
 		std::vector<SolutionPtr> offspring = reproduce();
 		for (const auto& solution : offspring)
+		{
+			std::stringstream addr_offspring;
+			addr_offspring << solution.get();
+			log(tools::logger::LogLevel::INFO, "Offspring address: " + addr_offspring.str());
 			solution->mutate();
+		}
+
 		for (const auto& solution : offspring)
 			solution->clearGenerationalInnovations();
 
 		solutions.clear();
 		solutions.insert(solutions.end(), elites.begin(), elites.end());
+		for (const auto& solution : elites)
+		{
+			std::stringstream addr_elite;
+			addr_elite << solution.get();
+			log(tools::logger::LogLevel::INFO, "Elite address: " + addr_elite.str());
+			for (const auto& connectionGene : solution->getGenome().getConnectionGenes())
+			{
+				const auto inFieldGeneId = connectionGene.getInFieldGeneId();
+				const auto outFieldGeneId = connectionGene.getOutFieldGeneId();
+				const auto innovationNumber = connectionGene.getInnovationNumber();
+				const auto kernel = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(connectionGene.getKernel());\
+				const auto kp = kernel->getParameters();
+				log(tools::logger::LogLevel::INFO, "InFieldGeneId: " + std::to_string(inFieldGeneId) +
+					" OutFieldGeneId: " + std::to_string(outFieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
+				log(tools::logger::LogLevel::INFO, "Amplitude: " + std::to_string(kp.amplitude) + " Width: " + std::to_string(kp.width));
+			}
+			/*for (const auto& nodeGene : solution->getGenome().getFieldGenes())
+			{
+				const auto fieldGeneId = nodeGene.getParameters().id;
+				const auto fieldGeneType = nodeGene.getParameters().type;
+				const auto fieldGeneKernelParameters = nodeGene.getKernel();
+				log(tools::logger::LogLevel::INFO, "FieldGeneId: " + std::to_string(fieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
+			}*/
+		}
+
+
 		solutions.insert(solutions.end(), offspring.begin(), offspring.end());
+
+		std::vector<Genome> eliteGenomesAfterReproduction;
+		for (const auto& elite : elites)
+			eliteGenomesAfterReproduction.push_back(elite->getGenome());
+
+		bool areGenomesEqual = true;
+		for (size_t i = 0; i < eliteGenomes.size(); ++i)
+		{
+			if (eliteGenomes[i] != eliteGenomesAfterReproduction[i])
+			{
+				areGenomesEqual = false;
+				log(tools::logger::LogLevel::FATAL, "Genomes are not equal.");
+				break;
+			}
+		}
 	}
 
 	std::vector<SolutionPtr> Population::selectElites() const
@@ -66,6 +214,24 @@ namespace neat_dnfs
 			const auto speciesElites = species.getElites();
 			elites.insert(elites.end(), speciesElites.begin(), speciesElites.end());
 		}
+
+		for(const auto& elite : elites)
+		{
+			std::stringstream addr_elite;
+			addr_elite << elite.get();
+			const double fitness = elite->getFitness();
+			log(tools::logger::LogLevel::INFO, "Elite address: " + addr_elite.str() + " Fitness: " + std::to_string(fitness));
+			auto bumps = elite->getParameters().bumps;
+			for (const auto& bump : bumps)
+			{
+				const double position = bump.centroid;
+				const double width = bump.width;
+				const double amplitude = bump.amplitude;
+				log (tools::logger::LogLevel::INFO, "Bump position: " + std::to_string(position) +
+									" Width: " + std::to_string(width) + " Amplitude: " + std::to_string(amplitude));
+			}
+		}
+
 		return elites;
 	}
 
@@ -77,6 +243,15 @@ namespace neat_dnfs
 			const auto speciesLessFit = species.getLeastFit();
 			lessFit.insert(lessFit.end(), speciesLessFit.begin(), speciesLessFit.end());
 		}
+
+		for(const auto& lf : lessFit)
+		{
+			std::stringstream addr_lf;
+			addr_lf << lf.get();
+			const double fitness = lf->getFitness();
+			log(tools::logger::LogLevel::INFO, "Less fit address: " + addr_lf.str() + " Fitness: " + std::to_string(fitness));
+		}
+
 		return lessFit;
 	}
 
@@ -314,10 +489,16 @@ namespace neat_dnfs
 					const double opbsf = pbsf;
 					const double npbsf = solution->getFitness();
 
-					log(tools::logger::LogLevel::WARNING, "Fitness decreased but previous best solution is in the population.");
-					log(tools::logger::LogLevel::WARNING, "Best solution address: " + addr_bs.str() + " Fitness: " + std::to_string(bsf));
-					log(tools::logger::LogLevel::WARNING, "New previous best solution address: " + addr_npbs.str() + " Fitness: " + std::to_string(npbsf));
-					log(tools::logger::LogLevel::WARNING, "Old previous best solution address: " + addr_opbs.str() + " Fitness: " + std::to_string(opbsf));
+					log(tools::logger::LogLevel::FATAL, "Fitness decreased but previous best solution is in the population.");
+
+					if (bs == pbs)
+						log(tools::logger::LogLevel::FATAL, "Best solution is the same as previous best solution.");
+					else
+						log(tools::logger::LogLevel::FATAL, "Best solution is not the same as previous best solution.");
+
+					log(tools::logger::LogLevel::FATAL, "Best solution address: " + addr_bs.str() + " Fitness: " + std::to_string(bsf));
+					log(tools::logger::LogLevel::FATAL, "New previous best solution address: " + addr_npbs.str() + " Fitness: " + std::to_string(npbsf));
+					log(tools::logger::LogLevel::FATAL, "Old previous best solution address: " + addr_opbs.str() + " Fitness: " + std::to_string(opbsf));
 
 					pbsInPopulation = true;
 					break;
@@ -327,7 +508,13 @@ namespace neat_dnfs
 
 		if (bsDecreased && !pbsInPopulation)
 		{
+			std::stringstream addr_bs;
+			addr_bs << bs.get();
+			std::stringstream addr_opbs;
+			addr_opbs << pbs.get();
 			log(tools::logger::LogLevel::FATAL, "Fitness decreased and previous best solution is not in the population.");
+			log(tools::logger::LogLevel::FATAL, "Best solution address: " + addr_bs.str() + " Fitness: " + std::to_string(bsf));
+			log(tools::logger::LogLevel::FATAL, "Previous best solution address: " + addr_opbs.str() + " Fitness: " + std::to_string(pbsf));
 			//throw std::runtime_error("Best solution decreased and previous best solution not in population.");
 		}
 

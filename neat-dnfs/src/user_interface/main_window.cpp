@@ -34,7 +34,7 @@ namespace neat_dnfs
 
         ImGui::SetColumnWidth(0, columnWidth);
 
-        static int populationSize = 100;
+        static int populationSize = 5;
         ImGui::Text("Population size");
         ImGui::NextColumn();
         ImGui::SetNextItemWidth(inputWidth);
@@ -48,7 +48,7 @@ namespace neat_dnfs
         ImGui::InputInt("##NumberGenerations", &numberOfGenerations, 10, 100);
         ImGui::NextColumn();
 
-        static double targetFitness = 0.90f;
+        static double targetFitness = 0.99f;
         ImGui::Text("Target fitness");
         ImGui::NextColumn();
         ImGui::SetNextItemWidth(inputWidth);

@@ -33,9 +33,9 @@ namespace neat_dnfs
 		inline static std::string namePrefixConnectionGene = "gk cg ";
 		static constexpr double width = 2;
 		static constexpr double amplitude = 1;
-		static constexpr double initialWidthMin = 0.0;
+		static constexpr double initialWidthMin = 0.1;
 		static constexpr double initialWidthMax = 5.0;
-		static constexpr double initialAmplitudeMin = -5.0;
+		static constexpr double initialAmplitudeMin = 0.1;
 		static constexpr double initialAmplitudeMax = 5.0;
 	};
 
@@ -51,10 +51,10 @@ namespace neat_dnfs
 
 	struct MutationConstants
 	{
-		static constexpr double mutationStep = 1.5;
-		static constexpr double minWidth = 0.0;
+		static constexpr double mutationStep = 3.5;
+		static constexpr double minWidth = 1.0;
 		static constexpr double maxWidth = 5.0;
-		static constexpr double minAmplitude = -15.0;
+		static constexpr double minAmplitude = 1.0;
 		static constexpr double maxAmplitude = 15.0;
 
 		static constexpr double addGeneProbability = 0.05;
@@ -98,10 +98,10 @@ namespace neat_dnfs
 	struct PopulationConstants
 	{
 		static constexpr double killRatio = 0.8;
-		static constexpr bool validateUniqueSolutions = false;
-		static constexpr bool validatePopulationSize = false;
-		static constexpr bool validateElitism = false;
-		static constexpr bool validateUniqueGenesInGenomes = false;
+		static constexpr bool validateUniqueSolutions = true;
+		static constexpr bool validatePopulationSize = true;
+		static constexpr bool validateElitism = true;
+		static constexpr bool validateUniqueGenesInGenomes = true;
 		static constexpr bool logs = false;
 	};
 

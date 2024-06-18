@@ -153,4 +153,55 @@ namespace neat_dnfs
 		return parameters.type == other.parameters.type &&
 			parameters.id == other.parameters.id;
 	}
+
+	bool FieldGene::isCloneOf(const FieldGene& other) const
+	{
+		using namespace dnf_composer::element;
+		const auto k_other = other.getKernel();
+		bool isKernelEqual = false;
+		switch (parameters.type)
+		{
+		case FieldGeneType::INPUT:
+		{
+			const auto gk = std::dynamic_pointer_cast<GaussKernel>(kernel);
+			const auto gk_other = std::dynamic_pointer_cast<GaussKernel>(k_other);
+			isKernelEqual = gk->getParameters().width == gk_other->getParameters().width &&
+				gk->getParameters().amplitude == gk_other->getParameters().amplitude;
+		}
+		break;
+		case FieldGeneType::OUTPUT:
+		{
+			const auto li = std::dynamic_pointer_cast<LateralInteractions>(kernel);
+			const auto li_other = std::dynamic_pointer_cast<LateralInteractions>(k_other);
+			isKernelEqual = li->getParameters().widthExc == li_other->getParameters().widthExc &&
+				li->getParameters().amplitudeExc == li_other->getParameters().amplitudeExc &&
+				li->getParameters().widthInh == li_other->getParameters().widthInh &&
+				li->getParameters().amplitudeInh == li_other->getParameters().amplitudeInh &&
+				li->getParameters().amplitudeGlobal == li_other->getParameters().amplitudeGlobal;
+		}
+		break;
+		case FieldGeneType::HIDDEN:
+		{
+			const auto gk = std::dynamic_pointer_cast<GaussKernel>(kernel);
+			const auto gk_other = std::dynamic_pointer_cast<GaussKernel>(k_other);
+			isKernelEqual = gk->getParameters().width == gk_other->getParameters().width &&
+				gk->getParameters().amplitude == gk_other->getParameters().amplitude;
+		}
+		break;
+		default:
+			throw std::runtime_error("FieldGene::isCloneOf: Unknown FieldGeneType.");
+		}
+
+		const dnf_composer::element::NeuralFieldParameters nfp = neuralField->getParameters();
+		const auto nf_other = other.getNeuralField();
+		const dnf_composer::element::NeuralFieldParameters nfp_other = nf_other->getParameters();
+
+
+		return parameters.type == other.parameters.type &&
+			parameters.id == other.parameters.id &&
+			parameters.type == other.parameters.type &&
+			nfp.startingRestingLevel == nfp_other.startingRestingLevel &&
+			nfp.tau == nfp_other.tau && isKernelEqual;
+	}
+
 }

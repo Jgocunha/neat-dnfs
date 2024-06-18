@@ -42,5 +42,6 @@ namespace neat_dnfs
 		std::shared_ptr<dnf_composer::element::Kernel> getKernel() const;
 
 		bool operator==(const FieldGene&) const;
+		bool isCloneOf(const FieldGene&) const;
 	};
 }

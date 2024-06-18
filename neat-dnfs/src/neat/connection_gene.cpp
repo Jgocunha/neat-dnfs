@@ -132,4 +132,26 @@ namespace neat_dnfs
 	{
 		return parameters.innovationNumber == other.parameters.innovationNumber;
 	}
+
+	bool ConnectionGene::isCloneOf(const ConnectionGene& other) const
+	{
+		const auto gk = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(kernel);
+		const dnf_composer::element::GaussKernelParameters gkp = gk->getParameters();
+		const auto other_gk = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(other.getKernel());
+		const dnf_composer::element::GaussKernelParameters other_gkp = other_gk->getParameters();
+		return parameters.innovationNumber == other.parameters.innovationNumber &&
+			parameters.connectionTuple == other.parameters.connectionTuple &&
+			parameters.enabled == other.parameters.enabled &&
+			gkp == other_gkp;
+	}
+
+	std::string ConnectionGene::toString() const
+	{
+		std::string result = "ConnectionGene with innovation number: " + std::to_string(parameters.innovationNumber) +
+			" and connection tuple: " + std::to_string(parameters.connectionTuple.inFieldGeneId) + " - " +
+			std::to_string(parameters.connectionTuple.outFieldGeneId) + " and enabled: " +
+			std::to_string(parameters.enabled) + " and kernel: " + kernel->toString();
+		return result;
+	}
+
 }

@@ -53,5 +53,6 @@ namespace neat_dnfs
 		FieldGene getFieldGeneById(uint16_t id) const;
 
 		static std::map<ConnectionTuple, uint16_t> getConnectionToInnovationNumberMap() { return connectionToInnovationNumberMap; }
+		bool operator==(const Genome& other) const;
 	};
 }

@@ -429,4 +429,9 @@ namespace neat_dnfs
 		return *it;
 	}
 
+	bool Genome::operator==(const Genome& other) const
+	{
+		return fieldGenes == other.fieldGenes && connectionGenes == other.connectionGenes;
+	}
+
 }
