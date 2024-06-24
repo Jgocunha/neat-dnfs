@@ -24,7 +24,7 @@ namespace neat_dnfs
 			std::to_string(parameters.innovationNumber);
 		const ElementCommonParameters gkcp{ elementName,
 			{DimensionConstants::xSize, DimensionConstants::dx} };
-		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
+		kernel = std::make_unique<GaussKernel>(gkcp, gkp);
 	}
 
 	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple,
@@ -39,14 +39,29 @@ namespace neat_dnfs
 			std::to_string(parameters.innovationNumber);
 		const ElementCommonParameters gkcp{ elementName,
 			{DimensionConstants::xSize, DimensionConstants::dx} };
-		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
+		kernel = std::make_unique<GaussKernel>(gkcp, gkp);
+	}
+
+	ConnectionGene::ConnectionGene(const ConnectionGeneParameters& parameters,
+		const dnf_composer::element::GaussKernelParameters& gkp)
+		: parameters(parameters)
+	{
+		using namespace dnf_composer::element;
+
+		const std::string elementName = GaussKernelConstants::namePrefixConnectionGene +
+			std::to_string(parameters.connectionTuple.inFieldGeneId) +
+			" - " + std::to_string(parameters.connectionTuple.outFieldGeneId) + " " +
+			std::to_string(parameters.innovationNumber);
+		const ElementCommonParameters gkcp{ elementName,
+			{DimensionConstants::xSize, DimensionConstants::dx} };
+		kernel = std::make_unique<GaussKernel>(gkcp, gkp);
 	}
 
 	void ConnectionGene::mutate() const
 	{
 		using namespace dnf_composer::element;
 
-		const auto gaussKernel = std::dynamic_pointer_cast<GaussKernel>(kernel);
+		const auto gaussKernel = dynamic_cast<GaussKernel*>(kernel.get());
 		if (!gaussKernel)
 		{
 			const std::string message = "Calling mutate() on ConnectionGene with ConnectionTuple: " +
@@ -61,7 +76,7 @@ namespace neat_dnfs
 			generateRandomDouble(-MutationConstants::mutationStep, MutationConstants::mutationStep);
 		const int mutationSelection = generateRandomInt(0, 1);
 
-		GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
+		GaussKernelParameters gkp = gaussKernel->getParameters();
 
 		if (mutationSelection == 0)
 			gkp.width = std::clamp(gkp.width + mutationStep, MutationConstants::minWidth,
@@ -70,7 +85,7 @@ namespace neat_dnfs
 			gkp.amplitude = std::clamp(gkp.amplitude + mutationStep, MutationConstants::minAmplitude,
 				MutationConstants::maxAmplitude);
 
-		std::dynamic_pointer_cast<GaussKernel>(kernel)->setParameters(gkp);
+		gaussKernel->setParameters(gkp);
 	}
 
 	void ConnectionGene::disable()
@@ -135,9 +150,9 @@ namespace neat_dnfs
 
 	bool ConnectionGene::isCloneOf(const ConnectionGene& other) const
 	{
-		const auto gk = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(kernel);
+		const auto gk = dynamic_cast<dnf_composer::element::GaussKernel*>(kernel.get());
 		const dnf_composer::element::GaussKernelParameters gkp = gk->getParameters();
-		const auto other_gk = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(other.getKernel());
+		const auto other_gk = dynamic_cast<dnf_composer::element::GaussKernel*>(other.kernel.get());
 		const dnf_composer::element::GaussKernelParameters other_gkp = other_gk->getParameters();
 		return parameters.innovationNumber == other.parameters.innovationNumber &&
 			parameters.connectionTuple == other.parameters.connectionTuple &&
@@ -147,11 +162,23 @@ namespace neat_dnfs
 
 	std::string ConnectionGene::toString() const
 	{
-		std::string result = "ConnectionGene with innovation number: " + std::to_string(parameters.innovationNumber) +
-			" and connection tuple: " + std::to_string(parameters.connectionTuple.inFieldGeneId) + " - " +
-			std::to_string(parameters.connectionTuple.outFieldGeneId) + " and enabled: " +
-			std::to_string(parameters.enabled) + " and kernel: " + kernel->toString();
+		std::string result = "ConnectionGene: ";
+		result += parameters.toString();
+
+		std::stringstream address;
+		address << kernel.get();
+		result += "Kernel address: " + address.str() + '\n';
+		result += kernel->toString();
 		return result;
 	}
 
+	void ConnectionGene::print() const
+	{
+		tools::logger::log(tools::logger::INFO, toString());
+	}
+
+	ConnectionGene ConnectionGene::clone() const
+	{
+		return ConnectionGene{ parameters, std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(kernel)->getParameters() };
+	}
 }

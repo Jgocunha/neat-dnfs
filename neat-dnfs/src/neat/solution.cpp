@@ -15,8 +15,15 @@ namespace neat_dnfs
 
 	void Solution::evaluate()
 	{
+		//clearPhenotype();
+		const auto genome_i = genome;
+		//genome_i.print();
 		buildPhenotype();
+		const auto genome_ii = genome;
+		//genome_ii.print();
 		testPhenotype();
+		const auto genome_iii = genome;
+		//genome_iii.print();
 	}
 
 	void Solution::initialize()
@@ -36,8 +43,6 @@ namespace neat_dnfs
 
 	void Solution::mutate()
 	{
-		// log I am calling mutate() on solution with address: 0x7fffbf7f7f70
-		std::cout << "I am calling mutate() on solution with address: " << this << std::endl;
 		genome.mutate();
 	}
 
@@ -266,7 +271,7 @@ namespace neat_dnfs
 		SolutionPtr offspring = moreFitParent->clone();
 
 		for (const auto& gene : moreFitParent->getGenome().getFieldGenes())
-			offspring->addFieldGene(gene);
+			offspring->addFieldGene(gene.clone());
 
 		const auto& parentConnectionGenes = moreFitParent->getGenome().getConnectionGenes();
 		for (const auto& gene : parentConnectionGenes)
@@ -276,9 +281,9 @@ namespace neat_dnfs
 			{
 				const auto lessFitGene = lessFitParent->getGenome().getConnectionGeneByInnovationNumber(gene.getInnovationNumber());
 				if (tools::utils::generateRandomInt(0, 1))
-					offspring->addConnectionGene(gene);
+					offspring->addConnectionGene(gene.clone());
 				else
-					offspring->addConnectionGene(lessFitGene);
+					offspring->addConnectionGene(lessFitGene.clone());
 			}
 			else
 			{
@@ -289,10 +294,10 @@ namespace neat_dnfs
 				if (fitnessDifference < 1e-6)
 				{
 					if (tools::utils::generateRandomInt(0, 1))
-						offspring->addConnectionGene(gene);
+						offspring->addConnectionGene(gene.clone());
 				}
 				else
-					offspring->addConnectionGene(gene);
+					offspring->addConnectionGene(gene.clone());
 			}
 		}
 
@@ -308,14 +313,14 @@ namespace neat_dnfs
 				{
 					if (tools::utils::generateRandomInt(0, 1))
 					{
-						offspring->addConnectionGene(gene);
+						offspring->addConnectionGene(gene.clone());
 						// make sure the field genes are also added
 						const uint16_t inFieldGeneId = gene.getInFieldGeneId();
 						const uint16_t outFieldGeneId = gene.getOutFieldGeneId();
 						for (const auto& fieldGene : lessFitParent->getGenome().getFieldGenes())
 						{
 							if (fieldGene.getParameters().id == inFieldGeneId || fieldGene.getParameters().id == outFieldGeneId)
-								offspring->addFieldGene(fieldGene);
+								offspring->addFieldGene(fieldGene.clone());
 						}
 
 					}
@@ -390,6 +395,54 @@ namespace neat_dnfs
 			if (element->getLabel() == GAUSS_STIMULUS)
 				phenotype.removeElement(element->getUniqueName());
 		}
+	}
+
+
+	bool Solution::hasTheSameTopology(const SolutionPtr& other) const
+	{
+		return initialTopology == other->initialTopology;
+	}
+
+	bool Solution::hasTheSameGenome(const SolutionPtr& other) const
+	{
+		return genome == other->genome;
+	}
+
+	bool Solution::hasTheSameParameters(const SolutionPtr& other) const
+	{
+		return parameters == other->parameters;
+	}
+
+	bool Solution::hasTheSamePhenotype(const SolutionPtr& other) const
+	{
+		log(tools::logger::LogLevel::FATAL, "Checking if phenotypes are the same. "
+									  "Functionality still not implemented.");
+		return false;
+	}
+
+	bool Solution::operator==(const SolutionPtr& other) const
+	{
+		return hasTheSameTopology(other) && hasTheSameGenome(other) && hasTheSameParameters(other);
+	}
+
+	std::string Solution::toString() const
+	{
+		std::stringstream address;
+		address << this;
+		std::string result = "Solution: \n";
+		result += "Address: " + address.str() + "\n";
+		result += "Topology: " + initialTopology.toString() + "\n";
+		result += "Parameters: " + parameters.toString() + "\n";
+		result += "Genome: " + genome.toString() + "\n";
+		result += "Phenotype: \n";
+		for(const auto& element : phenotype.getElements())
+			result += element->toString() + "\n";
+		return result;
+	}
+
+	void Solution::print() const
+	{
+		log(tools::logger::LogLevel::INFO, toString());
 	}
 
 }

@@ -102,6 +102,7 @@ namespace neat_dnfs
 		static constexpr bool validatePopulationSize = true;
 		static constexpr bool validateElitism = true;
 		static constexpr bool validateUniqueGenesInGenomes = true;
+		static constexpr bool validateUniqueKernelAndNeuralFieldPtrs = true;
 		static constexpr bool logs = false;
 	};
 

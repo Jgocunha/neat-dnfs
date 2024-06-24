@@ -223,9 +223,9 @@ namespace neat_dnfs
 														KernelConstants::circularity,
 												KernelConstants::normalization };
 
-		const ConnectionGene connectionGeneIn{ {inGeneId,
+		const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId,
 			fieldGenes.back().getParameters().id}, connectionGeneKernelParametersIn };
-		const ConnectionGene connectionGeneOut{ {fieldGenes.back().getParameters().id,
+		const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id,
 			outGeneId}, connectionGeneKernelParametersOut };
 		connectionGenes.push_back(connectionGeneIn);
 		connectionGenes.push_back(connectionGeneOut);
@@ -434,4 +434,21 @@ namespace neat_dnfs
 		return fieldGenes == other.fieldGenes && connectionGenes == other.connectionGenes;
 	}
 
+	std::string Genome::toString() const
+	{
+		std::string genomeString = "Field genes:\n";
+		for (const auto& fieldGene : fieldGenes)
+			genomeString += fieldGene.toString() + "\n";
+
+		genomeString += "Connection genes:\n";
+		for (const auto& connectionGene : connectionGenes)
+			genomeString += connectionGene.toString() + "\n";
+
+		return genomeString;
+	}
+
+	void Genome::print() const
+	{
+		tools::logger::log(tools::logger::INFO, toString());
+	}
 }

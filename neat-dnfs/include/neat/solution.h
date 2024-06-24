@@ -20,6 +20,29 @@ namespace neat_dnfs
 			: numInputGenes(numInputGenes), numOutputGenes(numOutputGenes),
 			numHiddenGenes(numHiddenGenes), numConnections(numConnections)
 		{}
+
+		bool operator==(const SolutionTopology& other) const
+		{
+			return numInputGenes == other.numInputGenes &&
+				numOutputGenes == other.numOutputGenes &&
+				numHiddenGenes == other.numHiddenGenes &&
+				numConnections == other.numConnections;
+		}
+
+		std::string toString() const
+		{
+			std::string result = "Initial solution topology \n"
+				"InputGenes: " + std::to_string(numInputGenes) +
+				", OutputGenes: " + std::to_string(numOutputGenes) +
+				", HiddenGenes: " + std::to_string(numHiddenGenes) +
+				", Connections: " + std::to_string(numConnections);
+			return result;
+		}
+
+		void print() const
+		{
+			tools::logger::log(tools::logger::INFO, toString());
+		}
 	};
 
 	struct SolutionParameters
@@ -27,6 +50,7 @@ namespace neat_dnfs
 		double fitness;
 		double adjustedFitness;
 		int age;
+		// bumps really should be a parameter?
 		std::vector<dnf_composer::element::NeuralFieldBump> bumps;
 
 		SolutionParameters(double fitness = 0.0,
@@ -34,6 +58,28 @@ namespace neat_dnfs
 			: fitness(fitness), adjustedFitness(adjustedFitness), age(age)
 			, bumps({})
 		{}
+
+		bool operator==(const SolutionParameters& other) const
+		{
+			constexpr double epsilon = 1e-6;
+			return std::abs(fitness - other.fitness) < epsilon &&
+				std::abs(adjustedFitness - other.adjustedFitness) < epsilon &&
+				age == other.age;
+		}
+
+		std::string toString() const
+		{
+			std::string result = "Solution parameters \n"
+				"Fitness: " + std::to_string(fitness) +
+				", AdjustedFitness: " + std::to_string(adjustedFitness) +
+				", Age: " + std::to_string(age);
+			return result;
+		}
+
+		void print() const
+		{
+			tools::logger::log(tools::logger::INFO, toString());
+		}
 	};
 
 	class Solution : public std::enable_shared_from_this<Solution>
@@ -64,6 +110,13 @@ namespace neat_dnfs
 		void addFieldGene(const FieldGene& gene);
 		void addConnectionGene(const ConnectionGene& gene);
 		bool containsConnectionGene(const ConnectionGene& gene) const;
+		bool hasTheSameTopology(const SolutionPtr& other) const;
+		bool hasTheSameParameters(const SolutionPtr& other) const;
+		bool hasTheSameGenome(const SolutionPtr& other) const;
+		bool hasTheSamePhenotype(const SolutionPtr& other) const;
+		bool operator==(const SolutionPtr& other) const;
+		std::string toString() const;
+		void print() const;
 	private:
 		void createInputGenes();
 		void createOutputGenes();

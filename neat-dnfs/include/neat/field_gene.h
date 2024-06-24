@@ -17,9 +17,41 @@ namespace neat_dnfs
 		FieldGeneType type;
 		uint16_t id;
 
+		FieldGeneParameters(const FieldGeneParameters& other)
+			: type(other.type), id(other.id)
+		{}
+
 		FieldGeneParameters(FieldGeneType type, uint16_t id)
 			: type(type), id(id)
 		{}
+
+		bool operator==(const FieldGeneParameters& other) const
+		{
+			return type == other.type && id == other.id;
+		}
+
+		std::string toString() const
+		{
+			std::string typeStr;
+			switch (type)
+			{
+			case FieldGeneType::INPUT:
+				typeStr = "INPUT";
+				break;
+			case FieldGeneType::OUTPUT:
+				typeStr = "OUTPUT";
+				break;
+			case FieldGeneType::HIDDEN:
+				typeStr = "HIDDEN";
+				break;
+			}
+			return "FieldGeneParameters{type=" + typeStr + ", id=" + std::to_string(id) + "}" + '\n';
+		}
+
+		void print() const
+		{
+			tools::logger::log(tools::logger::INFO, toString());
+		}
 	};
 
 	class FieldGene
@@ -30,6 +62,9 @@ namespace neat_dnfs
 		FieldGeneParameters parameters;
 	public:
 		FieldGene(FieldGeneParameters parameters);
+		FieldGene(FieldGeneParameters parameters,
+			const NeuralFieldPtr& neuralField, 
+			const KernelPtr& kernel);
 
 		void setAsInput();
 		void setAsOutput();
@@ -43,5 +78,8 @@ namespace neat_dnfs
 
 		bool operator==(const FieldGene&) const;
 		bool isCloneOf(const FieldGene&) const;
+		std::string toString() const;
+		void print() const;
+		FieldGene clone() const;
 	};
 }

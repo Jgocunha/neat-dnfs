@@ -11,113 +11,32 @@ namespace neat_dnfs
 	void Population::initialize() const
 	{
 		buildInitialSolutionsGenome();
+		validateUniqueKernelAndNeuralFieldPtrs();
 	}
 
 	void Population::evolve()
 	{
 		do
 		{
-			for (const auto& solution : solutions)
-			{
-				std::stringstream addr_elite;
-				addr_elite << solution.get();
-				log(tools::logger::LogLevel::INFO, "Elite address: " + addr_elite.str());
-				for (const auto& connectionGene : solution->getGenome().getConnectionGenes())
-				{
-					const auto inFieldGeneId = connectionGene.getInFieldGeneId();
-					const auto outFieldGeneId = connectionGene.getOutFieldGeneId();
-					const auto innovationNumber = connectionGene.getInnovationNumber();
-					const auto kernel = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(connectionGene.getKernel()); \
-						const auto kp = kernel->getParameters();
-					log(tools::logger::LogLevel::INFO, "InFieldGeneId: " + std::to_string(inFieldGeneId) +
-						" OutFieldGeneId: " + std::to_string(outFieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
-					log(tools::logger::LogLevel::INFO, "Amplitude: " + std::to_string(kp.amplitude) + " Width: " + std::to_string(kp.width));
-				}
-				/*for (const auto& nodeGene : solution->getGenome().getFieldGenes())
-				{
-					const auto fieldGeneId = nodeGene.getParameters().id;
-					const auto fieldGeneType = nodeGene.getParameters().type;
-					const auto fieldGeneKernelParameters = nodeGene.getKernel();
-					log(tools::logger::LogLevel::INFO, "FieldGeneId: " + std::to_string(fieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
-				}*/
-			}
-			evaluate();
-			for (const auto& solution : solutions)
-			{
-				std::stringstream addr_elite;
-				addr_elite << solution.get();
-				log(tools::logger::LogLevel::INFO, "Elite address: " + addr_elite.str());
-				for (const auto& connectionGene : solution->getGenome().getConnectionGenes())
-				{
-					const auto inFieldGeneId = connectionGene.getInFieldGeneId();
-					const auto outFieldGeneId = connectionGene.getOutFieldGeneId();
-					const auto innovationNumber = connectionGene.getInnovationNumber();
-					const auto kernel = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(connectionGene.getKernel()); \
-						const auto kp = kernel->getParameters();
-					log(tools::logger::LogLevel::INFO, "InFieldGeneId: " + std::to_string(inFieldGeneId) +
-						" OutFieldGeneId: " + std::to_string(outFieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
-					log(tools::logger::LogLevel::INFO, "Amplitude: " + std::to_string(kp.amplitude) + " Width: " + std::to_string(kp.width));
-				}
-				/*for (const auto& nodeGene : solution->getGenome().getFieldGenes())
-				{
-					const auto fieldGeneId = nodeGene.getParameters().id;
-					const auto fieldGeneType = nodeGene.getParameters().type;
-					const auto fieldGeneKernelParameters = nodeGene.getKernel();
-					log(tools::logger::LogLevel::INFO, "FieldGeneId: " + std::to_string(fieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
-				}*/
-			}
-			speciate();
-			for (const auto& solution : solutions)
-			{
-				std::stringstream addr_elite;
-				addr_elite << solution.get();
-				log(tools::logger::LogLevel::INFO, "Elite address: " + addr_elite.str());
-				for (const auto& connectionGene : solution->getGenome().getConnectionGenes())
-				{
-					const auto inFieldGeneId = connectionGene.getInFieldGeneId();
-					const auto outFieldGeneId = connectionGene.getOutFieldGeneId();
-					const auto innovationNumber = connectionGene.getInnovationNumber();
-					const auto kernel = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(connectionGene.getKernel()); \
-						const auto kp = kernel->getParameters();
-					log(tools::logger::LogLevel::INFO, "InFieldGeneId: " + std::to_string(inFieldGeneId) +
-						" OutFieldGeneId: " + std::to_string(outFieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
-					log(tools::logger::LogLevel::INFO, "Amplitude: " + std::to_string(kp.amplitude) + " Width: " + std::to_string(kp.width));
-				}
-				/*for (const auto& nodeGene : solution->getGenome().getFieldGenes())
-				{
-					const auto fieldGeneId = nodeGene.getParameters().id;
-					const auto fieldGeneType = nodeGene.getParameters().type;
-					const auto fieldGeneKernelParameters = nodeGene.getKernel();
-					log(tools::logger::LogLevel::INFO, "FieldGeneId: " + std::to_string(fieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
-				}*/
-			}
-			reproduceAndSelect();
-			for (const auto& solution : solutions)
-			{
-				std::stringstream addr_elite;
-				addr_elite << solution.get();
-				log(tools::logger::LogLevel::INFO, "Elite address: " + addr_elite.str());
-				for (const auto& connectionGene : solution->getGenome().getConnectionGenes())
-				{
-					const auto inFieldGeneId = connectionGene.getInFieldGeneId();
-					const auto outFieldGeneId = connectionGene.getOutFieldGeneId();
-					const auto innovationNumber = connectionGene.getInnovationNumber();
-					const auto kernel = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(connectionGene.getKernel()); \
-						const auto kp = kernel->getParameters();
-					log(tools::logger::LogLevel::INFO, "InFieldGeneId: " + std::to_string(inFieldGeneId) +
-						" OutFieldGeneId: " + std::to_string(outFieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
-					log(tools::logger::LogLevel::INFO, "Amplitude: " + std::to_string(kp.amplitude) + " Width: " + std::to_string(kp.width));
-				}
-				/*for (const auto& nodeGene : solution->getGenome().getFieldGenes())
-				{
-					const auto fieldGeneId = nodeGene.getParameters().id;
-					const auto fieldGeneType = nodeGene.getParameters().type;
-					const auto fieldGeneKernelParameters = nodeGene.getKernel();
-					log(tools::logger::LogLevel::INFO, "FieldGeneId: " + std::to_string(fieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
-				}*/
-			}
-			upkeep();
+			validateUniqueKernelAndNeuralFieldPtrs();
 
+			evaluate();
+			log(tools::logger::LogLevel::INFO, "Evaluation done.");
+			//print();
+			validateUniqueKernelAndNeuralFieldPtrs();
+
+			speciate();
+			log(tools::logger::LogLevel::INFO, "Speciation done.");
+			validateUniqueKernelAndNeuralFieldPtrs();
+
+			//print();
+			reproduceAndSelect();
+			log(tools::logger::LogLevel::INFO, "Reproduction and selection done.");
+			validateUniqueKernelAndNeuralFieldPtrs();
+			//print();
+			upkeep();
+			log(tools::logger::LogLevel::INFO, "Upkeep done.");
+			//print();
 		} while (!endConditionMet());
 	}
 
@@ -136,24 +55,30 @@ namespace neat_dnfs
 	void Population::reproduceAndSelect()
 	{
 		calculateAdjustedFitness();
+		validateUniqueKernelAndNeuralFieldPtrs();
+
 		for (auto& species : speciesList)
 			species.selectElitesAndLeastFit();
 		std::vector<SolutionPtr> elites = selectElites();
+		validateUniqueKernelAndNeuralFieldPtrs();
 
 		std::vector<Genome> eliteGenomes;
 		for (const auto& elite : elites)
 			eliteGenomes.push_back(elite->getGenome());
+		validateUniqueKernelAndNeuralFieldPtrs();
 
 		const std::vector<SolutionPtr> lessFit = selectLessFit();
 		calculateSpeciesOffspring(elites.size(), lessFit.size());
 		for (auto& species : speciesList)
 			species.crossover();
+		validateUniqueKernelAndNeuralFieldPtrs();
+
 		std::vector<SolutionPtr> offspring = reproduce();
 		for (const auto& solution : offspring)
 		{
-			std::stringstream addr_offspring;
-			addr_offspring << solution.get();
-			log(tools::logger::LogLevel::INFO, "Offspring address: " + addr_offspring.str());
+			//std::stringstream addr_offspring;
+			//addr_offspring << solution.get();
+			//log(tools::logger::LogLevel::INFO, "Offspring address: " + addr_offspring.str());
 			solution->mutate();
 		}
 
@@ -162,48 +87,13 @@ namespace neat_dnfs
 
 		solutions.clear();
 		solutions.insert(solutions.end(), elites.begin(), elites.end());
-		for (const auto& solution : elites)
-		{
-			std::stringstream addr_elite;
-			addr_elite << solution.get();
-			log(tools::logger::LogLevel::INFO, "Elite address: " + addr_elite.str());
-			for (const auto& connectionGene : solution->getGenome().getConnectionGenes())
-			{
-				const auto inFieldGeneId = connectionGene.getInFieldGeneId();
-				const auto outFieldGeneId = connectionGene.getOutFieldGeneId();
-				const auto innovationNumber = connectionGene.getInnovationNumber();
-				const auto kernel = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(connectionGene.getKernel());\
-				const auto kp = kernel->getParameters();
-				log(tools::logger::LogLevel::INFO, "InFieldGeneId: " + std::to_string(inFieldGeneId) +
-					" OutFieldGeneId: " + std::to_string(outFieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
-				log(tools::logger::LogLevel::INFO, "Amplitude: " + std::to_string(kp.amplitude) + " Width: " + std::to_string(kp.width));
-			}
-			/*for (const auto& nodeGene : solution->getGenome().getFieldGenes())
-			{
-				const auto fieldGeneId = nodeGene.getParameters().id;
-				const auto fieldGeneType = nodeGene.getParameters().type;
-				const auto fieldGeneKernelParameters = nodeGene.getKernel();
-				log(tools::logger::LogLevel::INFO, "FieldGeneId: " + std::to_string(fieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
-			}*/
-		}
-
-
 		solutions.insert(solutions.end(), offspring.begin(), offspring.end());
 
 		std::vector<Genome> eliteGenomesAfterReproduction;
 		for (const auto& elite : elites)
 			eliteGenomesAfterReproduction.push_back(elite->getGenome());
+		validateUniqueKernelAndNeuralFieldPtrs();
 
-		bool areGenomesEqual = true;
-		for (size_t i = 0; i < eliteGenomes.size(); ++i)
-		{
-			if (eliteGenomes[i] != eliteGenomesAfterReproduction[i])
-			{
-				areGenomesEqual = false;
-				log(tools::logger::LogLevel::FATAL, "Genomes are not equal.");
-				break;
-			}
-		}
 	}
 
 	std::vector<SolutionPtr> Population::selectElites() const
@@ -213,23 +103,6 @@ namespace neat_dnfs
 		{
 			const auto speciesElites = species.getElites();
 			elites.insert(elites.end(), speciesElites.begin(), speciesElites.end());
-		}
-
-		for(const auto& elite : elites)
-		{
-			std::stringstream addr_elite;
-			addr_elite << elite.get();
-			const double fitness = elite->getFitness();
-			log(tools::logger::LogLevel::INFO, "Elite address: " + addr_elite.str() + " Fitness: " + std::to_string(fitness));
-			auto bumps = elite->getParameters().bumps;
-			for (const auto& bump : bumps)
-			{
-				const double position = bump.centroid;
-				const double width = bump.width;
-				const double amplitude = bump.amplitude;
-				log (tools::logger::LogLevel::INFO, "Bump position: " + std::to_string(position) +
-									" Width: " + std::to_string(width) + " Amplitude: " + std::to_string(amplitude));
-			}
 		}
 
 		return elites;
@@ -242,14 +115,6 @@ namespace neat_dnfs
 		{
 			const auto speciesLessFit = species.getLeastFit();
 			lessFit.insert(lessFit.end(), speciesLessFit.begin(), speciesLessFit.end());
-		}
-
-		for(const auto& lf : lessFit)
-		{
-			std::stringstream addr_lf;
-			addr_lf << lf.get();
-			const double fitness = lf->getFitness();
-			log(tools::logger::LogLevel::INFO, "Less fit address: " + addr_lf.str() + " Fitness: " + std::to_string(fitness));
 		}
 
 		return lessFit;
@@ -279,6 +144,8 @@ namespace neat_dnfs
 			validateElitism();
 		if (PopulationConstants::validateUniqueGenesInGenomes)
 			validateUniqueGenesInGenomes();
+		if (PopulationConstants::validateUniqueKernelAndNeuralFieldPtrs)
+			validateUniqueKernelAndNeuralFieldPtrs();
 
 		std::stringstream addr_bs;
 		addr_bs << bestSolution.get();
@@ -579,4 +446,68 @@ namespace neat_dnfs
 		}
 	}
 
+	void Population::validateUniqueKernelAndNeuralFieldPtrs() const
+	{
+		for (const auto& solution_a : solutions)
+		{
+			for (const auto& solution_b : solutions)
+			{
+				if (solution_a == solution_b)
+					continue;
+
+				const auto genome_a = solution_a->getGenome();
+				const auto genome_b = solution_b->getGenome();
+				const auto connectionGenes_a = genome_a.getConnectionGenes();
+				const auto connectionGenes_b = genome_b.getConnectionGenes();
+				const auto fieldGenes_a = genome_a.getFieldGenes();
+				const auto fieldGenes_b = genome_b.getFieldGenes();
+
+				for(const auto& connectionGene_a : connectionGenes_a)
+				{
+					for(const auto& connectionGene_b : connectionGenes_b)
+					{
+						const auto kernel_a = connectionGene_a.getKernel();
+						const auto kernel_b = connectionGene_b.getKernel();
+						if(kernel_a == kernel_b)
+						{
+							log(tools::logger::LogLevel::FATAL, "Kernels are the same.");
+						}
+					}
+				}
+
+				for (const auto& fieldGene_a : fieldGenes_a)
+				{
+					for(const auto& fieldGene_b : fieldGenes_b)
+					{
+						const auto neuralField_a = fieldGene_a.getNeuralField();
+						const auto neuralField_b = fieldGene_b.getNeuralField();
+						if(neuralField_a == neuralField_b)
+						{
+							log(tools::logger::LogLevel::FATAL, "Neural fields are the same.");
+						}
+					}
+				}
+
+			}
+		}
+	}
+
+	void Population::print() const
+	{
+		std::string result = "Population: \n";
+		for (const auto& solution : solutions)
+		{
+			std::stringstream addr;
+			addr << solution.get();
+			result += "Solution address: " + addr.str() + "\n";
+			result += "Fitness is: " + std::to_string(solution->getFitness()) + "\n";
+			const auto genome = solution->getGenome();
+			for (const auto& nodeGene : genome.getFieldGenes())
+				result += nodeGene.toString();
+			for (const auto& connectionGene : genome.getConnectionGenes())
+				result += connectionGene.toString();
+			result += "\n";
+		}
+		log(tools::logger::LogLevel::INFO, result);
+	}
 }

@@ -35,9 +35,9 @@ namespace neat_dnfs
 		if (u_max_field_out != 0.0)
 			log(tools::logger::LogLevel::WARNING, "u_max at field out is not 0.0 after init() it is: " + std::to_string(u_max_field_out));
 
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
-		//runSimulation(1000);
+		//runSimulationUntilFieldStable("nf 1");
+		//runSimulationUntilFieldStable("nf 2");
+		runSimulation(100);
 
 		u_max_field_in = field_in->getHighestActivation();
 		u_max_field_out = field_out->getHighestActivation();

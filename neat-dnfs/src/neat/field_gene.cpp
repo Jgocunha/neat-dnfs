@@ -19,6 +19,10 @@ namespace neat_dnfs
 		}
 	}
 
+	FieldGene::FieldGene(FieldGeneParameters parameters, const NeuralFieldPtr& neuralField, const KernelPtr& kernel)
+		: parameters(parameters), neuralField(neuralField), kernel(kernel)
+	{}
+
 	void FieldGene::setAsInput()
 	{
 		using namespace dnf_composer::element;
@@ -150,58 +154,80 @@ namespace neat_dnfs
 
 	bool FieldGene::operator==(const FieldGene& other) const
 	{
-		return parameters.type == other.parameters.type &&
-			parameters.id == other.parameters.id;
+		return parameters == other.parameters;
 	}
 
 	bool FieldGene::isCloneOf(const FieldGene& other) const
 	{
 		using namespace dnf_composer::element;
 		const auto k_other = other.getKernel();
-		bool isKernelEqual = false;
+		const auto nf_other = other.getNeuralField();
+		/*bool isKernelEqual = false;
 		switch (parameters.type)
 		{
 		case FieldGeneType::INPUT:
 		{
 			const auto gk = std::dynamic_pointer_cast<GaussKernel>(kernel);
 			const auto gk_other = std::dynamic_pointer_cast<GaussKernel>(k_other);
-			isKernelEqual = gk->getParameters().width == gk_other->getParameters().width &&
-				gk->getParameters().amplitude == gk_other->getParameters().amplitude;
+			isKernelEqual = gk->getParameters() == gk_other->getParameters();
 		}
 		break;
 		case FieldGeneType::OUTPUT:
 		{
 			const auto li = std::dynamic_pointer_cast<LateralInteractions>(kernel);
 			const auto li_other = std::dynamic_pointer_cast<LateralInteractions>(k_other);
-			isKernelEqual = li->getParameters().widthExc == li_other->getParameters().widthExc &&
-				li->getParameters().amplitudeExc == li_other->getParameters().amplitudeExc &&
-				li->getParameters().widthInh == li_other->getParameters().widthInh &&
-				li->getParameters().amplitudeInh == li_other->getParameters().amplitudeInh &&
-				li->getParameters().amplitudeGlobal == li_other->getParameters().amplitudeGlobal;
+			isKernelEqual = li->getParameters() == li_other->getParameters();
 		}
 		break;
 		case FieldGeneType::HIDDEN:
 		{
 			const auto gk = std::dynamic_pointer_cast<GaussKernel>(kernel);
 			const auto gk_other = std::dynamic_pointer_cast<GaussKernel>(k_other);
-			isKernelEqual = gk->getParameters().width == gk_other->getParameters().width &&
-				gk->getParameters().amplitude == gk_other->getParameters().amplitude;
+			isKernelEqual = gk->getParameters() == gk_other->getParameters();
 		}
 		break;
-		default:
-			throw std::runtime_error("FieldGene::isCloneOf: Unknown FieldGeneType.");
-		}
+		}*/
 
-		const dnf_composer::element::NeuralFieldParameters nfp = neuralField->getParameters();
-		const auto nf_other = other.getNeuralField();
-		const dnf_composer::element::NeuralFieldParameters nfp_other = nf_other->getParameters();
+		/*const NeuralFieldParameters nfp = neuralField->getParameters();
+		const NeuralFieldParameters nfp_other = nf_other->getParameters();*/
+		//const bool isNeuralFieldEqual = nfp == nfp_other;
 
+		return parameters == other.parameters && neuralField == nf_other && kernel == k_other;
+	}
 
-		return parameters.type == other.parameters.type &&
-			parameters.id == other.parameters.id &&
-			parameters.type == other.parameters.type &&
-			nfp.startingRestingLevel == nfp_other.startingRestingLevel &&
-			nfp.tau == nfp_other.tau && isKernelEqual;
+	std::string FieldGene::toString() const
+	{
+		std::string result = "FieldGene: ";
+		result += parameters.toString();
+
+		std::stringstream addr_nf;
+		addr_nf << neuralField.get();
+		result += "NeuralField: " + addr_nf.str() + '\n';
+		result += neuralField->toString();
+
+		std::stringstream addr_k;
+		addr_k << kernel.get();
+		result += "Kernel: " + addr_k.str() + '\n';
+		result += kernel->toString();
+
+		return result;
+	}
+
+	void FieldGene::print() const
+	{
+		tools::logger::log(tools::logger::INFO, toString());
+	}
+
+	FieldGene FieldGene::clone() const
+	{
+		const auto nf = neuralField->clone();
+		const auto k = kernel->clone();
+		
+		const auto nf_ = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(nf);
+		const auto k_ = std::dynamic_pointer_cast<dnf_composer::element::Kernel>(k);
+
+		FieldGene clone{ parameters, nf_, k_ };
+		return clone;
 	}
 
 }

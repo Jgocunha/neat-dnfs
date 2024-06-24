@@ -54,5 +54,7 @@ namespace neat_dnfs
 
 		static std::map<ConnectionTuple, uint16_t> getConnectionToInnovationNumberMap() { return connectionToInnovationNumberMap; }
 		bool operator==(const Genome& other) const;
+		std::string toString() const;
+		void print() const;
 	};
 }

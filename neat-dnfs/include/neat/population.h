@@ -61,5 +61,7 @@ namespace neat_dnfs
 		void validateUniqueSolutions() const;
 		void validatePopulationSize() const;
 		void validateUniqueGenesInGenomes() const;
+		void validateUniqueKernelAndNeuralFieldPtrs() const;
+		void print() const;
 	};
 }

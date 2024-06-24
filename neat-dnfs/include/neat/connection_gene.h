@@ -31,6 +31,17 @@ namespace neat_dnfs
 			}
 			return inFieldGeneId < other.inFieldGeneId;
 		}
+
+		std::string toString() const
+		{
+			return "InFieldGeneId: " + std::to_string(inFieldGeneId) +
+				", OutFieldGeneId: " + std::to_string(outFieldGeneId);
+		}
+
+		void print() const
+		{
+			tools::logger::log(tools::logger::INFO, toString());
+		}
 	};
 
 	struct ConnectionGeneParameters
@@ -48,6 +59,30 @@ namespace neat_dnfs
 			: connectionTuple(inFieldGeneId, outFieldGeneId),
 			innovationNumber(currentInnovationNumber++), enabled(true)
 		{}
+
+		ConnectionGeneParameters(const ConnectionGeneParameters& other)
+			: connectionTuple(other.connectionTuple) ,
+					innovationNumber(other.innovationNumber), enabled(other.enabled)
+		{}
+		
+		bool operator==(const ConnectionGeneParameters& other) const
+		{
+			return connectionTuple == other.connectionTuple &&
+				innovationNumber == other.innovationNumber;
+		}
+
+		std::string toString() const
+		{
+			return connectionTuple.toString() +
+				", InnovationNumber: " + std::to_string(innovationNumber) +
+				", Enabled: " + (enabled ? "true" : "false") + '\n';
+		}
+
+		void print() const
+		{
+			tools::logger::log(tools::logger::INFO, toString());
+		}
+
 	};
 
 	class ConnectionGene
@@ -58,6 +93,8 @@ namespace neat_dnfs
 	public:
 		ConnectionGene(ConnectionTuple connectionTuple);
 		ConnectionGene(ConnectionTuple connectionTuple,
+			const dnf_composer::element::GaussKernelParameters& gkp);
+		ConnectionGene(const ConnectionGeneParameters& parameters, 
 			const dnf_composer::element::GaussKernelParameters& gkp);
 
 		void mutate() const;
@@ -78,6 +115,8 @@ namespace neat_dnfs
 
 		bool operator==(const ConnectionGene&) const;
 		bool isCloneOf(const ConnectionGene&) const;
-		//std::string toString() const;
+		std::string toString() const;
+		void print() const;
+		ConnectionGene clone() const;
 	};
 }
