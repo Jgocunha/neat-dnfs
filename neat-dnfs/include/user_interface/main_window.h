@@ -1,6 +1,8 @@
 #pragma once
 
 #include <thread>
+#include <windows.h>//Sleep
+#include <cstdio>
 
 #include <imgui-platform-kit/user_interface_window.h>
 #include <user_interface/simulation_window.h>

@@ -29,7 +29,8 @@ namespace neat_dnfs
 		std::vector<Species> speciesList;
 		SolutionPtr bestSolution;
 	public:
-		Population(const PopulationParameters& parameters, const SolutionPtr& initialSolution);
+		Population(const PopulationParameters& parameters, 
+			const SolutionPtr& initialSolution);
 		void initialize() const;
 		void evolve();
 		void evaluate() const;

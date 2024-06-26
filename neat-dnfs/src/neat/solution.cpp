@@ -185,41 +185,6 @@ namespace neat_dnfs
 				const auto sourceId = connectionGene.getInFieldGeneId();
 				const auto targetId = connectionGene.getOutFieldGeneId();
 
-				/*const auto kcp = connectionGene.getKernel()->getElementCommonParameters();
-				switch (kcp.identifiers.label)
-				{
-				case ElementLabel::GAUSS_KERNEL:
-				{
-					const auto gkp = std::dynamic_pointer_cast<GaussKernel>(connectionGene.getKernel())->getParameters();
-					const auto kernel = std::make_shared<GaussKernel>(kcp, gkp);
-					phenotype.addElement(kernel);
-					phenotype.createInteraction("nf " + std::to_string(sourceId), "output", kernel->getUniqueName());
-					phenotype.createInteraction(kernel->getUniqueName(), "output", "nf " + std::to_string(targetId));
-					break;
-				}
-				case ElementLabel::MEXICAN_HAT_KERNEL:
-				{
-					const auto mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(connectionGene.getKernel())->getParameters();
-					const auto kernel = std::make_shared<MexicanHatKernel>(kcp, mhkp);
-					phenotype.addElement(kernel);
-					phenotype.createInteraction("nf " + std::to_string(sourceId), "output", kernel->getUniqueName());
-					phenotype.createInteraction(kernel->getUniqueName(), "output", "nf " + std::to_string(targetId));
-					break;
-				}
-				case ElementLabel::LATERAL_INTERACTIONS:
-				{
-					const auto lip = std::dynamic_pointer_cast<LateralInteractions>(connectionGene.getKernel())->getParameters();
-					const auto kernel = std::make_shared<LateralInteractions>(kcp, lip);
-					phenotype.addElement(kernel);
-					phenotype.createInteraction("nf " + std::to_string(sourceId), "output", kernel->getUniqueName());
-					phenotype.createInteraction(kernel->getUniqueName(), "output", "nf " + std::to_string(targetId));
-					break;
-				}
-				default:
-					throw std::invalid_argument("Invalid kernel label while translating genes to phenotype.");
-				}*/
-
-
 				phenotype.addElement(kernel);
 				phenotype.createInteraction("nf " + std::to_string(sourceId),
 					"output", kernel->getUniqueName());
@@ -344,30 +309,17 @@ namespace neat_dnfs
 
 	void Solution::runSimulation(const uint16_t iterations)
 	{
-		//const auto neuralField = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(phenotype.getElement("nf 2"));
-		phenotype.step();
-		//double highestActivation = neuralField->getHighestActivation();
-		//std::cout << "Highest activation before input: " << highestActivation << std::endl;
 		for (int i = 0; i < iterations; ++i)
 			phenotype.step();
-		//highestActivation = neuralField->getHighestActivation();
-		//std::cout << "Highest activation after: " << highestActivation << std::endl << std::endl;
 	}
 
 	void Solution::runSimulationUntilFieldStable(const std::string& targetElement)
 	{
 		const auto neuralField = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(phenotype.getElement(targetElement));
-		//neuralField->setThresholdForStability(0.0001);
-		//double highestActivation = neuralField->getHighestActivation();
-		//std::cout << "Highest activation before input: " << highestActivation << std::endl;
-		//uint16_t steps = 0;
 		do
 		{
-			//++steps;
 			phenotype.step();
 		} while (!neuralField->isStable());
-		//highestActivation = neuralField->getHighestActivation();
-		//std::cout << "Highest activation after: " << highestActivation << " in " << steps << " steps." << std::endl << std::endl;
 	}
 
 

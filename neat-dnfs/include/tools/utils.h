@@ -1,5 +1,13 @@
 #pragma once
 
+#ifdef max
+#undef max
+#endif
+
+#ifdef min
+#undef min
+#endif
+
 #include <iostream>
 #include <random>
 #include <cstdint>
@@ -37,9 +45,22 @@ namespace neat_dnfs
             inline double normalize(const double value, const double min, const double max)
 			{
                 if (value < min) return 0.0;
-                if (value > max) return 0.0;
+                if (value > max) return 1.0;
 				return (value - min) / (max - min);
 			}
+
+            inline double normalizeWithFlatheadGaussian(const double value, const double min, const double max, const double width)
+			{
+                const double center = (min + max) / 2;
+                const double gaussian = exp(-0.5 * pow((value - center) / width, 2));
+                const double flat_top = (value >= min && value <= max) ? 1.0 : 0.0;
+            	return std::max(gaussian, flat_top);
+			}
+
+            inline double normalizeWithGaussian(const double value, const double target, const double width)
+            {
+	            return exp(-0.5 * pow((value - target) / width, 2));
+            }
 
 		}
 	}

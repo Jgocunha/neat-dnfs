@@ -15,5 +15,6 @@ namespace neat_dnfs
 		void updateFitness() override;
 		double selfStabilityFitness() const;
 		double selfSustainabilityFitness() const;
+		bool isHighestActivationOfFieldEqualTo(const std::string& field, double target_u) const;
 	};
 }

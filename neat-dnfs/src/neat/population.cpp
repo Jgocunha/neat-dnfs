@@ -11,31 +11,30 @@ namespace neat_dnfs
 	void Population::initialize() const
 	{
 		buildInitialSolutionsGenome();
-		validateUniqueKernelAndNeuralFieldPtrs();
 	}
 
 	void Population::evolve()
 	{
 		do
 		{
-			validateUniqueKernelAndNeuralFieldPtrs();
+			//validateUniqueKernelAndNeuralFieldPtrs();
 
 			evaluate();
-			log(tools::logger::LogLevel::INFO, "Evaluation done.");
+			//log(tools::logger::LogLevel::INFO, "Evaluation done.");
 			//print();
-			validateUniqueKernelAndNeuralFieldPtrs();
+			//validateUniqueKernelAndNeuralFieldPtrs();
 
 			speciate();
-			log(tools::logger::LogLevel::INFO, "Speciation done.");
-			validateUniqueKernelAndNeuralFieldPtrs();
+			//log(tools::logger::LogLevel::INFO, "Speciation done.");
+			//validateUniqueKernelAndNeuralFieldPtrs();
 
 			//print();
 			reproduceAndSelect();
-			log(tools::logger::LogLevel::INFO, "Reproduction and selection done.");
-			validateUniqueKernelAndNeuralFieldPtrs();
+			//log(tools::logger::LogLevel::INFO, "Reproduction and selection done.");
+			//validateUniqueKernelAndNeuralFieldPtrs();
 			//print();
 			upkeep();
-			log(tools::logger::LogLevel::INFO, "Upkeep done.");
+			//log(tools::logger::LogLevel::INFO, "Upkeep done.");
 			//print();
 		} while (!endConditionMet());
 	}
@@ -55,23 +54,19 @@ namespace neat_dnfs
 	void Population::reproduceAndSelect()
 	{
 		calculateAdjustedFitness();
-		validateUniqueKernelAndNeuralFieldPtrs();
 
 		for (auto& species : speciesList)
 			species.selectElitesAndLeastFit();
 		std::vector<SolutionPtr> elites = selectElites();
-		validateUniqueKernelAndNeuralFieldPtrs();
 
 		std::vector<Genome> eliteGenomes;
 		for (const auto& elite : elites)
 			eliteGenomes.push_back(elite->getGenome());
-		validateUniqueKernelAndNeuralFieldPtrs();
 
 		const std::vector<SolutionPtr> lessFit = selectLessFit();
 		calculateSpeciesOffspring(elites.size(), lessFit.size());
 		for (auto& species : speciesList)
 			species.crossover();
-		validateUniqueKernelAndNeuralFieldPtrs();
 
 		std::vector<SolutionPtr> offspring = reproduce();
 		for (const auto& solution : offspring)
@@ -92,8 +87,6 @@ namespace neat_dnfs
 		std::vector<Genome> eliteGenomesAfterReproduction;
 		for (const auto& elite : elites)
 			eliteGenomesAfterReproduction.push_back(elite->getGenome());
-		validateUniqueKernelAndNeuralFieldPtrs();
-
 	}
 
 	std::vector<SolutionPtr> Population::selectElites() const
@@ -279,7 +272,7 @@ namespace neat_dnfs
 
 		const uint16_t newPopulationSize = eliteCount + totalOffspringAcrossSpecies;
 		int error = parameters.size - newPopulationSize;
-		if (error > 70)
+		if (error > 30)
 		{
 			log(tools::logger::LogLevel::WARNING, "Huuuuggggeee error!");
 			log(tools::logger::LogLevel::WARNING, "Error: " + std::to_string(error) +

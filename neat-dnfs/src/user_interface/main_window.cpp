@@ -1,5 +1,6 @@
 #include "user_interface/main_window.h"
 
+
 namespace neat_dnfs
 {
 	MainWindow::MainWindow()
@@ -23,6 +24,8 @@ namespace neat_dnfs
 	{
 		if (evolveThread && evolveThread->joinable())
 			evolveThread->join();
+        if (simulationThread && simulationThread->joinable())
+			simulationThread->join();
 	}
 
 	void MainWindow::renderPopulationInfo()
@@ -34,7 +37,7 @@ namespace neat_dnfs
 
         ImGui::SetColumnWidth(0, columnWidth);
 
-        static int populationSize = 5;
+        static int populationSize = 100;
         ImGui::Text("Population size");
         ImGui::NextColumn();
         ImGui::SetNextItemWidth(inputWidth);
@@ -48,7 +51,7 @@ namespace neat_dnfs
         ImGui::InputInt("##NumberGenerations", &numberOfGenerations, 10, 100);
         ImGui::NextColumn();
 
-        static double targetFitness = 0.99f;
+        static double targetFitness = 0.8f;
         ImGui::Text("Target fitness");
         ImGui::NextColumn();
         ImGui::SetNextItemWidth(inputWidth);
@@ -99,9 +102,9 @@ namespace neat_dnfs
 
         if (ImGui::Button("Initialize", buttonSize))
         {
-            SingleBumpSolution solution(solutionParameters);
+            SelfSustainedSingleBumpSolution solution(solutionParameters);
             population = std::make_shared<Population>(populationParameters,
-                std::make_shared<SingleBumpSolution>(solution));
+                std::make_shared<SelfSustainedSingleBumpSolution>(solution));
             population->initialize();
             isInitialized = true;
         }
@@ -116,8 +119,8 @@ namespace neat_dnfs
         
         if (ImGui::Button("Evolve", buttonSize))
         {
-            if (evolveThread && evolveThread->joinable())
-                evolveThread->join();  // Ensure the previous thread is finished before starting a new one
+             //if (evolveThread && evolveThread->joinable())
+               // evolveThread->join();  // Ensure the previous thread is finished before starting a new one
 
         	evolveThread = std::make_shared<std::thread>(&Population::evolve, population);
         }
@@ -140,16 +143,27 @@ namespace neat_dnfs
 
         if (ImGui::Button("Show best solution", buttonSize))
         {
+            if (evolveThread && evolveThread->joinable())
+                evolveThread->join();  // Ensure the previous thread is finished before starting a new one
+
         	bestSolution = population->getBestSolution();
             bestSolution->buildPhenotype();
         	auto phenotype = bestSolution->getPhenotype();
             phenotype.init();
         	simulation = std::make_shared<dnf_composer::Simulation>(phenotype);
+            //simulation->save("C:/dev-files/neat-dnfs/test.json");
             simulationWindow = std::make_shared<dnf_composer::user_interface::SimulationWindow>(simulation);
             elementWindow = std::make_shared<dnf_composer::user_interface::ElementWindow>(simulation);
             fieldMetricsWindow = std::make_shared<dnf_composer::user_interface::FieldMetricsWindow>(simulation);
+
+            const char* filename = "NodeEditor.json";
+            if (std::remove(filename) == 0)
+                std::cout << "File deleted successfully" << std::endl;
+            else
+                std::perror("File deletion failed");
             nodeGraphWindow = std::make_shared<dnf_composer::user_interface::NodeGraphWindow>(simulation);
-            const auto visualization = createVisualization(simulation);
+
+        	const auto visualization = createVisualization(simulation);
             for (const auto& element : simulation->getElements())
             {
                 if (element->getLabel() == dnf_composer::element::ElementLabel::NEURAL_FIELD)
@@ -159,8 +173,8 @@ namespace neat_dnfs
             const auto plot = std::make_shared<dnf_composer::user_interface::PlotWindow>(visualization);
             plotWindows.push_back(plot);
 
-            simulationThread = std::make_shared<std::thread>(&MainWindow::renderShowBestSolution, this);
             showBestSolution = true;
+            simulationThread = std::make_shared<std::thread>(&MainWindow::renderShowBestSolution, this);
         }
         if (showBestSolution)
         {
@@ -176,6 +190,8 @@ namespace neat_dnfs
 
     void MainWindow::renderShowBestSolution()
     {
+        Sleep(100);
+
         using namespace dnf_composer::element;
         const ElementCommonParameters elementCommonParameters{ "gauss stimulus", {100, 1.0} };
         const GaussStimulusParameters gaussStimulusParameters{ 5, 15, 50, false, false };
@@ -196,10 +212,26 @@ namespace neat_dnfs
         simulation->init();
         do
         {
-            simulation->step();
-        	std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            try
+            {
+				simulation->step();
+        		Sleep(5);
+            }
+            catch (const dnf_composer::Exception& ex)
+            {
+                log(tools::logger::LogLevel::FATAL, "Exception caught: " + std::string(ex.what()) + ".");
+                break;
+            }
+        	catch (const std::exception& e)
+			{
+				std::cerr << e.what() << std::endl;
+				break;
+			}
+            catch (...)
+            {
+                std::cerr << "Unknown exception" << std::endl;
+                break;
+            }
         } while (true);
     }
-
-
 }
