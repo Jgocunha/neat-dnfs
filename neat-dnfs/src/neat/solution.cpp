@@ -15,15 +15,8 @@ namespace neat_dnfs
 
 	void Solution::evaluate()
 	{
-		//clearPhenotype();
-		const auto genome_i = genome;
-		//genome_i.print();
 		buildPhenotype();
-		const auto genome_ii = genome;
-		//genome_ii.print();
 		testPhenotype();
-		const auto genome_iii = genome;
-		//genome_iii.print();
 	}
 
 	void Solution::initialize()

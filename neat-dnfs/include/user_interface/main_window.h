@@ -14,6 +14,7 @@
 #include "neat/population.h"
 #include "solutions/single_bump.h"
 #include "solutions/self_sustained_single_bump.h"
+#include "solutions/asl.h"
 
 namespace neat_dnfs
 {

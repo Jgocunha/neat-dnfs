@@ -54,7 +54,7 @@ namespace neat_dnfs
 		static constexpr double mutationStep = 3.5;
 		static constexpr double minWidth = 1.0;
 		static constexpr double maxWidth = 5.0;
-		static constexpr double minAmplitude = 1.0;
+		static constexpr double minAmplitude = -15.0;
 		static constexpr double maxAmplitude = 15.0;
 
 		static constexpr double addGeneProbability = 0.05;
@@ -89,7 +89,7 @@ namespace neat_dnfs
 
 	struct SpeciesConstants
 	{
-		static constexpr double compatibilityThreshold = 3.0;
+		static constexpr double compatibilityThreshold = 5.0;
 		static constexpr double excessGenesCompatibilityWeight = 0.5;
 		static constexpr double disjointGenesCompatibilityWeight = 0.5;
 		static constexpr double averageConnectionDifferenceCompatibilityWeight = 0.5;

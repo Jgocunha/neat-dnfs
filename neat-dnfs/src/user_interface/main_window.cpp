@@ -74,7 +74,7 @@ namespace neat_dnfs
 
         ImGui::SetColumnWidth(0, columnWidth);
 
-        static int numberOfInputFields = 1;
+        static int numberOfInputFields = 2;
         ImGui::Text("Number of input fields");
         ImGui::NextColumn();
         ImGui::SetNextItemWidth(inputWidth);
@@ -102,9 +102,9 @@ namespace neat_dnfs
 
         if (ImGui::Button("Initialize", buttonSize))
         {
-            SelfSustainedSingleBumpSolution solution(solutionParameters);
+            ActionSimulationLayerSolution solution(solutionParameters);
             population = std::make_shared<Population>(populationParameters,
-                std::make_shared<SelfSustainedSingleBumpSolution>(solution));
+                std::make_shared<ActionSimulationLayerSolution>(solution));
             population->initialize();
             isInitialized = true;
         }
@@ -151,7 +151,6 @@ namespace neat_dnfs
         	auto phenotype = bestSolution->getPhenotype();
             phenotype.init();
         	simulation = std::make_shared<dnf_composer::Simulation>(phenotype);
-            //simulation->save("C:/dev-files/neat-dnfs/test.json");
             simulationWindow = std::make_shared<dnf_composer::user_interface::SimulationWindow>(simulation);
             elementWindow = std::make_shared<dnf_composer::user_interface::ElementWindow>(simulation);
             fieldMetricsWindow = std::make_shared<dnf_composer::user_interface::FieldMetricsWindow>(simulation);
@@ -193,12 +192,19 @@ namespace neat_dnfs
         Sleep(100);
 
         using namespace dnf_composer::element;
-        const ElementCommonParameters elementCommonParameters{ "gauss stimulus", {100, 1.0} };
-        const GaussStimulusParameters gaussStimulusParameters{ 5, 15, 50, false, false };
-        const auto gaussStimulus = std::make_shared<GaussStimulus>(elementCommonParameters, gaussStimulusParameters);
-        simulation->addElement(gaussStimulus);
-        simulation->createInteraction("gauss stimulus", "output", "nf 1");
-       
+        const ElementCommonParameters elementCommonParameters_1{ "gauss stimulus 1", {100, 1.0} };
+        const ElementCommonParameters elementCommonParameters_2{ "gauss stimulus 2", {100, 1.0} };
+
+        const GaussStimulusParameters gaussStimulusParameters{ 5, 15, 25, false, false };
+        const auto gaussStimulus_1 = std::make_shared<GaussStimulus>(elementCommonParameters_1, gaussStimulusParameters);
+        const auto gaussStimulus_2 = std::make_shared<GaussStimulus>(elementCommonParameters_2, gaussStimulusParameters);
+
+        simulation->addElement(gaussStimulus_1);
+        simulation->addElement(gaussStimulus_2);
+
+        simulation->createInteraction("gauss stimulus 1", "output", "nf 1");
+        simulation->createInteraction("gauss stimulus 2", "output", "nf 2");
+
         // re-declare interactions for all elements
         for (const auto& element : simulation->getElements())
         {
