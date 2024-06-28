@@ -50,9 +50,11 @@ namespace neat_dnfs
 		initSimulation();
 		bool isActivationValidBeforeStimulus = isHighestActivationOfFieldEqualTo("nf 1", 0.0);
 		isActivationValidBeforeStimulus = isActivationValidBeforeStimulus && isHighestActivationOfFieldEqualTo("nf 2", 0.0);
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
-		runSimulationUntilFieldStable("nf 3");
+		bool stable = runSimulationUntilFieldStable("nf 1");
+		stable &= runSimulationUntilFieldStable("nf 2");
+		stable &= runSimulationUntilFieldStable("nf 3");
+		if (!stable)
+			parameters.fitness += -0.2;
 
 		bool isActivationValidAfterStimulus = isHighestActivationOfFieldEqualTo("nf 1", 9.9859044930311960);
 		isActivationValidAfterStimulus = isActivationValidAfterStimulus && isHighestActivationOfFieldEqualTo("nf 2", 9.9859044930311960);
@@ -63,9 +65,11 @@ namespace neat_dnfs
 			tools::logger::log(tools::logger::ERROR, "Activation of field is not valid.");
 
 		removeGaussianStimuli();
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
-		runSimulationUntilFieldStable("nf 3");
+		stable = runSimulationUntilFieldStable("nf 1");
+		stable &= runSimulationUntilFieldStable("nf 2");
+		stable &= runSimulationUntilFieldStable("nf 3");
+		if (!stable)
+			parameters.fitness += -0.2;
 		stopSimulation();
 	}
 
@@ -111,9 +115,11 @@ namespace neat_dnfs
 		initSimulation();
 		bool isActivationValidBeforeStimulus = isHighestActivationOfFieldEqualTo("nf 1", -10.0);
 		isActivationValidBeforeStimulus = isActivationValidBeforeStimulus && isHighestActivationOfFieldEqualTo("nf 2", -10.0);
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
-		runSimulationUntilFieldStable("nf 3");
+		bool stable = runSimulationUntilFieldStable("nf 1");
+		stable &= runSimulationUntilFieldStable("nf 2");
+		stable &= runSimulationUntilFieldStable("nf 3");
+		if (!stable)
+			parameters.fitness += -0.2;
 
 		bool isActivationValidAfterStimulus = isHighestActivationOfFieldEqualTo("nf 1", 9.9859044930311960);
 		isActivationValidAfterStimulus = isActivationValidAfterStimulus && isHighestActivationOfFieldEqualTo("nf 2", 9.9859044930311960);
@@ -124,9 +130,12 @@ namespace neat_dnfs
 			tools::logger::log(tools::logger::ERROR, "Activation of field is not valid.");
 
 		removeGaussianStimuli();
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
-		runSimulationUntilFieldStable("nf 3");
+		stable = runSimulationUntilFieldStable("nf 1");
+		stable &= runSimulationUntilFieldStable("nf 2");
+		stable &= runSimulationUntilFieldStable("nf 3");
+		if (!stable)
+			parameters.fitness += -0.2;
+
 		stopSimulation();
 	}
 
@@ -135,7 +144,7 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		const auto field = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement("nf 3"));
 		const double u_max = field->getHighestActivation();
-		const double score = tools::utils::normalizeWithGaussian(u_max, -5.0, 3);
+		const double score = tools::utils::normalizeWithGaussian(u_max, -5.0, 2);
 		return score;
 	}
 

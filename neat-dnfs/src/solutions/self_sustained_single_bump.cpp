@@ -67,7 +67,7 @@ namespace neat_dnfs
 
 		constexpr double w = 1.0 / 3.0;
 		const double score = w * 1 + 
-			w * tools::utils::normalizeWithGaussian(bump.amplitude,20, 8.5) +
+			w * tools::utils::normalizeWithGaussian(bump.amplitude,30, 8.5) +
 			w * tools::utils::normalizeWithGaussian(bump.width, 20, 8.5);
 		return score;
 	}
@@ -86,8 +86,8 @@ namespace neat_dnfs
 
 		constexpr double w = 1.0 / 3.0;
 		const double score = w * 1 +
-			w * tools::utils::normalizeWithGaussian(bump.amplitude, 10, 8.5) +
-			w * tools::utils::normalizeWithGaussian(bump.width, 10, 8.5);
+			w * tools::utils::normalizeWithGaussian(bump.amplitude, 10, 5.5) +
+			w * tools::utils::normalizeWithGaussian(bump.width, 10, 5.5);
 		return score;
 	}
 

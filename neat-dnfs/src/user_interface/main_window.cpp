@@ -119,8 +119,10 @@ namespace neat_dnfs
         
         if (ImGui::Button("Evolve", buttonSize))
         {
-             //if (evolveThread && evolveThread->joinable())
-               // evolveThread->join();  // Ensure the previous thread is finished before starting a new one
+            if (evolveThread && evolveThread->joinable())
+                evolveThread->join();
+            if (simulationThread && simulationThread->joinable())
+                simulationThread->join();
 
         	evolveThread = std::make_shared<std::thread>(&Population::evolve, population);
         }
@@ -144,7 +146,9 @@ namespace neat_dnfs
         if (ImGui::Button("Show best solution", buttonSize))
         {
             if (evolveThread && evolveThread->joinable())
-                evolveThread->join();  // Ensure the previous thread is finished before starting a new one
+                evolveThread->join();
+            if (simulationThread && simulationThread->joinable())
+                simulationThread->join();
 
         	bestSolution = population->getBestSolution();
             bestSolution->buildPhenotype();
@@ -160,6 +164,7 @@ namespace neat_dnfs
                 std::cout << "File deleted successfully" << std::endl;
             else
                 std::perror("File deletion failed");
+
             nodeGraphWindow = std::make_shared<dnf_composer::user_interface::NodeGraphWindow>(simulation);
 
         	const auto visualization = createVisualization(simulation);
@@ -181,16 +186,13 @@ namespace neat_dnfs
             elementWindow->render();
             fieldMetricsWindow->render();
             nodeGraphWindow->render();
-
             for (const auto& plot : plotWindows)
-            	plot->render();
+                plot->render();
         }
 	}
 
     void MainWindow::renderShowBestSolution()
     {
-        Sleep(100);
-
         using namespace dnf_composer::element;
         const ElementCommonParameters elementCommonParameters_1{ "gauss stimulus 1", {100, 1.0} };
         const ElementCommonParameters elementCommonParameters_2{ "gauss stimulus 2", {100, 1.0} };
@@ -221,7 +223,7 @@ namespace neat_dnfs
             try
             {
 				simulation->step();
-        		Sleep(5);
+        		Sleep(1);
             }
             catch (const dnf_composer::Exception& ex)
             {

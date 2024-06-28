@@ -306,13 +306,18 @@ namespace neat_dnfs
 			phenotype.step();
 	}
 
-	void Solution::runSimulationUntilFieldStable(const std::string& targetElement)
+	bool Solution::runSimulationUntilFieldStable(const std::string& targetElement)
 	{
 		const auto neuralField = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(phenotype.getElement(targetElement));
+		size_t counter = 0;
 		do
 		{
+			counter++;
 			phenotype.step();
+			if (counter > SimulationConstants::maxSimulationSteps)
+				return false;
 		} while (!neuralField->isStable());
+		return true;
 	}
 
 
@@ -341,7 +346,6 @@ namespace neat_dnfs
 				phenotype.removeElement(element->getUniqueName());
 		}
 	}
-
 
 	bool Solution::hasTheSameTopology(const SolutionPtr& other) const
 	{
