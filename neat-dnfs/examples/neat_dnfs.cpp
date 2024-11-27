@@ -2,15 +2,16 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
-#include "../../../../Program Files/dynamic-neural-field-composer/include/tools/logger.h"
 #include "application/application.h"
+
+#include "../../../Program Files/dynamic-neural-field-composer/include/tools/logger.h" // yes this is shit
 
 int main(int argc, char* argv[])
 {
 	try
 	{
 		using namespace neat_dnfs;
-
+		
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::WARNING);
 
 		const Application app;

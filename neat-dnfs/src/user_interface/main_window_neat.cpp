@@ -1,4 +1,4 @@
-#include "user_interface/main_window.h"
+#include "user_interface/main_window_neat.h"
 
 
 namespace neat_dnfs
@@ -51,7 +51,7 @@ namespace neat_dnfs
         ImGui::InputInt("##NumberGenerations", &numberOfGenerations, 10, 100);
         ImGui::NextColumn();
 
-        static double targetFitness = 0.8f;
+        static double targetFitness = 0.5f;
         ImGui::Text("Target fitness");
         ImGui::NextColumn();
         ImGui::SetNextItemWidth(inputWidth);
@@ -74,7 +74,7 @@ namespace neat_dnfs
 
         ImGui::SetColumnWidth(0, columnWidth);
 
-        static int numberOfInputFields = 2;
+        static int numberOfInputFields = 1;
         ImGui::Text("Number of input fields");
         ImGui::NextColumn();
         ImGui::SetNextItemWidth(inputWidth);
@@ -102,9 +102,11 @@ namespace neat_dnfs
 
         if (ImGui::Button("Initialize", buttonSize))
         {
-            ActionSimulationLayerSolution solution(solutionParameters);
+            //ActionSimulationLayerSolution solution(solutionParameters);
+			SingleBumpSolution solution(solutionParameters);
+
             population = std::make_shared<Population>(populationParameters,
-                std::make_shared<ActionSimulationLayerSolution>(solution));
+                std::make_shared<SingleBumpSolution>(solution));
             population->initialize();
             isInitialized = true;
         }
@@ -155,9 +157,13 @@ namespace neat_dnfs
         	auto phenotype = bestSolution->getPhenotype();
             phenotype.init();
         	simulation = std::make_shared<dnf_composer::Simulation>(phenotype);
+			visualization = std::make_shared<dnf_composer::Visualization>(simulation);
             simulationWindow = std::make_shared<dnf_composer::user_interface::SimulationWindow>(simulation);
             elementWindow = std::make_shared<dnf_composer::user_interface::ElementWindow>(simulation);
             fieldMetricsWindow = std::make_shared<dnf_composer::user_interface::FieldMetricsWindow>(simulation);
+			plotControlWindow = std::make_shared<dnf_composer::user_interface::PlotControlWindow>(visualization);
+			plotsWindow = std::make_shared<dnf_composer::user_interface::PlotsWindow>(visualization);
+			mainWindow = std::make_shared<dnf_composer::user_interface::MainWindow>(simulation);
 
             const char* filename = "NodeEditor.json";
             if (std::remove(filename) == 0)
@@ -167,15 +173,18 @@ namespace neat_dnfs
 
             nodeGraphWindow = std::make_shared<dnf_composer::user_interface::NodeGraphWindow>(simulation);
 
-        	const auto visualization = createVisualization(simulation);
             for (const auto& element : simulation->getElements())
             {
                 if (element->getLabel() == dnf_composer::element::ElementLabel::NEURAL_FIELD)
-                    visualization->addPlottingData(element->getUniqueName(), "activation");
+                    visualization->plot({
+                    	{ element->getUniqueName(), "activation" },
+						{ element->getUniqueName(), "output" },
+						{ element->getUniqueName(), "input" }
+            });
             }
 
-            const auto plot = std::make_shared<dnf_composer::user_interface::PlotWindow>(visualization);
-            plotWindows.push_back(plot);
+            plotsWindow = std::make_shared<dnf_composer::user_interface::PlotsWindow>(visualization);
+            //plostWindows.push_back(plot);
 
             showBestSolution = true;
             simulationThread = std::make_shared<std::thread>(&MainWindow::renderShowBestSolution, this);
@@ -186,8 +195,11 @@ namespace neat_dnfs
             elementWindow->render();
             fieldMetricsWindow->render();
             nodeGraphWindow->render();
-            for (const auto& plot : plotWindows)
-                plot->render();
+			plotControlWindow->render();
+			plotsWindow->render();
+			mainWindow->render();
+            /*for (const auto& plot : plotWindows)
+                plot->render();*/
         }
 	}
 
@@ -195,17 +207,17 @@ namespace neat_dnfs
     {
         using namespace dnf_composer::element;
         const ElementCommonParameters elementCommonParameters_1{ "gauss stimulus 1", {100, 1.0} };
-        const ElementCommonParameters elementCommonParameters_2{ "gauss stimulus 2", {100, 1.0} };
+        //const ElementCommonParameters elementCommonParameters_2{ "gauss stimulus 2", {100, 1.0} };
 
         const GaussStimulusParameters gaussStimulusParameters{ 5, 15, 25, false, false };
         const auto gaussStimulus_1 = std::make_shared<GaussStimulus>(elementCommonParameters_1, gaussStimulusParameters);
-        const auto gaussStimulus_2 = std::make_shared<GaussStimulus>(elementCommonParameters_2, gaussStimulusParameters);
+       // const auto gaussStimulus_2 = std::make_shared<GaussStimulus>(elementCommonParameters_2, gaussStimulusParameters);
 
         simulation->addElement(gaussStimulus_1);
-        simulation->addElement(gaussStimulus_2);
+        //simulation->addElement(gaussStimulus_2);
 
         simulation->createInteraction("gauss stimulus 1", "output", "nf 1");
-        simulation->createInteraction("gauss stimulus 2", "output", "nf 2");
+       // simulation->createInteraction("gauss stimulus 2", "output", "nf 2");
 
         // re-declare interactions for all elements
         for (const auto& element : simulation->getElements())

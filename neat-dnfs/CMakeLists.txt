@@ -57,7 +57,7 @@ set(header
 "include/solutions/asl.h"
 
 "include/application/application.h"
-"include/user_interface/main_window.h"
+"include/user_interface/main_window_neat.h"
 "include/user_interface/solution_window.h"
 "include/tools/logger.h"
 "include/tools/utils.h"
@@ -78,7 +78,7 @@ set(src
 "src/solutions/asl.cpp"
 
 "src/application/application.cpp"
-"src/user_interface/main_window.cpp"
+"src/user_interface/main_window_neat.cpp"
 "src/user_interface/solution_window.cpp"
 "src/tools/logger.cpp"
 )

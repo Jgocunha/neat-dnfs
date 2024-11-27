@@ -59,19 +59,28 @@ namespace neat_dnfs
 						{DimensionConstants::xSize,
 											DimensionConstants::dx}
 		};
-		const LateralInteractionsParameters lip{ LateralInteractionsConstants::widthExc,
-													LateralInteractionsConstants::amplitudeExc,
-													LateralInteractionsConstants::widthInh,
-											LateralInteractionsConstants::amplitudeExc,
-													LateralInteractionsConstants::amplitudeGlobal,
-											KernelConstants::circularity,
-											KernelConstants::normalization };
-		const ElementCommonParameters licp{ LateralInteractionsConstants::namePrefix + std::to_string(parameters.id),
+		const MexicanHatKernelParameters mhkp{ MexicanHatKernelConstants::widthExc,
+												MexicanHatKernelConstants::amplitudeExc,
+												MexicanHatKernelConstants::widthInh,
+												MexicanHatKernelConstants::amplitudeInh,
+												MexicanHatKernelConstants::amplitudeGlobal,
+												KernelConstants::circularity,
+												KernelConstants::normalization };
+
+
+		//const LateralInteractionsParameters lip{ LateralInteractionsConstants::widthExc,
+		//											LateralInteractionsConstants::amplitudeExc,
+		//											LateralInteractionsConstants::widthInh,
+		//									LateralInteractionsConstants::amplitudeExc,
+		//											LateralInteractionsConstants::amplitudeGlobal,
+		//									KernelConstants::circularity,
+		//									KernelConstants::normalization };
+		const ElementCommonParameters mhcp{ MexicanHatKernelConstants::namePrefix + std::to_string(parameters.id),
 											{	DimensionConstants::xSize,
 												DimensionConstants::dx}
 		};
 		neuralField = std::make_shared<NeuralField>(nfcp, nfp);
-		kernel = std::make_shared<LateralInteractions>(licp, lip);
+		kernel = std::make_shared<MexicanHatKernel>(mhcp, mhkp);
 	}
 
 	void FieldGene::setAsHidden()

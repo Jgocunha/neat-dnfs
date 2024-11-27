@@ -143,7 +143,7 @@ namespace neat_dnfs
 					phenotype.createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
 					break;
 				}
-				case ElementLabel::LATERAL_INTERACTIONS:
+				/*case ElementLabel::LATERAL_INTERACTIONS:
 				{
 					const auto lip = std::dynamic_pointer_cast<LateralInteractions>(gene.getKernel())->getParameters();
 					const auto kernel = std::make_shared<LateralInteractions>(kcp, lip);
@@ -151,7 +151,7 @@ namespace neat_dnfs
 					phenotype.createInteraction(nf->getUniqueName(), "output", kernel->getUniqueName());
 					phenotype.createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
 					break;
-				}
+				}*/
 				default:
 					throw std::invalid_argument("Invalid kernel label while translating genes to phenotype.");
 			}
@@ -326,7 +326,7 @@ namespace neat_dnfs
 		using namespace dnf_composer;
 		using namespace dnf_composer::element;
 
-		static const ElementSpatialDimensionParameters dimension = 
+		static const ElementDimensions dimension = 
 			phenotype.getElement(targetElement)->getElementCommonParameters().dimensionParameters;
 
 		const std::string gsId = "gs " + targetElement + " " + std::to_string(parameters.position);

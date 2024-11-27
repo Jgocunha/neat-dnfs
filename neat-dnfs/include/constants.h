@@ -39,14 +39,14 @@ namespace neat_dnfs
 		static constexpr double initialAmplitudeMax = 5.0;
 	};
 
-	struct LateralInteractionsConstants
+	struct MexicanHatKernelConstants
 	{
-		inline static std::string namePrefix = "lik ";
-		static constexpr double widthExc = 1;//5.3
-		static constexpr double widthInh = 1; //7.4
-		static constexpr double amplitudeExc = 2; //6
-		static constexpr double amplitudeInh = 1; //6
-		static constexpr double amplitudeGlobal = 0.0; //-0.55
+		inline static std::string namePrefix = "mhk ";
+		static constexpr double widthExc = 5.3;//5.3
+		static constexpr double widthInh = 7.4; //7.4
+		static constexpr double amplitudeExc = 6; //6
+		static constexpr double amplitudeInh = 6; //6
+		static constexpr double amplitudeGlobal = -0.01; //-0.55
 	};
 
 	struct MutationConstants
@@ -58,9 +58,9 @@ namespace neat_dnfs
 		static constexpr double maxAmplitude = 15.0;
 
 		static constexpr double addGeneProbability = 0.05;
-		static constexpr double mutateGeneProbability = 0.44;
-		static constexpr double addConnectionGeneProbability = 0.05;
-		static constexpr double mutateConnectionGeneProbability = 0.45;
+		static constexpr double mutateGeneProbability = 0.14;
+		static constexpr double addConnectionGeneProbability = 0.45;
+		static constexpr double mutateConnectionGeneProbability = 0.35;
 		static constexpr double toggleConnectionGeneProbability = 0.01;
 	};
 
