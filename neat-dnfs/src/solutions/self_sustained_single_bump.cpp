@@ -24,7 +24,7 @@ namespace neat_dnfs
 	{
 		const dnf_composer::element::GaussStimulusParameters stimParams = {
 			5.0,
-			15.0,
+			20.0,
 			50.0,
 			false,
 			false
@@ -35,7 +35,8 @@ namespace neat_dnfs
 		bool isActivationValidBeforeStimulus = isHighestActivationOfFieldEqualTo("nf 1", 0.0);
 		isActivationValidBeforeStimulus = isActivationValidBeforeStimulus && isHighestActivationOfFieldEqualTo("nf 2", 0.0);
 		runSimulation(20);
-		const bool isActivationValidAfterStimulus = isHighestActivationOfFieldEqualTo("nf 1", 9.9859044930311960);
+		//const bool isActivationValidAfterStimulus = isHighestActivationOfFieldEqualTo("nf 1", 9.9859044930311960); //5.9770158650917260
+		const bool isActivationValidAfterStimulus = isHighestActivationOfFieldEqualTo("nf 1", 10.998976016501782);
 		//runSimulationUntilFieldStable("nf 1");
 		const double bumpFormationScore = selfStabilityFitness();
 		removeGaussianStimuli();
