@@ -4,7 +4,7 @@
 
 #include "application/application.h"
 
-#include "../../../Program Files/dynamic-neural-field-composer/include/tools/logger.h" // yes this is shit
+#include <dnf_composer/tools/logger.h>
 
 int main(int argc, char* argv[])
 {

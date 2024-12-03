@@ -111,6 +111,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE imgui-platform-kit)
 find_package(dynamic-neural-field-composer REQUIRED)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE dynamic-neural-field-composer)
 
+
 target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
     NEAT_DNFS=1
     NEAT_DNFS_VERSION_MAJOR=${NEAT_DNFS_VERSION_MAJOR}

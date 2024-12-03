@@ -2,7 +2,7 @@
 #include <memory>
 #include <random>
 
-#include <elements/gauss_kernel.h>
+#include <dnf_composer/elements/gauss_kernel.h>
 #include "tools/utils.h"
 #include "constants.h"
 

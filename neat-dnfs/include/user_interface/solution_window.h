@@ -1,8 +1,8 @@
 #pragma once
 
-#include <user_interface/simulation_window.h>
-#include <user_interface/element_window.h>
-#include <user_interface/field_metrics_window.h>
+#include <dnf_composer/user_interface/simulation_window.h>
+#include <dnf_composer/user_interface/element_window.h>
+#include <dnf_composer/user_interface/field_metrics_window.h>
 
 namespace neat_dnfs
 {

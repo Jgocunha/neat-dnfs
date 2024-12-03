@@ -5,14 +5,14 @@
 #include <cstdio>
 
 #include <imgui-platform-kit/user_interface_window.h>
-#include <user_interface/simulation_window.h>
-#include <user_interface/element_window.h>
-#include <user_interface/field_metrics_window.h>
-#include <user_interface/node_graph_window.h>
-#include <user_interface/plots_window.h>
-#include <user_interface/plot_control_window.h>
-#include <user_interface/main_window.h>
-#include <visualization/visualization.h>
+#include <dnf_composer/user_interface/simulation_window.h>
+#include <dnf_composer/user_interface/element_window.h>
+#include <dnf_composer/user_interface/field_metrics_window.h>
+#include <dnf_composer/user_interface/node_graph_window.h>
+#include <dnf_composer/user_interface/plots_window.h>
+#include <dnf_composer/user_interface/plot_control_window.h>
+#include <dnf_composer/user_interface/main_window.h>
+#include <dnf_composer/visualization/visualization.h>
 
 #include "neat/population.h"
 #include "solutions/single_bump.h"

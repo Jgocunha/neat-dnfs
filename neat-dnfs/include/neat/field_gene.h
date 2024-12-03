@@ -1,6 +1,5 @@
 #pragma once
 
-#include <elements/element_factory.h>
 #include "constants.h"
 
 namespace neat_dnfs
