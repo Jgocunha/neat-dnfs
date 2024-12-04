@@ -14,5 +14,6 @@ namespace neat_dnfs
 		void testPhenotype() override;
 		void updateFitness() override;
 		bool isHighestActivationOfFieldEqualTo(const std::string& field, double target_u) const;
+		void learningPhase();
 	};
 }

@@ -9,60 +9,53 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		using namespace neat_dnfs::tools::utils;
 
-		const double randomWidthBetween0And10 = generateRandomDouble(GaussKernelConstants::initialWidthMin,
-			GaussKernelConstants::initialWidthMax);
-		const double randomAmplitudeBetween0And10 = generateRandomDouble(GaussKernelConstants::initialAmplitudeMin,
-			GaussKernelConstants::initialAmplitudeMax);
+		const FieldCouplingParameters fcp{ {DimensionConstants::xSize, DimensionConstants::dx}, 			FieldCouplingConstants::learningRule, FieldCouplingConstants::strength, FieldCouplingConstants::learningRate};
 
-		const GaussKernelParameters gkp{ randomWidthBetween0And10,
-										randomAmplitudeBetween0And10,
-									KernelConstants::circularity,
-									KernelConstants::normalization };
-		const std::string elementName = GaussKernelConstants::namePrefixConnectionGene +
+		const std::string elementName = FieldCouplingConstants::namePrefixConnectionGene +
 			std::to_string(connectionTuple.inFieldGeneId) +
 			" - " + std::to_string(connectionTuple.outFieldGeneId) + " " +
 			std::to_string(parameters.innovationNumber);
-		const ElementCommonParameters gkcp{ elementName,
+		const ElementCommonParameters fccp{ elementName,
 			{DimensionConstants::xSize, DimensionConstants::dx} };
-		kernel = std::make_unique<GaussKernel>(gkcp, gkp);
+		coupling = std::make_unique<FieldCoupling>(fccp, fcp);
 	}
 
 	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple,
-		const dnf_composer::element::GaussKernelParameters& gkp)
+		const dnf_composer::element::FieldCouplingParameters& fcp)
 		: parameters(connectionTuple)
 	{
 		using namespace dnf_composer::element;
 
-		const std::string elementName = GaussKernelConstants::namePrefixConnectionGene +
+		const std::string elementName = FieldCouplingConstants::namePrefixConnectionGene +
 			std::to_string(connectionTuple.inFieldGeneId) +
 			" - " + std::to_string(connectionTuple.outFieldGeneId) + " " +
 			std::to_string(parameters.innovationNumber);
-		const ElementCommonParameters gkcp{ elementName,
+		const ElementCommonParameters fccp{ elementName,
 			{DimensionConstants::xSize, DimensionConstants::dx} };
-		kernel = std::make_unique<GaussKernel>(gkcp, gkp);
+		coupling = std::make_unique<FieldCoupling>(fccp, fcp);
 	}
 
 	ConnectionGene::ConnectionGene(const ConnectionGeneParameters& parameters,
-		const dnf_composer::element::GaussKernelParameters& gkp)
+		const dnf_composer::element::FieldCouplingParameters& fcp)
 		: parameters(parameters)
 	{
 		using namespace dnf_composer::element;
 
-		const std::string elementName = GaussKernelConstants::namePrefixConnectionGene +
+		const std::string elementName = FieldCouplingConstants::namePrefixConnectionGene +
 			std::to_string(parameters.connectionTuple.inFieldGeneId) +
 			" - " + std::to_string(parameters.connectionTuple.outFieldGeneId) + " " +
 			std::to_string(parameters.innovationNumber);
-		const ElementCommonParameters gkcp{ elementName,
+		const ElementCommonParameters fccp{ elementName,
 			{DimensionConstants::xSize, DimensionConstants::dx} };
-		kernel = std::make_unique<GaussKernel>(gkcp, gkp);
+		coupling = std::make_unique<FieldCoupling>(fccp, fcp);
 	}
 
 	void ConnectionGene::mutate() const
 	{
 		using namespace dnf_composer::element;
 
-		const auto gaussKernel = dynamic_cast<GaussKernel*>(kernel.get());
-		if (!gaussKernel)
+		const auto targetCoupling = dynamic_cast<FieldCoupling*>(coupling.get());
+		if (!targetCoupling)
 		{
 			const std::string message = "Calling mutate() on ConnectionGene with ConnectionTuple: " +
 				std::to_string(parameters.connectionTuple.inFieldGeneId) + " - " +
@@ -72,20 +65,12 @@ namespace neat_dnfs
 		}
 
 		using namespace neat_dnfs::tools::utils;
-		const double mutationStep = 
-			generateRandomDouble(-MutationConstants::mutationStep, MutationConstants::mutationStep);
-		const int mutationSelection = generateRandomInt(0, 1);
+		const double mutationStep = generateRandomDouble(0.1, 1.0);
 
-		GaussKernelParameters gkp = gaussKernel->getParameters();
 
-		if (mutationSelection == 0)
-			gkp.width = std::clamp(gkp.width + mutationStep, MutationConstants::minWidth,
-				MutationConstants::maxWidth);
-		else
-			gkp.amplitude = std::clamp(gkp.amplitude + mutationStep, MutationConstants::minAmplitude,
-				MutationConstants::maxAmplitude);
+		FieldCouplingParameters fcp = targetCoupling->getParameters();
 
-		gaussKernel->setParameters(gkp);
+		targetCoupling->setParameters(fcp);
 	}
 
 	void ConnectionGene::disable()
@@ -113,9 +98,9 @@ namespace neat_dnfs
 		return parameters;
 	}
 
-	KernelPtr ConnectionGene::getKernel() const
+	FieldCouplingPtr ConnectionGene::getFieldCoupling() const
 	{
-		return kernel;
+		return coupling;
 	}
 
 	uint16_t ConnectionGene::getInnovationNumber() const
@@ -133,14 +118,9 @@ namespace neat_dnfs
 		return parameters.connectionTuple.outFieldGeneId;
 	}
 
-	double ConnectionGene::getKernelAmplitude() const
+	double ConnectionGene::getCouplingStrength() const
 	{
-		return std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(kernel)->getParameters().amplitude;
-	}
-
-	double ConnectionGene::getKernelWidth() const
-	{
-		return std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(kernel)->getParameters().width;
+		return std::dynamic_pointer_cast<dnf_composer::element::FieldCoupling>(coupling)->getParameters().scalar;
 	}
 
 	bool ConnectionGene::operator==(const ConnectionGene& other) const
@@ -150,14 +130,14 @@ namespace neat_dnfs
 
 	bool ConnectionGene::isCloneOf(const ConnectionGene& other) const
 	{
-		const auto gk = dynamic_cast<dnf_composer::element::GaussKernel*>(kernel.get());
-		const dnf_composer::element::GaussKernelParameters gkp = gk->getParameters();
-		const auto other_gk = dynamic_cast<dnf_composer::element::GaussKernel*>(other.kernel.get());
-		const dnf_composer::element::GaussKernelParameters other_gkp = other_gk->getParameters();
+		const auto fc = dynamic_cast<dnf_composer::element::FieldCoupling*>(coupling.get());
+		const dnf_composer::element::FieldCouplingParameters fcp = fc->getParameters();
+		const auto other_fc = dynamic_cast<dnf_composer::element::FieldCoupling*>(other.coupling.get());
+		const dnf_composer::element::FieldCouplingParameters other_fcp = other_fc->getParameters();
 		return parameters.innovationNumber == other.parameters.innovationNumber &&
 			parameters.connectionTuple == other.parameters.connectionTuple &&
 			parameters.enabled == other.parameters.enabled &&
-			gkp == other_gkp;
+			fcp == other_fcp;
 	}
 
 	std::string ConnectionGene::toString() const
@@ -166,9 +146,9 @@ namespace neat_dnfs
 		result += parameters.toString();
 
 		std::stringstream address;
-		address << kernel.get();
+		address << coupling.get();
 		result += "Kernel address: " + address.str() + '\n';
-		result += kernel->toString();
+		result += coupling->toString();
 		return result;
 	}
 
@@ -179,6 +159,6 @@ namespace neat_dnfs
 
 	ConnectionGene ConnectionGene::clone() const
 	{
-		return ConnectionGene{ parameters, std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(kernel)->getParameters() };
+		return ConnectionGene{ parameters, std::dynamic_pointer_cast<dnf_composer::element::FieldCoupling>(coupling)->getParameters() };
 	}
 }

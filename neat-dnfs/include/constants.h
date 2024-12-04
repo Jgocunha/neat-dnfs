@@ -6,6 +6,7 @@ namespace neat_dnfs
 {
 	typedef std::shared_ptr<dnf_composer::element::NeuralField> NeuralFieldPtr;
 	typedef std::shared_ptr<dnf_composer::element::Kernel> KernelPtr;
+	typedef std::shared_ptr<dnf_composer::element::FieldCoupling> FieldCouplingPtr;
 
 	struct DimensionConstants
 	{
@@ -19,6 +20,14 @@ namespace neat_dnfs
 		static constexpr double tau = 25;
 		static constexpr double restingLevel = -10;
 		inline static dnf_composer::element::HeavisideFunction activationFunction{ 0.0 };
+	};
+
+	struct FieldCouplingConstants
+	{
+		inline static std::string namePrefixConnectionGene = "fc cg ";
+		static constexpr dnf_composer::LearningRule learningRule = dnf_composer::LearningRule::OJA;
+		static constexpr double learningRate = 0.01;
+		static constexpr double strength = 1.0;
 	};
 
 	struct KernelConstants

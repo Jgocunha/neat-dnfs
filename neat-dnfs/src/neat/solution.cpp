@@ -174,14 +174,14 @@ namespace neat_dnfs
 		{
 			if (connectionGene.isEnabled())
 			{
-				const auto kernel = connectionGene.getKernel();
+				const auto coupling = connectionGene.getFieldCoupling();
 				const auto sourceId = connectionGene.getInFieldGeneId();
 				const auto targetId = connectionGene.getOutFieldGeneId();
 
-				phenotype.addElement(kernel);
+				phenotype.addElement(coupling);
 				phenotype.createInteraction("nf " + std::to_string(sourceId),
-					"output", kernel->getUniqueName());
-				phenotype.createInteraction(kernel->getUniqueName(),
+					"output", coupling->getUniqueName());
+				phenotype.createInteraction(coupling->getUniqueName(),
 					"output", "nf " + std::to_string(targetId));
 			}
 		}

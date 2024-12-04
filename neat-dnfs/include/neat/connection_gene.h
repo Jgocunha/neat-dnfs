@@ -2,7 +2,8 @@
 #include <memory>
 #include <random>
 
-#include <dnf_composer/elements/gauss_kernel.h>
+//#include <dnf_composer/elements/gauss_kernel.h>
+#include <dnf_composer/elements/field_coupling.h>
 #include "tools/utils.h"
 #include "constants.h"
 
@@ -89,13 +90,13 @@ namespace neat_dnfs
 	{
 	private:
 		ConnectionGeneParameters parameters;
-		KernelPtr kernel;
+		FieldCouplingPtr coupling;
 	public:
 		ConnectionGene(ConnectionTuple connectionTuple);
 		ConnectionGene(ConnectionTuple connectionTuple,
-			const dnf_composer::element::GaussKernelParameters& gkp);
+			const dnf_composer::element::FieldCouplingParameters& fcp);
 		ConnectionGene(const ConnectionGeneParameters& parameters, 
-			const dnf_composer::element::GaussKernelParameters& gkp);
+			const dnf_composer::element::FieldCouplingParameters& fcp);
 
 		void mutate() const;
 		void disable();
@@ -106,12 +107,11 @@ namespace neat_dnfs
 		void setInnovationNumber(uint16_t innovationNumber);
 
 		ConnectionGeneParameters getParameters() const;
-		KernelPtr getKernel() const;
+		FieldCouplingPtr getFieldCoupling() const;
 		uint16_t getInnovationNumber() const;
 		uint16_t getInFieldGeneId() const;
 		uint16_t getOutFieldGeneId() const;
-		double getKernelAmplitude() const;
-		double getKernelWidth() const;
+		double getCouplingStrength() const;
 
 		bool operator==(const ConnectionGene&) const;
 		bool isCloneOf(const ConnectionGene&) const;

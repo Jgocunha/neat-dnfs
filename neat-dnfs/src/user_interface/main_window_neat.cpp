@@ -103,11 +103,11 @@ namespace neat_dnfs
         if (ImGui::Button("Initialize", buttonSize))
         {
             //ActionSimulationLayerSolution solution(solutionParameters);
-			//SingleBumpSolution solution(solutionParameters);
-			SelfSustainedSingleBumpSolution solution(solutionParameters);
+			SingleBumpSolution solution(solutionParameters);
+			//SelfSustainedSingleBumpSolution solution(solutionParameters);
 
             population = std::make_shared<Population>(populationParameters,
-                std::make_shared<SelfSustainedSingleBumpSolution>(solution));
+                std::make_shared<SingleBumpSolution>(solution));
             population->initialize();
             isInitialized = true;
         }

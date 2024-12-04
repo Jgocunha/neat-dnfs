@@ -16,6 +16,8 @@ namespace neat_dnfs
 
 	void SingleBumpSolution::testPhenotype()
 	{
+		learningPhase();
+
 		const dnf_composer::element::GaussStimulusParameters stimParams = {
 			5.0,
 			15.0,
@@ -40,7 +42,7 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 
 		static constexpr double expectedBumpPosition = 50.0;
-		static constexpr double expectedBumpWidth = 10.0;
+		static constexpr double expectedBumpWidth = 5.0;
 		static constexpr double expectedBumpAmplitude = 10.0;
 
 		const auto field =
@@ -73,4 +75,43 @@ namespace neat_dnfs
 		constexpr double epsilon = 1e-6;
 		return  std::abs(u_max - target_u) < epsilon;
 	}
+
+	void SingleBumpSolution::learningPhase()
+	{
+		// activate learning for all the couplings
+		for (const auto& coupling : phenotype.getElements())
+		{
+			if (coupling->getLabel() == dnf_composer::element::ElementLabel::FIELD_COUPLING)
+			{
+				const auto fieldCoupling = std::dynamic_pointer_cast<dnf_composer::element::FieldCoupling>(coupling);
+				fieldCoupling->setLearning(true);
+			}
+		}
+		// show inout stimulus
+		const dnf_composer::element::GaussStimulusParameters stimParams = {
+			5.0,
+			15.0,
+			50.0,
+			false,
+			false
+		};
+		addGaussianStimulus("nf 1", stimParams);
+		// show output stimulus
+		addGaussianStimulus("nf 2", stimParams);
+		initSimulation();
+		// run simulation
+		runSimulation(200);
+		// remove stimuli
+		removeGaussianStimuli();
+		// deactivate learning for all the couplings
+		for (const auto& coupling : phenotype.getElements())
+		{
+			if (coupling->getLabel() == dnf_composer::element::ElementLabel::FIELD_COUPLING)
+			{
+				const auto fieldCoupling = std::dynamic_pointer_cast<dnf_composer::element::FieldCoupling>(coupling);
+				fieldCoupling->setLearning(false);
+			}
+		}
+	}
+
 }

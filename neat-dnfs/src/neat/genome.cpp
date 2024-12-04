@@ -208,25 +208,19 @@ namespace neat_dnfs
 
 		const auto inGeneId = randEnabledConnectionGene.getParameters().connectionTuple.inFieldGeneId;
 		const auto outGeneId = randEnabledConnectionGene.getParameters().connectionTuple.outFieldGeneId;
-		const auto kernel = randEnabledConnectionGene.getKernel();
-		const auto kernelParameters = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
+		const auto coupling = randEnabledConnectionGene.getFieldCoupling();
+		const auto couplingParameters = std::dynamic_pointer_cast<FieldCoupling>(coupling)->getParameters();
 
 		addHiddenGene();
 
 		// create two new connection genes
-		const auto connectionGeneKernelParametersIn = GaussKernelParameters{ GaussKernelConstants::width,
-														GaussKernelConstants::amplitude,
-														KernelConstants::circularity,
-														KernelConstants::normalization };
-		const auto connectionGeneKernelParametersOut = GaussKernelParameters{ kernelParameters.width,
-													kernelParameters.amplitude,
-														KernelConstants::circularity,
-												KernelConstants::normalization };
+		const auto connectionGeneCouplingParametersIn = FieldCouplingParameters{ {DimensionConstants::xSize, DimensionConstants::dx}, FieldCouplingConstants::learningRule, FieldCouplingConstants::strength, FieldCouplingConstants::learningRate };
+		const auto connectionGeneCouplingParametersOut = FieldCouplingParameters{ {DimensionConstants::xSize, DimensionConstants::dx}, FieldCouplingConstants::learningRule, FieldCouplingConstants::strength, FieldCouplingConstants::learningRate };
 
 		const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId,
-			fieldGenes.back().getParameters().id}, connectionGeneKernelParametersIn };
+			fieldGenes.back().getParameters().id}, connectionGeneCouplingParametersIn };
 		const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id,
-			outGeneId}, connectionGeneKernelParametersOut };
+			outGeneId}, connectionGeneCouplingParametersOut };
 		connectionGenes.push_back(connectionGeneIn);
 		connectionGenes.push_back(connectionGeneOut);
 	}
@@ -353,10 +347,9 @@ namespace neat_dnfs
 		if (thisConnectionGenes.empty() && otherConnectionGenes.empty())
 			return 0.0;
 
-		double sumAmpDiff = 0.0;
-		double sumWidthDiff = 0.0;
-		static constexpr double ampDiffCoeff = 0.8;
-		static constexpr double widthDiffCoeff = 0.2;
+		double sumStrengthDiff = 0.0;
+		static constexpr double strengthDiffCoeff = 1.0;
+		// this should be the difference between the weights?
 
 		for (const auto& thisConnectionGene : thisConnectionGenes)
 		{
@@ -364,16 +357,13 @@ namespace neat_dnfs
 			{
 				if (thisConnectionGene.getInnovationNumber() == otherConnectionGene.getInnovationNumber())
 				{
-					const double ampDiff =
-						std::abs(thisConnectionGene.getKernelAmplitude() - otherConnectionGene.getKernelAmplitude());
-					const double widthDiff =
-						std::abs(thisConnectionGene.getKernelWidth() - otherConnectionGene.getKernelWidth());
-					sumAmpDiff += ampDiff;
-					sumWidthDiff += widthDiff;
+					const double strengthDiff =
+						std::abs(thisConnectionGene.getCouplingStrength() - otherConnectionGene.getCouplingStrength());
+					sumStrengthDiff += strengthDiff;
 				}
 			}
 		}
-		const double totalDiff = ampDiffCoeff * sumAmpDiff + widthDiffCoeff * sumWidthDiff;
+		const double totalDiff = sumStrengthDiff * strengthDiffCoeff;
 		return totalDiff;
 	}
 

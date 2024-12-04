@@ -459,9 +459,9 @@ namespace neat_dnfs
 				{
 					for(const auto& connectionGene_b : connectionGenes_b)
 					{
-						const auto kernel_a = connectionGene_a.getKernel();
-						const auto kernel_b = connectionGene_b.getKernel();
-						if(kernel_a == kernel_b)
+						const auto coupling_a = connectionGene_a.getFieldCoupling();
+						const auto coupling_b = connectionGene_b.getFieldCoupling();
+						if(coupling_a == coupling_b)
 						{
 							log(tools::logger::LogLevel::FATAL, "Kernels are the same.");
 						}
