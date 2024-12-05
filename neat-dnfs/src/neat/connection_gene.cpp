@@ -9,7 +9,8 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		using namespace neat_dnfs::tools::utils;
 
-		const FieldCouplingParameters fcp{ {DimensionConstants::xSize, DimensionConstants::dx}, 			FieldCouplingConstants::learningRule, FieldCouplingConstants::strength, FieldCouplingConstants::learningRate};
+		const double couplingStrength = generateRandomDouble(FieldCouplingConstants::couplingStrengthMinVal, FieldCouplingConstants::couplingStrengthMaxVal);
+		const FieldCouplingParameters fcp{ {DimensionConstants::xSize, DimensionConstants::dx}, 			FieldCouplingConstants::learningRule, couplingStrength, FieldCouplingConstants::learningRate};
 
 		const std::string elementName = FieldCouplingConstants::namePrefixConnectionGene +
 			std::to_string(connectionTuple.inFieldGeneId) +
@@ -59,16 +60,17 @@ namespace neat_dnfs
 		{
 			const std::string message = "Calling mutate() on ConnectionGene with ConnectionTuple: " +
 				std::to_string(parameters.connectionTuple.inFieldGeneId) + " - " +
-				std::to_string(parameters.connectionTuple.outFieldGeneId) + " but kernel is not a GaussKernel";
+				std::to_string(parameters.connectionTuple.outFieldGeneId) + " but coupling is nullptr.";
 			tools::logger::log(tools::logger::FATAL, message);
 			throw std::runtime_error(message);
 		}
 
 		using namespace neat_dnfs::tools::utils;
-		const double mutationStep = generateRandomDouble(0.1, 1.0);
-
+		const double mutationSignal = generateRandomSignal();
 
 		FieldCouplingParameters fcp = targetCoupling->getParameters();
+
+		fcp.scalar = std::clamp(fcp.scalar + mutationSignal * FieldCouplingConstants::couplingStrengthStep, FieldCouplingConstants::couplingStrengthMinVal, FieldCouplingConstants::couplingStrengthMaxVal);
 
 		targetCoupling->setParameters(fcp);
 	}
@@ -147,7 +149,7 @@ namespace neat_dnfs
 
 		std::stringstream address;
 		address << coupling.get();
-		result += "Kernel address: " + address.str() + '\n';
+		result += "Coupling address: " + address.str() + '\n';
 		result += coupling->toString();
 		return result;
 	}

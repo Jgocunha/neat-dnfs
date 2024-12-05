@@ -2,7 +2,7 @@
 
 namespace neat_dnfs
 {
-	FieldGene::FieldGene(FieldGeneParameters parameters)
+	FieldGene::FieldGene(const FieldGeneParameters& parameters)
 		: parameters(parameters)
 	{
 		switch (parameters.type)
@@ -19,133 +19,122 @@ namespace neat_dnfs
 		}
 	}
 
-	FieldGene::FieldGene(FieldGeneParameters parameters, const NeuralFieldPtr& neuralField, const KernelPtr& kernel)
+	FieldGene::FieldGene(const FieldGeneParameters& parameters, const NeuralFieldPtr& neuralField, 
+		const KernelPtr& kernel)
 		: parameters(parameters), neuralField(neuralField), kernel(kernel)
 	{}
 
 	void FieldGene::setAsInput()
 	{
-		using namespace dnf_composer::element;
-
 		parameters.type = FieldGeneType::INPUT;
-		const NeuralFieldParameters nfp{ NeuralFieldConstants::tau,
-											NeuralFieldConstants::restingLevel,
-											NeuralFieldConstants::activationFunction };
-		const ElementCommonParameters nfcp{ NeuralFieldConstants::namePrefix + std::to_string(parameters.id),
-						{DimensionConstants::xSize,
-											DimensionConstants::dx}
-		};
-		const GaussKernelParameters gkp{ GaussKernelConstants::width,
-									GaussKernelConstants::amplitude,
-										GaussKernelConstants::amplitudeGlobal,
-									KernelConstants::circularity,
-									KernelConstants::normalization };
-		const ElementCommonParameters gkcp{ GaussKernelConstants::namePrefix + std::to_string(parameters.id),
-						{DimensionConstants::xSize,
-											DimensionConstants::dx}
-		};
-		neuralField = std::make_shared<NeuralField>(nfcp, nfp);
-		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
+		initializeNeuralField();
+		initializeKernel();
 	}
 
 	void FieldGene::setAsOutput()
 	{
-		using namespace dnf_composer::element;
-
 		parameters.type = FieldGeneType::OUTPUT;
-		const NeuralFieldParameters nfp{ NeuralFieldConstants::tau,
-									NeuralFieldConstants::restingLevel,
-									NeuralFieldConstants::activationFunction };
-		const ElementCommonParameters nfcp{ NeuralFieldConstants::namePrefix + std::to_string(parameters.id),
-						{DimensionConstants::xSize,
-											DimensionConstants::dx}
-		};
-		const MexicanHatKernelParameters mhkp{ MexicanHatKernelConstants::widthExc,
-												MexicanHatKernelConstants::amplitudeExc,
-												MexicanHatKernelConstants::widthInh,
-												MexicanHatKernelConstants::amplitudeInh,
-												MexicanHatKernelConstants::amplitudeGlobal,
-												KernelConstants::circularity,
-												KernelConstants::normalization };
-
-
-		//const LateralInteractionsParameters lip{ LateralInteractionsConstants::widthExc,
-		//											LateralInteractionsConstants::amplitudeExc,
-		//											LateralInteractionsConstants::widthInh,
-		//									LateralInteractionsConstants::amplitudeExc,
-		//											LateralInteractionsConstants::amplitudeGlobal,
-		//									KernelConstants::circularity,
-		//									KernelConstants::normalization };
-		const ElementCommonParameters mhcp{ MexicanHatKernelConstants::namePrefix + std::to_string(parameters.id),
-											{	DimensionConstants::xSize,
-												DimensionConstants::dx}
-		};
-		neuralField = std::make_shared<NeuralField>(nfcp, nfp);
-		kernel = std::make_shared<MexicanHatKernel>(mhcp, mhkp);
+		initializeNeuralField();
+		initializeKernel();
 	}
 
 	void FieldGene::setAsHidden()
 	{
-		using namespace dnf_composer::element;
-
 		parameters.type = FieldGeneType::HIDDEN;
-		const NeuralFieldParameters nfp{ NeuralFieldConstants::tau,
-											NeuralFieldConstants::restingLevel,
-											NeuralFieldConstants::activationFunction };
-		const ElementCommonParameters nfcp{ NeuralFieldConstants::namePrefix + std::to_string(parameters.id),
-						{DimensionConstants::xSize,
-											DimensionConstants::dx}
-		};
-		const GaussKernelParameters gkp{ GaussKernelConstants::width,
-									GaussKernelConstants::amplitude,
-										GaussKernelConstants::amplitudeGlobal,
-									KernelConstants::circularity,
-									KernelConstants::normalization };
-		const ElementCommonParameters gkcp{ GaussKernelConstants::namePrefix + std::to_string(parameters.id),
-						{DimensionConstants::xSize,
-											DimensionConstants::dx}
-		};
-		neuralField = std::make_shared<NeuralField>(nfcp, nfp);
-		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
+		initializeNeuralField();
+		initializeKernel();
 	}
 
-	void FieldGene::mutate() const
+	void FieldGene::mutate()
 	{
 		using namespace dnf_composer::element;
-
-		const auto gaussKernel = std::dynamic_pointer_cast<GaussKernel>(kernel);
-		if (!gaussKernel)
-		{
-			const std::string message = "Calling mutate() on FieldGene with id " + std::to_string(parameters.id) +
-				" and type " + std::to_string(static_cast<int>(parameters.type)) +
-				" is not possible, because the kernel is not a GaussKernel.";
-			tools::logger::log(tools::logger::ERROR, message);
-			return;
-		}
-		if (parameters.type != FieldGeneType::HIDDEN)
-		{
-			const std::string message = "Calling mutate() on FieldGene with id " + std::to_string(parameters.id) +
-				" and type " + std::to_string(static_cast<int>(parameters.type)) +
-				" is not possible, because the type is not HIDDEN.";
-			tools::logger::log(tools::logger::ERROR, message);
-			return;
-		}
-
 		using namespace neat_dnfs::tools::utils;
-		const double mutationStep =
-			generateRandomDouble(-MutationConstants::mutationStep, MutationConstants::mutationStep);
-		const int mutationSelection = generateRandomInt(0, 1);
 
-		GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
+		// discover kernel type
+		const ElementLabel label = kernel->getLabel();
+		const int signal = generateRandomSignal();
+		switch(label)
+		{
+		case ElementLabel::GAUSS_KERNEL:
+			{
+				const auto gaussKernel = std::dynamic_pointer_cast<GaussKernel>(kernel);
+				GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
 
-		if (mutationSelection == 0)
-			gkp.width = std::clamp(gkp.width + mutationStep, MutationConstants::minWidth,
-				MutationConstants::maxWidth);
-		else
-			gkp.amplitude = std::clamp(gkp.amplitude + mutationStep, MutationConstants::minAmplitude,
-				MutationConstants::maxAmplitude);
+				const int mutationSelection = generateRandomInt(0, 3); // number of mutable parameters + change type
+				switch(mutationSelection)
+				{
+				case 0: // width
+					gkp.width = std::clamp(gkp.width + GaussKernelConstants::widthStep * signal,
+						GaussKernelConstants::widthMinVal, 
+						GaussKernelConstants::widthMaxVal);
+					break;
+				case 1: // amplitude
+					gkp.amplitude = std::clamp(gkp.amplitude + GaussKernelConstants::ampStep * signal,
+						GaussKernelConstants::ampMinVal,
+						GaussKernelConstants::ampMaxVal);
+					break;
+				case 2: // amplitude global
+					gkp.amplitudeGlobal = std::clamp(gkp.amplitudeGlobal + GaussKernelConstants::ampStep * signal,
+						GaussKernelConstants::ampGlobalMinVal,
+						GaussKernelConstants::ampGlobalMaxVal);
+					break;
+				case 3: // change type
+					initializeMexicanHatKernel();
+					break;
+				default:
+					break;
+				}
+				std::dynamic_pointer_cast<GaussKernel>(kernel)->setParameters(gkp);
+			}
 
-		std::dynamic_pointer_cast<GaussKernel>(kernel)->setParameters(gkp);
+			break;
+		case ElementLabel::MEXICAN_HAT_KERNEL:
+			{
+				const auto mexicanHatKernel = std::dynamic_pointer_cast<MexicanHatKernel>(kernel);
+				MexicanHatKernelParameters mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
+
+				const int mutationSelection = generateRandomInt(0, 5); // number of mutable parameters + change type
+				switch (mutationSelection)
+				{
+				case 0: // width exc
+					mhkp.widthExc = std::clamp(mhkp.widthExc + MexicanHatKernelConstants::widthExcStep * signal,
+						MexicanHatKernelConstants::widthExcMinVal,
+						MexicanHatKernelConstants::widthExcMaxVal);
+					break;
+				case 1: // amplitude exc
+					mhkp.amplitudeExc = std::clamp(mhkp.amplitudeExc + MexicanHatKernelConstants::ampExcStep * signal,
+						MexicanHatKernelConstants::ampExcMinVal,
+						MexicanHatKernelConstants::ampExcMaxVal);
+					break;
+				case 2: // width inh
+					mhkp.widthInh = std::clamp(mhkp.widthInh + MexicanHatKernelConstants::widthInhStep * signal,
+						MexicanHatKernelConstants::widthInhMinVal,
+						MexicanHatKernelConstants::widthInhMaxVal);
+					break;
+				case 3: // amplitude inh
+					mhkp.amplitudeInh = std::clamp(mhkp.amplitudeInh + MexicanHatKernelConstants::ampInhStep * signal,
+						MexicanHatKernelConstants::ampInhMinVal,
+						MexicanHatKernelConstants::ampInhMaxVal);
+					break;
+				case 4: // amplitude global
+					mhkp.amplitudeGlobal = std::clamp(mhkp.amplitudeGlobal + MexicanHatKernelConstants::ampGlobStep * signal,
+						MexicanHatKernelConstants::ampGlobMin,
+						MexicanHatKernelConstants::ampGlobMax);
+					break;
+				case 5: // change type
+					initializeGaussKernel();
+					break;
+				default:
+					break;
+				}
+				std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->setParameters(mhkp);
+			}
+			break;
+		default:
+			tools::logger::log(tools::logger::FATAL, "FieldGene::mutate() - Kernel type not recognized.");
+			throw std::runtime_error("FieldGene::mutate() - Kernel type not recognized.");
+			break;
+		}
 	}
 
 	FieldGeneParameters FieldGene::getParameters() const
@@ -173,36 +162,6 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		const auto k_other = other.getKernel();
 		const auto nf_other = other.getNeuralField();
-		/*bool isKernelEqual = false;
-		switch (parameters.type)
-		{
-		case FieldGeneType::INPUT:
-		{
-			const auto gk = std::dynamic_pointer_cast<GaussKernel>(kernel);
-			const auto gk_other = std::dynamic_pointer_cast<GaussKernel>(k_other);
-			isKernelEqual = gk->getParameters() == gk_other->getParameters();
-		}
-		break;
-		case FieldGeneType::OUTPUT:
-		{
-			const auto li = std::dynamic_pointer_cast<LateralInteractions>(kernel);
-			const auto li_other = std::dynamic_pointer_cast<LateralInteractions>(k_other);
-			isKernelEqual = li->getParameters() == li_other->getParameters();
-		}
-		break;
-		case FieldGeneType::HIDDEN:
-		{
-			const auto gk = std::dynamic_pointer_cast<GaussKernel>(kernel);
-			const auto gk_other = std::dynamic_pointer_cast<GaussKernel>(k_other);
-			isKernelEqual = gk->getParameters() == gk_other->getParameters();
-		}
-		break;
-		}*/
-
-		/*const NeuralFieldParameters nfp = neuralField->getParameters();
-		const NeuralFieldParameters nfp_other = nf_other->getParameters();*/
-		//const bool isNeuralFieldEqual = nfp == nfp_other;
-
 		return parameters == other.parameters && neuralField == nf_other && kernel == k_other;
 	}
 
@@ -239,6 +198,86 @@ namespace neat_dnfs
 
 		FieldGene clone{ parameters, nf_, k_ };
 		return clone;
+	}
+
+	void FieldGene::initializeNeuralField()
+	{
+		using namespace dnf_composer::element;
+		using namespace neat_dnfs::tools::utils;
+
+		const double tau = generateRandomDouble(NeuralFieldConstants::tauMinVal, NeuralFieldConstants::tauMaxVal);
+		const double restingLevel = generateRandomDouble(NeuralFieldConstants::restingLevelMinVal, NeuralFieldConstants::restingLevelMaxVal);
+
+		const NeuralFieldParameters nfp{ tau,
+											restingLevel,
+											NeuralFieldConstants::activationFunction
+		};
+		const ElementCommonParameters nfcp{ NeuralFieldConstants::namePrefix + std::to_string(parameters.id),
+						{DimensionConstants::xSize,
+											DimensionConstants::dx}
+		};
+		neuralField = std::make_shared<NeuralField>(nfcp, nfp);
+	}
+
+	void FieldGene::initializeKernel()
+	{
+		using namespace neat_dnfs::tools::utils;
+
+		// randomly select kernel type
+		switch (generateRandomInt(0, 1))
+		{
+		case 0:
+			initializeGaussKernel();
+		break;
+		case 1:
+			initializeMexicanHatKernel();
+		break;
+		default:
+			break;
+		}
+	}
+
+	void FieldGene::initializeGaussKernel()
+	{
+		using namespace dnf_composer::element;
+		using namespace neat_dnfs::tools::utils;
+
+		const double width = generateRandomDouble(GaussKernelConstants::widthMinVal, GaussKernelConstants::widthMaxVal);
+		const double amplitude = generateRandomDouble(GaussKernelConstants::ampMinVal, GaussKernelConstants::ampMaxVal);
+		const double amplitudeGlobal = generateRandomDouble(GaussKernelConstants::ampGlobalMinVal, GaussKernelConstants::ampGlobalMaxVal);
+		const GaussKernelParameters gkp{ width,
+										amplitude,
+											amplitudeGlobal,
+									KernelConstants::circularity,
+									KernelConstants::normalization
+		};
+		const ElementCommonParameters gkcp{ GaussKernelConstants::namePrefix + std::to_string(parameters.id),
+						{DimensionConstants::xSize, DimensionConstants::dx}
+		};
+		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
+	}
+
+	void FieldGene::initializeMexicanHatKernel()
+	{
+		using namespace dnf_composer::element;
+		using namespace neat_dnfs::tools::utils;
+
+		const double widthExc = generateRandomDouble(MexicanHatKernelConstants::widthExcMinVal, MexicanHatKernelConstants::widthExcMaxVal);
+		const double amplitudeExc = generateRandomDouble(MexicanHatKernelConstants::ampExcMinVal, MexicanHatKernelConstants::ampExcMaxVal);
+		const double widthInh = generateRandomDouble(MexicanHatKernelConstants::widthInhMinVal, MexicanHatKernelConstants::widthInhMaxVal);
+		const double amplitudeInh = generateRandomDouble(MexicanHatKernelConstants::ampInhMinVal, MexicanHatKernelConstants::ampInhMaxVal);
+		const double amplitudeGlobal = generateRandomDouble(MexicanHatKernelConstants::ampGlobMin, MexicanHatKernelConstants::ampGlobMax);
+		const MexicanHatKernelParameters mhkp{ widthExc,
+								amplitudeExc,
+								widthInh,
+								amplitudeInh,
+								amplitudeGlobal,
+								KernelConstants::circularity,
+								KernelConstants::normalization
+		};
+		const ElementCommonParameters mhcp{ MexicanHatKernelConstants::namePrefix + std::to_string(parameters.id),{DimensionConstants::xSize, DimensionConstants::dx}
+		};
+		kernel = std::make_shared<MexicanHatKernel>(mhcp, mhkp);
 	}
 
 }

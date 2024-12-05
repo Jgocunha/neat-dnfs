@@ -43,8 +43,8 @@ namespace neat_dnfs
 
 	void Genome::mutate()
 	{
-		constexpr double totalProbability = MutationConstants::addGeneProbability +
-			MutationConstants::mutateGeneProbability +
+		constexpr double totalProbability = MutationConstants::addFieldGeneProbability +
+			MutationConstants::mutateFieldGeneProbability +
 			MutationConstants::addConnectionGeneProbability +
 			MutationConstants::mutateConnectionGeneProbability +
 			MutationConstants::toggleConnectionGeneProbability;
@@ -54,20 +54,20 @@ namespace neat_dnfs
 
 		const double randomValue = tools::utils::generateRandomDouble(0.0, 1.0);
 
-		if (randomValue < MutationConstants::addGeneProbability) {
+		if (randomValue < MutationConstants::addFieldGeneProbability) {
 			addGene();
 		}
-		else if (randomValue < MutationConstants::addGeneProbability +
-			MutationConstants::mutateGeneProbability) {
+		else if (randomValue < MutationConstants::addFieldGeneProbability +
+			MutationConstants::mutateFieldGeneProbability) {
 			mutateGene();
 		}
-		else if (randomValue < MutationConstants::addGeneProbability +
-			MutationConstants::mutateGeneProbability +
+		else if (randomValue < MutationConstants::addFieldGeneProbability +
+			MutationConstants::mutateFieldGeneProbability +
 			MutationConstants::addConnectionGeneProbability) {
 			addConnectionGene();
 		}
-		else if (randomValue < MutationConstants::addGeneProbability +
-			MutationConstants::mutateGeneProbability +
+		else if (randomValue < MutationConstants::addFieldGeneProbability +
+			MutationConstants::mutateFieldGeneProbability +
 			MutationConstants::addConnectionGeneProbability +
 			MutationConstants::mutateConnectionGeneProbability) {
 			mutateConnectionGene();
@@ -230,7 +230,7 @@ namespace neat_dnfs
 		const int geneId = getRandomGeneIdByType(FieldGeneType::HIDDEN);
 		if (geneId == -1)
 			return;
-		const auto gene = getFieldGeneById(static_cast<uint16_t>(geneId));
+		auto gene = getFieldGeneById(static_cast<uint16_t>(geneId));
 		gene.mutate();
 	}
 

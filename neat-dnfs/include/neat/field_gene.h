@@ -56,12 +56,12 @@ namespace neat_dnfs
 	class FieldGene
 	{
 	private:
+		FieldGeneParameters parameters;
 		NeuralFieldPtr neuralField;
 		KernelPtr kernel;
-		FieldGeneParameters parameters;
 	public:
-		FieldGene(FieldGeneParameters parameters);
-		FieldGene(FieldGeneParameters parameters,
+		FieldGene(const FieldGeneParameters& parameters);
+		FieldGene(const FieldGeneParameters& parameters,
 			const NeuralFieldPtr& neuralField, 
 			const KernelPtr& kernel);
 
@@ -69,7 +69,7 @@ namespace neat_dnfs
 		void setAsOutput();
 		void setAsHidden();
 
-		void mutate() const;
+		void mutate();
 
 		FieldGeneParameters getParameters() const;
 		std::shared_ptr<dnf_composer::element::NeuralField> getNeuralField() const;
@@ -80,5 +80,10 @@ namespace neat_dnfs
 		std::string toString() const;
 		void print() const;
 		FieldGene clone() const;
+	private:
+		void initializeNeuralField();
+		void initializeKernel();
+		void initializeGaussKernel();
+		void initializeMexicanHatKernel();
 	};
 }

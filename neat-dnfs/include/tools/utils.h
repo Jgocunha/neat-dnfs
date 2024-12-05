@@ -62,6 +62,15 @@ namespace neat_dnfs
 	            return exp(-0.5 * pow((value - target) / width, 2));
             }
 
+            inline int generateRandomSignal()
+            {
+                std::random_device rd; 
+                std::mt19937 gen(rd()); 
+                std::uniform_int_distribution<int> dist(-1, 1);
+
+                return (dist(gen) > 0) ? 1 : -1; // Randomly selects -1 or 1
+            }
+
 		}
 	}
 }

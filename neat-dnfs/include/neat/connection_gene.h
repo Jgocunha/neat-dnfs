@@ -2,7 +2,6 @@
 #include <memory>
 #include <random>
 
-//#include <dnf_composer/elements/gauss_kernel.h>
 #include <dnf_composer/elements/field_coupling.h>
 #include "tools/utils.h"
 #include "constants.h"
