@@ -36,7 +36,8 @@ namespace neat_dnfs
 											DimensionConstants::dx}
 		};
 		const GaussKernelParameters gkp{ GaussKernelConstants::width,
-										GaussKernelConstants::amplitude,
+									GaussKernelConstants::amplitude,
+										GaussKernelConstants::amplitudeGlobal,
 									KernelConstants::circularity,
 									KernelConstants::normalization };
 		const ElementCommonParameters gkcp{ GaussKernelConstants::namePrefix + std::to_string(parameters.id),
@@ -96,7 +97,8 @@ namespace neat_dnfs
 											DimensionConstants::dx}
 		};
 		const GaussKernelParameters gkp{ GaussKernelConstants::width,
-										GaussKernelConstants::amplitude,
+									GaussKernelConstants::amplitude,
+										GaussKernelConstants::amplitudeGlobal,
 									KernelConstants::circularity,
 									KernelConstants::normalization };
 		const ElementCommonParameters gkcp{ GaussKernelConstants::namePrefix + std::to_string(parameters.id),

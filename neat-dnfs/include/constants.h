@@ -18,7 +18,7 @@ namespace neat_dnfs
 	{
 		inline static std::string namePrefix = "nf ";
 		static constexpr double tau = 25;
-		static constexpr double restingLevel = -10;
+		static constexpr double restingLevel = -5;
 		inline static dnf_composer::element::HeavisideFunction activationFunction{ 0.0 };
 	};
 
@@ -26,22 +26,23 @@ namespace neat_dnfs
 	{
 		inline static std::string namePrefixConnectionGene = "fc cg ";
 		static constexpr dnf_composer::LearningRule learningRule = dnf_composer::LearningRule::OJA;
-		static constexpr double learningRate = 0.01;
+		static constexpr double learningRate = 0.1;
 		static constexpr double strength = 1.0;
 	};
 
 	struct KernelConstants
 	{
-		static constexpr bool circularity = false;
-		static constexpr bool normalization = false;
+		static constexpr bool circularity = true;
+		static constexpr bool normalization = true;
 	};
 
 	struct GaussKernelConstants
 	{
 		inline static std::string namePrefix = "gk ";
 		inline static std::string namePrefixConnectionGene = "gk cg ";
-		static constexpr double width = 2;
-		static constexpr double amplitude = 1;
+		static constexpr double width = 3;
+		static constexpr double amplitude = 3;
+		static constexpr double amplitudeGlobal = -0.1;
 		static constexpr double initialWidthMin = 0.1;
 		static constexpr double initialWidthMax = 5.0;
 		static constexpr double initialAmplitudeMin = 0.1;
@@ -51,11 +52,11 @@ namespace neat_dnfs
 	struct MexicanHatKernelConstants
 	{
 		inline static std::string namePrefix = "mhk ";
-		static constexpr double widthExc = 5.3;//5.3
-		static constexpr double widthInh = 7.4; //7.4
-		static constexpr double amplitudeExc = 6; //6
-		static constexpr double amplitudeInh = 6; //6
-		static constexpr double amplitudeGlobal = -0.01; //-0.55
+		static constexpr double widthExc = 2.5;//5.3
+		static constexpr double widthInh = 5.0; //7.4
+		static constexpr double amplitudeExc = 11.0; //6
+		static constexpr double amplitudeInh = 15.0; //6
+		static constexpr double amplitudeGlobal = -0.1; //-0.55
 	};
 
 	struct MutationConstants

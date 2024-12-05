@@ -16,13 +16,14 @@ namespace neat_dnfs
 
 	void SingleBumpSolution::testPhenotype()
 	{
+		initSimulation();
 		learningPhase();
 
 		const dnf_composer::element::GaussStimulusParameters stimParams = {
 			5.0,
 			15.0,
 			50.0,
-			false,
+			true,
 			false
 		};
 		addGaussianStimulus("nf 1", stimParams);
@@ -78,38 +79,50 @@ namespace neat_dnfs
 
 	void SingleBumpSolution::learningPhase()
 	{
+		bool isThereACoupling = false;
+
 		// activate learning for all the couplings
 		for (const auto& coupling : phenotype.getElements())
 		{
 			if (coupling->getLabel() == dnf_composer::element::ElementLabel::FIELD_COUPLING)
 			{
-				const auto fieldCoupling = std::dynamic_pointer_cast<dnf_composer::element::FieldCoupling>(coupling);
-				fieldCoupling->setLearning(true);
+				isThereACoupling = true;
 			}
 		}
-		// show inout stimulus
-		const dnf_composer::element::GaussStimulusParameters stimParams = {
-			5.0,
-			15.0,
-			50.0,
-			false,
-			false
-		};
-		addGaussianStimulus("nf 1", stimParams);
-		// show output stimulus
-		addGaussianStimulus("nf 2", stimParams);
-		initSimulation();
-		// run simulation
-		runSimulation(200);
-		// remove stimuli
-		removeGaussianStimuli();
-		// deactivate learning for all the couplings
-		for (const auto& coupling : phenotype.getElements())
+		if(isThereACoupling)
 		{
-			if (coupling->getLabel() == dnf_composer::element::ElementLabel::FIELD_COUPLING)
+			// show input stimulus
+			const dnf_composer::element::GaussStimulusParameters stimParams = {
+				5.0,
+				15.0,
+				50.0,
+				true,
+				false
+			};
+			addGaussianStimulus("nf 1", stimParams);
+			// show output stimulus
+			addGaussianStimulus("nf 2", stimParams);
+			initSimulation();
+			for (const auto& coupling : phenotype.getElements())
 			{
-				const auto fieldCoupling = std::dynamic_pointer_cast<dnf_composer::element::FieldCoupling>(coupling);
-				fieldCoupling->setLearning(false);
+				if (coupling->getLabel() == dnf_composer::element::ElementLabel::FIELD_COUPLING)
+				{
+					const auto fieldCoupling = std::dynamic_pointer_cast<dnf_composer::element::FieldCoupling>(coupling);
+					fieldCoupling->setLearning(true);
+				}
+			}
+			// run simulation
+			runSimulation(250);
+			// remove stimuli
+			removeGaussianStimuli();
+			// deactivate learning for all the couplings
+			for (const auto& coupling : phenotype.getElements())
+			{
+				if (coupling->getLabel() == dnf_composer::element::ElementLabel::FIELD_COUPLING)
+				{
+					const auto fieldCoupling = std::dynamic_pointer_cast<dnf_composer::element::FieldCoupling>(coupling);
+					fieldCoupling->setLearning(false);
+				}
 			}
 		}
 	}
