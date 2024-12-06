@@ -138,7 +138,7 @@ namespace neat_dnfs
 		if (PopulationConstants::validateUniqueGenesInGenomes)
 			validateUniqueGenesInGenomes();
 		if (PopulationConstants::validateUniqueKernelAndNeuralFieldPtrs)
-			validateUniqueKernelAndNeuralFieldPtrs();
+			validateUniqueCouplingAndNeuralFieldPtrs();
 
 		std::stringstream addr_bs;
 		addr_bs << bestSolution.get();
@@ -439,7 +439,7 @@ namespace neat_dnfs
 		}
 	}
 
-	void Population::validateUniqueKernelAndNeuralFieldPtrs() const
+	void Population::validateUniqueCouplingAndNeuralFieldPtrs() const
 	{
 		for (const auto& solution_a : solutions)
 		{

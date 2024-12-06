@@ -75,6 +75,23 @@ namespace neat_dnfs
 		else {
 			toggleConnectionGene();
 		}
+
+		// check if there are connection genes with the same input output pair
+		for (const auto& gene : connectionGenes)
+		{
+			const auto inFieldGeneId = gene.getInFieldGeneId();
+			const auto outFieldGeneId = gene.getOutFieldGeneId();
+			for (const auto& otherGene : connectionGenes)
+			{
+				if (gene.getInnovationNumber() != otherGene.getInnovationNumber() &&
+					inFieldGeneId == otherGene.getInFieldGeneId() &&
+					outFieldGeneId == otherGene.getOutFieldGeneId())
+				{
+					tools::logger::log(tools::logger::LogLevel::ERROR, "Mutation produced offspring with duplicate connection genes.");
+					break;
+				}
+			}
+		}
 	}
 
 	void Genome::clearGenerationalInnovations()
@@ -214,8 +231,10 @@ namespace neat_dnfs
 		addHiddenGene();
 
 		// create two new connection genes
-		const auto connectionGeneCouplingParametersIn = FieldCouplingParameters{ {DimensionConstants::xSize, DimensionConstants::dx}, FieldCouplingConstants::learningRule, FieldCouplingConstants::strength, FieldCouplingConstants::learningRate };
-		const auto connectionGeneCouplingParametersOut = FieldCouplingParameters{ {DimensionConstants::xSize, DimensionConstants::dx}, FieldCouplingConstants::learningRule, FieldCouplingConstants::strength, FieldCouplingConstants::learningRate };
+		const auto connectionGeneCouplingParametersIn = FieldCouplingParameters{ {DimensionConstants::xSize, DimensionConstants::dx},
+			FieldCouplingConstants::learningRule, FieldCouplingConstants::strength, FieldCouplingConstants::learningRate };
+		const auto connectionGeneCouplingParametersOut = FieldCouplingParameters{ {DimensionConstants::xSize, DimensionConstants::dx},
+			FieldCouplingConstants::learningRule, FieldCouplingConstants::strength, FieldCouplingConstants::learningRate };
 
 		const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId,
 			fieldGenes.back().getParameters().id}, connectionGeneCouplingParametersIn };
@@ -257,6 +276,20 @@ namespace neat_dnfs
 			return;
 		const auto connectionGeneId = tools::utils::generateRandomInt(0, static_cast<int>(connectionGenes.size()) - 1);
 		connectionGenes[connectionGeneId].toggle();
+	}
+
+	void Genome::removeConnectionGene(uint16_t innov)
+	{
+		const auto it = std::ranges::find_if(connectionGenes, [innov](const ConnectionGene& connectionGene)
+		{
+				return connectionGene.getInnovationNumber() == innov;
+		});
+
+		if (it == connectionGenes.end())
+			throw std::invalid_argument("Connection gene with the specified innovation number " +
+				std::to_string(innov) + " does not exist.");
+
+		connectionGenes.erase(it);
 	}
 
 	int Genome::excessGenes(const Genome& other) const
@@ -389,6 +422,17 @@ namespace neat_dnfs
 	bool Genome::containsFieldGene(const FieldGene& fieldGene) const
 	{
 		return std::ranges::find(fieldGenes, fieldGene) != fieldGenes.end();
+	}
+
+	bool Genome::containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const
+	{
+		for (const auto& connectionGene : connectionGenes)
+		{
+			if (gene.getInFieldGeneId() == connectionGene.getInFieldGeneId() &&
+				gene.getOutFieldGeneId() == connectionGene.getOutFieldGeneId())
+				return true;
+		}
+		return false;
 	}
 
 	ConnectionGene Genome::getConnectionGeneByInnovationNumber(uint16_t innovationNumber) const

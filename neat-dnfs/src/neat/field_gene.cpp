@@ -80,7 +80,7 @@ namespace neat_dnfs
 					break;
 				case 3: // change type
 					initializeMexicanHatKernel();
-					break;
+					return;
 				default:
 					break;
 				}
@@ -123,7 +123,7 @@ namespace neat_dnfs
 					break;
 				case 5: // change type
 					initializeGaussKernel();
-					break;
+					return;
 				default:
 					break;
 				}

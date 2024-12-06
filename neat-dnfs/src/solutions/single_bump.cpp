@@ -10,7 +10,6 @@ namespace neat_dnfs
 	{
 		SingleBumpSolution solution(initialTopology);
 		auto clonedSolution = std::make_shared<SingleBumpSolution>(solution);
-
 		return clonedSolution;
 	}
 
@@ -30,12 +29,12 @@ namespace neat_dnfs
 		initSimulation();
 		//runSimulationUntilFieldStable("nf 1");
 		//runSimulationUntilFieldStable("nf 2");
-		runSimulation(30);
+		runSimulation(30); 
 		updateFitness();
 		removeGaussianStimuli();
 		//runSimulationUntilFieldStable("nf 1");
 		//runSimulationUntilFieldStable("nf 2");
-		runSimulation(10);
+		runSimulation(10); 
 	}
 
 	void SingleBumpSolution::updateFitness()
@@ -112,7 +111,7 @@ namespace neat_dnfs
 				}
 			}
 			// run simulation
-			runSimulation(250);
+			runSimulation(250); // 250
 			// remove stimuli
 			removeGaussianStimuli();
 			// deactivate learning for all the couplings

@@ -92,7 +92,7 @@ namespace neat_dnfs
 	public:
 		Solution(const SolutionTopology& initialTopology);
 		virtual SolutionPtr clone() const = 0;
-		virtual SolutionPtr crossover(const SolutionPtr& other);
+		SolutionPtr crossover(const SolutionPtr& other);
 		void evaluate();
 		void initialize();
 		void mutate();
@@ -110,6 +110,7 @@ namespace neat_dnfs
 		void addFieldGene(const FieldGene& gene);
 		void addConnectionGene(const ConnectionGene& gene);
 		bool containsConnectionGene(const ConnectionGene& gene) const;
+		bool containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const;
 		bool hasTheSameTopology(const SolutionPtr& other) const;
 		bool hasTheSameParameters(const SolutionPtr& other) const;
 		bool hasTheSameGenome(const SolutionPtr& other) const;
@@ -124,7 +125,6 @@ namespace neat_dnfs
 		void createRandomInitialConnectionGenes();
 		void translateGenesToPhenotype();
 		void translateConnectionGenesToPhenotype();
-	public:
 	protected:
 		virtual void updateFitness() = 0;
 		virtual void testPhenotype() = 0;

@@ -1,5 +1,7 @@
 #include "user_interface/main_window_neat.h"
 
+#include "solutions/test_zero.h"
+
 
 namespace neat_dnfs
 {
@@ -103,11 +105,12 @@ namespace neat_dnfs
         if (ImGui::Button("Initialize", buttonSize))
         {
             //ActionSimulationLayerSolution solution(solutionParameters);
-			SingleBumpSolution solution(solutionParameters);
+			//SingleBumpSolution solution(solutionParameters);
 			//SelfSustainedSingleBumpSolution solution(solutionParameters);
+            TestZeroSolution solution(solutionParameters);
 
             population = std::make_shared<Population>(populationParameters,
-                std::make_shared<SingleBumpSolution>(solution));
+                std::make_shared<TestZeroSolution>(solution));
             population->initialize();
             isInitialized = true;
         }

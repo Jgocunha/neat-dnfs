@@ -22,6 +22,7 @@ namespace neat_dnfs
 		void addRandomInitialConnectionGene();
 		void mutate();
 		static void clearGenerationalInnovations();
+		void removeConnectionGene(uint16_t innov);
 
 		std::vector<FieldGene> getFieldGenes() const;
 		std::vector<ConnectionGene> getConnectionGenes() const;
@@ -38,7 +39,6 @@ namespace neat_dnfs
 		void addConnectionGene();
 		void mutateConnectionGene() const;
 		void toggleConnectionGene();
-
 	public:
 		int excessGenes(const Genome& other) const;
 		int disjointGenes(const Genome& other) const;
@@ -48,6 +48,7 @@ namespace neat_dnfs
 		void addConnectionGene(const ConnectionGene& connectionGene);
 		bool containsConnectionGene(const ConnectionGene& connectionGene) const;
 		bool containsFieldGene(const FieldGene& fieldGene) const;
+		bool containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const;
 
 		ConnectionGene getConnectionGeneByInnovationNumber(uint16_t innovationNumber) const;
 		FieldGene getFieldGeneById(uint16_t id) const;

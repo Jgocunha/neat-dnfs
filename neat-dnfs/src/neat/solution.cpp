@@ -143,15 +143,6 @@ namespace neat_dnfs
 					phenotype.createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
 					break;
 				}
-				/*case ElementLabel::LATERAL_INTERACTIONS:
-				{
-					const auto lip = std::dynamic_pointer_cast<LateralInteractions>(gene.getKernel())->getParameters();
-					const auto kernel = std::make_shared<LateralInteractions>(kcp, lip);
-					phenotype.addElement(kernel);
-					phenotype.createInteraction(nf->getUniqueName(), "output", kernel->getUniqueName());
-					phenotype.createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
-					break;
-				}*/
 				default:
 					throw std::invalid_argument("Invalid kernel label while translating genes to phenotype.");
 			}
@@ -185,6 +176,11 @@ namespace neat_dnfs
 					"output", "nf " + std::to_string(targetId));
 			}
 		}
+	}
+
+	bool Solution::containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const
+	{
+		return genome.containsConnectionGeneWithTheSameInputOutputPair(gene);
 	}
 
 	void Solution::incrementAge()
@@ -269,23 +265,47 @@ namespace neat_dnfs
 				// Non-matching genes are inherited randomly from the less fit parent
 				if (!moreFitParent->containsConnectionGene(gene))
 				{
-					if (tools::utils::generateRandomInt(0, 1))
+					if (!moreFitParent->containsConnectionGeneWithTheSameInputOutputPair(gene))
 					{
-						offspring->addConnectionGene(gene.clone());
-						// make sure the field genes are also added
-						const uint16_t inFieldGeneId = gene.getInFieldGeneId();
-						const uint16_t outFieldGeneId = gene.getOutFieldGeneId();
-						for (const auto& fieldGene : lessFitParent->getGenome().getFieldGenes())
+						if (tools::utils::generateRandomSignal())
 						{
-							if (fieldGene.getParameters().id == inFieldGeneId || fieldGene.getParameters().id == outFieldGeneId)
-								offspring->addFieldGene(fieldGene.clone());
-						}
+							offspring->addConnectionGene(gene.clone());
+							// make sure the field genes are also added
+							const uint16_t inFieldGeneId = gene.getInFieldGeneId();
+							const uint16_t outFieldGeneId = gene.getOutFieldGeneId();
+							for (const auto& fieldGene : lessFitParent->getGenome().getFieldGenes())
+							{
+								if (fieldGene.getParameters().id == inFieldGeneId || fieldGene.getParameters().id == outFieldGeneId)
+									offspring->addFieldGene(fieldGene.clone());
+							}
 
+						}
 					}
 				}
 			}
 
 		}
+
+		// check if there are connection genes with the same input and output field genes
+		for (const auto& gene : offspring->getGenome().getConnectionGenes())
+		{
+			const auto inFieldGeneId = gene.getInFieldGeneId();
+			const auto outFieldGeneId = gene.getOutFieldGeneId();
+			for (const auto& otherGene : offspring->getGenome().getConnectionGenes())
+			{
+				if (gene.getInnovationNumber() != otherGene.getInnovationNumber() &&
+					inFieldGeneId == otherGene.getInFieldGeneId() &&
+					outFieldGeneId == otherGene.getOutFieldGeneId())
+				{
+					if (fitnessDifference < 1e-6)
+						tools::logger::log(tools::logger::LogLevel::ERROR, "Crossover produced offspring with duplicate connection genes.");
+					else
+						tools::logger::log(tools::logger::LogLevel::WARNING, "Crossover produced offspring with duplicate connection genes.");
+					break;
+				}
+			}
+		}
+
 
 		return offspring;
 	}
@@ -330,10 +350,11 @@ namespace neat_dnfs
 			phenotype.getElement(targetElement)->getElementCommonParameters().dimensionParameters;
 
 		const std::string gsId = "gs " + targetElement + " " + std::to_string(parameters.position);
-		const auto gaussStimulus = GaussStimulus{
+		auto gaussStimulus = GaussStimulus{
 			{gsId, dimension}, parameters };
 		phenotype.addElement(std::make_shared<GaussStimulus>(gaussStimulus));
 		phenotype.createInteraction(gsId, "output", targetElement);
+		gaussStimulus.init();
 	}
 
 	void Solution::removeGaussianStimuli()
