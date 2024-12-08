@@ -55,7 +55,7 @@ namespace neat_dnfs
 					}
 				}
 				// run simulation
-				runSimulation(400); //250
+				runSimulation(250); //250
 				// remove stimuli
 				removeGaussianStimuli();
 				// deactivate learning for all the couplings

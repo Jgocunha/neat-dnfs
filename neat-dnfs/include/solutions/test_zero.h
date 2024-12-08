@@ -11,7 +11,7 @@ namespace neat_dnfs
 		std::vector<std::vector<double>> inputOutputBumps =
 		{
 			{25.0, 37.5},
-			//{50.0, 62.5},
+			{50.0, 62.5},
 			//{75.0, 87.5},
 			//{0.0, 12.5},
 		};
