@@ -1,5 +1,7 @@
 #pragma once
 
+#include <dnf_composer/simulation/simulation_file_manager.h>
+
 #include "solution.h"
 #include "species.h"
 
@@ -64,5 +66,6 @@ namespace neat_dnfs
 		void validateUniqueGenesInGenomes() const;
 		void validateUniqueCouplingAndNeuralFieldPtrs() const;
 		void print() const;
+		void saveAllSolutionsWithFitnessAbove(double fitness) const;
 	};
 }

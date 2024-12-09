@@ -60,14 +60,15 @@ namespace neat_dnfs
 		NeuralFieldPtr neuralField;
 		KernelPtr kernel;
 	public:
-		FieldGene(const FieldGeneParameters& parameters);
+		FieldGene(const FieldGeneParameters& parameters, 
+			const dnf_composer::element::ElementDimensions& dimensions = {100, 1.0});
 		FieldGene(const FieldGeneParameters& parameters,
 			const NeuralFieldPtr& neuralField, 
 			const KernelPtr& kernel);
 
-		void setAsInput();
-		void setAsOutput();
-		void setAsHidden();
+		void setAsInput(const dnf_composer::element::ElementDimensions& dimensions);
+		void setAsOutput(const dnf_composer::element::ElementDimensions& dimensions);
+		void setAsHidden(const dnf_composer::element::ElementDimensions& dimensions);
 
 		void mutate();
 
@@ -81,9 +82,9 @@ namespace neat_dnfs
 		void print() const;
 		FieldGene clone() const;
 	private:
-		void initializeNeuralField();
-		void initializeKernel();
-		void initializeGaussKernel();
-		void initializeMexicanHatKernel();
+		void initializeNeuralField(const dnf_composer::element::ElementDimensions& dimensions);
+		void initializeKernel(const dnf_composer::element::ElementDimensions& dimensions);
+		void initializeGaussKernel(const dnf_composer::element::ElementDimensions& dimensions);
+		void initializeMexicanHatKernel(const dnf_composer::element::ElementDimensions& dimensions);
 	};
 }

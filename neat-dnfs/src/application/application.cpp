@@ -28,7 +28,7 @@ namespace neat_dnfs
 		if (activateUI)
 		{
 			ui->addWindow<imgui_kit::LogWindow>();
-			ui->addWindow<MainWindow>();
+			//ui->addWindow<MainWindow>();
 			ui->initialize();
 		}
 	}

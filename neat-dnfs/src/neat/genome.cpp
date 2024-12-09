@@ -4,29 +4,29 @@ namespace neat_dnfs
 {
 	std::map<ConnectionTuple, uint16_t> Genome::connectionToInnovationNumberMap;
 
-	void Genome::addInputGene()
+	void Genome::addInputGene(const dnf_composer::element::ElementDimensions& dimensions)
 	{
 		const auto index = fieldGenes.size() + 1;
-		fieldGenes.push_back(FieldGene({ FieldGeneType::INPUT, static_cast<uint16_t>(index) }));
+		fieldGenes.push_back(FieldGene({ FieldGeneType::INPUT, static_cast<uint16_t>(index)}, dimensions ));
 	}
 
-	void Genome::addOutputGene()
+	void Genome::addOutputGene(const dnf_composer::element::ElementDimensions& dimensions)
 	{
 		const auto index = fieldGenes.size() + 1;
 		fieldGenes.push_back(FieldGene({ FieldGeneType::OUTPUT,
-			static_cast<uint16_t>(index) }));
+			static_cast<uint16_t>(index)}, dimensions ));
 	}
 
-	void Genome::addHiddenGene()
+	void Genome::addHiddenGene(const dnf_composer::element::ElementDimensions& dimensions)
 	{
 		const auto index = fieldGenes.size() + 1;
 		fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN,
-			static_cast<uint16_t>(index) }));
+			static_cast<uint16_t>(index) }, dimensions));
 	}
 
 	void Genome::addRandomInitialConnectionGene()
 	{
-		if (fieldGenes.size() < 2)
+		/*if (fieldGenes.size() < 2)
 			throw std::invalid_argument(
 				"There must be at least two genes to add a connection gene.");
 
@@ -37,8 +37,9 @@ namespace neat_dnfs
 			throw std::invalid_argument(
 				"Could not find input and output genes to add a connection gene.");
 
-		connectionGenes.push_back(ConnectionTuple{ static_cast<uint16_t>(inGeneId),
-			static_cast<uint16_t>(outGeneId) });
+		connectionGenes.emplace_back(ConnectionTuple{ static_cast<uint16_t>(inGeneId),
+			static_cast<uint16_t>(outGeneId) });*/
+		tools::logger::log(tools::logger::LogLevel::FATAL, "Method addRandomInitialConnectionGene is not implemented.");
 	}
 
 	void Genome::mutate()
@@ -191,7 +192,7 @@ namespace neat_dnfs
 		}
 
 		if (enabledConnectionGenes.empty())
-			return ConnectionGene{ {0, 0} };
+			return ConnectionGene{ {0, 0}, {DimensionConstants::xSize, DimensionConstants::dx}, {DimensionConstants::xSize, DimensionConstants::dx} };
 
 		const double randomValue = tools::utils::generateRandomDouble(0, static_cast<int>(enabledConnectionGenes.size()) - 1);
 
@@ -200,15 +201,20 @@ namespace neat_dnfs
 
 	void Genome::addConnectionGeneIfNewWithinGeneration(ConnectionTuple connectionTuple)
 	{
+		const FieldGene gene1 = getFieldGeneById(connectionTuple.inFieldGeneId);
+		const dnf_composer::element::ElementDimensions dimensions1 = gene1.getNeuralField()->getElementCommonParameters().dimensionParameters;
+		const FieldGene gene2 = getFieldGeneById(connectionTuple.outFieldGeneId);
+		const dnf_composer::element::ElementDimensions dimensions2 = gene2.getNeuralField()->getElementCommonParameters().dimensionParameters;
+
 		if (connectionToInnovationNumberMap.contains(connectionTuple))
 		{
 			const uint16_t innovationNumber = connectionToInnovationNumberMap[connectionTuple];
-			connectionGenes.emplace_back(connectionTuple);
+			connectionGenes.emplace_back(connectionTuple, dimensions1, dimensions2);
 			connectionGenes.back().setInnovationNumber(innovationNumber);
 		}
 		else
 		{
-			connectionGenes.emplace_back(connectionTuple);
+			connectionGenes.emplace_back(connectionTuple, dimensions1, dimensions2);
 			connectionToInnovationNumberMap.insert({ connectionTuple,
 				connectionGenes.back().getInnovationNumber() });
 		}
@@ -227,21 +233,33 @@ namespace neat_dnfs
 		const auto outGeneId = randEnabledConnectionGene.getParameters().connectionTuple.outFieldGeneId;
 		const auto coupling = randEnabledConnectionGene.getFieldCoupling();
 		const auto couplingParameters = std::dynamic_pointer_cast<FieldCoupling>(coupling)->getParameters();
+		const auto couplingInputDimensions = couplingParameters.inputFieldDimensions;
+		const auto couplingOutputDimensions = coupling->getElementCommonParameters().dimensionParameters;
 
-		addHiddenGene();
+		// for now new neural field will have the same dimensions as the input field
+		addHiddenGene(couplingInputDimensions);
 
 		// create two new connection genes
-		const auto connectionGeneCouplingParametersIn = FieldCouplingParameters{ {DimensionConstants::xSize, DimensionConstants::dx},
-			FieldCouplingConstants::learningRule, FieldCouplingConstants::strength, FieldCouplingConstants::learningRate };
-		const auto connectionGeneCouplingParametersOut = FieldCouplingParameters{ {DimensionConstants::xSize, DimensionConstants::dx},
+		const auto connectionGeneCouplingParametersIn = FieldCouplingParameters{ couplingInputDimensions,
 			FieldCouplingConstants::learningRule, FieldCouplingConstants::strength, FieldCouplingConstants::learningRate };
 
-		const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId,
-			fieldGenes.back().getParameters().id}, connectionGeneCouplingParametersIn };
-		const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id,
-			outGeneId}, connectionGeneCouplingParametersOut };
+		const auto connectionGeneCouplingParametersOut = FieldCouplingParameters{ couplingInputDimensions,
+			FieldCouplingConstants::learningRule, FieldCouplingConstants::strength, FieldCouplingConstants::learningRate };
+
+
+		const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, connectionGeneCouplingParametersIn, couplingInputDimensions };
+		const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, connectionGeneCouplingParametersOut, couplingOutputDimensions };
+
 		connectionGenes.push_back(connectionGeneIn);
 		connectionGenes.push_back(connectionGeneOut);
+
+		// 1.			// 2.
+		// nf 1			// nf 1
+		//	|			// | fc 1-3
+		//  | fc 1-2	// nf 3     (fc 1-2: disabled)
+		//  |			// | fc 3-2
+		// nf 2			// nf 2
+
 	}
 
 	void Genome::mutateGene() const

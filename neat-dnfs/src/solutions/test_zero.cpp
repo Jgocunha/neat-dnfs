@@ -4,7 +4,9 @@ namespace neat_dnfs
 {
 	TestZeroSolution::TestZeroSolution(const SolutionTopology& topology)
 		: Solution(topology)
-	{}
+	{
+		name = "Test Zero Solution";
+	}
 
 	SolutionPtr TestZeroSolution::clone() const
 	{
@@ -35,14 +37,14 @@ namespace neat_dnfs
 					GaussStimulusConstants::amplitude,
 					inputOutputBump.front(),
 					GaussStimulusConstants::circularity,
-					GaussStimulusConstants::normalization
-					});
+					GaussStimulusConstants::normalization},
+					phenotype.getElement("nf 1")->getElementCommonParameters().dimensionParameters);
 				addGaussianStimulus("nf 2", { GaussStimulusConstants::width,
 					GaussStimulusConstants::amplitude,
 					inputOutputBump.back(),
 					GaussStimulusConstants::circularity,
-					GaussStimulusConstants::normalization
-					});
+					GaussStimulusConstants::normalization},
+					phenotype.getElement("nf 2")->getElementCommonParameters().dimensionParameters);
 
 				initSimulation();
 
@@ -81,8 +83,8 @@ namespace neat_dnfs
 				GaussStimulusConstants::amplitude,
 				inputOutputBump.front(),
 				GaussStimulusConstants::circularity,
-				GaussStimulusConstants::normalization
-				});
+				GaussStimulusConstants::normalization },
+				phenotype.getElement("nf 1")->getElementCommonParameters().dimensionParameters);
 
 			initSimulation();
 			runSimulation(30);

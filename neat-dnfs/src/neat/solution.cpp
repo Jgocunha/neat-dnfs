@@ -3,11 +3,18 @@
 namespace neat_dnfs
 {
 	Solution::Solution(const SolutionTopology& initialTopology)
-		: initialTopology(initialTopology),
+		: id(uniqueIdentifierCounter++),
+		name("undefined"),
+		initialTopology(initialTopology),
 		parameters(),
-		phenotype(SimulationConstants::name, SimulationConstants::deltaT),
+		phenotype(SimulationConstants::name + std::to_string(id), SimulationConstants::deltaT),
 		genome()
 	{
+		for(const auto& geneTypeAndDimension : initialTopology.geneTopology)
+		{
+			
+		}
+
 		if (initialTopology.numInputGenes < SolutionConstants::minInitialInputGenes ||
 			initialTopology.numOutputGenes < SolutionConstants::minInitialOutputGenes)
 			throw std::invalid_argument("Number of input and output genes must be greater than 0");
@@ -85,19 +92,19 @@ namespace neat_dnfs
 	void Solution::createInputGenes()
 	{
 		for (int j = 0; j < initialTopology.numInputGenes; j++)
-			genome.addInputGene();
+			genome.addInputGene(initialTopology.inputDimensions);
 	}
 
 	void Solution::createOutputGenes()
 	{
 		for (int j = 0; j < initialTopology.numOutputGenes; j++)
-			genome.addOutputGene();
+			genome.addOutputGene(initialTopology.outputDimensions);
 	}
 
 	void Solution::createHiddenGenes()
 	{
 		for (int j = 0; j < initialTopology.numHiddenGenes; j++)
-			genome.addHiddenGene();
+			genome.addHiddenGene({ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 
 	void Solution::translateGenesToPhenotype()
@@ -340,18 +347,18 @@ namespace neat_dnfs
 		return true;
 	}
 
-
-	void Solution::addGaussianStimulus(const std::string& targetElement, const dnf_composer::element::GaussStimulusParameters& parameters)
+	void Solution::addGaussianStimulus(const std::string& targetElement, const dnf_composer::element::GaussStimulusParameters& stimulusParameters, 
+		const dnf_composer::element::ElementDimensions& dimensions)
 	{
 		using namespace dnf_composer;
 		using namespace dnf_composer::element;
 
-		static const ElementDimensions dimension = 
-			phenotype.getElement(targetElement)->getElementCommonParameters().dimensionParameters;
+		/*static const ElementDimensions dimension = 
+			phenotype.getElement(targetElement)->getElementCommonParameters().dimensionParameters;*/
 
-		const std::string gsId = "gs " + targetElement + " " + std::to_string(parameters.position);
+		const std::string gsId = "gs " + targetElement + " " + std::to_string(stimulusParameters.position);
 		auto gaussStimulus = GaussStimulus{
-			{gsId, dimension}, parameters };
+			{gsId, dimensions}, stimulusParameters };
 		phenotype.addElement(std::make_shared<GaussStimulus>(gaussStimulus));
 		phenotype.createInteraction(gsId, "output", targetElement);
 		gaussStimulus.init();

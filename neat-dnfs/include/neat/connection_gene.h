@@ -91,11 +91,15 @@ namespace neat_dnfs
 		ConnectionGeneParameters parameters;
 		FieldCouplingPtr coupling;
 	public:
-		ConnectionGene(ConnectionTuple connectionTuple);
 		ConnectionGene(ConnectionTuple connectionTuple,
-			const dnf_composer::element::FieldCouplingParameters& fcp);
-		ConnectionGene(const ConnectionGeneParameters& parameters, 
-			const dnf_composer::element::FieldCouplingParameters& fcp);
+			const dnf_composer::element::ElementDimensions& inputFieldDimensions,
+			const dnf_composer::element::ElementDimensions& outputFieldDimensions);
+		ConnectionGene(ConnectionTuple connectionTuple,
+			const dnf_composer::element::FieldCouplingParameters& fcp,
+			const dnf_composer::element::ElementDimensions& outputFieldDimensions);
+		ConnectionGene(const ConnectionGeneParameters& parameters,
+			const dnf_composer::element::FieldCouplingParameters& fcp,
+			const dnf_composer::element::ElementDimensions& outputFieldDimensions);
 
 		void mutate() const;
 		void disable();

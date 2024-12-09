@@ -4,9 +4,17 @@
 
 #include <exception>
 #include <iostream>
+#include "dnf_composer/application/application.h"
+#include <dnf_composer/user_interface/element_window.h>
+#include <dnf_composer/user_interface/main_window.h>
+#include <dnf_composer/user_interface/plot_control_window.h>
+#include <dnf_composer/user_interface/simulation_window.h>
+#include <dnf_composer/tools/logger.h>
+#include <user_interface/node_graph_window.h>
+#include <user_interface/plots_window.h>
 
 #include "neat/population.h"
-#include "solutions/self_sustained_single_bump.h"
+#include "solutions/test_zero.h"
 
 int main(int argc, char* argv[])
 {
@@ -14,16 +22,33 @@ int main(int argc, char* argv[])
 	{
 		using namespace neat_dnfs;
 
-		SelfSustainedSingleBumpSolution solution{ SolutionTopology{1, 1} };
+		TestZeroSolution solution{ SolutionTopology{1, {50, 1.0}, 1, {100, 1.0}} };
 		const PopulationParameters parameters{ 100, 1000, 0.90 };
-		Population population{ parameters, std::make_shared<SelfSustainedSingleBumpSolution>(solution) };
+		Population population{ parameters, std::make_shared<TestZeroSolution>(solution) };
 
 		population.initialize();
-
 		population.evolve();
 
 		const auto bestSolution = population.getBestSolution();
 		const auto phenotype = bestSolution->getPhenotype();
+
+		// run dnf-composer
+		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::WARNING);
+		using namespace dnf_composer;
+		Application app{ std::make_shared<Simulation>(phenotype) };
+		app.addWindow<user_interface::MainWindow>();
+		app.addWindow<user_interface::SimulationWindow>();
+		app.addWindow<user_interface::ElementWindow>();
+		app.addWindow<imgui_kit::LogWindow>();
+		app.addWindow<user_interface::PlotControlWindow>();
+		app.addWindow<user_interface::PlotsWindow>();
+		app.addWindow<user_interface::NodeGraphWindow>();
+		app.init();
+		do
+		{
+			app.step();
+		} while(!app.hasGUIBeenClosed());
+		app.close();
 
 		return 0;
 	}

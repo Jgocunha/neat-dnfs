@@ -51,15 +51,15 @@ set(header
 "include/neat/solution.h"
 "include/neat/species.h"
 
-"include/solutions/empty_solution.h"
-"include/solutions/single_bump.h"
-"include/solutions/self_sustained_single_bump.h"
-"include/solutions/asl.h"
+#"include/solutions/empty_solution.h"
+#"include/solutions/single_bump.h"
+#"include/solutions/self_sustained_single_bump.h"
+#"include/solutions/asl.h"
 "include/solutions/test_zero.h"
 
 "include/application/application.h"
-"include/user_interface/main_window_neat.h"
-"include/user_interface/solution_window.h"
+#"include/user_interface/main_window_neat.h"
+#"include/user_interface/solution_window.h"
 "include/tools/logger.h"
 "include/tools/utils.h"
 
@@ -73,15 +73,15 @@ set(src
 "src/neat/solution.cpp"
 "src/neat/species.cpp"
 
-"src/solutions/empty_solution.cpp"
-"src/solutions/single_bump.cpp"
-"src/solutions/self_sustained_single_bump.cpp"
-"src/solutions/asl.cpp"
+#"src/solutions/empty_solution.cpp"
+#"src/solutions/single_bump.cpp"
+#"src/solutions/self_sustained_single_bump.cpp"
+#"src/solutions/asl.cpp"
 "src/solutions/test_zero.cpp"
 
 "src/application/application.cpp"
-"src/user_interface/main_window_neat.cpp"
-"src/user_interface/solution_window.cpp"
+#"src/user_interface/main_window_neat.cpp"
+#"src/user_interface/solution_window.cpp"
 "src/tools/logger.cpp"
 )
 

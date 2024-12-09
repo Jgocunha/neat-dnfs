@@ -104,11 +104,11 @@ namespace neat_dnfs
 
 	struct MutationConstants
 	{
-		static constexpr double addFieldGeneProbability = 0.05;
-		static constexpr double mutateFieldGeneProbability = 0.14;
+		static constexpr double addFieldGeneProbability = 0.00;
+		static constexpr double mutateFieldGeneProbability = 0.20;
 		static constexpr double addConnectionGeneProbability = 0.45;
 		static constexpr double mutateConnectionGeneProbability = 0.35;
-		static constexpr double toggleConnectionGeneProbability = 0.01;
+		static constexpr double toggleConnectionGeneProbability = 0.00;
 	};
 
 	struct CompatibilityCoefficients
@@ -122,7 +122,7 @@ namespace neat_dnfs
 
 	struct SimulationConstants
 	{
-		inline static std::string name = "simulation";
+		inline static std::string name = "solution ";
 		static constexpr double deltaT = 25.0;
 		static constexpr size_t maxSimulationSteps = 100;
 	};

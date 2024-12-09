@@ -37,6 +37,8 @@ namespace neat_dnfs
 			//log(tools::logger::LogLevel::INFO, "Upkeep done.");
 			//print();
 		} while (!endConditionMet());
+
+		saveAllSolutionsWithFitnessAbove(0.4);
 	}
 
 	void Population::evaluate() const
@@ -502,5 +504,31 @@ namespace neat_dnfs
 			result += "\n";
 		}
 		log(tools::logger::LogLevel::INFO, result);
+	}
+
+	void Population::saveAllSolutionsWithFitnessAbove(double fitness) const
+	{
+		using namespace dnf_composer;
+		if (solutions.empty()) return;
+
+		// Construct directory path
+		const std::string solution_name = solutions[0]->getName(); // Assuming at least one solution exists
+		const auto now = std::time(nullptr);
+		const auto localTime = *std::localtime(&now);
+		char timeBuffer[100];
+		(void)std::strftime(timeBuffer, sizeof(timeBuffer), "%Y~%m~%d_%H'%M'%S", &localTime);
+
+		const std::string directoryPath = std::string(PROJECT_DIR) + "/data/" + solution_name + "/" + timeBuffer + "/";
+		std::filesystem::create_directories(directoryPath); // Ensure directories exist
+
+		for (const auto& solution : solutions)
+		{
+			if (solution->getFitness() > fitness)
+			{
+				auto simulation = std::make_shared<Simulation>(solution->getPhenotype());
+				SimulationFileManager sfm(simulation, directoryPath);
+				sfm.saveElementsToJson();
+			}
+		}
 	}
 }

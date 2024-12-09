@@ -16,9 +16,9 @@ namespace neat_dnfs
 	public:
 		Genome() = default;
 
-		void addInputGene();
-		void addOutputGene();
-		void addHiddenGene();
+		void addInputGene(const dnf_composer::element::ElementDimensions& dimensions);
+		void addOutputGene(const dnf_composer::element::ElementDimensions& dimensions);
+		void addHiddenGene(const dnf_composer::element::ElementDimensions& dimensions);
 		void addRandomInitialConnectionGene();
 		void mutate();
 		static void clearGenerationalInnovations();

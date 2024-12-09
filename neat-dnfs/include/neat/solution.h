@@ -10,33 +10,26 @@ namespace neat_dnfs
 
 	struct SolutionTopology
 	{
-		int numInputGenes;
-		int numOutputGenes;
-		int numHiddenGenes;
-		int numConnections;
+		std::vector<std::pair<FieldGeneType, dnf_composer::element::ElementDimensions>> geneTopology;
 
-		SolutionTopology(int numInputGenes = 3, int numOutputGenes = 1,
-			int numHiddenGenes = 0, int numConnections = 0)
-			: numInputGenes(numInputGenes), numOutputGenes(numOutputGenes),
-			numHiddenGenes(numHiddenGenes), numConnections(numConnections)
+		SolutionTopology(const std::vector<std::pair<FieldGeneType, dnf_composer::element::ElementDimensions>>& geneTypeAndDimension)
+			: geneTopology(geneTypeAndDimension)
 		{}
 
 		bool operator==(const SolutionTopology& other) const
 		{
-			return numInputGenes == other.numInputGenes &&
-				numOutputGenes == other.numOutputGenes &&
-				numHiddenGenes == other.numHiddenGenes &&
-				numConnections == other.numConnections;
+			return geneTopology == other.geneTopology;
 		}
 
 		std::string toString() const
 		{
-			std::string result = "Initial solution topology \n"
+			/*std::string result = "Initial solution topology \n"
 				"InputGenes: " + std::to_string(numInputGenes) +
 				", OutputGenes: " + std::to_string(numOutputGenes) +
 				", HiddenGenes: " + std::to_string(numHiddenGenes) +
 				", Connections: " + std::to_string(numConnections);
-			return result;
+			return result;*/
+			return "Initial solution topology to do";
 		}
 
 		void print() const
@@ -85,6 +78,9 @@ namespace neat_dnfs
 	class Solution : public std::enable_shared_from_this<Solution>
 	{
 	protected:
+		static inline int uniqueIdentifierCounter = 0;
+		int id;
+		std::string name;
 		SolutionTopology initialTopology;
 		SolutionParameters parameters;
 		Phenotype phenotype;
@@ -99,6 +95,7 @@ namespace neat_dnfs
 		Phenotype getPhenotype() const;
 		Genome getGenome() const;
 		SolutionParameters getParameters() const;
+		std::string getName() const { return name; }
 		double getFitness() const;
 		size_t getGenomeSize() const;
 		std::vector<uint16_t> getInnovationNumbers() const;
@@ -133,7 +130,9 @@ namespace neat_dnfs
 		void runSimulation(const uint16_t iterations);
 		bool runSimulationUntilFieldStable(const std::string& targetElement);
 		void addGaussianStimulus(const std::string& targetElement, 
-			const dnf_composer::element::GaussStimulusParameters& parameters);
+			const dnf_composer::element::GaussStimulusParameters& stimulusParameters,
+			const dnf_composer::element::ElementDimensions& dimensions
+		);
 		void removeGaussianStimuli();
 	};
 }
