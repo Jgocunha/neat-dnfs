@@ -10,14 +10,19 @@ namespace neat_dnfs
 		phenotype(SimulationConstants::name + std::to_string(id), SimulationConstants::deltaT),
 		genome()
 	{
+		// views::keys can be used
 		for(const auto& geneTypeAndDimension : initialTopology.geneTopology)
 		{
-			
+			if (geneTypeAndDimension.first == FieldGeneType::INPUT)
+				break;
+		}
+		for (const auto& geneTypeAndDimension : initialTopology.geneTopology)
+		{
+			if (geneTypeAndDimension.first == FieldGeneType::OUTPUT)
+				return;
 		}
 
-		if (initialTopology.numInputGenes < SolutionConstants::minInitialInputGenes ||
-			initialTopology.numOutputGenes < SolutionConstants::minInitialOutputGenes)
-			throw std::invalid_argument("Number of input and output genes must be greater than 0");
+		throw std::invalid_argument("Number of input and output genes must be greater than 0");
 	}
 
 	void Solution::evaluate()
@@ -36,7 +41,7 @@ namespace neat_dnfs
 
 	void Solution::createRandomInitialConnectionGenes()
 	{
-		for (int i = 0; i < initialTopology.numInputGenes * initialTopology.numOutputGenes; ++i)
+		for (int i = 0; i < initialTopology.geneTopology.size(); ++i)
 			if (tools::utils::generateRandomDouble(0.0, 1.0) < SolutionConstants::initialConnectionProbability)
 				genome.addRandomInitialConnectionGene();
 	}
@@ -91,20 +96,23 @@ namespace neat_dnfs
 
 	void Solution::createInputGenes()
 	{
-		for (int j = 0; j < initialTopology.numInputGenes; j++)
-			genome.addInputGene(initialTopology.inputDimensions);
+		for (const auto& gene : initialTopology.geneTopology)
+			if (gene.first == FieldGeneType::INPUT)
+				genome.addInputGene(gene.second);
 	}
 
 	void Solution::createOutputGenes()
 	{
-		for (int j = 0; j < initialTopology.numOutputGenes; j++)
-			genome.addOutputGene(initialTopology.outputDimensions);
+		for (const auto& gene : initialTopology.geneTopology)
+			if (gene.first == FieldGeneType::OUTPUT)
+				genome.addOutputGene(gene.second);
 	}
 
 	void Solution::createHiddenGenes()
 	{
-		for (int j = 0; j < initialTopology.numHiddenGenes; j++)
-			genome.addHiddenGene({ DimensionConstants::xSize, DimensionConstants::dx });
+		for (const auto& gene : initialTopology.geneTopology)
+			if (gene.first == FieldGeneType::HIDDEN)
+				genome.addHiddenGene(gene.second);
 	}
 
 	void Solution::translateGenesToPhenotype()
@@ -350,11 +358,7 @@ namespace neat_dnfs
 	void Solution::addGaussianStimulus(const std::string& targetElement, const dnf_composer::element::GaussStimulusParameters& stimulusParameters, 
 		const dnf_composer::element::ElementDimensions& dimensions)
 	{
-		using namespace dnf_composer;
 		using namespace dnf_composer::element;
-
-		/*static const ElementDimensions dimension = 
-			phenotype.getElement(targetElement)->getElementCommonParameters().dimensionParameters;*/
 
 		const std::string gsId = "gs " + targetElement + " " + std::to_string(stimulusParameters.position);
 		auto gaussStimulus = GaussStimulus{

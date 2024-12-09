@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
 	{
 		using namespace neat_dnfs;
 
-		TestZeroSolution solution{ SolutionTopology{1, {50, 1.0}, 1, {100, 1.0}} };
+		TestZeroSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {50, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
 		const PopulationParameters parameters{ 100, 1000, 0.90 };
 		Population population{ parameters, std::make_shared<TestZeroSolution>(solution) };
 
