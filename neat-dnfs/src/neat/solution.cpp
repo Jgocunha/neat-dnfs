@@ -325,6 +325,54 @@ namespace neat_dnfs
 		return offspring;
 	}
 
+	bool Solution::hasTheSameTopology(const SolutionPtr& other) const
+	{
+		return initialTopology == other->initialTopology;
+	}
+
+	bool Solution::hasTheSameGenome(const SolutionPtr& other) const
+	{
+		return genome == other->genome;
+	}
+
+	bool Solution::hasTheSameParameters(const SolutionPtr& other) const
+	{
+		return parameters == other->parameters;
+	}
+
+	bool Solution::hasTheSamePhenotype(const SolutionPtr& other) const
+	{
+		log(tools::logger::LogLevel::FATAL, "Checking if phenotypes are the same. "
+			"Functionality still not implemented.");
+		return false;
+	}
+
+	bool Solution::operator==(const SolutionPtr& other) const
+	{
+		return hasTheSameTopology(other) && hasTheSameGenome(other) && hasTheSameParameters(other);
+	}
+
+	std::string Solution::toString() const
+	{
+		std::stringstream address;
+		address << this;
+		std::string result = "Solution: \n";
+		result += "Address: " + address.str() + "\n";
+		result += "Topology: " + initialTopology.toString() + "\n";
+		result += "Parameters: " + parameters.toString() + "\n";
+		result += "Genome: " + genome.toString() + "\n";
+		result += "Phenotype: \n";
+		for (const auto& element : phenotype.getElements())
+			result += element->toString() + "\n";
+		return result;
+	}
+
+	void Solution::print() const
+	{
+		log(tools::logger::LogLevel::INFO, toString());
+	}
+
+
 	void Solution::initSimulation()
 	{
 		phenotype.init();
@@ -352,6 +400,7 @@ namespace neat_dnfs
 			if (counter > SimulationConstants::maxSimulationSteps)
 				return false;
 		} while (!neuralField->isStable());
+		//std::cout << "Field " << targetElement << " is stable after " << counter << " steps." << std::endl;
 		return true;
 	}
 
@@ -379,51 +428,78 @@ namespace neat_dnfs
 		}
 	}
 
-	bool Solution::hasTheSameTopology(const SolutionPtr& other) const
+	double Solution::oneBumpAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position, const double& 
+		amplitude, const double& width)
 	{
-		return initialTopology == other->initialTopology;
+		// if the field name is not in the phenotype, throw exception
+		// ... .containsElement(name);
+		static constexpr double weightBumps = 0.5;
+		static constexpr double weightPos = 0.25;
+		static constexpr double weightAmp = 0.15;
+		static constexpr double weightWidth = 0.1;
+		// if sum of weights is not 1.0, throw exception
+		if (std::abs(weightBumps + weightPos + weightAmp + weightWidth - 1.0) > 1e-6)
+			throw std::invalid_argument("Sum of weights must be 1.0");
+		static constexpr int targetNumberOfBumps = 1;
+		double fitness = 0.0;
+
+		using namespace dnf_composer::element;
+
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		// evaluate the number of bumps
+		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
+		fitness += weightBumps / ( 1.0 + std::abs(targetNumberOfBumps - numberOfBumps));
+		// evaluate the position of the bump(s)
+		NeuralFieldBump closestBump;
+		for (const auto& bump : neuralField->getBumps())
+		{
+			if (std::abs(bump.centroid - position) < std::abs(closestBump.centroid - position))
+				closestBump = bump;
+		}
+		fitness += weightPos / (1.0 + std::abs(closestBump.centroid - position));
+		// evaluate the amplitude of the bump(s)
+		fitness += weightAmp / (1.0 + std::abs(closestBump.amplitude - amplitude));
+		// evaluate the width of the bump(s)
+		fitness += weightWidth / (1.0 + std::abs(closestBump.width - width));
+
+		return fitness;
 	}
 
-	bool Solution::hasTheSameGenome(const SolutionPtr& other) const
+	double Solution::closenessToRestingLevel(const std::string& fieldName)
 	{
-		return genome == other->genome;
+		// highest value of activation should be equal to the resting level
+		// the farther it is from the resting level, the lower the fitness (0.0)
+		// the closer it is to the resting level, the higher the fitness (1.0)
+		using namespace dnf_composer::element;
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+
+		const double highestActivationValue = neuralField->getHighestActivation();
+		const double restingLevel = neuralField->getParameters().startingRestingLevel;
+
+		return 1.0 / (1.0 + std::abs(highestActivationValue - restingLevel));
 	}
 
-	bool Solution::hasTheSameParameters(const SolutionPtr& other) const
+	bool Solution::isThereAFieldCoupling() const
 	{
-		return parameters == other->parameters;
-	}
-
-	bool Solution::hasTheSamePhenotype(const SolutionPtr& other) const
-	{
-		log(tools::logger::LogLevel::FATAL, "Checking if phenotypes are the same. "
-									  "Functionality still not implemented.");
+		// replace loop by std::ranges::any_of()
+		using namespace dnf_composer::element;
+		for (const auto& element : phenotype.getElements())
+			if (element->getLabel() == ElementLabel::FIELD_COUPLING)
+				return true;
 		return false;
 	}
 
-	bool Solution::operator==(const SolutionPtr& other) const
+	void Solution::setLearningForFieldCouplings(bool learning)
 	{
-		return hasTheSameTopology(other) && hasTheSameGenome(other) && hasTheSameParameters(other);
-	}
-
-	std::string Solution::toString() const
-	{
-		std::stringstream address;
-		address << this;
-		std::string result = "Solution: \n";
-		result += "Address: " + address.str() + "\n";
-		result += "Topology: " + initialTopology.toString() + "\n";
-		result += "Parameters: " + parameters.toString() + "\n";
-		result += "Genome: " + genome.toString() + "\n";
-		result += "Phenotype: \n";
-		for(const auto& element : phenotype.getElements())
-			result += element->toString() + "\n";
-		return result;
-	}
-
-	void Solution::print() const
-	{
-		log(tools::logger::LogLevel::INFO, toString());
+		using namespace dnf_composer::element;
+		for (const auto& coupling : phenotype.getElements())
+		{
+			if (coupling->getLabel() == ElementLabel::FIELD_COUPLING)
+			{
+				const auto fieldCoupling = std::dynamic_pointer_cast<FieldCoupling>(coupling);
+				fieldCoupling->setLearning(learning);
+			}
+		}
 	}
 
 }

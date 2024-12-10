@@ -56,6 +56,7 @@ set(header
 #"include/solutions/self_sustained_single_bump.h"
 #"include/solutions/asl.h"
 "include/solutions/test_zero.h"
+"include/solutions/test_one.h"
 
 "include/application/application.h"
 #"include/user_interface/main_window_neat.h"
@@ -78,6 +79,7 @@ set(src
 #"src/solutions/self_sustained_single_bump.cpp"
 #"src/solutions/asl.cpp"
 "src/solutions/test_zero.cpp"
+"src/solutions/test_one.cpp"
 
 "src/application/application.cpp"
 #"src/user_interface/main_window_neat.cpp"

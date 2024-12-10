@@ -15,16 +15,19 @@
 
 #include "neat/population.h"
 #include "solutions/test_zero.h"
+#include "solutions/test_one.h"
 
 int main(int argc, char* argv[])
 {
 	try
 	{
+		//dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::WARNING);
 		using namespace neat_dnfs;
 
-		TestZeroSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {50, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
-		const PopulationParameters parameters{ 100, 1000, 0.90 };
-		Population population{ parameters, std::make_shared<TestZeroSolution>(solution) };
+		//TestZeroSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {50, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
+		TestOneSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {360, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
+		const PopulationParameters parameters{ 100, 1000, 0.7 };
+		Population population{ parameters, std::make_shared<TestOneSolution>(solution) };
 
 		population.initialize();
 		population.evolve();
@@ -33,7 +36,6 @@ int main(int argc, char* argv[])
 		const auto phenotype = bestSolution->getPhenotype();
 
 		// run dnf-composer
-		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::WARNING);
 		using namespace dnf_composer;
 		Application app{ std::make_shared<Simulation>(phenotype) };
 		app.addWindow<user_interface::MainWindow>();

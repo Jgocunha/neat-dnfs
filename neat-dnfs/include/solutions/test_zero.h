@@ -24,4 +24,4 @@ namespace neat_dnfs
 		void learning();
 		void testing();
 	};
-}
+} 

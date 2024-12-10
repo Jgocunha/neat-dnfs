@@ -526,6 +526,18 @@ namespace neat_dnfs
 			if (solution->getFitness() > fitness)
 			{
 				auto simulation = std::make_shared<Simulation>(solution->getPhenotype());
+				// save weights
+				for (const auto& element : simulation->getElements())
+				{
+					if (element->getLabel() == element::ElementLabel::FIELD_COUPLING)
+					{
+						const auto fieldCoupling = std::dynamic_pointer_cast<element::FieldCoupling>(element);
+						fieldCoupling->writeWeights();
+					}
+				}
+				// save elements
+				simulation->setUniqueIdentifier(simulation->getUniqueIdentifier() + " " 
+					+ std::to_string(solution->getFitness()));
 				SimulationFileManager sfm(simulation, directoryPath);
 				sfm.saveElementsToJson();
 			}
