@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
 
 		//TestZeroSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {50, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
 		TestOneSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {360, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
-		const PopulationParameters parameters{ 100, 1000, 0.7 };
+		const PopulationParameters parameters{ 100, 1000, 0.6 };
 		Population population{ parameters, std::make_shared<TestOneSolution>(solution) };
 
 		population.initialize();
