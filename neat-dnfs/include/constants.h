@@ -90,7 +90,7 @@ namespace neat_dnfs
 		static constexpr double widthInhStep = 0.5;
 
 		static constexpr double ampExcMinVal = 8.0;
-		static constexpr double ampExcMaxVal = 20.0;
+		static constexpr double ampExcMaxVal = 25.0;
 		static constexpr double ampExcStep = 0.5;
 
 		static constexpr double ampInhMinVal = 12.0;
@@ -105,9 +105,9 @@ namespace neat_dnfs
 	struct MutationConstants
 	{
 		static constexpr double addFieldGeneProbability = 0.00;
-		static constexpr double mutateFieldGeneProbability = 0.20;
-		static constexpr double addConnectionGeneProbability = 0.45;
-		static constexpr double mutateConnectionGeneProbability = 0.35;
+		static constexpr double mutateFieldGeneProbability = 0.75;
+		static constexpr double addConnectionGeneProbability = 0.00;
+		static constexpr double mutateConnectionGeneProbability = 0.25;
 		static constexpr double toggleConnectionGeneProbability = 0.00;
 	};
 
@@ -131,7 +131,7 @@ namespace neat_dnfs
 	{
 		static constexpr uint8_t minInitialInputGenes = 1;
 		static constexpr uint8_t minInitialOutputGenes = 1;
-		static constexpr double initialConnectionProbability = 0.0;
+		static constexpr double initialConnectionProbability = 1.0;
 	};
 
 	struct SpeciesConstants

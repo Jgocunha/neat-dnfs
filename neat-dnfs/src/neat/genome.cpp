@@ -37,8 +37,11 @@ namespace neat_dnfs
 			throw std::invalid_argument(
 				"Could not find input and output genes to add a connection gene.");
 
+		const dnf_composer::element::ElementDimensions dimensions1 = getFieldGeneById(static_cast<uint16_t>(inGeneId)).getNeuralField()->getElementCommonParameters().dimensionParameters;
+		const dnf_composer::element::ElementDimensions dimensions2 = getFieldGeneById(static_cast<uint16_t>(outGeneId)).getNeuralField()->getElementCommonParameters().dimensionParameters;
+
 		connectionGenes.emplace_back(ConnectionTuple{ static_cast<uint16_t>(inGeneId),
-			static_cast<uint16_t>(outGeneId) });*/
+			static_cast<uint16_t>(outGeneId)}, dimensions1, dimensions2);*/
 		tools::logger::log(tools::logger::LogLevel::FATAL, "Method addRandomInitialConnectionGene is not implemented.");
 	}
 

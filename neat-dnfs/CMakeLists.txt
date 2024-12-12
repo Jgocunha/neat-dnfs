@@ -57,6 +57,9 @@ set(header
 #"include/solutions/asl.h"
 "include/solutions/test_zero.h"
 "include/solutions/test_one.h"
+"include/solutions/color_space_map_stabilized.h"
+"include/solutions/color_space_map_in_sustained.h"
+"include/solutions/color_space_map_out_sustained.h"
 
 "include/application/application.h"
 #"include/user_interface/main_window_neat.h"
@@ -80,6 +83,9 @@ set(src
 #"src/solutions/asl.cpp"
 "src/solutions/test_zero.cpp"
 "src/solutions/test_one.cpp"
+"src/solutions/color_space_map_stabilized.cpp"
+"src/solutions/color_space_map_in_sustained.cpp"
+"src/solutions/color_space_map_out_sustained.cpp"
 
 "src/application/application.cpp"
 #"src/user_interface/main_window_neat.cpp"

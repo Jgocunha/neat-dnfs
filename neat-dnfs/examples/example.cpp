@@ -16,18 +16,30 @@
 #include "neat/population.h"
 #include "solutions/test_zero.h"
 #include "solutions/test_one.h"
+#include "solutions/color_space_map_stabilized.h"
+#include "solutions/color_space_map_in_sustained.h"
+#include "solutions/color_space_map_out_sustained.h"
 
 int main(int argc, char* argv[])
 {
 	try
 	{
-		//dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::WARNING);
+		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::WARNING);
 		using namespace neat_dnfs;
 
 		//TestZeroSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {50, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
-		TestOneSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {360, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
-		const PopulationParameters parameters{ 100, 1000, 0.6 };
-		Population population{ parameters, std::make_shared<TestOneSolution>(solution) };
+		//TestOneSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {360, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
+		//ColorSpaceMapStabilizedSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {360, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
+		//ColorSpaceMapInputSustainedSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {360, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
+		ColorSpaceMapOutputSustainedSolution solution{
+			SolutionTopology{ {
+				{FieldGeneType::INPUT, {360, 1.0}},
+				{FieldGeneType::OUTPUT, {100, 1.0}}
+			}}
+		};
+		const PopulationParameters parameters{ 100, 1000, 0.7 };
+		// for ColorSpaceMapInputSustainedSolution target fitness should be above 0.6 (@ 0.t there is no self-sustained bump)
+		Population population{ parameters, std::make_shared<ColorSpaceMapOutputSustainedSolution>(solution) };
 
 		population.initialize();
 		population.evolve();

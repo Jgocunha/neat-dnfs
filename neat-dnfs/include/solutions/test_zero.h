@@ -10,10 +10,9 @@ namespace neat_dnfs
 	private:
 		std::vector<std::vector<double>> inputOutputBumps =
 		{
-			{25.0, 37.5},
-			//{50.0, 62.5},
-			//{75.0, 87.5},
-			//{0.0, 12.5},
+			{0.0, 75.0},
+			{120.0, 50.0},
+			{240.0, 25.0},
 		};
 	public:
 		TestZeroSolution(const SolutionTopology& topology);

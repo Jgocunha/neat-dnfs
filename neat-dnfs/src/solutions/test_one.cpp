@@ -19,6 +19,7 @@ namespace neat_dnfs
 	{
 		initSimulation();
 		learning();
+		initSimulation();
 		testing();
 	}
 
