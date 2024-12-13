@@ -10,9 +10,9 @@ namespace neat_dnfs
 	private:
 		std::vector<std::vector<double>> inputOutputBumps =
 		{
-			//{0.0, 75.0},
+			{0.0, 75.0},
 			{120.0, 50.0},
-			//{240.0, 25.0},
+			{240.0, 25.0},
 		};
 	public:
 		ColorSpaceMapOutputSustainedSolution(const SolutionTopology& topology);

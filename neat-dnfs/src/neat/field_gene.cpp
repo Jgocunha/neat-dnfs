@@ -55,47 +55,47 @@ namespace neat_dnfs
 		const int signal = generateRandomSignal();
 		switch(label)
 		{
-		case ElementLabel::GAUSS_KERNEL:
-			{
-				const auto gaussKernel = std::dynamic_pointer_cast<GaussKernel>(kernel);
-				GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
-				ElementDimensions gkd = kernel->getElementCommonParameters().dimensionParameters;
+		//case ElementLabel::GAUSS_KERNEL:
+		//	{
+		//		const auto gaussKernel = std::dynamic_pointer_cast<GaussKernel>(kernel);
+		//		GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
+		//		ElementDimensions gkd = kernel->getElementCommonParameters().dimensionParameters;
 
-				const int mutationSelection = generateRandomInt(0, 3); // number of mutable parameters + change type
-				switch(mutationSelection)
-				{
-				case 0: // width
-					gkp.width = std::clamp(gkp.width + GaussKernelConstants::widthStep * signal,
-						GaussKernelConstants::widthMinVal, 
-						GaussKernelConstants::widthMaxVal);
-					break;
-				case 1: // amplitude
-					gkp.amplitude = std::clamp(gkp.amplitude + GaussKernelConstants::ampStep * signal,
-						GaussKernelConstants::ampMinVal,
-						GaussKernelConstants::ampMaxVal);
-					break;
-				case 2: // amplitude global
-					gkp.amplitudeGlobal = std::clamp(gkp.amplitudeGlobal + GaussKernelConstants::ampStep * signal,
-						GaussKernelConstants::ampGlobalMinVal,
-						GaussKernelConstants::ampGlobalMaxVal);
-					break;
-				case 3: // change type
-					initializeMexicanHatKernel(gkd);
-					return;
-				default:
-					break;
-				}
-				std::dynamic_pointer_cast<GaussKernel>(kernel)->setParameters(gkp);
-			}
+		//		const int mutationSelection = generateRandomInt(0, 3); // number of mutable parameters + change type
+		//		switch(mutationSelection)
+		//		{
+		//		case 0: // width
+		//			gkp.width = std::clamp(gkp.width + GaussKernelConstants::widthStep * signal,
+		//				GaussKernelConstants::widthMinVal, 
+		//				GaussKernelConstants::widthMaxVal);
+		//			break;
+		//		case 1: // amplitude
+		//			gkp.amplitude = std::clamp(gkp.amplitude + GaussKernelConstants::ampStep * signal,
+		//				GaussKernelConstants::ampMinVal,
+		//				GaussKernelConstants::ampMaxVal);
+		//			break;
+		//		case 2: // amplitude global
+		//			gkp.amplitudeGlobal = std::clamp(gkp.amplitudeGlobal + GaussKernelConstants::ampStep * signal,
+		//				GaussKernelConstants::ampGlobalMinVal,
+		//				GaussKernelConstants::ampGlobalMaxVal);
+		//			break;
+		//		case 3: // change type
+		//			initializeMexicanHatKernel(gkd);
+		//			return;
+		//		default:
+		//			break;
+		//		}
+		//		std::dynamic_pointer_cast<GaussKernel>(kernel)->setParameters(gkp);
+		//	}
 
-			break;
+		//	break;
 		case ElementLabel::MEXICAN_HAT_KERNEL:
 			{
 				const auto mexicanHatKernel = std::dynamic_pointer_cast<MexicanHatKernel>(kernel);
 				MexicanHatKernelParameters mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
 				ElementDimensions mhkd = kernel->getElementCommonParameters().dimensionParameters;
 
-				const int mutationSelection = generateRandomInt(0, 5); // number of mutable parameters + change type
+				const int mutationSelection = generateRandomInt(0, 4); // number of mutable parameters + change type
 				switch (mutationSelection)
 				{
 				case 0: // width exc
@@ -124,7 +124,7 @@ namespace neat_dnfs
 						MexicanHatKernelConstants::ampGlobMax);
 					break;
 				case 5: // change type
-					initializeGaussKernel(mhkd);
+					//initializeGaussKernel(mhkd);
 					return;
 				default:
 					break;
@@ -222,17 +222,17 @@ namespace neat_dnfs
 		using namespace neat_dnfs::tools::utils;
 
 		// randomly select kernel type
-		switch (generateRandomInt(0, 1))
-		{
-		case 0:
-			initializeGaussKernel(dimensions);
-		break;
-		case 1:
+		//switch (generateRandomInt(0, 1))
+		//{
+		//case 0:
+		//	initializeGaussKernel(dimensions);
+		//break;
+		//case 1:
 			initializeMexicanHatKernel(dimensions);
-		break;
-		default:
-			break;
-		}
+		//break;
+		//default:
+			//break;
+		//}
 	}
 
 	void FieldGene::initializeGaussKernel(const dnf_composer::element::ElementDimensions& dimensions)

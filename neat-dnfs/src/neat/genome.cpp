@@ -151,6 +151,17 @@ namespace neat_dnfs
 		return { static_cast<uint16_t>(geneIndex1), static_cast<uint16_t>(geneIndex2) };
 	}
 
+	int Genome::getRandomGeneId() const
+	{
+		if (fieldGenes.empty())
+			return -1;
+
+		const int randomValue = tools::utils::generateRandomInt(0, static_cast<int>(fieldGenes.size()) - 1);
+
+		return fieldGenes[randomValue].getParameters().id;
+	}
+
+
 	int Genome::getRandomGeneIdByType(FieldGeneType type) const
 	{
 		std::vector<uint16_t> geneIds;
@@ -267,7 +278,7 @@ namespace neat_dnfs
 
 	void Genome::mutateGene() const
 	{
-		const int geneId = getRandomGeneIdByType(FieldGeneType::HIDDEN);
+		const int geneId = getRandomGeneId();
 		if (geneId == -1)
 			return;
 		auto gene = getFieldGeneById(static_cast<uint16_t>(geneId));

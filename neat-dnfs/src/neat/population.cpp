@@ -17,25 +17,21 @@ namespace neat_dnfs
 	{
 		do
 		{
-			//validateUniqueKernelAndNeuralFieldPtrs();
-
 			evaluate();
 			//log(tools::logger::LogLevel::INFO, "Evaluation done.");
 			//print();
-			//validateUniqueKernelAndNeuralFieldPtrs();
 
 			speciate();
 			//log(tools::logger::LogLevel::INFO, "Speciation done.");
-			//validateUniqueKernelAndNeuralFieldPtrs();
-
 			//print();
 			reproduceAndSelect();
 			//log(tools::logger::LogLevel::INFO, "Reproduction and selection done.");
-			//validateUniqueKernelAndNeuralFieldPtrs();
 			//print();
+
 			upkeep();
 			//log(tools::logger::LogLevel::INFO, "Upkeep done.");
 			//print();
+
 		} while (!endConditionMet());
 
 		saveAllSolutionsWithFitnessAbove(0.4);

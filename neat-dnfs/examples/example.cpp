@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
 				{FieldGeneType::OUTPUT, {100, 1.0}}
 			}}
 		};
-		const PopulationParameters parameters{ 100, 1000, 0.7 };
+		const PopulationParameters parameters{ 100, 1000, 0.65 };
 		// for ColorSpaceMapInputSustainedSolution target fitness should be above 0.6 (@ 0.t there is no self-sustained bump)
 		Population population{ parameters, std::make_shared<ColorSpaceMapOutputSustainedSolution>(solution) };
 

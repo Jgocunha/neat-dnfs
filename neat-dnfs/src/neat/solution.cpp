@@ -35,8 +35,8 @@ namespace neat_dnfs
 	{
 		createInputGenes();
 		createOutputGenes();
-		createHiddenGenes();
-		createRandomInitialConnectionGenes();
+		//createHiddenGenes();
+		//createRandomInitialConnectionGenes();
 	}
 
 	void Solution::createRandomInitialConnectionGenes()
@@ -371,6 +371,9 @@ namespace neat_dnfs
 	{
 		log(tools::logger::LogLevel::INFO, toString());
 	}
+
+
+
 
 
 	void Solution::initSimulation()
