@@ -73,9 +73,10 @@ namespace neat_dnfs
 			runSimulationUntilFieldStable("nf 1");
 			runSimulationUntilFieldStable("nf 2");
 
+			const double expectedInput = inputOutputBump.front();
 			const double expectedOutput = inputOutputBump.back();
-			const double f1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", expectedOutput, 10.0, 5.0);
-			double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", expectedOutput, 10.0, 5.0);
+			const double f1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", expectedInput, 15.0, 10.0);
+			const double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", expectedOutput, 15.0, 10.0);
 
 			removeGaussianStimuli();
 
@@ -93,8 +94,11 @@ namespace neat_dnfs
 			static constexpr double wf2 = 0.6;
 			static constexpr double wf3 = 0.1;
 			static constexpr double wf4 = 0.1;
+			std::cout << " f1: " << f1 << " f2: " << f2 << " f3: " << f3 << " f4: " << f4 << std::endl;
 			parameters.fitness += (1.0 / (inputOutputBumps.size())) * (wf1 * f1 + wf2 * f2 + wf3 * f3 + wf4 * f4);
+			std::cout << "Behaviour <" << expectedInput << ", " << expectedOutput << "> fitness: " << parameters.fitness << std::endl;
 		}
+		std::cout << "Total fitness: " << parameters.fitness << std::endl;
 	}
 
 	void ColorSpaceMapStabilizedSolution::updateFitness()

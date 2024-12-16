@@ -29,17 +29,27 @@ int main(int argc, char* argv[])
 
 		//TestZeroSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {50, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
 		//TestOneSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {360, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
-		//ColorSpaceMapStabilizedSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {360, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
-		//ColorSpaceMapInputSustainedSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {360, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
-		ColorSpaceMapOutputSustainedSolution solution{
+		//ColorSpaceMapStabilizedSolution solution{
+		//	SolutionTopology{ {
+		//		{FieldGeneType::INPUT, {360, 1.0}},
+		//		{FieldGeneType::OUTPUT, {100, 1.0}}
+		//	}}
+		//};
+		/*ColorSpaceMapOutputSustainedSolution solution{
+			SolutionTopology{ {
+				{FieldGeneType::INPUT, {360, 1.0}},
+				{FieldGeneType::OUTPUT, {100, 1.0}}
+			}}
+		};*/
+		ColorSpaceMapInputSustainedSolution solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {360, 1.0}},
 				{FieldGeneType::OUTPUT, {100, 1.0}}
 			}}
 		};
-		const PopulationParameters parameters{ 100, 1000, 0.65 };
-		// for ColorSpaceMapInputSustainedSolution target fitness should be above 0.6 (@ 0.t there is no self-sustained bump)
-		Population population{ parameters, std::make_shared<ColorSpaceMapOutputSustainedSolution>(solution) };
+
+		const PopulationParameters parameters{ 100, 1000, 0.8 };
+		Population population{ parameters, std::make_shared<ColorSpaceMapInputSustainedSolution>(solution) };
 
 		population.initialize();
 		population.evolve();

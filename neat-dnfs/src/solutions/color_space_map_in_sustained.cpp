@@ -71,31 +71,42 @@ namespace neat_dnfs
 
 			initSimulation();
 
+			const double f0_1 = closenessToRestingLevel("nf 1");
+			const double f0_2 = closenessToRestingLevel("nf 2");
+
 			runSimulationUntilFieldStable("nf 1");
 			runSimulationUntilFieldStable("nf 2");
 
+			const double expectedInput = inputOutputBump.front();
 			const double expectedOutput = inputOutputBump.back();
-			const double f1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", expectedOutput, 25.0, 8.0);
-			double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", expectedOutput, 15.0, 6.0);
+			const double f1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", expectedInput, 25.0, 17.0);
+			const double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", expectedOutput, 25.0, 17.0);
 
 			removeGaussianStimuli();
 
 			runSimulationUntilFieldStable("nf 1");
 			runSimulationUntilFieldStable("nf 2");
 
-			const double f3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", expectedOutput, 15.0, 6.0);
-			const double f4 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", expectedOutput, 10.0, 5.0);
+			const double f3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", expectedInput, 10.0, 9.0);
+			const double f4 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", expectedOutput, 10.0, 9.0);
 
+			// f0_1 closeness to resting level before any stimulus
+			// f0_2 closeness to resting level before any stimulus
 			// f1 only one bump at the input field
 			// f2 only one bump at the output field
 			// f3 only one bump at the input field (after removing the stimulus)
 			// f4 only one bump at the output field (after removing the stimulus)
+			static constexpr double wf0_1 = 0.05;
+			static constexpr double wf0_2 = 0.05;
 			static constexpr double wf1 = 0.15;
-			static constexpr double wf2 = 0.35;
-			static constexpr double wf3 = 0.35;
+			static constexpr double wf2 = 0.30;
+			static constexpr double wf3 = 0.30;
 			static constexpr double wf4 = 0.15;
-			parameters.fitness += (1.0 / (inputOutputBumps.size())) * (wf1 * f1 + wf2 * f2 + wf3 * f3 + wf4 * f4);
+			std::cout << "f0_1: " << f0_1 << " f0_2: " << f0_2 << " f1: " << f1 << " f2: " << f2 << " f3: " << f3 << " f4: " << f4 << std::endl;
+			parameters.fitness += (1.0 / (inputOutputBumps.size())) * (wf1 * f1 + wf2 * f2 + wf3 * f3 + wf4 * f4 + wf0_1 * f0_1 + wf0_2 * f0_2);
+			std::cout << "Behaviour <" << expectedInput << ", " << expectedOutput << "> fitness: " << parameters.fitness << std::endl;
 		}
+		std::cout << "Total fitness: " << parameters.fitness << std::endl;
 	}
 
 	void ColorSpaceMapInputSustainedSolution::updateFitness()

@@ -88,6 +88,8 @@ namespace neat_dnfs
 	class ConnectionGene
 	{
 	private:
+		static inline int fc_id_count = 0;
+		int fc_id;
 		ConnectionGeneParameters parameters;
 		FieldCouplingPtr coupling;
 	public:

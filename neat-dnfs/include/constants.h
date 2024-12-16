@@ -97,20 +97,20 @@ namespace neat_dnfs
 		static constexpr double amplitudeInh = 15.0;  // 15.0
 		static constexpr double amplitudeGlobal = -0.1; // -0.1
 
-		static constexpr double widthExcMinVal = 2.0; // 2.0
-		static constexpr double widthExcMaxVal = 20.0; // 9.0
+		static constexpr double widthExcMinVal = 1.0; // 2.0
+		static constexpr double widthExcMaxVal = 250.0; // 9.0
 		static constexpr double widthExcStep = 0.5; // 0.5
 
-		static constexpr double widthInhMinVal = 5.0; // 5.0
-		static constexpr double widthInhMaxVal = 30.0; // 30.0
+		static constexpr double widthInhMinVal = 1.0; // 5.0
+		static constexpr double widthInhMaxVal = 350.0; // 30.0
 		static constexpr double widthInhStep = 0.5; // 0.5
 
-		static constexpr double ampExcMinVal = 8.0; // 8.0
-		static constexpr double ampExcMaxVal = 25.0; // 25.0
+		static constexpr double ampExcMinVal = 1.0; // 8.0
+		static constexpr double ampExcMaxVal = 50.0; // 25.0
 		static constexpr double ampExcStep = 0.5; // 0.5
 
-		static constexpr double ampInhMinVal = 12.0; // 12.0
-		static constexpr double ampInhMaxVal = 30.0; // 30.0
+		static constexpr double ampInhMinVal = 1.0; // 12.0
+		static constexpr double ampInhMaxVal = 50.0; // 30.0
 		static constexpr double ampInhStep = 0.5; // 0.5
 
 		static constexpr double ampGlobMin = -0.5; // -0.5
