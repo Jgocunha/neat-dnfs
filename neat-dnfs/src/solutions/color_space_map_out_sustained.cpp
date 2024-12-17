@@ -81,7 +81,7 @@ namespace neat_dnfs
 			const double expectedInput = inputOutputBump.front();
 			const double expectedOutput = inputOutputBump.back();
 			const double f1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", expectedInput, 20.0, 20.0);
-			const double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", expectedOutput, 20.0, 20.0);
+			const double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", expectedOutput, 15.0, 17.0);
 
 			removeGaussianStimuli();
 

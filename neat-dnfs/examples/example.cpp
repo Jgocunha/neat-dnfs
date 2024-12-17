@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
 			}}
 		};*/
 
-		const PopulationParameters parameters{ 100, 1000, 0.8 };
+		const PopulationParameters parameters{ 100, 1000, 0.9 };
 		Population population{ parameters, std::make_shared<ColorSpaceMapOutputSustainedSolution>(solution) };
 
 		population.initialize();
