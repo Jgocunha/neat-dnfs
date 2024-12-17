@@ -35,21 +35,21 @@ int main(int argc, char* argv[])
 		//		{FieldGeneType::OUTPUT, {100, 1.0}}
 		//	}}
 		//};
-		/*ColorSpaceMapOutputSustainedSolution solution{
-			SolutionTopology{ {
-				{FieldGeneType::INPUT, {360, 1.0}},
-				{FieldGeneType::OUTPUT, {100, 1.0}}
-			}}
-		};*/
-		ColorSpaceMapInputSustainedSolution solution{
+		ColorSpaceMapOutputSustainedSolution solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {360, 1.0}},
 				{FieldGeneType::OUTPUT, {100, 1.0}}
 			}}
 		};
+		/*ColorSpaceMapInputSustainedSolution solution{
+			SolutionTopology{ {
+				{FieldGeneType::INPUT, {360, 1.0}},
+				{FieldGeneType::OUTPUT, {100, 1.0}}
+			}}
+		};*/
 
 		const PopulationParameters parameters{ 100, 1000, 0.8 };
-		Population population{ parameters, std::make_shared<ColorSpaceMapInputSustainedSolution>(solution) };
+		Population population{ parameters, std::make_shared<ColorSpaceMapOutputSustainedSolution>(solution) };
 
 		population.initialize();
 		population.evolve();

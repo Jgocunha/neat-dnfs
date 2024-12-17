@@ -438,8 +438,8 @@ namespace neat_dnfs
 		// ... .containsElement(name);
 		static constexpr double weightBumps = 0.5;
 		static constexpr double weightPos = 0.25;
-		static constexpr double weightAmp = 0.15;
-		static constexpr double weightWidth = 0.1;
+		static constexpr double weightAmp = 0.20;
+		static constexpr double weightWidth = 0.05;
 		// if sum of weights is not 1.0, throw exception
 		if (std::abs(weightBumps + weightPos + weightAmp + weightWidth - 1.0) > 1e-6)
 			throw std::invalid_argument("Sum of weights must be 1.0");

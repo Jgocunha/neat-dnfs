@@ -98,32 +98,32 @@ namespace neat_dnfs
 		static constexpr double amplitudeGlobal = -0.1; // -0.1
 
 		static constexpr double widthExcMinVal = 1.0; // 2.0
-		static constexpr double widthExcMaxVal = 250.0; // 9.0
+		static constexpr double widthExcMaxVal = 5.0; // 9.0
 		static constexpr double widthExcStep = 0.5; // 0.5
 
 		static constexpr double widthInhMinVal = 1.0; // 5.0
-		static constexpr double widthInhMaxVal = 350.0; // 30.0
+		static constexpr double widthInhMaxVal = 10.0; // 30.0
 		static constexpr double widthInhStep = 0.5; // 0.5
 
-		static constexpr double ampExcMinVal = 1.0; // 8.0
-		static constexpr double ampExcMaxVal = 50.0; // 25.0
-		static constexpr double ampExcStep = 0.5; // 0.5
+		static constexpr double ampExcMinVal = 15.0; // 8.0
+		static constexpr double ampExcMaxVal = 40.0; // 25.0
+		static constexpr double ampExcStep = 1.0; // 0.5
 
-		static constexpr double ampInhMinVal = 1.0; // 12.0
-		static constexpr double ampInhMaxVal = 50.0; // 30.0
+		static constexpr double ampInhMinVal = 10.0; // 12.0
+		static constexpr double ampInhMaxVal = 20.0; // 30.0
 		static constexpr double ampInhStep = 0.5; // 0.5
 
-		static constexpr double ampGlobMin = -0.5; // -0.5
+		static constexpr double ampGlobMin = -0.1; // -0.5
 		static constexpr double ampGlobMax = -0.01; // -0.01
-		static constexpr double ampGlobStep = 0.01; // 0.01
+		static constexpr double ampGlobStep = 0.005; // 0.01
 	};
 
 	struct MutationConstants
 	{
 		static constexpr double addFieldGeneProbability = 0.00;
 		static constexpr double mutateFieldGeneProbability = 0.65;
-		static constexpr double addConnectionGeneProbability = 0.1;
-		static constexpr double mutateConnectionGeneProbability = 0.25;
+		static constexpr double addConnectionGeneProbability = 0.05;
+		static constexpr double mutateConnectionGeneProbability = 0.30;
 		static constexpr double toggleConnectionGeneProbability = 0.00;
 	};
 

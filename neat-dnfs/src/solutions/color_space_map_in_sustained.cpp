@@ -98,10 +98,10 @@ namespace neat_dnfs
 			// f4 only one bump at the output field (after removing the stimulus)
 			static constexpr double wf0_1 = 0.05;
 			static constexpr double wf0_2 = 0.05;
-			static constexpr double wf1 = 0.15;
-			static constexpr double wf2 = 0.30;
-			static constexpr double wf3 = 0.30;
-			static constexpr double wf4 = 0.15;
+			static constexpr double wf1 = 0.20;
+			static constexpr double wf2 = 0.35;
+			static constexpr double wf3 = 0.35;
+			static constexpr double wf4 = 0.0;
 			std::cout << "f0_1: " << f0_1 << " f0_2: " << f0_2 << " f1: " << f1 << " f2: " << f2 << " f3: " << f3 << " f4: " << f4 << std::endl;
 			parameters.fitness += (1.0 / (inputOutputBumps.size())) * (wf1 * f1 + wf2 * f2 + wf3 * f3 + wf4 * f4 + wf0_1 * f0_1 + wf0_2 * f0_2);
 			std::cout << "Behaviour <" << expectedInput << ", " << expectedOutput << "> fitness: " << parameters.fitness << std::endl;
