@@ -89,7 +89,7 @@ namespace neat_dnfs
 			runSimulationUntilFieldStable("nf 2");
 
 			const double f3 = closenessToRestingLevel("nf 1");
-			const double f4 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", expectedOutput, 5.0, 9.0);
+			const double f4 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", expectedOutput, 4.0, 8.0);
 
 			// f0_1 closeness to resting level before any stimulus
 			// f0_2 closeness to resting level before any stimulus
@@ -103,11 +103,11 @@ namespace neat_dnfs
 			static constexpr double wf2 = 0.30;
 			static constexpr double wf3 = 0.15;
 			static constexpr double wf4 = 0.30;
-			std::cout << "f0_1: " << f0_1 << " f0_2: " << f0_2 << " f1: " << f1 << " f2: " << f2 << " f3: " << f3 << " f4: " << f4 << std::endl;
+			//std::cout << "f0_1: " << f0_1 << " f0_2: " << f0_2 << " f1: " << f1 << " f2: " << f2 << " f3: " << f3 << " f4: " << f4 << std::endl;
 			parameters.fitness += (1.0 / (inputOutputBumps.size())) * (wf1 * f1 + wf2 * f2 + wf3 * f3 + wf4 * f4 + wf0_1 * f0_1 + wf0_2 * f0_2);
-			std::cout << "Behaviour <" << expectedInput << ", " << expectedOutput << "> fitness: " << parameters.fitness << std::endl;
+			//std::cout << "Behaviour <" << expectedInput << ", " << expectedOutput << "> fitness: " << parameters.fitness << std::endl;
 		}
-		std::cout << "Total fitness: " << parameters.fitness << std::endl;
+		//std::cout << "Total fitness: " << parameters.fitness << std::endl;
 	}
 
 	void ColorSpaceMapOutputSustainedSolution::updateFitness()

@@ -25,6 +25,16 @@ namespace neat_dnfs
 		{}
 	};
 
+	struct PopulationControl
+	{
+		bool pause;
+		bool stop;
+
+		PopulationControl(bool pause = false, bool stop = false)
+			: pause(pause), stop(stop)
+		{}
+	};
+
 	class Population
 	{
 	private:
@@ -32,21 +42,32 @@ namespace neat_dnfs
 		std::vector<SolutionPtr> solutions;
 		std::vector<Species> speciesList;
 		SolutionPtr bestSolution;
+		PopulationControl control;
 	public:
 		Population(const PopulationParameters& parameters, 
 			const SolutionPtr& initialSolution);
 		void initialize() const;
 		void evolve();
+		void evolutionaryStep();
 		void evaluate() const;
 		void speciate();
 		void reproduceAndSelect();
+
+		bool isInitialized() const { return !solutions.empty(); }
+
+		void pause() { control.pause = true; }
+		void resume() { control.pause = false; }
+		void stop() { control.stop = true; }
+		void start() { control.stop = false; }
+
 		std::vector<SolutionPtr> selectElites() const;
 		std::vector<SolutionPtr> selectLessFit() const;
 		std::vector<SolutionPtr> reproduce() const;
 		bool endConditionMet() const;
+
+		SolutionPtr getBestSolution() const;
 		std::vector<Species>& getSpeciesList() { return speciesList; }
 		std::vector<SolutionPtr> getSolutions() const { return solutions; }
-		SolutionPtr getBestSolution() const;
 		void setSize(uint16_t size) { parameters.size = size; }
 		void setNumGenerations(uint16_t numGenerations) { parameters.numGenerations = numGenerations; }
 		uint16_t getSize() const { return parameters.size; }
