@@ -1,5 +1,7 @@
 #pragma once
 
+#include <future>
+
 #include <dnf_composer/simulation/simulation_file_manager.h>
 
 #include "solution.h"

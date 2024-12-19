@@ -34,13 +34,24 @@ namespace neat_dnfs
 
 		} while (!endConditionMet());
 
-		saveAllSolutionsWithFitnessAbove(0.4);
+		saveAllSolutionsWithFitnessAbove(parameters.targetFitness - 0.2);
 	}
 
 	void Population::evaluate() const
 	{
+		std::vector<std::future<void>> futures;
 		for (const auto& solution : solutions)
-			solution->evaluate();
+		{
+			futures.emplace_back(std::async(std::launch::async, [&solution]()
+				{
+					solution->evaluate();
+				}));
+		}
+
+		for (auto& future : futures)
+		{
+			future.get();
+		}
 	}
 
 	void Population::speciate()

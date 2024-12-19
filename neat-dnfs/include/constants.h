@@ -44,8 +44,8 @@ namespace neat_dnfs
 		static constexpr double learningRate = 0.1;
 		static constexpr double strength = 1.0;
 		static constexpr double couplingStrengthMinVal = 1.0;
-		static constexpr double couplingStrengthMaxVal = 50.0;
-		static constexpr double couplingStrengthStep = 1.0;
+		static constexpr double couplingStrengthMaxVal = 10.0;
+		static constexpr double couplingStrengthStep = 0.5;
 	};
 
 	struct KernelConstants
