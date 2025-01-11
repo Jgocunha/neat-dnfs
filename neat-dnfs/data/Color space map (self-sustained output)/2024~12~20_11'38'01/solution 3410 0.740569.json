@@ -1,0 +1,112 @@
+[
+    {
+        "activationFunction": {
+            "type": "heaviside",
+            "x_shift": 0.0
+        },
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "mhk 1",
+                "output"
+            ]
+        ],
+        "label": [
+            1,
+            "neural field"
+        ],
+        "restingLevel": -5.4558921618068155,
+        "tau": 201.2127686931877,
+        "uniqueName": "nf 1",
+        "x_max": 360
+    },
+    {
+        "amplitudeExc": 14.7561402690032,
+        "amplitudeGlobal": -0.03151303812022342,
+        "amplitudeInh": 13.389017624716615,
+        "circular": true,
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "nf 1",
+                "output"
+            ]
+        ],
+        "label": [
+            4,
+            "mexican hat kernel"
+        ],
+        "normalized": true,
+        "uniqueName": "mhk 1",
+        "widthExc": 7.77317030696404,
+        "widthInh": 14.533186087136505,
+        "x_max": 360
+    },
+    {
+        "activationFunction": {
+            "type": "heaviside",
+            "x_shift": 0.0
+        },
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "mhk 2",
+                "output"
+            ],
+            [
+                "fc cg 1 - 2 0 384",
+                "output"
+            ]
+        ],
+        "label": [
+            1,
+            "neural field"
+        ],
+        "restingLevel": -12.230386620174126,
+        "tau": 40.761965481064806,
+        "uniqueName": "nf 2",
+        "x_max": 100
+    },
+    {
+        "amplitudeExc": 35.20819454251884,
+        "amplitudeGlobal": -0.09812328531873968,
+        "amplitudeInh": 17.35514064542283,
+        "circular": true,
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "nf 2",
+                "output"
+            ]
+        ],
+        "label": [
+            4,
+            "mexican hat kernel"
+        ],
+        "normalized": true,
+        "uniqueName": "mhk 2",
+        "widthExc": 7.321417576390035,
+        "widthInh": 19.356222194650968,
+        "x_max": 100
+    },
+    {
+        "d_x": 1.0,
+        "input_d_x": 1.0,
+        "input_x_max": 360,
+        "inputs": [
+            [
+                "nf 1",
+                "output"
+            ]
+        ],
+        "label": [
+            6,
+            "field coupling"
+        ],
+        "learningRate": 1.0,
+        "learningRule": 0,
+        "scalar": 1.0,
+        "uniqueName": "fc cg 1 - 2 0 384",
+        "x_max": 100
+    }
+]

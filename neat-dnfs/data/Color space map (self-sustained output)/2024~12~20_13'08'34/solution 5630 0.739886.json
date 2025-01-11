@@ -1,0 +1,110 @@
+[
+    {
+        "activationFunction": {
+            "type": "heaviside",
+            "x_shift": 0.0
+        },
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "mhk 1",
+                "output"
+            ]
+        ],
+        "label": [
+            1,
+            "neural field"
+        ],
+        "restingLevel": -7.28466504616142,
+        "tau": 162.37765091255832,
+        "uniqueName": "nf 1",
+        "x_max": 360
+    },
+    {
+        "amplitudeExc": 15.362303324491256,
+        "amplitudeGlobal": -0.07031448522343764,
+        "amplitudeInh": 10.610335462893383,
+        "circular": true,
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "nf 1",
+                "output"
+            ]
+        ],
+        "label": [
+            4,
+            "mexican hat kernel"
+        ],
+        "normalized": true,
+        "uniqueName": "mhk 1",
+        "widthExc": 8.899082071033313,
+        "widthInh": 21.584472226199033,
+        "x_max": 360
+    },
+    {
+        "activationFunction": {
+            "type": "heaviside",
+            "x_shift": 0.0
+        },
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "fc cg 1 - 2 69 2185",
+                "output"
+            ],
+            [
+                "gk 2",
+                "output"
+            ]
+        ],
+        "label": [
+            1,
+            "neural field"
+        ],
+        "restingLevel": -3.81849296771874,
+        "tau": 209.16394584832636,
+        "uniqueName": "nf 2",
+        "x_max": 100
+    },
+    {
+        "amplitude": 7.078254561389288,
+        "amplitudeGlobal": -0.03318761353946856,
+        "circular": true,
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "nf 2",
+                "output"
+            ]
+        ],
+        "label": [
+            3,
+            "gauss kernel"
+        ],
+        "normalized": true,
+        "uniqueName": "gk 2",
+        "width": 1.8119560528835414,
+        "x_max": 100
+    },
+    {
+        "d_x": 1.0,
+        "input_d_x": 1.0,
+        "input_x_max": 360,
+        "inputs": [
+            [
+                "nf 1",
+                "output"
+            ]
+        ],
+        "label": [
+            6,
+            "field coupling"
+        ],
+        "learningRate": 1.0,
+        "learningRule": 0,
+        "scalar": 1.0,
+        "uniqueName": "fc cg 1 - 2 69 2185",
+        "x_max": 100
+    }
+]

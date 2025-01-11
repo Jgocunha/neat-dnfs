@@ -18,7 +18,7 @@ namespace neat_dnfs
 	{
 		inline static std::string namePrefix = "gs ";
 		static constexpr double width = 5.0;
-		static constexpr double amplitude = 15.0;
+		static constexpr double amplitude = 20.0;
 		static constexpr bool circularity = true;
 		static constexpr bool normalization = false;
 	};
@@ -32,7 +32,7 @@ namespace neat_dnfs
 		static constexpr double tauMinVal = 15.0;
 		static constexpr double tauMaxVal = 300.0;
 		static constexpr double tauStep = 1.0;
-		static constexpr double restingLevelMinVal = -30.0;
+		static constexpr double restingLevelMinVal = -20.0;
 		static constexpr double restingLevelMaxVal = -3.0;
 		static constexpr double restingLevelStep = 0.5;
 	};
@@ -40,12 +40,12 @@ namespace neat_dnfs
 	struct FieldCouplingConstants
 	{
 		inline static std::string namePrefixConnectionGene = "fc cg ";
-		static constexpr dnf_composer::LearningRule learningRule = dnf_composer::LearningRule::OJA;
-		static constexpr double learningRate = 0.1;
+		static constexpr dnf_composer::LearningRule learningRule = dnf_composer::LearningRule::HEBB;
+		static constexpr double learningRate = 1.0;
 		static constexpr double strength = 1.0;
 		static constexpr double couplingStrengthMinVal = 1.0;
-		static constexpr double couplingStrengthMaxVal = 10.0;
-		static constexpr double couplingStrengthStep = 0.5;
+		static constexpr double couplingStrengthMaxVal = 1.0;
+		static constexpr double couplingStrengthStep = 0.0;
 	};
 
 	struct KernelConstants
@@ -56,34 +56,18 @@ namespace neat_dnfs
 
 	struct GaussKernelConstants
 	{
-		//inline static std::string namePrefix = "gk ";
-		//inline static std::string namePrefixConnectionGene = "gk cg ";
-		//static constexpr double width = 3;
-		//static constexpr double amplitude = 3;
-		//static constexpr double amplitudeGlobal = -0.1;
-		//static constexpr double widthMinVal = 1.0; // 3`
-		//static constexpr double widthMaxVal = 50.0; // 5.0
-		//static constexpr double widthStep = 0.5; // 0.5
-		//static constexpr double ampMinVal = 1; // 0.5
-		//static constexpr double ampMaxVal = 50.0; // 8.0
-		//static constexpr double ampStep = 0.5; // 0.5
-		//static constexpr double ampGlobalMinVal = -0.5; // -0.5
-		//static constexpr double ampGlobalMaxVal = -0.01; // -0.01
-		//static constexpr double ampGlobalStep = 0.01; // 0.01
-
-		// forcing all kernels to be mh
 		inline static std::string namePrefix = "gk ";
 		inline static std::string namePrefixConnectionGene = "gk cg ";
 		static constexpr double width = 1;
 		static constexpr double amplitude = 1;
 		static constexpr double amplitudeGlobal = -0.1;
 		static constexpr double widthMinVal = 1.0; // 3`
-		static constexpr double widthMaxVal = 1.0; // 5.0
-		static constexpr double widthStep = 0.5; // 0.5
+		static constexpr double widthMaxVal = 5.0; // 5.0
+		static constexpr double widthStep = 0.1; // 0.5
 		static constexpr double ampMinVal = 1; // 0.5
-		static constexpr double ampMaxVal = 1.0; // 8.0
-		static constexpr double ampStep = 0.5; // 0.5
-		static constexpr double ampGlobalMinVal = -0.5; // -0.5
+		static constexpr double ampMaxVal = 8.0; // 8.0
+		static constexpr double ampStep = 0.1; // 0.5
+		static constexpr double ampGlobalMinVal = -0.1; // -0.5
 		static constexpr double ampGlobalMaxVal = -0.01; // -0.01
 		static constexpr double ampGlobalStep = 0.01; // 0.01	 
 	};
@@ -98,32 +82,32 @@ namespace neat_dnfs
 		static constexpr double amplitudeGlobal = -0.1; // -0.1
 
 		static constexpr double widthExcMinVal = 1.0; // 2.0
-		static constexpr double widthExcMaxVal = 5.0; // 9.0
-		static constexpr double widthExcStep = 0.5; // 0.5
+		static constexpr double widthExcMaxVal = 9.0; // 9.0
+		static constexpr double widthExcStep = 0.1; // 0.5
 
-		static constexpr double widthInhMinVal = 1.0; // 5.0
-		static constexpr double widthInhMaxVal = 10.0; // 30.0
-		static constexpr double widthInhStep = 0.5; // 0.5
+		static constexpr double widthInhMinVal = 5.0; // 5.0
+		static constexpr double widthInhMaxVal = 30.0; // 30.0
+		static constexpr double widthInhStep = 0.1; // 0.5
 
-		static constexpr double ampExcMinVal = 15.0; // 8.0
+		static constexpr double ampExcMinVal = 8.0; // 8.0
 		static constexpr double ampExcMaxVal = 40.0; // 25.0
-		static constexpr double ampExcStep = 1.0; // 0.5
+		static constexpr double ampExcStep = 0.1; // 0.5
 
 		static constexpr double ampInhMinVal = 10.0; // 12.0
-		static constexpr double ampInhMaxVal = 20.0; // 30.0
-		static constexpr double ampInhStep = 0.5; // 0.5
+		static constexpr double ampInhMaxVal = 30.0; // 30.0
+		static constexpr double ampInhStep = 0.1; // 0.5
 
 		static constexpr double ampGlobMin = -0.1; // -0.5
 		static constexpr double ampGlobMax = -0.01; // -0.01
-		static constexpr double ampGlobStep = 0.005; // 0.01
+		static constexpr double ampGlobStep = 0.01; // 0.01
 	};
 
 	struct MutationConstants
 	{
 		static constexpr double addFieldGeneProbability = 0.00;
-		static constexpr double mutateFieldGeneProbability = 0.65;
+		static constexpr double mutateFieldGeneProbability = 0.95;
 		static constexpr double addConnectionGeneProbability = 0.05;
-		static constexpr double mutateConnectionGeneProbability = 0.30;
+		static constexpr double mutateConnectionGeneProbability = 0.00;
 		static constexpr double toggleConnectionGeneProbability = 0.00;
 	};
 
