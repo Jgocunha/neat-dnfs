@@ -17,6 +17,7 @@
 #include "tools/logger.h"
 #include "solutions/single_bump.h"
 #include "solutions/self_sustained_single_bump.h"
+#include "solutions/and.h"
 
 int main(int argc, char* argv[])
 {
@@ -28,6 +29,7 @@ int main(int argc, char* argv[])
 		SelfSustainedSingleBumpSolution solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}}
 			}}
 		};

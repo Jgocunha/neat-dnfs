@@ -4,7 +4,9 @@ namespace neat_dnfs
 {
 	SelfSustainedSingleBumpSolution::SelfSustainedSingleBumpSolution(const SolutionTopology& topology)
 		: Solution(topology)
-	{}
+	{
+		name = "Single bump (self-sustained)";
+	}
 
 	SolutionPtr SelfSustainedSingleBumpSolution::clone() const
 	{

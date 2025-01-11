@@ -136,8 +136,8 @@ namespace neat_dnfs
 	{
 		static constexpr double addFieldGeneProbability = 0.00;
 		static constexpr double mutateFieldGeneProbability = 0.45;
-		static constexpr double addConnectionGeneProbability = 0.05;
-		static constexpr double mutateConnectionGeneProbability = 0.50;
+		static constexpr double addConnectionGeneProbability = 0.20;
+		static constexpr double mutateConnectionGeneProbability = 0.35;
 		static constexpr double toggleConnectionGeneProbability = 0.00;
 	};
 

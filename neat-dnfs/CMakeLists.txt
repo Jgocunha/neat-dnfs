@@ -54,7 +54,7 @@ set(header
 #"include/solutions/empty_solution.h"
 "include/solutions/single_bump.h"
 "include/solutions/self_sustained_single_bump.h"
-#"include/solutions/asl.h"
+"include/solutions/and.h"
 
 "include/application/application.h"
 #"include/user_interface/setup_window.h"
@@ -74,7 +74,7 @@ set(src
 #"src/solutions/empty_solution.cpp"
 "src/solutions/single_bump.cpp"
 "src/solutions/self_sustained_single_bump.cpp"
-#"src/solutions/asl.cpp"
+"src/solutions/and.cpp"
 
 "src/application/application.cpp"
 #"src/user_interface/setup_window.cpp"

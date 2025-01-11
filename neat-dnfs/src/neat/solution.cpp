@@ -422,11 +422,10 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 
 		const std::string gsId = "gs " + targetElement + " " + std::to_string(stimulusParameters.position);
-		auto gaussStimulus = GaussStimulus{
-			{gsId, dimensions}, stimulusParameters };
-		phenotype.addElement(std::make_shared<GaussStimulus>(gaussStimulus));
+		const auto gaussStimulus = std::make_shared<GaussStimulus>(GaussStimulus{ { gsId, dimensions }, stimulusParameters });
+		phenotype.addElement(gaussStimulus);
 		phenotype.createInteraction(gsId, "output", targetElement);
-		gaussStimulus.init();
+		gaussStimulus->init();
 	}
 
 	void Solution::removeGaussianStimuli()
@@ -491,27 +490,17 @@ namespace neat_dnfs
 		return 1.0 / (1.0 + std::abs(highestActivationValue - restingLevel));
 	}
 
-	bool Solution::isThereAFieldCoupling() const
-	{
-		// replace loop by std::ranges::any_of()
-		using namespace dnf_composer::element;
-		for (const auto& element : phenotype.getElements())
-			if (element->getLabel() == ElementLabel::FIELD_COUPLING)
-				return true;
-		return false;
-	}
-
-	void Solution::setLearningForFieldCouplings(bool learning)
+	double Solution::preShapedness(const std::string& fieldName)
 	{
 		using namespace dnf_composer::element;
-		for (const auto& coupling : phenotype.getElements())
-		{
-			if (coupling->getLabel() == ElementLabel::FIELD_COUPLING)
-			{
-				const auto fieldCoupling = std::dynamic_pointer_cast<FieldCoupling>(coupling);
-				fieldCoupling->setLearning(learning);
-			}
-		}
-	}
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
 
+		const double highestActivationValue = neuralField->getHighestActivation();
+		const double restingLevel = neuralField->getParameters().startingRestingLevel;
+		// target activation is between the resting level and 0.0 (supra-threshold)
+		const double targetActivation = restingLevel / 2.0;
+		const double width = std::abs(targetActivation);
+
+		return tools::utils::normalizeWithGaussian(-highestActivationValue, -targetActivation, width);
+	}
 }

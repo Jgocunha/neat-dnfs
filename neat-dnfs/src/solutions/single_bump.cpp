@@ -4,7 +4,10 @@ namespace neat_dnfs
 {
 	SingleBumpSolution::SingleBumpSolution(const SolutionTopology& topology)
 		: Solution(topology)
-	{}
+	{
+		name = "Single bump (self-stabilized)";
+		// target fitness is 0.85
+	}
 
 	SolutionPtr SingleBumpSolution::clone() const
 	{

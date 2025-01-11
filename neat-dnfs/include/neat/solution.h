@@ -137,7 +137,6 @@ namespace neat_dnfs
 		double oneBumpAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
 			const double& position, const double& amplitude, const double& width);
 		double closenessToRestingLevel(const std::string& fieldName);
-		bool isThereAFieldCoupling() const;
-		void setLearningForFieldCouplings(bool learning);
+		double preShapedness(const std::string& fieldName);
 	};
 }
