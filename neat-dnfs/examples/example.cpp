@@ -14,11 +14,9 @@
 #include <user_interface/plots_window.h>
 
 #include "neat/population.h"
-#include "solutions/test_zero.h"
-#include "solutions/test_one.h"
-#include "solutions/color_space_map_stabilized.h"
-#include "solutions/color_space_map_in_sustained.h"
-#include "solutions/color_space_map_out_sustained.h"
+#include "tools/logger.h"
+#include "solutions/single_bump.h"
+#include "solutions/self_sustained_single_bump.h"
 
 int main(int argc, char* argv[])
 {
@@ -27,29 +25,14 @@ int main(int argc, char* argv[])
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
 
-		//TestZeroSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {50, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
-		//TestOneSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {360, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
-		/*ColorSpaceMapStabilizedSolution solution{
+		SelfSustainedSingleBumpSolution solution{
 			SolutionTopology{ {
-				{FieldGeneType::INPUT, {360, 1.0}},
-				{FieldGeneType::OUTPUT, {100, 1.0}}
-			}}
-		};*/
-		ColorSpaceMapOutputSustainedSolution solution{
-			SolutionTopology{ {
-				{FieldGeneType::INPUT, {360, 1.0}},
-				{FieldGeneType::OUTPUT, {100, 1.0}}
+				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}}
 			}}
 		};
-		/*ColorSpaceMapInputSustainedSolution solution{
-			SolutionTopology{ {
-				{FieldGeneType::INPUT, {360, 1.0}},
-				{FieldGeneType::OUTPUT, {100, 1.0}}
-			}}
-		};*/
-
-		const PopulationParameters parameters{ 1000, 1000, 0.82 };
-		Population population{ parameters, std::make_shared<ColorSpaceMapOutputSustainedSolution>(solution) };
+		const PopulationParameters parameters{ 1000, 1000, 0.85 };
+		Population population{ parameters, std::make_shared<SelfSustainedSingleBumpSolution>(solution) };
 
 		population.initialize();
 		population.evolve();

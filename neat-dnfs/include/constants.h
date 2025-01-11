@@ -75,6 +75,8 @@ namespace neat_dnfs
 	struct MexicanHatKernelConstants
 	{
 		inline static std::string namePrefix = "mhk ";
+		inline static std::string namePrefixConnectionGene = "mhk cg ";
+
 		static constexpr double widthExc = 2.5; // 2.5
 		static constexpr double widthInh = 5.0; // 5.0
 		static constexpr double amplitudeExc = 11.0;  // 11.0
@@ -102,12 +104,40 @@ namespace neat_dnfs
 		static constexpr double ampGlobStep = 0.01; // 0.01
 	};
 
+
+	struct OscillatoryKernelConstants
+	{
+		inline static std::string namePrefix = "osck ";
+		inline static std::string namePrefixConnectionGene = "osck cg ";
+
+		static constexpr double amplitude = 1.0;
+		static constexpr double decay = 0.08;
+		static constexpr double zeroCrossings = 0.3;
+		static constexpr double amplitudeGlobal = -0.01;
+
+		static constexpr double amplitudeMinVal = 1;
+		static constexpr double amplitudeMaxVal = 15.0;
+		static constexpr double amplitudeStep = 0.5;
+
+		static constexpr double decayMinVal = 0.01;
+		static constexpr double decayMaxVal = 1.0;
+		static constexpr double decayStep = 0.01;
+
+		static constexpr double zeroCrossingsMinVal = 0.1;
+		static constexpr double zeroCrossingsMaxVal = 1.0;
+		static constexpr double zeroCrossingsStep = 0.1;
+
+		static constexpr double ampGlobMin = -0.1;
+		static constexpr double ampGlobMax = -0.01;
+		static constexpr double ampGlobStep = 0.01;
+	};
+
 	struct MutationConstants
 	{
 		static constexpr double addFieldGeneProbability = 0.00;
-		static constexpr double mutateFieldGeneProbability = 0.95;
+		static constexpr double mutateFieldGeneProbability = 0.45;
 		static constexpr double addConnectionGeneProbability = 0.05;
-		static constexpr double mutateConnectionGeneProbability = 0.00;
+		static constexpr double mutateConnectionGeneProbability = 0.50;
 		static constexpr double toggleConnectionGeneProbability = 0.00;
 	};
 
@@ -119,6 +149,11 @@ namespace neat_dnfs
 		static constexpr double widthDifferenceCoefficient = 0.2;
 	};
 
+	struct ConnectionGeneConstants
+	{
+		static constexpr bool allowAllKernelTypes = false;
+		// set to true to allow all kernel types, if false only gauss kernel is allowed
+	};
 
 	struct SimulationConstants
 	{

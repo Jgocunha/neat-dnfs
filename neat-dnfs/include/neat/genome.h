@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include "constants.h"
 #include "field_gene.h"
 #include "connection_gene.h"
 #include "tools/utils.h"
@@ -38,7 +38,7 @@ namespace neat_dnfs
 		void addGene();
 		void mutateGene() const;
 		void addConnectionGene();
-		void mutateConnectionGene() const;
+		void mutateConnectionGene();
 		void toggleConnectionGene();
 	public:
 		int excessGenes(const Genome& other) const;

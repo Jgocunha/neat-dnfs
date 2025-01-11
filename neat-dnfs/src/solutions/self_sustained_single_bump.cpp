@@ -16,87 +16,54 @@ namespace neat_dnfs
 
 	void SelfSustainedSingleBumpSolution::testPhenotype()
 	{
+		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
-		updateFitness();
-	}
 
-	void SelfSustainedSingleBumpSolution::updateFitness()
-	{
-		const dnf_composer::element::GaussStimulusParameters stimParams = {
-			5.0,
-			20.0,
-			50.0,
-			false,
-			false
-		};
-
-		addGaussianStimulus("nf 1", stimParams);
+		addGaussianStimulus("nf 1",
+			{ 5.0, 15.0, 25.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
 		initSimulation();
-		bool isActivationValidBeforeStimulus = isHighestActivationOfFieldEqualTo("nf 1", 0.0);
-		isActivationValidBeforeStimulus = isActivationValidBeforeStimulus && isHighestActivationOfFieldEqualTo("nf 2", 0.0);
-		runSimulation(20);
-		//const bool isActivationValidAfterStimulus = isHighestActivationOfFieldEqualTo("nf 1", 9.9859044930311960); //5.9770158650917260
-		const bool isActivationValidAfterStimulus = isHighestActivationOfFieldEqualTo("nf 1", 10.998976016501782);
-		//runSimulationUntilFieldStable("nf 1");
-		const double bumpFormationScore = selfStabilityFitness();
+		runSimulationUntilFieldStable("nf 1");
+		runSimulationUntilFieldStable("nf 2");
+
+		const double f1_1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 25.0, 20, 10);
+		const double f1_2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 25.0, 15, 5);
+
 		removeGaussianStimuli();
-		runSimulation(20);
-		const bool isActivationValidAfterRemovalOfStimulus = isHighestActivationOfFieldEqualTo("nf 1", -10.0);
-		//runSimulationUntilFieldStable("nf 1");
-		const double bumpPersistenceScore = selfSustainabilityFitness();
-		//runSimulationUntilFieldStable("nf 1");
-		//runSimulation(50);
+		runSimulationUntilFieldStable("nf 1");
+		runSimulationUntilFieldStable("nf 2");
 
-		if (!isActivationValidBeforeStimulus || !isActivationValidAfterStimulus || !isActivationValidAfterRemovalOfStimulus)
-			tools::logger::log(tools::logger::ERROR, "Activation of field is not valid.");
+		const double f2_1_1 = closenessToRestingLevel("nf 1");
+		const double f2_2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 25.0, 10, 5);
 
-		stopSimulation();
-		parameters.fitness = 0.5*bumpFormationScore + 0.5*bumpPersistenceScore;
-	}
+		// f1_1 only one bump at the input field
+		// f1_2 only one bump at the output field
+		// f2_1 closeness to resting level after removing the stimulus
+		// f2_2 only one bump at the output field after removing the stimulus
+		static constexpr double wf1_1 = 0.10;
+		static constexpr double wf1_2 = 0.40;
+		static constexpr double wf2_1 = 0.10;
+		static constexpr double wf2_2 = 0.40;
 
-	double SelfSustainedSingleBumpSolution::selfStabilityFitness() const
-	{
-		using namespace dnf_composer::element;
+		parameters.fitness = 0.5 * (wf1_1 * f1_1_1 + wf1_2 * f1_2_1 + wf2_1 * f2_1_1 + wf2_2 * f2_2_1);
 
-		const auto field = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement("nf 2"));
-		const auto fieldBumps = field->getBumps();
+		addGaussianStimulus("nf 1",
+			{ 5.0, 15.0, 75.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		initSimulation();
+		runSimulationUntilFieldStable("nf 1");
+		runSimulationUntilFieldStable("nf 2");
 
-		if (fieldBumps.empty())
-			return 0.0;
+		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 75.0, 20, 10);
+		const double f1_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 75.0, 15, 5);
 
-		const auto bump = fieldBumps.front();
+		removeGaussianStimuli();
+		runSimulationUntilFieldStable("nf 1");
+		runSimulationUntilFieldStable("nf 2");
 
-		constexpr double w = 1.0 / 3.0;
-		const double score = w * 1 + 
-			w * tools::utils::normalizeWithGaussian(bump.amplitude,30, 8.5) +
-			w * tools::utils::normalizeWithGaussian(bump.width, 20, 8.5);
-		return score;
-	}
+		const double f2_1 = closenessToRestingLevel("nf 1");
+		const double f2_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 75.0, 10, 5);
 
-	double SelfSustainedSingleBumpSolution::selfSustainabilityFitness() const
-	{
-		using namespace dnf_composer::element;
-
-		const auto field = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement("nf 2"));
-		const auto fieldBumps = field->getBumps();
-
-		if (fieldBumps.empty())
-			return 0.0;
-
-		const auto bump = fieldBumps.front();
-
-		constexpr double w = 1.0 / 3.0;
-		const double score = w * 1 +
-			w * tools::utils::normalizeWithGaussian(bump.amplitude, 10, 5.5) +
-			w * tools::utils::normalizeWithGaussian(bump.width, 10, 5.5);
-		return score;
-	}
-
-	bool SelfSustainedSingleBumpSolution::isHighestActivationOfFieldEqualTo(const std::string& field, double target_u) const
-	{
-		const auto neuralField = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(phenotype.getElement(field));
-		const double u_max = neuralField->getHighestActivation();
-		constexpr double epsilon = 1e-6;
-		return  std::abs(u_max - target_u) < epsilon;
+		parameters.fitness += 0.5 * (wf1_1 * f1_1 + wf1_2 * f1_2 + wf2_1 * f2_1 + wf2_2 * f2_2);
 	}
 }

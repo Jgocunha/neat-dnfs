@@ -164,7 +164,7 @@ namespace neat_dnfs
 		if (PopulationConstants::validateUniqueGenesInGenomes)
 			validateUniqueGenesInGenomes();
 		if (PopulationConstants::validateUniqueKernelAndNeuralFieldPtrs)
-			validateUniqueCouplingAndNeuralFieldPtrs();
+			validateUniqueKernelAndNeuralFieldPtrs();
 
 		std::stringstream addr_bs;
 		addr_bs << bestSolution.get();
@@ -465,7 +465,7 @@ namespace neat_dnfs
 		}
 	}
 
-	void Population::validateUniqueCouplingAndNeuralFieldPtrs() const
+	void Population::validateUniqueKernelAndNeuralFieldPtrs() const
 	{
 		for (const auto& solution_a : solutions)
 		{
@@ -481,13 +481,13 @@ namespace neat_dnfs
 				const auto fieldGenes_a = genome_a.getFieldGenes();
 				const auto fieldGenes_b = genome_b.getFieldGenes();
 
-				for(const auto& connectionGene_a : connectionGenes_a)
+				for (const auto& connectionGene_a : connectionGenes_a)
 				{
-					for(const auto& connectionGene_b : connectionGenes_b)
+					for (const auto& connectionGene_b : connectionGenes_b)
 					{
-						const auto coupling_a = connectionGene_a.getFieldCoupling();
-						const auto coupling_b = connectionGene_b.getFieldCoupling();
-						if(coupling_a == coupling_b)
+						const auto kernel_a = connectionGene_a.getKernel();
+						const auto kernel_b = connectionGene_b.getKernel();
+						if (kernel_a == kernel_b)
 						{
 							log(tools::logger::LogLevel::FATAL, "Kernels are the same.");
 						}
@@ -496,11 +496,11 @@ namespace neat_dnfs
 
 				for (const auto& fieldGene_a : fieldGenes_a)
 				{
-					for(const auto& fieldGene_b : fieldGenes_b)
+					for (const auto& fieldGene_b : fieldGenes_b)
 					{
 						const auto neuralField_a = fieldGene_a.getNeuralField();
 						const auto neuralField_b = fieldGene_b.getNeuralField();
-						if(neuralField_a == neuralField_b)
+						if (neuralField_a == neuralField_b)
 						{
 							log(tools::logger::LogLevel::FATAL, "Neural fields are the same.");
 						}

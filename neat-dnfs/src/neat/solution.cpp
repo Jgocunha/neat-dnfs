@@ -158,6 +158,15 @@ namespace neat_dnfs
 					phenotype.createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
 					break;
 				}
+			case ElementLabel::OSCILLATORY_KERNEL:
+				{
+					const auto okp = std::dynamic_pointer_cast<OscillatoryKernel>(gene.getKernel())->getParameters();
+					const auto kernel = std::make_shared<OscillatoryKernel>(kcp, okp);
+					phenotype.addElement(kernel);
+					phenotype.createInteraction(nf->getUniqueName(), "output", kernel->getUniqueName());
+					phenotype.createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
+					break;
+				}
 				default:
 					throw std::invalid_argument("Invalid kernel label while translating genes to phenotype.");
 			}
@@ -180,7 +189,7 @@ namespace neat_dnfs
 		{
 			if (connectionGene.isEnabled())
 			{
-				const auto coupling = connectionGene.getFieldCoupling();
+				const auto coupling = connectionGene.getKernel();
 				const auto sourceId = connectionGene.getInFieldGeneId();
 				const auto targetId = connectionGene.getOutFieldGeneId();
 

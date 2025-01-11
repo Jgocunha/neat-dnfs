@@ -12,9 +12,6 @@ namespace neat_dnfs
 		SolutionPtr clone() const override;
 	private:
 		void testPhenotype() override;
-		void updateFitness() override;
-		double selfStabilityFitness() const;
-		double selfSustainabilityFitness() const;
-		bool isHighestActivationOfFieldEqualTo(const std::string& field, double target_u) const;
+		void updateFitness() override {}
 	};
 }

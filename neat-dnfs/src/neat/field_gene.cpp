@@ -80,8 +80,21 @@ namespace neat_dnfs
 						GaussKernelConstants::ampGlobalMaxVal);
 					break;
 				case 3: // change type
-					initializeMexicanHatKernel(gkd);
-					return;
+					{
+						const int typeSelection = generateRandomInt(0, 1); // number of (other) kernel types
+						switch(typeSelection)
+						{
+							case 0:
+								initializeMexicanHatKernel(gkd);
+							return;
+							case 1:
+								initializeOscillatoryKernel(gkd);
+							return;
+							default:
+								break;
+						}
+					}
+					return; // this is a return because the kernel type has changed
 				default:
 					break;
 				}
@@ -124,14 +137,78 @@ namespace neat_dnfs
 						MexicanHatKernelConstants::ampGlobMax);
 					break;
 				case 5: // change type
-					initializeGaussKernel(mhkd);
-					return;
+					{
+						const int typeSelection = generateRandomInt(0, 1); // number of (other) kernel types
+						switch (typeSelection)
+						{
+						case 0:
+							initializeGaussKernel(mhkd);
+							break;
+						case 1:
+							initializeOscillatoryKernel(mhkd);
+							break;
+						default:
+							break;
+						}
+					}
+					return; // this is a return because the kernel type has changed
 				default:
 					break;
 				}
 				std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->setParameters(mhkp);
 			}
 			break;
+		case ElementLabel::OSCILLATORY_KERNEL:
+		{
+			const auto oscillatoryKernel = std::dynamic_pointer_cast<OscillatoryKernel>(kernel);
+			OscillatoryKernelParameters okp = std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->getParameters();
+			ElementDimensions okd = kernel->getElementCommonParameters().dimensionParameters;
+
+			const int mutationSelection = generateRandomInt(0, 4); // number of mutable parameters + change type
+			switch (mutationSelection)
+			{
+				case 0: // amplitude
+					okp.amplitude = std::clamp(okp.amplitude + OscillatoryKernelConstants::amplitudeStep * signal,
+													OscillatoryKernelConstants::amplitudeMinVal,
+													OscillatoryKernelConstants::amplitudeMaxVal);
+					break;
+				case 1: // decay
+					okp.decay = std::clamp(okp.decay + OscillatoryKernelConstants::decayStep * signal,
+																		OscillatoryKernelConstants::decayMinVal,
+																		OscillatoryKernelConstants::decayMaxVal);
+					break;
+				case 2: // zero crossings
+					okp.zeroCrossings = std::clamp(okp.zeroCrossings + OscillatoryKernelConstants::zeroCrossingsStep * signal,
+																				OscillatoryKernelConstants::zeroCrossingsMinVal,
+																				OscillatoryKernelConstants::zeroCrossingsMaxVal);
+					break;
+				case 3: // amplitude global
+					okp.amplitudeGlobal = std::clamp(okp.amplitudeGlobal + OscillatoryKernelConstants::ampGlobStep * signal,
+																				OscillatoryKernelConstants::ampGlobMin,
+																				OscillatoryKernelConstants::ampGlobMax);
+					break;
+				case 4: // change type
+					{
+						const int typeSelection = generateRandomInt(0, 1); // number of (other) kernel types
+						switch (typeSelection)
+						{
+							case 0:
+								initializeGaussKernel(okd);
+								break;
+							case 1:
+								initializeMexicanHatKernel(okd);
+								break;
+							default:
+								break;
+						}
+					}
+					return; // this is a return because the kernel type has changed
+				default:
+					break;
+			}
+			std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->setParameters(okp);
+		}
+		break;
 		default:
 			tools::logger::log(tools::logger::FATAL, "FieldGene::mutate() - Kernel type not recognized.");
 			throw std::runtime_error("FieldGene::mutate() - Kernel type not recognized.");
@@ -221,8 +298,8 @@ namespace neat_dnfs
 	{
 		using namespace neat_dnfs::tools::utils;
 
-		/// randomly select kernel type
-		switch (generateRandomInt(0, 1))
+		// randomly select kernel type
+		switch (generateRandomInt(0, 2))
 		{
 		case 0:
 			initializeGaussKernel(dimensions);
@@ -230,6 +307,8 @@ namespace neat_dnfs
 		case 1:
 			initializeMexicanHatKernel(dimensions);
 		break;
+		case 2:
+			initializeOscillatoryKernel(dimensions);
 		default:
 			break;
 		}
@@ -276,5 +355,24 @@ namespace neat_dnfs
 		};
 		kernel = std::make_shared<MexicanHatKernel>(mhcp, mhkp);
 	}
+
+	void FieldGene::initializeOscillatoryKernel(const dnf_composer::element::ElementDimensions& dimensions)
+	{
+		using namespace dnf_composer::element;
+		using namespace neat_dnfs::tools::utils;
+
+		const double amplitude = generateRandomDouble(OscillatoryKernelConstants::amplitudeMinVal, OscillatoryKernelConstants::amplitudeMaxVal);
+		const double decay = generateRandomDouble(OscillatoryKernelConstants::decayMinVal, OscillatoryKernelConstants::decayMaxVal);
+		const double zeroCrossings = generateRandomDouble(OscillatoryKernelConstants::zeroCrossingsMinVal, OscillatoryKernelConstants::zeroCrossingsMaxVal);
+		const double amplitudeGlobal = generateRandomDouble(OscillatoryKernelConstants::ampGlobMin, OscillatoryKernelConstants::ampGlobMax);
+		const OscillatoryKernelParameters okp{ amplitude, decay, zeroCrossings, amplitudeGlobal,
+											KernelConstants::circularity,
+											false
+				};
+		const ElementCommonParameters okcp{ OscillatoryKernelConstants::namePrefix + std::to_string(parameters.id), dimensions
+				};
+		kernel = std::make_shared<OscillatoryKernel>(okcp, okp);
+	}
+
 
 }

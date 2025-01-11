@@ -10,120 +10,41 @@ namespace neat_dnfs
 	{
 		SingleBumpSolution solution(initialTopology);
 		auto clonedSolution = std::make_shared<SingleBumpSolution>(solution);
+
 		return clonedSolution;
 	}
 
 	void SingleBumpSolution::testPhenotype()
 	{
-		initSimulation();
-		learningPhase();
-
-		const dnf_composer::element::GaussStimulusParameters stimParams = {
-			5.0,
-			15.0,
-			50.0,
-			true,
-			false
-		};
-		addGaussianStimulus("nf 1", stimParams);
-		initSimulation();
-		//runSimulationUntilFieldStable("nf 1");
-		//runSimulationUntilFieldStable("nf 2");
-		runSimulation(30); 
-		updateFitness();
-		removeGaussianStimuli();
-		//runSimulationUntilFieldStable("nf 1");
-		//runSimulationUntilFieldStable("nf 2");
-		runSimulation(10); 
-	}
-
-	void SingleBumpSolution::updateFitness()
-	{
 		using namespace dnf_composer::element;
+		parameters.fitness = 0.0;
 
-		static constexpr double expectedBumpPosition = 50.0;
-		static constexpr double expectedBumpWidth = 5.0;
-		static constexpr double expectedBumpAmplitude = 10.0;
+		addGaussianStimulus("nf 1", 
+			{ 5.0, 15.0, 50.0, true, false }, 
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		initSimulation();
+		runSimulationUntilFieldStable("nf 1");
+		runSimulationUntilFieldStable("nf 2");
 
-		const auto field =
-			std::dynamic_pointer_cast<NeuralField>(phenotype.getElement("nf 2"));
-		const auto fieldBumps = field->getBumps();
+		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 20, 10);
+		const double f1_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 15, 5);
 
-		parameters.bumps = fieldBumps;
-		if (fieldBumps.empty())
-		{
-			parameters.fitness = 0.0;
-			return;
-		}
+		removeGaussianStimuli();
+		runSimulationUntilFieldStable("nf 1");
+		runSimulationUntilFieldStable("nf 2");
 
-		const auto bump = fieldBumps.front();
-		const double centroidDifference = std::abs(bump.centroid - expectedBumpPosition);
-		const double widthDifference = std::abs(bump.width - expectedBumpWidth);
-		const double amplitudeDifference = std::abs(bump.amplitude - expectedBumpAmplitude);
+		const double f2_1 = closenessToRestingLevel("nf 1");
+		const double f2_2 = closenessToRestingLevel("nf 2");
 
-		const double positionFitness = 0.5 / (1.0 + centroidDifference);
-		const double widthFitness = 0.25 / (1.0 + widthDifference);
-		const double amplitudeFitness = 0.25 / (1.0 + amplitudeDifference);
+		// f1_1 only one bump at the input field
+		// f1_2 only one bump at the output field
+		// f2_1 closeness to resting level after removing the stimulus
+		// f2_2 closeness to resting level after removing the stimulus
+		static constexpr double wf1_1 = 0.20;
+		static constexpr double wf1_2 = 0.50;
+		static constexpr double wf2_1 = 0.10;
+		static constexpr double wf2_2 = 0.20;
 
-		parameters.fitness = positionFitness + widthFitness + amplitudeFitness;
+		parameters.fitness = wf1_1 * f1_1 + wf1_2 * f1_2 + wf2_1 * f2_1 + wf2_2 * f2_2;
 	}
-
-	bool SingleBumpSolution::isHighestActivationOfFieldEqualTo(const std::string& field, double target_u) const
-	{
-		const auto neuralField = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(phenotype.getElement(field));
-		const double u_max = neuralField->getHighestActivation();
-		constexpr double epsilon = 1e-6;
-		return  std::abs(u_max - target_u) < epsilon;
-	}
-
-	void SingleBumpSolution::learningPhase()
-	{
-		bool isThereACoupling = false;
-
-		// activate learning for all the couplings
-		for (const auto& coupling : phenotype.getElements())
-		{
-			if (coupling->getLabel() == dnf_composer::element::ElementLabel::FIELD_COUPLING)
-			{
-				isThereACoupling = true;
-			}
-		}
-		if(isThereACoupling)
-		{
-			// show input stimulus
-			const dnf_composer::element::GaussStimulusParameters stimParams = {
-				5.0,
-				15.0,
-				50.0,
-				true,
-				false
-			};
-			addGaussianStimulus("nf 1", stimParams);
-			// show output stimulus
-			addGaussianStimulus("nf 2", stimParams);
-			initSimulation();
-			for (const auto& coupling : phenotype.getElements())
-			{
-				if (coupling->getLabel() == dnf_composer::element::ElementLabel::FIELD_COUPLING)
-				{
-					const auto fieldCoupling = std::dynamic_pointer_cast<dnf_composer::element::FieldCoupling>(coupling);
-					fieldCoupling->setLearning(true);
-				}
-			}
-			// run simulation
-			runSimulation(250); // 250
-			// remove stimuli
-			removeGaussianStimuli();
-			// deactivate learning for all the couplings
-			for (const auto& coupling : phenotype.getElements())
-			{
-				if (coupling->getLabel() == dnf_composer::element::ElementLabel::FIELD_COUPLING)
-				{
-					const auto fieldCoupling = std::dynamic_pointer_cast<dnf_composer::element::FieldCoupling>(coupling);
-					fieldCoupling->setLearning(false);
-				}
-			}
-		}
-	}
-
 }

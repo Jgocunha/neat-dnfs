@@ -161,7 +161,6 @@ namespace neat_dnfs
 		return fieldGenes[randomValue].getParameters().id;
 	}
 
-
 	int Genome::getRandomGeneIdByType(FieldGeneType type) const
 	{
 		std::vector<uint16_t> geneIds;
@@ -206,7 +205,7 @@ namespace neat_dnfs
 		}
 
 		if (enabledConnectionGenes.empty())
-			return ConnectionGene{ {0, 0}, {DimensionConstants::xSize, DimensionConstants::dx}, {DimensionConstants::xSize, DimensionConstants::dx} };
+			return ConnectionGene{ {0, 0} };
 
 		const double randomValue = tools::utils::generateRandomDouble(0, static_cast<int>(enabledConnectionGenes.size()) - 1);
 
@@ -215,20 +214,15 @@ namespace neat_dnfs
 
 	void Genome::addConnectionGeneIfNewWithinGeneration(ConnectionTuple connectionTuple)
 	{
-		const FieldGene gene1 = getFieldGeneById(connectionTuple.inFieldGeneId);
-		const dnf_composer::element::ElementDimensions dimensions1 = gene1.getNeuralField()->getElementCommonParameters().dimensionParameters;
-		const FieldGene gene2 = getFieldGeneById(connectionTuple.outFieldGeneId);
-		const dnf_composer::element::ElementDimensions dimensions2 = gene2.getNeuralField()->getElementCommonParameters().dimensionParameters;
-
 		if (connectionToInnovationNumberMap.contains(connectionTuple))
 		{
 			const uint16_t innovationNumber = connectionToInnovationNumberMap[connectionTuple];
-			connectionGenes.emplace_back(connectionTuple, dimensions1, dimensions2);
+			connectionGenes.emplace_back(connectionTuple);
 			connectionGenes.back().setInnovationNumber(innovationNumber);
 		}
 		else
 		{
-			connectionGenes.emplace_back(connectionTuple, dimensions1, dimensions2);
+			connectionGenes.emplace_back(connectionTuple);
 			connectionToInnovationNumberMap.insert({ connectionTuple,
 				connectionGenes.back().getInnovationNumber() });
 		}
@@ -245,35 +239,22 @@ namespace neat_dnfs
 
 		const auto inGeneId = randEnabledConnectionGene.getParameters().connectionTuple.inFieldGeneId;
 		const auto outGeneId = randEnabledConnectionGene.getParameters().connectionTuple.outFieldGeneId;
-		const auto coupling = randEnabledConnectionGene.getFieldCoupling();
-		const auto couplingParameters = std::dynamic_pointer_cast<FieldCoupling>(coupling)->getParameters();
-		const auto couplingInputDimensions = couplingParameters.inputFieldDimensions;
-		const auto couplingOutputDimensions = coupling->getElementCommonParameters().dimensionParameters;
+		const auto kernel = randEnabledConnectionGene.getKernel();
 
-		// for now new neural field will have the same dimensions as the input field
-		addHiddenGene(couplingInputDimensions);
+		addHiddenGene({DimensionConstants::xSize, DimensionConstants::dx});
 
 		// create two new connection genes
-		const auto connectionGeneCouplingParametersIn = FieldCouplingParameters{ couplingInputDimensions,
-			FieldCouplingConstants::learningRule, FieldCouplingConstants::strength, FieldCouplingConstants::learningRate };
+		const auto connectionGeneKernelParametersIn = GaussKernelParameters{ GaussKernelConstants::width,
+														GaussKernelConstants::amplitude,
+														KernelConstants::circularity,
+														KernelConstants::normalization };
 
-		const auto connectionGeneCouplingParametersOut = FieldCouplingParameters{ couplingInputDimensions,
-			FieldCouplingConstants::learningRule, FieldCouplingConstants::strength, FieldCouplingConstants::learningRate };
+		const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId,
+			fieldGenes.back().getParameters().id}, connectionGeneKernelParametersIn };
 
-
-		const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, connectionGeneCouplingParametersIn, couplingInputDimensions };
-		const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, connectionGeneCouplingParametersOut, couplingOutputDimensions };
-
+		const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, kernel };
 		connectionGenes.push_back(connectionGeneIn);
 		connectionGenes.push_back(connectionGeneOut);
-
-		// 1.			// 2.
-		// nf 1			// nf 1
-		//	|			// | fc 1-3
-		//  | fc 1-2	// nf 3     (fc 1-2: disabled)
-		//  |			// | fc 3-2
-		// nf 2			// nf 2
-
 	}
 
 	void Genome::mutateGene() const
@@ -293,7 +274,7 @@ namespace neat_dnfs
 		addConnectionGeneIfNewWithinGeneration(connectionTuple);
 	}
 
-	void Genome::mutateConnectionGene() const
+	void Genome::mutateConnectionGene()
 	{
 		if (connectionGenes.empty())
 			return;
@@ -412,9 +393,8 @@ namespace neat_dnfs
 		if (thisConnectionGenes.empty() && otherConnectionGenes.empty())
 			return 0.0;
 
-		double sumStrengthDiff = 0.0;
-		static constexpr double strengthDiffCoeff = 1.0;
-		// this should be the difference between the weights?
+		double sumAmpDiff = 0.0;
+		double sumWidthDiff = 0.0;
 
 		for (const auto& thisConnectionGene : thisConnectionGenes)
 		{
@@ -422,13 +402,17 @@ namespace neat_dnfs
 			{
 				if (thisConnectionGene.getInnovationNumber() == otherConnectionGene.getInnovationNumber())
 				{
-					const double strengthDiff =
-						std::abs(thisConnectionGene.getCouplingStrength() - otherConnectionGene.getCouplingStrength());
-					sumStrengthDiff += strengthDiff;
+					const double ampDiff =
+						std::abs(thisConnectionGene.getKernelAmplitude() - otherConnectionGene.getKernelAmplitude());
+					const double widthDiff =
+						std::abs(thisConnectionGene.getKernelWidth() - otherConnectionGene.getKernelWidth());
+					sumAmpDiff += ampDiff;
+					sumWidthDiff += widthDiff;
 				}
 			}
 		}
-		const double totalDiff = sumStrengthDiff * strengthDiffCoeff;
+		const double totalDiff = CompatibilityCoefficients::amplitudeDifferenceCoefficient * sumAmpDiff
+								+ CompatibilityCoefficients::widthDifferenceCoefficient * sumWidthDiff;
 		return totalDiff;
 	}
 

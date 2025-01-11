@@ -2,7 +2,9 @@
 #include <memory>
 #include <random>
 
-#include <dnf_composer/elements/field_coupling.h>
+#include <dnf_composer/elements/gauss_kernel.h>
+#include <dnf_composer/elements/mexican_hat_kernel.h>
+#include <dnf_composer/elements/oscillatory_kernel.h>
 #include "tools/utils.h"
 #include "constants.h"
 
@@ -88,22 +90,29 @@ namespace neat_dnfs
 	class ConnectionGene
 	{
 	private:
-		static inline int fc_id_count = 0;
-		int fc_id;
 		ConnectionGeneParameters parameters;
-		FieldCouplingPtr coupling;
+		KernelPtr kernel;
 	public:
-		ConnectionGene(ConnectionTuple connectionTuple,
-			const dnf_composer::element::ElementDimensions& inputFieldDimensions,
-			const dnf_composer::element::ElementDimensions& outputFieldDimensions);
-		ConnectionGene(ConnectionTuple connectionTuple,
-			const dnf_composer::element::FieldCouplingParameters& fcp,
-			const dnf_composer::element::ElementDimensions& outputFieldDimensions);
-		ConnectionGene(const ConnectionGeneParameters& parameters,
-			const dnf_composer::element::FieldCouplingParameters& fcp,
-			const dnf_composer::element::ElementDimensions& outputFieldDimensions);
+		ConnectionGene(ConnectionTuple connectionTuple);
 
-		void mutate() const;
+		ConnectionGene(ConnectionTuple connectionTuple,
+			const dnf_composer::element::GaussKernelParameters& gkp);
+		ConnectionGene(ConnectionTuple connectionTuple,
+			const dnf_composer::element::MexicanHatKernelParameters& mhkp);
+		ConnectionGene(ConnectionTuple connectionTuple,
+			const dnf_composer::element::OscillatoryKernelParameters& osckp);
+
+		ConnectionGene(const ConnectionGeneParameters& parameters,
+			const dnf_composer::element::GaussKernelParameters& gkp);
+		ConnectionGene(const ConnectionGeneParameters& parameters,
+			const dnf_composer::element::MexicanHatKernelParameters& mhkp);
+		ConnectionGene(const ConnectionGeneParameters& parameters,
+			const dnf_composer::element::OscillatoryKernelParameters& osckp);
+
+		ConnectionGene(ConnectionTuple connectionTuple,
+			const KernelPtr& kernel);
+
+		void mutate();
 		void disable();
 		void toggle();
 
@@ -112,16 +121,23 @@ namespace neat_dnfs
 		void setInnovationNumber(uint16_t innovationNumber);
 
 		ConnectionGeneParameters getParameters() const;
-		FieldCouplingPtr getFieldCoupling() const;
+		KernelPtr getKernel() const;
 		uint16_t getInnovationNumber() const;
 		uint16_t getInFieldGeneId() const;
 		uint16_t getOutFieldGeneId() const;
-		double getCouplingStrength() const;
+		double getKernelAmplitude() const;
+		double getKernelWidth() const;
 
 		bool operator==(const ConnectionGene&) const;
 		bool isCloneOf(const ConnectionGene&) const;
 		std::string toString() const;
 		void print() const;
 		ConnectionGene clone() const;
+
+	private:
+		void initializeKernel(const dnf_composer::element::ElementDimensions& dimensions);
+		void initializeGaussKernel(const dnf_composer::element::ElementDimensions& dimensions);
+		void initializeMexicanHatKernel(const dnf_composer::element::ElementDimensions& dimensions);
+		void initializeOscillatoryKernel(const dnf_composer::element::ElementDimensions& dimensions);
 	};
 }
