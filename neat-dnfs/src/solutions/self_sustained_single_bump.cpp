@@ -6,6 +6,7 @@ namespace neat_dnfs
 		: Solution(topology)
 	{
 		name = "Single bump (self-sustained)";
+		// target fitness is 0.85
 	}
 
 	SolutionPtr SelfSustainedSingleBumpSolution::clone() const

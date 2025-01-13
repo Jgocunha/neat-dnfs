@@ -18,6 +18,7 @@
 #include "solutions/single_bump.h"
 #include "solutions/self_sustained_single_bump.h"
 #include "solutions/and.h"
+#include "solutions/action_simulation_layer.h"
 
 int main(int argc, char* argv[])
 {
@@ -26,25 +27,36 @@ int main(int argc, char* argv[])
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
 
-		SelfSustainedSingleBumpSolution solution{
+		ActionSimulationSolution solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}}
 			}}
 		};
-		const PopulationParameters parameters{ 1000, 1000, 0.85 };
-		Population population{ parameters, std::make_shared<SelfSustainedSingleBumpSolution>(solution) };
+		const PopulationParameters parameters{ 1000, 1000, 0.90 };
+		Population population{ parameters, std::make_shared<ActionSimulationSolution>(solution) };
 
 		population.initialize();
 		population.evolve();
 
 		const auto bestSolution = population.getBestSolution();
 		const auto phenotype = bestSolution->getPhenotype();
+		const auto simulation = std::make_shared<dnf_composer::Simulation>(phenotype);
+
+		// re-declare interactions for all elements
+		for (const auto& element : simulation->getElements())
+		{
+			const auto inputs = element->getInputs();
+			for (const auto& input : inputs)
+			{
+				simulation->createInteraction(input->getUniqueName(), "output", element->getUniqueName());
+			}
+		}
 
 		// run dnf-composer
 		using namespace dnf_composer;
-		Application app{ std::make_shared<Simulation>(phenotype) };
+		Application app{ simulation };
 		app.addWindow<user_interface::MainWindow>();
 		app.addWindow<user_interface::SimulationWindow>();
 		app.addWindow<user_interface::ElementWindow>();
