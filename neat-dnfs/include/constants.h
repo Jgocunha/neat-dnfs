@@ -134,9 +134,9 @@ namespace neat_dnfs
 
 	struct MutationConstants
 	{
-		static constexpr double addFieldGeneProbability = 0.00;
-		static constexpr double mutateFieldGeneProbability = 0.45;
-		static constexpr double addConnectionGeneProbability = 0.20;
+		static constexpr double addFieldGeneProbability = 0.10;
+		static constexpr double mutateFieldGeneProbability = 0.30;
+		static constexpr double addConnectionGeneProbability = 0.25;
 		static constexpr double mutateConnectionGeneProbability = 0.35;
 		static constexpr double toggleConnectionGeneProbability = 0.00;
 	};
@@ -151,8 +151,10 @@ namespace neat_dnfs
 
 	struct ConnectionGeneConstants
 	{
-		static constexpr bool allowAllKernelTypes = false;
+		static constexpr int allowAllKernelTypes = false;
 		// set to true to allow all kernel types, if false only gauss kernel is allowed
+		static constexpr int allowInhibitoryConnections = true;
+		// set to true to allow inhibitory connections, if false only excitatory connections are allowed
 	};
 
 	struct SimulationConstants

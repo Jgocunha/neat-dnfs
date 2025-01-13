@@ -53,7 +53,8 @@ namespace neat_dnfs
 			MutationConstants::mutateConnectionGeneProbability +
 			MutationConstants::toggleConnectionGeneProbability;
 
-		if constexpr (totalProbability != 1.0)
+		constexpr double epsilon = 1e-6;
+		if ( std::abs(totalProbability - 1.0) > epsilon )
 			throw std::runtime_error("Mutation probabilities must sum up to 1.");
 
 		const double randomValue = tools::utils::generateRandomDouble(0.0, 1.0);

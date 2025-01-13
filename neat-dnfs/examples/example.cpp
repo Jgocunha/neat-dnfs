@@ -19,6 +19,7 @@
 #include "solutions/self_sustained_single_bump.h"
 #include "solutions/and.h"
 #include "solutions/action_simulation_layer.h"
+#include "solutions/action_execution_layer.h"
 
 int main(int argc, char* argv[])
 {
@@ -27,15 +28,15 @@ int main(int argc, char* argv[])
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
 
-		ActionSimulationSolution solution{
+		ActionExecutionSimulation solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}}
 			}}
 		};
-		const PopulationParameters parameters{ 1000, 1000, 0.90 };
-		Population population{ parameters, std::make_shared<ActionSimulationSolution>(solution) };
+		const PopulationParameters parameters{ 1000, 1000, 0.85 };
+		Population population{ parameters, std::make_shared<ActionExecutionSimulation>(solution) };
 
 		population.initialize();
 		population.evolve();

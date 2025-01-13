@@ -503,4 +503,18 @@ namespace neat_dnfs
 
 		return tools::utils::normalizeWithGaussian(-highestActivationValue, -targetActivation, width);
 	}
+
+	double Solution::negativePreShapedness(const std::string& fieldName)
+	{
+		using namespace dnf_composer::element;
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+
+		const double lowestActivationValue = neuralField->getLowestActivation();
+		const double restingLevel = neuralField->getParameters().startingRestingLevel;
+		const double targetActivation = restingLevel + restingLevel / 2.0;
+		const double width = std::abs(restingLevel);
+
+		return tools::utils::normalizeWithGaussian(-lowestActivationValue, -targetActivation, width);
+	}
+
 }

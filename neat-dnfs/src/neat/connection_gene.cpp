@@ -118,10 +118,6 @@ namespace neat_dnfs
 
 		using namespace neat_dnfs::tools::utils;
 
-		int changeType = 0;
-		if (ConnectionGeneConstants::allowAllKernelTypes)
-			changeType = 1;
-
 		// discover kernel type
 		const ElementLabel label = kernel->getLabel();
 		const int signal = generateRandomSignal();
@@ -133,7 +129,10 @@ namespace neat_dnfs
 			GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
 			ElementDimensions gkd = kernel->getElementCommonParameters().dimensionParameters;
 
-			const int mutationSelection = generateRandomInt(0, 2 + changeType); // number of mutable parameters + change type
+			const int mutationSelection = generateRandomInt(0, 2 
+				//+ ConnectionGeneConstants::allowAllKernelTypes 
+				+ ConnectionGeneConstants::allowInhibitoryConnections
+			); // number of mutable parameters + change type + inhibitory connections
 			switch (mutationSelection)
 			{
 			case 0: // width
@@ -151,22 +150,25 @@ namespace neat_dnfs
 					GaussKernelConstants::ampGlobalMinVal,
 					GaussKernelConstants::ampGlobalMaxVal);
 				break;
-			case 3: // change type
-			{
-				const int typeSelection = generateRandomInt(0, 1); // number of (other) kernel types
-				switch (typeSelection)
-				{
-				case 0:
-					initializeMexicanHatKernel(gkd);
-					return;
-				case 1:
-					initializeOscillatoryKernel(gkd);
-					return;
-				default:
-					break;
-				}
-			}
-			return; // this is a return because the kernel type has changed
+			//case 3: // change type
+			//{
+			//	const int typeSelection = generateRandomInt(0, 1); // number of (other) kernel types
+			//	switch (typeSelection)
+			//	{
+			//	case 0:
+			//		initializeMexicanHatKernel(gkd);
+			//		return;
+			//	case 1:
+			//		initializeOscillatoryKernel(gkd);
+			//		return;
+			//	default:
+			//		break;
+			//	}
+			//}
+			//return; // this is a return because the kernel type has changed
+			case 3: // toggle signal
+				gkp.amplitude = -gkp.amplitude;
+				break;
 			default:
 				break;
 			}
@@ -180,7 +182,10 @@ namespace neat_dnfs
 			MexicanHatKernelParameters mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
 			ElementDimensions mhkd = kernel->getElementCommonParameters().dimensionParameters;
 
-			const int mutationSelection = generateRandomInt(0, 4 + changeType); // number of mutable parameters + change type
+			const int mutationSelection = generateRandomInt(0, 4
+				+ ConnectionGeneConstants::allowAllKernelTypes
+				+ ConnectionGeneConstants::allowInhibitoryConnections
+			); // number of mutable parameters + change type + inhibitory connections
 			switch (mutationSelection)
 			{
 			case 0: // width exc
@@ -236,7 +241,10 @@ namespace neat_dnfs
 			OscillatoryKernelParameters okp = std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->getParameters();
 			ElementDimensions okd = kernel->getElementCommonParameters().dimensionParameters;
 
-			const int mutationSelection = generateRandomInt(0, 3 + changeType); // number of mutable parameters + change type
+			const int mutationSelection = generateRandomInt(0, 3
+				+ ConnectionGeneConstants::allowAllKernelTypes
+				+ ConnectionGeneConstants::allowInhibitoryConnections
+			); // number of mutable parameters + change type + inhibitory connections
 			switch (mutationSelection)
 			{
 			case 0: // amplitude

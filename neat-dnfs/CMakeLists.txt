@@ -56,6 +56,7 @@ set(header
 "include/solutions/self_sustained_single_bump.h"
 "include/solutions/and.h"
 "include/solutions/action_simulation_layer.h"
+"include/solutions/action_execution_layer.h"
 
 "include/application/application.h"
 #"include/user_interface/setup_window.h"
@@ -77,6 +78,7 @@ set(src
 "src/solutions/self_sustained_single_bump.cpp"
 "src/solutions/and.cpp"
 "src/solutions/action_simulation_layer.cpp"
+"src/solutions/action_execution_layer.cpp"
 
 "src/application/application.cpp"
 #"src/user_interface/setup_window.cpp"

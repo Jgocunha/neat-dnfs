@@ -131,10 +131,6 @@ namespace neat_dnfs
 		runSimulationUntilFieldStable("nf 2");
 		runSimulationUntilFieldStable("nf 3");
 
-		//const double fa_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 20, 10);
-		//const double fa_2 = closenessToRestingLevel("nf 2");
-		//const double fa_3 = preShapedness("nf 3");
-
 		addGaussianStimulus("nf 2",
 			{ 5.0, 15.0, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
@@ -143,7 +139,6 @@ namespace neat_dnfs
 		runSimulationUntilFieldStable("nf 2");
 		runSimulationUntilFieldStable("nf 3");
 
-		//const double f2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 20, 10);
 		const double fa = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 50.0, 10, 5);
 
 		removeGaussianStimuli();
