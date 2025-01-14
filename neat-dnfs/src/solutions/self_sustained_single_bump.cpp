@@ -22,15 +22,15 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
 
+		initSimulation();
 		addGaussianStimulus("nf 1",
 			{ 5.0, 15.0, 25.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
-		initSimulation();
 		runSimulationUntilFieldStable("nf 1");
 		runSimulationUntilFieldStable("nf 2");
 
 		const double f1_1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 25.0, 20, 10);
-		const double f1_2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 25.0, 15, 5);
+		const double f1_2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 25.0, 15, 10);
 
 		removeGaussianStimuli();
 		runSimulationUntilFieldStable("nf 1");
@@ -50,15 +50,24 @@ namespace neat_dnfs
 
 		parameters.fitness = 0.5 * (wf1_1 * f1_1_1 + wf1_2 * f1_2_1 + wf2_1 * f2_1_1 + wf2_2 * f2_2_1);
 
+		initSimulation();
+		addGaussianStimulus("nf 1",
+			{ 5.0, 15.0, 25.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulationUntilFieldStable("nf 1");
+		runSimulationUntilFieldStable("nf 2");
+
+		removeGaussianStimuli();
+
 		addGaussianStimulus("nf 1",
 			{ 5.0, 15.0, 75.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
-		initSimulation();
+
 		runSimulationUntilFieldStable("nf 1");
 		runSimulationUntilFieldStable("nf 2");
 
 		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 75.0, 20, 10);
-		const double f1_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 75.0, 15, 5);
+		const double f1_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 75.0, 15, 10);
 
 		removeGaussianStimuli();
 		runSimulationUntilFieldStable("nf 1");

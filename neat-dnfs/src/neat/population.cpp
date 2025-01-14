@@ -549,7 +549,8 @@ namespace neat_dnfs
 		{
 			if (solution->getFitness() > fitness)
 			{
-				auto simulation = std::make_shared<Simulation>(solution->getPhenotype());
+				//auto simulation = std::make_shared<Simulation>(solution->getPhenotype());
+				auto simulation = solution->getPhenotype();
 				// save weights
 				for (const auto& element : simulation->getElements())
 				{

@@ -7,7 +7,8 @@ namespace neat_dnfs
 		name("undefined"),
 		initialTopology(initialTopology),
 		parameters(),
-		phenotype(SimulationConstants::name + std::to_string(id), SimulationConstants::deltaT),
+		//phenotype( 
+		phenotype(std::make_shared<dnf_composer::Simulation>(SimulationConstants::name + std::to_string(id), SimulationConstants::deltaT)),
 		genome()
 	{
 		// views::keys can be used
@@ -21,7 +22,6 @@ namespace neat_dnfs
 			if (geneTypeAndDimension.first == FieldGeneType::OUTPUT)
 				return;
 		}
-
 		throw std::invalid_argument("Number of input and output genes must be greater than 0");
 	}
 
@@ -51,7 +51,7 @@ namespace neat_dnfs
 		genome.mutate();
 	}
 
-	Phenotype Solution::getPhenotype() const
+	PhenotypePtr Solution::getPhenotype() const
 	{
 		return phenotype;
 	}
@@ -125,7 +125,7 @@ namespace neat_dnfs
 			const auto nfp = gene.getNeuralField()->getParameters();
 
 			// check if neural field already exists
-			for (const auto& element : phenotype.getElements())
+			for (const auto& element : phenotype->getElements())
 			{
 				if (element->getUniqueName() == nfcp.identifiers.uniqueName)
 				{
@@ -134,7 +134,7 @@ namespace neat_dnfs
 			}
 
 			const auto nf = std::make_shared<NeuralField>(nfcp, nfp);
-			phenotype.addElement(nf);
+			phenotype->addElement(nf);
 
 
 			const auto kcp = gene.getKernel()->getElementCommonParameters();
@@ -144,27 +144,27 @@ namespace neat_dnfs
 				{
 					const auto gkp = std::dynamic_pointer_cast<GaussKernel>(gene.getKernel())->getParameters();
 					const auto kernel = std::make_shared<GaussKernel>(kcp, gkp);
-					phenotype.addElement(kernel);
-					phenotype.createInteraction(nf->getUniqueName(), "output", kernel->getUniqueName());
-					phenotype.createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
+					phenotype->addElement(kernel);
+					phenotype->createInteraction(nf->getUniqueName(), "output", kernel->getUniqueName());
+					phenotype->createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
 					break;
 				}
 				case ElementLabel::MEXICAN_HAT_KERNEL:
 				{
 					const auto mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(gene.getKernel())->getParameters();
 					const auto kernel = std::make_shared<MexicanHatKernel>(kcp, mhkp);
-					phenotype.addElement(kernel);
-					phenotype.createInteraction(nf->getUniqueName(), "output", kernel->getUniqueName());
-					phenotype.createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
+					phenotype->addElement(kernel);
+					phenotype->createInteraction(nf->getUniqueName(), "output", kernel->getUniqueName());
+					phenotype->createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
 					break;
 				}
 			case ElementLabel::OSCILLATORY_KERNEL:
 				{
 					const auto okp = std::dynamic_pointer_cast<OscillatoryKernel>(gene.getKernel())->getParameters();
 					const auto kernel = std::make_shared<OscillatoryKernel>(kcp, okp);
-					phenotype.addElement(kernel);
-					phenotype.createInteraction(nf->getUniqueName(), "output", kernel->getUniqueName());
-					phenotype.createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
+					phenotype->addElement(kernel);
+					phenotype->createInteraction(nf->getUniqueName(), "output", kernel->getUniqueName());
+					phenotype->createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
 					break;
 				}
 				default:
@@ -175,9 +175,9 @@ namespace neat_dnfs
 
 	void Solution::clearPhenotype()
 	{
-		for (auto const& element : phenotype.getElements())
-			phenotype.removeElement(element->getUniqueName());
-		if (!phenotype.getElements().empty())
+		for (auto const& element : phenotype->getElements())
+			phenotype->removeElement(element->getUniqueName());
+		if (!phenotype->getElements().empty())
 			throw std::runtime_error("Phenotype elements were not cleared correctly.");
 	}
 
@@ -193,10 +193,10 @@ namespace neat_dnfs
 				const auto sourceId = connectionGene.getInFieldGeneId();
 				const auto targetId = connectionGene.getOutFieldGeneId();
 
-				phenotype.addElement(coupling);
-				phenotype.createInteraction("nf " + std::to_string(sourceId),
+				phenotype->addElement(coupling);
+				phenotype->createInteraction("nf " + std::to_string(sourceId),
 					"output", coupling->getUniqueName());
-				phenotype.createInteraction(coupling->getUniqueName(),
+				phenotype->createInteraction(coupling->getUniqueName(),
 					"output", "nf " + std::to_string(targetId));
 			}
 		}
@@ -371,7 +371,7 @@ namespace neat_dnfs
 		result += "Parameters: " + parameters.toString() + "\n";
 		result += "Genome: " + genome.toString() + "\n";
 		result += "Phenotype: \n";
-		for (const auto& element : phenotype.getElements())
+		for (const auto& element : phenotype->getElements())
 			result += element->toString() + "\n";
 		return result;
 	}
@@ -387,28 +387,28 @@ namespace neat_dnfs
 
 	void Solution::initSimulation()
 	{
-		phenotype.init();
+		phenotype->init();
 	}
 
 	void Solution::stopSimulation()
 	{
-		phenotype.close();
+		phenotype->close();
 	}
 
 	void Solution::runSimulation(const uint16_t iterations)
 	{
 		for (int i = 0; i < iterations; ++i)
-			phenotype.step();
+			phenotype->step();
 	}
 
 	bool Solution::runSimulationUntilFieldStable(const std::string& targetElement)
 	{
-		const auto neuralField = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(phenotype.getElement(targetElement));
+		const auto neuralField = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(phenotype->getElement(targetElement));
 		size_t counter = 0;
 		do
 		{
 			counter++;
-			phenotype.step();
+			phenotype->step();
 			if (counter > SimulationConstants::maxSimulationSteps)
 				return false;
 		} while (!neuralField->isStable());
@@ -423,8 +423,8 @@ namespace neat_dnfs
 
 		const std::string gsId = "gs " + targetElement + " " + std::to_string(stimulusParameters.position);
 		const auto gaussStimulus = std::make_shared<GaussStimulus>(GaussStimulus{ { gsId, dimensions }, stimulusParameters });
-		phenotype.addElement(gaussStimulus);
-		phenotype.createInteraction(gsId, "output", targetElement);
+		phenotype->addElement(gaussStimulus);
+		phenotype->createInteraction(gsId, "output", targetElement);
 		gaussStimulus->init();
 	}
 
@@ -432,10 +432,10 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer::element;
 
-		for (const auto& element : phenotype.getElements())
+		for (const auto& element : phenotype->getElements())
 		{
 			if (element->getLabel() == GAUSS_STIMULUS)
-				phenotype.removeElement(element->getUniqueName());
+				phenotype->removeElement(element->getUniqueName());
 		}
 	}
 
@@ -456,7 +456,7 @@ namespace neat_dnfs
 
 		using namespace dnf_composer::element;
 
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype->getElement(fieldName));
 		// evaluate the number of bumps
 		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
 		fitness += weightBumps / ( 1.0 + std::abs(targetNumberOfBumps - numberOfBumps));
@@ -482,7 +482,7 @@ namespace neat_dnfs
 		// the farther it is from the resting level, the lower the fitness (0.0)
 		// the closer it is to the resting level, the higher the fitness (1.0)
 		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype->getElement(fieldName));
 
 		const double highestActivationValue = neuralField->getHighestActivation();
 		const double restingLevel = neuralField->getParameters().startingRestingLevel;
@@ -493,7 +493,7 @@ namespace neat_dnfs
 	double Solution::preShapedness(const std::string& fieldName)
 	{
 		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype->getElement(fieldName));
 
 		const double highestActivationValue = neuralField->getHighestActivation();
 		const double restingLevel = neuralField->getParameters().startingRestingLevel;
@@ -507,7 +507,7 @@ namespace neat_dnfs
 	double Solution::negativePreShapedness(const std::string& fieldName)
 	{
 		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype->getElement(fieldName));
 
 		const double lowestActivationValue = neuralField->getLowestActivation();
 		const double restingLevel = neuralField->getParameters().startingRestingLevel;

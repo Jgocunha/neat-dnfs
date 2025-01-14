@@ -5,7 +5,7 @@
 namespace neat_dnfs
 {
 	class Solution;
-	typedef dnf_composer::Simulation Phenotype;
+	typedef std::shared_ptr<dnf_composer::Simulation> PhenotypePtr;
 	typedef std::shared_ptr<Solution> SolutionPtr;
 
 	struct SolutionTopology
@@ -83,7 +83,7 @@ namespace neat_dnfs
 		std::string name;
 		SolutionTopology initialTopology;
 		SolutionParameters parameters;
-		Phenotype phenotype;
+		PhenotypePtr phenotype;
 		Genome genome;
 	public:
 		Solution(const SolutionTopology& initialTopology);
@@ -92,7 +92,7 @@ namespace neat_dnfs
 		void evaluate();
 		void initialize();
 		void mutate();
-		Phenotype getPhenotype() const;
+		PhenotypePtr getPhenotype() const;
 		Genome getGenome() const;
 		SolutionParameters getParameters() const;
 		std::string getName() const { return name; }
