@@ -242,20 +242,72 @@ namespace neat_dnfs
 		const auto outGeneId = randEnabledConnectionGene.getParameters().connectionTuple.outFieldGeneId;
 		const auto kernel = randEnabledConnectionGene.getKernel();
 
-		addHiddenGene({DimensionConstants::xSize, DimensionConstants::dx});
+		addHiddenGene({ DimensionConstants::xSize, DimensionConstants::dx });
 
 		// create two new connection genes
 		const auto connectionGeneKernelParametersIn = GaussKernelParameters{ GaussKernelConstants::width,
 														GaussKernelConstants::amplitude,
+															GaussKernelConstants::amplitudeGlobal,
 														KernelConstants::circularity,
 														KernelConstants::normalization };
 
 		const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId,
 			fieldGenes.back().getParameters().id}, connectionGeneKernelParametersIn };
-
-		const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, kernel };
 		connectionGenes.push_back(connectionGeneIn);
-		connectionGenes.push_back(connectionGeneOut);
+
+		switch (kernel->getLabel())
+		{
+		case GAUSS_KERNEL:
+			{
+				const auto gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
+				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, gkp };
+				connectionGenes.push_back(connectionGeneOut);
+			}
+			break;
+		case MEXICAN_HAT_KERNEL:
+			{
+				const auto mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
+				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, mhkp };
+				connectionGenes.push_back(connectionGeneOut);
+			}
+			break;
+		case OSCILLATORY_KERNEL:
+			{
+				const auto osckp = std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->getParameters();
+				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, osckp };
+				connectionGenes.push_back(connectionGeneOut);
+			}
+			break;
+		default:
+			throw std::invalid_argument("Invalid kernel type.");
+		}
+
+		//using namespace dnf_composer::element;
+
+		//auto randEnabledConnectionGene = getEnabledConnectionGene();
+		//if (randEnabledConnectionGene.getParameters().connectionTuple == ConnectionTuple{ 0, 0 })
+		//	return;
+		//randEnabledConnectionGene.disable();
+
+		//const auto inGeneId = randEnabledConnectionGene.getParameters().connectionTuple.inFieldGeneId;
+		//const auto outGeneId = randEnabledConnectionGene.getParameters().connectionTuple.outFieldGeneId;
+		//const auto kernel = randEnabledConnectionGene.getKernel();
+
+		//addHiddenGene({ DimensionConstants::xSize, DimensionConstants::dx });
+
+		//// create two new connection genes
+		//const auto connectionGeneKernelParametersIn = GaussKernelParameters{ GaussKernelConstants::width,
+		//												GaussKernelConstants::amplitude,
+		//												KernelConstants::circularity,
+		//												KernelConstants::normalization };
+
+		//const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId,
+		//	fieldGenes.back().getParameters().id}, connectionGeneKernelParametersIn };
+
+		//const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, kernel };
+		//connectionGenes.push_back(connectionGeneIn);
+		//connectionGenes.push_back(connectionGeneOut);
+
 	}
 
 	void Genome::mutateGene() const

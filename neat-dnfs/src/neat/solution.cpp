@@ -7,7 +7,6 @@ namespace neat_dnfs
 		name("undefined"),
 		initialTopology(initialTopology),
 		parameters(),
-		//phenotype( 
 		phenotype(std::make_shared<dnf_composer::Simulation>(SimulationConstants::name + std::to_string(id), SimulationConstants::deltaT)),
 		genome()
 	{
@@ -135,7 +134,6 @@ namespace neat_dnfs
 
 			const auto nf = std::make_shared<NeuralField>(nfcp, nfp);
 			phenotype->addElement(nf);
-
 
 			const auto kcp = gene.getKernel()->getElementCommonParameters();
 			switch (kcp.identifiers.label)
