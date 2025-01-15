@@ -57,6 +57,7 @@ set(header
 "include/solutions/and.h"
 "include/solutions/action_simulation_layer.h"
 "include/solutions/action_execution_layer.h"
+"include/solutions/selective_output_field.h"
 
 "include/application/application.h"
 #"include/user_interface/setup_window.h"
@@ -79,6 +80,7 @@ set(src
 "src/solutions/and.cpp"
 "src/solutions/action_simulation_layer.cpp"
 "src/solutions/action_execution_layer.cpp"
+"src/solutions/selective_output_field.cpp"
 
 "src/application/application.cpp"
 #"src/user_interface/setup_window.cpp"

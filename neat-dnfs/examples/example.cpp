@@ -20,6 +20,7 @@
 #include "solutions/and.h"
 #include "solutions/action_simulation_layer.h"
 #include "solutions/action_execution_layer.h"
+#include "solutions/selective_output_field.h"
 
 int main(int argc, char* argv[])
 {
@@ -28,15 +29,15 @@ int main(int argc, char* argv[])
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
 
-		ActionSimulationSolution solution{
+		SelectiveOutputSolution solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}}
 			}}
 		};
-		const PopulationParameters parameters{ 1000, 50, 0.90 };
-		Population population{ parameters, std::make_shared<ActionSimulationSolution>(solution) };
+		const PopulationParameters parameters{ 5000, 500, 0.85 };
+		Population population{ parameters, std::make_shared<SelectiveOutputSolution>(solution) };
 
 		population.initialize();
 		population.evolve();

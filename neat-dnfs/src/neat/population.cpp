@@ -18,18 +18,18 @@ namespace neat_dnfs
 		do
 		{
 			evaluate();
-			log(tools::logger::LogLevel::INFO, "Evaluation done.");
+			//log(tools::logger::LogLevel::INFO, "Evaluation done.");
 			//print();
 
 			speciate();
-			log(tools::logger::LogLevel::INFO, "Speciation done.");
+			//log(tools::logger::LogLevel::INFO, "Speciation done.");
 			//print();
 			reproduceAndSelect();
-			log(tools::logger::LogLevel::INFO, "Reproduction and selection done.");
+			//log(tools::logger::LogLevel::INFO, "Reproduction and selection done.");
 			//print();
 
 			upkeep();
-			log(tools::logger::LogLevel::INFO, "Upkeep done.");
+			//log(tools::logger::LogLevel::INFO, "Upkeep done.");
 			//print();
 
 			while (control.pause)

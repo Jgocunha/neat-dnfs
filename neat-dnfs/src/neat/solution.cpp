@@ -474,6 +474,100 @@ namespace neat_dnfs
 		return fitness;
 	}
 
+	double Solution::twoBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position1, const double& amplitude1, const double& width1, const double& position2, const double& amplitude2, const double& width2)
+	{
+		static constexpr int targetNumberOfBumps = 2;
+		static constexpr double weightBumps = 0.40 / targetNumberOfBumps;
+		static constexpr double weightPos = 0.20 / targetNumberOfBumps;
+		static constexpr double weightAmp = 0.20 / targetNumberOfBumps;
+		static constexpr double weightWidth = 0.20 / targetNumberOfBumps;
+		// if sum of weights is not 1.0, throw exception
+		if (std::abs((weightBumps + weightPos + weightAmp + weightWidth) * targetNumberOfBumps - 1.0) > 1e-6)
+			throw std::invalid_argument("Sum of weights must be 1.0");
+		double fitness = 0.0;
+
+		using namespace dnf_composer::element;
+
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype->getElement(fieldName));
+		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
+		fitness += weightBumps / (1.0 + std::abs(targetNumberOfBumps - numberOfBumps));
+
+		NeuralFieldBump closestBump1;
+		for (const auto& bump : neuralField->getBumps())
+		{
+			if (std::abs(bump.centroid - position1) < std::abs(closestBump1.centroid - position1))
+				closestBump1 = bump;
+		}
+		fitness += weightPos / (1.0 + std::abs(closestBump1.centroid - position1));
+		fitness += weightAmp / (1.0 + std::abs(closestBump1.amplitude - amplitude1));
+		fitness += weightWidth / (1.0 + std::abs(closestBump1.width - width1));
+
+		NeuralFieldBump closestBump2;
+		for (const auto& bump : neuralField->getBumps())
+		{
+			if (std::abs(bump.centroid - position2) < std::abs(closestBump2.centroid - position2))
+				closestBump2 = bump;
+		}
+		fitness += weightPos / (1.0 + std::abs(closestBump2.centroid - position2));
+		fitness += weightAmp / (1.0 + std::abs(closestBump2.amplitude - amplitude2));
+		fitness += weightWidth / (1.0 + std::abs(closestBump2.width - width2));
+
+		return fitness;
+
+	}
+
+	double Solution::threeBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position1, const double& amplitude1, const double& width1, const double& position2, const double& amplitude2, const double& width2, const double& position3, const double& amplitude3, const double& width3)
+	{
+		static constexpr int targetNumberOfBumps = 3;
+		static constexpr double weightBumps = 0.40 / targetNumberOfBumps;
+		static constexpr double weightPos = 0.20 / targetNumberOfBumps;
+		static constexpr double weightAmp = 0.20 / targetNumberOfBumps;
+		static constexpr double weightWidth = 0.20 / targetNumberOfBumps;
+		// if sum of weights is not 1.0, throw exception
+		if (std::abs((weightBumps + weightPos + weightAmp + weightWidth) * targetNumberOfBumps - 1.0) > 1e-6)
+			throw std::invalid_argument("Sum of weights must be 1.0");
+		double fitness = 0.0;
+
+		using namespace dnf_composer::element;
+
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype->getElement(fieldName));
+		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
+		fitness += weightBumps / (1.0 + std::abs(targetNumberOfBumps - numberOfBumps));
+
+		NeuralFieldBump closestBump1;
+		for (const auto& bump : neuralField->getBumps())
+		{
+			if (std::abs(bump.centroid - position1) < std::abs(closestBump1.centroid - position1))
+				closestBump1 = bump;
+		}
+		fitness += weightPos / (1.0 + std::abs(closestBump1.centroid - position1));
+		fitness += weightAmp / (1.0 + std::abs(closestBump1.amplitude - amplitude1));
+		fitness += weightWidth / (1.0 + std::abs(closestBump1.width - width1));
+
+		NeuralFieldBump closestBump2;
+		for (const auto& bump : neuralField->getBumps())
+		{
+			if (std::abs(bump.centroid - position2) < std::abs(closestBump2.centroid - position2))
+				closestBump2 = bump;
+		}
+		fitness += weightPos / (1.0 + std::abs(closestBump2.centroid - position2));
+		fitness += weightAmp / (1.0 + std::abs(closestBump2.amplitude - amplitude2));
+		fitness += weightWidth / (1.0 + std::abs(closestBump2.width - width2));
+
+		NeuralFieldBump closestBump3;
+		for (const auto& bump : neuralField->getBumps())
+		{
+			if (std::abs(bump.centroid - position3) < std::abs(closestBump3.centroid - position3))
+				closestBump3 = bump;
+		}
+		fitness += weightPos / (1.0 + std::abs(closestBump3.centroid - position3));
+		fitness += weightAmp / (1.0 + std::abs(closestBump3.amplitude - amplitude3));
+		fitness += weightWidth / (1.0 + std::abs(closestBump3.width - width3));
+
+		return fitness;
+	}
+
+
 	double Solution::closenessToRestingLevel(const std::string& fieldName)
 	{
 		// highest value of activation should be equal to the resting level

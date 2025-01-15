@@ -136,6 +136,13 @@ namespace neat_dnfs
 		void removeGaussianStimuli();
 		double oneBumpAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
 			const double& position, const double& amplitude, const double& width);
+		double twoBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
+						const double& position1, const double& amplitude1, const double& width1,
+						const double& position2, const double& amplitude2, const double& width2);
+		double threeBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
+									const double& position1, const double& amplitude1, const double& width1,
+									const double& position2, const double& amplitude2, const double& width2,
+									const double& position3, const double& amplitude3, const double& width3);
 		double closenessToRestingLevel(const std::string& fieldName);
 		double preShapedness(const std::string& fieldName);
 		double negativePreShapedness(const std::string& fieldName);
