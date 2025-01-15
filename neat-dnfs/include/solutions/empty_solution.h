@@ -11,7 +11,7 @@ namespace neat_dnfs
 		EmptySolution(const SolutionTopology& topology);
 		SolutionPtr clone() const override;
 	private:
-		void updateFitness() override;
 		void testPhenotype() override;
+		void createPhenotypeEnvironment() override;
 	};
 }

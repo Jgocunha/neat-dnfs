@@ -159,4 +159,21 @@ namespace neat_dnfs
 
 		parameters.fitness += 0.333 * (wfa * fa + wfb_1 * fb_1 + wfb_2 * fb_2 + wfb_3 * fb_3);
 	}
+
+	void ActionSimulationSolution::createPhenotypeEnvironment()
+	{
+		addGaussianStimulus("nf 1",
+			{ 5.0, 15.0, 20.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		addGaussianStimulus("nf 1",
+			{ 5.0, 15.0, 50.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		addGaussianStimulus("nf 1",
+			{ 5.0, 15.0, 80.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+
+		addGaussianStimulus("nf 2",
+			{ 5.0, 0.0, 50.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+	}
 }

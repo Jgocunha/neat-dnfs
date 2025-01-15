@@ -115,4 +115,15 @@ namespace neat_dnfs
 			wf2_1 * f2_1_ + wf2_3 * f2_3_ +
 			wf3_1 * f3_1_ + wf3_2 * f3_2_ + wf3_3 * f3_3_);
 	}
+
+	void AndSolution::createPhenotypeEnvironment()
+	{
+		addGaussianStimulus("nf 1",
+			{ 5.0, 0.0, 50.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+
+		addGaussianStimulus("nf 2",
+			{ 5.0, 0.0, 50.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+	}
 }

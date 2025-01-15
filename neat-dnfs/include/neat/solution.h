@@ -115,6 +115,7 @@ namespace neat_dnfs
 		bool operator==(const SolutionPtr& other) const;
 		std::string toString() const;
 		void print() const;
+		virtual void createPhenotypeEnvironment() = 0;
 	private:
 		void createInputGenes();
 		void createOutputGenes();
@@ -123,7 +124,6 @@ namespace neat_dnfs
 		void translateGenesToPhenotype();
 		void translateConnectionGenesToPhenotype();
 	protected:
-		virtual void updateFitness() = 0;
 		virtual void testPhenotype() = 0;
 		void initSimulation();
 		void stopSimulation();

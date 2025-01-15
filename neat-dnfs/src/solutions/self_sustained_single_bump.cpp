@@ -78,4 +78,11 @@ namespace neat_dnfs
 
 		parameters.fitness += 0.5 * (wf1_1 * f1_1 + wf1_2 * f1_2 + wf2_1 * f2_1 + wf2_2 * f2_2);
 	}
+
+	void SelfSustainedSingleBumpSolution::createPhenotypeEnvironment()
+	{
+		addGaussianStimulus("nf 1",
+			{ 5.0, 0.0, 25.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+	}
 }

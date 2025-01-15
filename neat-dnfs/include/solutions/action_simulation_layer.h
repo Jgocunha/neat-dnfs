@@ -12,6 +12,6 @@ namespace neat_dnfs
 		SolutionPtr clone() const override;
 	private:
 		void testPhenotype() override;
-		void updateFitness() override {}
+		void createPhenotypeEnvironment() override;
 	};
 }
