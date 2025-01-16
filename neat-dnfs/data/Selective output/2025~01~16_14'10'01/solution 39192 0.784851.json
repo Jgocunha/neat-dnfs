@@ -1,0 +1,110 @@
+[
+    {
+        "activationFunction": {
+            "type": "heaviside",
+            "x_shift": 0.0
+        },
+        "d_x": 0.5,
+        "inputs": [
+            [
+                "mhk 1",
+                "output"
+            ]
+        ],
+        "label": [
+            1,
+            "neural field"
+        ],
+        "restingLevel": -4.941177704430778,
+        "tau": 216.16599100356092,
+        "uniqueName": "nf 1",
+        "x_max": 100
+    },
+    {
+        "amplitudeExc": 4.554093152513071,
+        "amplitudeGlobal": -0.07093683491438407,
+        "amplitudeInh": 3.8013513892565474,
+        "circular": true,
+        "d_x": 0.5,
+        "inputs": [
+            [
+                "nf 1",
+                "output"
+            ]
+        ],
+        "label": [
+            4,
+            "mexican hat kernel"
+        ],
+        "normalized": true,
+        "uniqueName": "mhk 1",
+        "widthExc": 18.0743362118788,
+        "widthInh": 17.02313630381836,
+        "x_max": 100
+    },
+    {
+        "activationFunction": {
+            "type": "heaviside",
+            "x_shift": 0.0
+        },
+        "d_x": 0.5,
+        "inputs": [
+            [
+                "gk 2",
+                "output"
+            ],
+            [
+                "gk cg 1 - 2 319",
+                "output"
+            ]
+        ],
+        "label": [
+            1,
+            "neural field"
+        ],
+        "restingLevel": -19.152440270970345,
+        "tau": 48.22937232706163,
+        "uniqueName": "nf 2",
+        "x_max": 100
+    },
+    {
+        "amplitude": 3.0639462341843644,
+        "amplitudeGlobal": -0.10951699214695942,
+        "circular": true,
+        "d_x": 0.5,
+        "inputs": [
+            [
+                "nf 2",
+                "output"
+            ]
+        ],
+        "label": [
+            3,
+            "gauss kernel"
+        ],
+        "normalized": true,
+        "uniqueName": "gk 2",
+        "width": 3.346706958673919,
+        "x_max": 100
+    },
+    {
+        "amplitude": 22.486163131180422,
+        "amplitudeGlobal": -0.08203360896847633,
+        "circular": true,
+        "d_x": 0.5,
+        "inputs": [
+            [
+                "nf 1",
+                "output"
+            ]
+        ],
+        "label": [
+            3,
+            "gauss kernel"
+        ],
+        "normalized": true,
+        "uniqueName": "gk cg 1 - 2 319",
+        "width": 1.0,
+        "x_max": 100
+    }
+]

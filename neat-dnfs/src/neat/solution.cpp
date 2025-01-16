@@ -567,7 +567,6 @@ namespace neat_dnfs
 		return fitness;
 	}
 
-
 	double Solution::closenessToRestingLevel(const std::string& fieldName)
 	{
 		// highest value of activation should be equal to the resting level
@@ -607,6 +606,38 @@ namespace neat_dnfs
 		const double width = std::abs(restingLevel);
 
 		return tools::utils::normalizeWithGaussian(-lowestActivationValue, -targetActivation, width);
+	}
+
+	double Solution::justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName, const std::vector<double>& positions, const double& amplitude, const double& width)
+	{
+		using namespace dnf_composer::element;
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype->getElement(fieldName));
+
+		static constexpr double weightBumps = 0.50;
+		static constexpr double weightPos = 0.20;
+		static constexpr double weightAmp = 0.15;
+		static constexpr double weightWidth = 0.15;
+
+		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
+		double fitness = weightBumps / (1.0 + std::abs(1 - numberOfBumps));
+
+		if(numberOfBumps == 1)
+		{
+			NeuralFieldBump bump = neuralField->getBumps().front();
+
+			for (const auto& position : positions)
+			{
+				static constexpr double epsilon = 1e-6;
+				if (std::abs(bump.centroid - position) < epsilon)
+				{
+					fitness += weightPos / (1.0 + std::abs(bump.centroid - position));
+					fitness += weightAmp / (1.0 + std::abs(bump.amplitude - amplitude));
+					fitness += weightWidth / (1.0 + std::abs(bump.width - width));
+				}
+			}
+		}
+
+		return fitness;
 	}
 
 }

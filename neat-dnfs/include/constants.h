@@ -10,7 +10,7 @@ namespace neat_dnfs
 
 	struct DimensionConstants
 	{
-		static constexpr int xSize = 100;
+		static constexpr int xSize = 200;
 		static constexpr double dx = 1.0;
 	};
 
@@ -51,15 +51,34 @@ namespace neat_dnfs
 		static constexpr double amplitude = 2;
 		static constexpr double amplitudeGlobal = -0.01;
 		static constexpr double widthMinVal = 1.0; // 3
-		static constexpr double widthMaxVal = 5.0; // 5.0
+		static constexpr double widthMaxVal = 15; // 5.0
 		static constexpr double widthStep = 0.5; // 0.5
 		static constexpr double ampMinVal = 1; // 0.5
-		static constexpr double ampMaxVal = 10.0; // 8.0
+		static constexpr double ampMaxVal = 30.0; // 8.0
 		static constexpr double ampStep = 0.5; // 0.5
 		static constexpr double ampGlobalMinVal = -1.0; // -0.5
 		static constexpr double ampGlobalMaxVal = -0.01; // -0.01
 		static constexpr double ampGlobalStep = 0.05; // 0.01	 
 	};
+	//struct GaussKernelConstants
+	//{
+	//	inline static std::string namePrefix = "gk ";
+	//	inline static std::string namePrefixConnectionGene = "gk cg ";
+	//	static constexpr double width = 1.0;
+	//	static constexpr double amplitude = 0.8;
+	//	static constexpr double amplitudeGlobal = -0.01;
+
+	//	static constexpr double widthMinVal = 0.1; // 3
+	//	static constexpr double widthMaxVal = 2.0; // 5.0
+	//	static constexpr double widthStep = 0.1; // 0.5
+
+	//	static constexpr double ampMinVal = 0.1; // 0.5
+	//	static constexpr double ampMaxVal = 5.0; // 8.0
+	//	static constexpr double ampStep = 0.1; // 0.5
+	//	static constexpr double ampGlobalMinVal = -1.0; // -0.5
+	//	static constexpr double ampGlobalMaxVal = -0.01; // -0.01
+	//	static constexpr double ampGlobalStep = 0.05; // 0.01	 
+	//};
 
 	struct MexicanHatKernelConstants
 	{
@@ -73,18 +92,18 @@ namespace neat_dnfs
 		static constexpr double amplitudeGlobal = -0.01; // -0.1
 
 		static constexpr double widthExcMinVal = 1.0; // 2.0
-		static constexpr double widthExcMaxVal = 9.0; // 9.0
+		static constexpr double widthExcMaxVal = 25.0; // 9.0
 		static constexpr double widthExcStep = 0.5; // 0.5
 
-		static constexpr double widthInhMinVal = 5.0; // 5.0
-		static constexpr double widthInhMaxVal = 30.0; // 30.0
+		static constexpr double widthInhMinVal = 1.0; // 5.0
+		static constexpr double widthInhMaxVal = 25.0; // 30.0
 		static constexpr double widthInhStep = 0.5; // 0.5
 
-		static constexpr double ampExcMinVal = 8.0; // 8.0
-		static constexpr double ampExcMaxVal = 40.0; // 25.0
+		static constexpr double ampExcMinVal = 1.0; // 8.0
+		static constexpr double ampExcMaxVal = 30.0; // 25.0
 		static constexpr double ampExcStep = 0.5; // 0.5
 
-		static constexpr double ampInhMinVal = 10.0; // 12.0
+		static constexpr double ampInhMinVal = 1.0; // 12.0
 		static constexpr double ampInhMaxVal = 30.0; // 30.0
 		static constexpr double ampInhStep = 0.5; // 0.5
 
@@ -92,6 +111,38 @@ namespace neat_dnfs
 		static constexpr double ampGlobMax = -0.01; // -0.01
 		static constexpr double ampGlobStep = 0.05; // 0.01
 	};
+	//struct MexicanHatKernelConstants
+	//{
+	//	inline static std::string namePrefix = "mhk ";
+	//	inline static std::string namePrefixConnectionGene = "mhk cg ";
+
+	//	static constexpr double widthExc = 1.0; // 2.5
+	//	static constexpr double widthInh = 1.0; // 5.0
+	//	static constexpr double amplitudeExc = 1.0;  // 11.0
+	//	static constexpr double amplitudeInh = 1.0;  // 15.0
+	//	static constexpr double amplitudeGlobal = -0.01; // -0.1
+
+	//	static constexpr double widthExcMinVal = 0.1; // 2.0
+	//	static constexpr double widthExcMaxVal = 5.0; // 9.0
+	//	static constexpr double widthExcStep = 0.1; // 0.5
+
+	//	static constexpr double widthInhMinVal = 0.1; // 5.0
+	//	static constexpr double widthInhMaxVal = 5.0; // 30.0
+	//	static constexpr double widthInhStep = 0.1; // 0.5
+
+	//	static constexpr double ampExcMinVal = 0.1; // 8.0
+	//	static constexpr double ampExcMaxVal = 5.0; // 25.0
+	//	static constexpr double ampExcStep = 0.1; // 0.5
+
+	//	static constexpr double ampInhMinVal = 0.1; // 12.0
+	//	static constexpr double ampInhMaxVal = 5.0; // 30.0
+	//	static constexpr double ampInhStep = 0.1; // 0.5
+
+	//	static constexpr double ampGlobMin = -1.0; // -0.5
+	//	static constexpr double ampGlobMax = -0.01; // -0.01
+	//	static constexpr double ampGlobStep = 0.01; // 0.01
+	//};
+
 
 
 	struct OscillatoryKernelConstants
@@ -105,7 +156,7 @@ namespace neat_dnfs
 		static constexpr double amplitudeGlobal = -0.01;
 
 		static constexpr double amplitudeMinVal = 1;
-		static constexpr double amplitudeMaxVal = 15.0;
+		static constexpr double amplitudeMaxVal = 25.0;
 		static constexpr double amplitudeStep = 0.5;
 
 		static constexpr double decayMinVal = 0.01;

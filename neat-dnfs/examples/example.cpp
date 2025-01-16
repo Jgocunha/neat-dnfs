@@ -12,6 +12,7 @@
 #include <dnf_composer/tools/logger.h>
 #include <user_interface/node_graph_window.h>
 #include <user_interface/plots_window.h>
+#include <user_interface/field_metrics_window.h>
 
 #include "neat/population.h"
 #include "tools/logger.h"
@@ -36,7 +37,7 @@ int main(int argc, char* argv[])
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}}
 			}}
 		};
-		const PopulationParameters parameters{ 5000, 500, 0.85 };
+		const PopulationParameters parameters{ 1000, 50, 0.90 };
 		Population population{ parameters, std::make_shared<SelectiveOutputSolution>(solution) };
 
 		population.initialize();
@@ -56,6 +57,7 @@ int main(int argc, char* argv[])
 		app.addWindow<user_interface::PlotControlWindow>();
 		app.addWindow<user_interface::PlotsWindow>();
 		app.addWindow<user_interface::NodeGraphWindow>();
+		app.addWindow<user_interface::FieldMetricsWindow>();
 		app.init();
 		do
 		{
