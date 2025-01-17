@@ -288,10 +288,16 @@ namespace neat_dnfs
 		const double restingLevel = generateRandomDouble(NeuralFieldConstants::restingLevelMinVal, NeuralFieldConstants::restingLevelMaxVal);
 
 		const NeuralFieldParameters nfp{ tau, restingLevel,
-											NeuralFieldConstants::activationFunction};
+											NeuralFieldConstants::activationFunction };
 		const ElementCommonParameters nfcp{ NeuralFieldConstants::namePrefix + std::to_string(parameters.id),
-						dimensions};
+						dimensions };
 		neuralField = std::make_shared<NeuralField>(nfcp, nfp);
+
+		constexpr std::string noiseName = "noise";
+		const ElementCommonParameters noiseParameters{ noiseName + std::to_string(parameters.id), dimensions };
+		const auto noise = std::make_shared<NormalNoise>(noiseParameters, NormalNoiseParameters{});
+
+		neuralField->addInput(noise);
 	}
 
 	void FieldGene::initializeKernel(const dnf_composer::element::ElementDimensions& dimensions)
@@ -372,6 +378,11 @@ namespace neat_dnfs
 		const ElementCommonParameters okcp{ OscillatoryKernelConstants::namePrefix + std::to_string(parameters.id), dimensions
 				};
 		kernel = std::make_shared<OscillatoryKernel>(okcp, okp);
+	}
+
+	void FieldGene::initializeNoise(const dnf_composer::element::ElementDimensions& dimensions)
+	{
+		 
 	}
 
 

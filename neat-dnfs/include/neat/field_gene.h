@@ -59,6 +59,7 @@ namespace neat_dnfs
 		FieldGeneParameters parameters;
 		NeuralFieldPtr neuralField;
 		KernelPtr kernel;
+		NormalNoisePtr noise;
 	public:
 		FieldGene(const FieldGeneParameters& parameters, 
 			const dnf_composer::element::ElementDimensions& dimensions = {100, 1.0});
@@ -87,5 +88,6 @@ namespace neat_dnfs
 		void initializeGaussKernel(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeMexicanHatKernel(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeOscillatoryKernel(const dnf_composer::element::ElementDimensions& dimensions);
+		void initializeNoise(const dnf_composer::element::ElementDimensions& dimensions);
 	};
 }

@@ -7,10 +7,11 @@ namespace neat_dnfs
 	typedef std::shared_ptr<dnf_composer::element::NeuralField> NeuralFieldPtr;
 	typedef std::shared_ptr<dnf_composer::element::Kernel> KernelPtr;
 	typedef std::shared_ptr<dnf_composer::element::FieldCoupling> FieldCouplingPtr;
+	typedef std::shared_ptr<dnf_composer::element::NormalNoise> NormalNoisePtr;
 
 	struct DimensionConstants
 	{
-		static constexpr int xSize = 200;
+		static constexpr int xSize = 100;
 		static constexpr double dx = 1.0;
 	};
 
@@ -200,8 +201,8 @@ namespace neat_dnfs
 	struct SimulationConstants
 	{
 		inline static std::string name = "solution ";
-		static constexpr double deltaT = 25.0;
-		static constexpr size_t maxSimulationSteps = 100;
+		static constexpr double deltaT = 15.0;
+		static constexpr size_t maxSimulationSteps = 200;
 	};
 
 	struct SolutionConstants
