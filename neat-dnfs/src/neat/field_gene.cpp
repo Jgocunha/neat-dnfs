@@ -22,13 +22,16 @@ namespace neat_dnfs
 	FieldGene::FieldGene(const FieldGeneParameters& parameters, const NeuralFieldPtr& neuralField, 
 		const KernelPtr& kernel)
 		: parameters(parameters), neuralField(neuralField), kernel(kernel)
-	{}
+	{
+		initializeNoise(neuralField->getElementCommonParameters().dimensionParameters);
+	}
 
 	void FieldGene::setAsInput(const dnf_composer::element::ElementDimensions& dimensions)
 	{
 		parameters.type = FieldGeneType::INPUT;
 		initializeNeuralField(dimensions);
 		initializeKernel(dimensions);
+		initializeNoise(dimensions);
 	}
 
 	void FieldGene::setAsOutput(const dnf_composer::element::ElementDimensions& dimensions)
@@ -36,6 +39,7 @@ namespace neat_dnfs
 		parameters.type = FieldGeneType::OUTPUT;
 		initializeNeuralField(dimensions);
 		initializeKernel(dimensions);
+		initializeNoise(dimensions);
 	}
 
 	void FieldGene::setAsHidden(const dnf_composer::element::ElementDimensions& dimensions)
@@ -43,6 +47,7 @@ namespace neat_dnfs
 		parameters.type = FieldGeneType::HIDDEN;
 		initializeNeuralField(dimensions);
 		initializeKernel(dimensions);
+		initializeNoise(dimensions);
 	}
 
 	void FieldGene::mutate()
@@ -231,6 +236,11 @@ namespace neat_dnfs
 		return kernel;
 	}
 
+	std::shared_ptr<dnf_composer::element::NormalNoise> FieldGene::getNoise() const
+	{
+		return noise;
+	}
+
 	bool FieldGene::operator==(const FieldGene& other) const
 	{
 		return parameters == other.parameters;
@@ -292,12 +302,7 @@ namespace neat_dnfs
 		const ElementCommonParameters nfcp{ NeuralFieldConstants::namePrefix + std::to_string(parameters.id),
 						dimensions };
 		neuralField = std::make_shared<NeuralField>(nfcp, nfp);
-
-		constexpr std::string noiseName = "noise";
-		const ElementCommonParameters noiseParameters{ noiseName + std::to_string(parameters.id), dimensions };
-		const auto noise = std::make_shared<NormalNoise>(noiseParameters, NormalNoiseParameters{});
-
-		neuralField->addInput(noise);
+		neuralField->setThresholdForStability(NeuralFieldConstants::stabilityThreshold);
 	}
 
 	void FieldGene::initializeKernel(const dnf_composer::element::ElementDimensions& dimensions)
@@ -382,7 +387,12 @@ namespace neat_dnfs
 
 	void FieldGene::initializeNoise(const dnf_composer::element::ElementDimensions& dimensions)
 	{
-		 
+		using namespace dnf_composer::element;
+		using namespace neat_dnfs::tools::utils;
+
+		const NormalNoiseParameters nnp{ NoiseConstants::amplitude };
+		const ElementCommonParameters nncp{  NoiseConstants::namePrefix + std::to_string(parameters.id), dimensions };
+		noise = std::make_shared<NormalNoise>(nncp, nnp);
 	}
 
 

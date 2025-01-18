@@ -168,6 +168,12 @@ namespace neat_dnfs
 				default:
 					throw std::invalid_argument("Invalid kernel label while translating genes to phenotype.");
 			}
+
+			const auto nncp = gene.getNoise()->getElementCommonParameters();
+			const auto nnp = gene.getNoise()->getParameters();
+			const auto nn = std::make_shared<NormalNoise>(nncp, nnp);
+			phenotype->addElement(nn);
+			phenotype->createInteraction(nn->getUniqueName(), "output", nf->getUniqueName());
 		}
 	}
 
@@ -408,7 +414,10 @@ namespace neat_dnfs
 			counter++;
 			phenotype->step();
 			if (counter > SimulationConstants::maxSimulationSteps)
+			{
+				//std::cout << "Field " << targetElement << " is not stable after " << counter << " steps." << std::endl;
 				return false;
+			}
 		} while (!neuralField->isStable());
 		//std::cout << "Field " << targetElement << " is stable after " << counter << " steps." << std::endl;
 		return true;
