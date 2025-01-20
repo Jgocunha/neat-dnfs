@@ -604,17 +604,31 @@ namespace neat_dnfs
 		return tools::utils::normalizeWithGaussian(-highestActivationValue, -targetActivation, width);
 	}
 
-	double Solution::negativePreShapedness(const std::string& fieldName)
+	double Solution::negativePreShapednessAtPosition(const std::string& fieldName, const double& position)
 	{
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype->getElement(fieldName));
 
-		const double lowestActivationValue = neuralField->getLowestActivation();
-		const double restingLevel = neuralField->getParameters().startingRestingLevel;
+		const int pos = static_cast<int>(position/neuralField->getElementCommonParameters().dimensionParameters.d_x);
+		const double u_tar_pos = neuralField->getComponent("activation")[pos];
+
+		// activation of field at position should be lower than the resting level
+		if (u_tar_pos >= neuralField->getParameters().startingRestingLevel)
+			return 0.0;
+
+		static constexpr double epsilon = 0.005;
+		// activation of field at position should be lower than the rest of the neighboring positions
+		for(const auto& u_pos : neuralField->getComponent("activation"))
+		{
+			if (u_tar_pos >= u_pos + epsilon)
+				return 0.0;
+		}
+
+		const double restingLevel = std::abs(neuralField->getParameters().startingRestingLevel);
 		const double targetActivation = restingLevel + restingLevel / 2.0;
 		const double width = std::abs(restingLevel);
 
-		return tools::utils::normalizeWithGaussian(-lowestActivationValue, -targetActivation, width);
+		return tools::utils::normalizeWithGaussian(std::abs(u_tar_pos), targetActivation, width);
 	}
 
 	double Solution::justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName, const std::vector<double>& positions, const double& amplitude, const double& width)
@@ -649,4 +663,13 @@ namespace neat_dnfs
 		return fitness;
 	}
 
+	void Solution::removeGaussianStimuliFromField(const std::string& fieldName)
+	{
+		using namespace dnf_composer::element;
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype->getElement(fieldName));
+
+		for (const auto& input : neuralField->getInputs())
+			if (input->getLabel() == GAUSS_STIMULUS)
+				phenotype->removeElement(input->getUniqueName());
+	}
 }

@@ -131,7 +131,7 @@ namespace neat_dnfs
 			const int amp_sign = gkp.amplitude < 0 ? -1 : 1;
 
 			const int mutationSelection = generateRandomInt(0, 2 
-				+ ConnectionGeneConstants::allowAllKernelTypes 
+				//+ ConnectionGeneConstants::allowAllKernelTypes 
 				+ ConnectionGeneConstants::allowInhibitoryConnections
 			); // number of mutable parameters + change type + inhibitory connections
 			switch (mutationSelection)
@@ -151,23 +151,23 @@ namespace neat_dnfs
 					GaussKernelConstants::ampGlobalMinVal,
 					GaussKernelConstants::ampGlobalMaxVal);
 				break;
-			case 3: // change type
-			{
-				const int typeSelection = generateRandomInt(0, 1); // number of (other) kernel types
-				switch (typeSelection)
-				{
-				case 0:
-					initializeMexicanHatKernel(gkd);
-					return;
-				case 1:
-					initializeOscillatoryKernel(gkd);
-					return;
-				default:
-					break;
-				}
-			}
-			return; // this is a return because the kernel type has changed
-			case 4: // toggle signal
+			//case 3: // change type
+			//{
+			//	const int typeSelection = generateRandomInt(0, 1); // number of (other) kernel types
+			//	switch (typeSelection)
+			//	{
+			//	case 0:
+			//		initializeMexicanHatKernel(gkd);
+			//		return;
+			//	case 1:
+			//		initializeOscillatoryKernel(gkd);
+			//		return;
+			//	default:
+			//		break;
+			//	}
+			//}
+			//return; // this is a return because the kernel type has changed
+			case 3: // toggle signal
 				gkp.amplitude = -gkp.amplitude;
 				break;
 			default:
@@ -299,8 +299,8 @@ namespace neat_dnfs
 		}
 		break;
 		default:
-			tools::logger::log(tools::logger::FATAL, "FieldGene::mutate() - Kernel type not recognized.");
-			throw std::runtime_error("FieldGene::mutate() - Kernel type not recognized.");
+			tools::logger::log(tools::logger::FATAL, "ConnectionGene::mutate() - Kernel type not recognized.");
+			throw std::runtime_error("ConnectionGene::mutate() - Kernel type not recognized.");
 			break;
 		}
 	}
@@ -443,7 +443,7 @@ namespace neat_dnfs
 			// randomly select kernel type
 			switch (generateRandomInt(0, 2))
 			{
-							case 0:
+			case 0:
 				initializeGaussKernel(dimensions);
 				break;
 			case 1:
@@ -466,8 +466,9 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		using namespace neat_dnfs::tools::utils;
 
+		const int amplitude_sign = generateRandomSignal();
 		const double width = generateRandomDouble(GaussKernelConstants::widthMinVal, GaussKernelConstants::widthMaxVal);
-		const double amplitude = generateRandomDouble(GaussKernelConstants::ampMinVal, GaussKernelConstants::ampMaxVal);
+		const double amplitude = amplitude_sign * generateRandomDouble(GaussKernelConstants::ampMinVal, GaussKernelConstants::ampMaxVal);
 		const double amplitudeGlobal = generateRandomDouble(GaussKernelConstants::ampGlobalMinVal, GaussKernelConstants::ampGlobalMaxVal);
 		const GaussKernelParameters gkp{ width,
 										amplitude,
@@ -487,8 +488,9 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		using namespace neat_dnfs::tools::utils;
 
+		const int amplitude_sign = generateRandomSignal();
 		const double widthExc = generateRandomDouble(MexicanHatKernelConstants::widthExcMinVal, MexicanHatKernelConstants::widthExcMaxVal);
-		const double amplitudeExc = generateRandomDouble(MexicanHatKernelConstants::ampExcMinVal, MexicanHatKernelConstants::ampExcMaxVal);
+		const double amplitudeExc = amplitude_sign * generateRandomDouble(MexicanHatKernelConstants::ampExcMinVal, MexicanHatKernelConstants::ampExcMaxVal);
 		const double widthInh = generateRandomDouble(MexicanHatKernelConstants::widthInhMinVal, MexicanHatKernelConstants::widthInhMaxVal);
 		const double amplitudeInh = generateRandomDouble(MexicanHatKernelConstants::ampInhMinVal, MexicanHatKernelConstants::ampInhMaxVal);
 		const double amplitudeGlobal = generateRandomDouble(MexicanHatKernelConstants::ampGlobMin, MexicanHatKernelConstants::ampGlobMax);
@@ -512,7 +514,8 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		using namespace neat_dnfs::tools::utils;
 
-		const double amplitude = generateRandomDouble(OscillatoryKernelConstants::amplitudeMinVal, OscillatoryKernelConstants::amplitudeMaxVal);
+		const int amplitude_sign = generateRandomSignal();
+		const double amplitude = amplitude_sign * generateRandomDouble(OscillatoryKernelConstants::amplitudeMinVal, OscillatoryKernelConstants::amplitudeMaxVal);
 		const double decay = generateRandomDouble(OscillatoryKernelConstants::decayMinVal, OscillatoryKernelConstants::decayMaxVal);
 		const double zeroCrossings = generateRandomDouble(OscillatoryKernelConstants::zeroCrossingsMinVal, OscillatoryKernelConstants::zeroCrossingsMaxVal);
 		const double amplitudeGlobal = generateRandomDouble(OscillatoryKernelConstants::ampGlobMin, OscillatoryKernelConstants::ampGlobMax);
