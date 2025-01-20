@@ -22,7 +22,7 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
 
-		constexpr double stages = 1.f / 4.f;
+		constexpr double stages = 1.f / 3.f;
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
@@ -33,7 +33,7 @@ namespace neat_dnfs
 		runSimulationUntilFieldStable("nf 2");
 		runSimulationUntilFieldStable("nf 3");
 
-		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 20, 10);
+		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 5, 8);
 		const double f1_2 = closenessToRestingLevel("nf 2");
 		const double f1_3 = preShapedness("nf 3");
 		//const double f1_3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 50.0, 10, 10);
@@ -46,7 +46,7 @@ namespace neat_dnfs
 		runSimulationUntilFieldStable("nf 2");
 		runSimulationUntilFieldStable("nf 3");
 
-		const double f2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 20, 10);
+		const double f2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 5, 8);
 		const double f2_3 = closenessToRestingLevel("nf 3");
 
 		removeGaussianStimuli();
@@ -90,7 +90,7 @@ namespace neat_dnfs
 		runSimulationUntilFieldStable("nf 2");
 		runSimulationUntilFieldStable("nf 3");
 
-		const double f1_1_ = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 20, 10);
+		const double f1_1_ = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 10, 8);
 		const double f1_2_ = closenessToRestingLevel("nf 1");
 		const double f1_3_ = negativePreShapedness("nf 3");
 
@@ -106,7 +106,7 @@ namespace neat_dnfs
 		runSimulationUntilFieldStable("nf 3");
 
 		//const double f2_1_ = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 20.0, 20, 10);
-		const double f2_3_ = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 20.0, 10, 5);
+		const double f2_3_ = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3", { 20.0, 50.0 }, 5, 8);
 
 		removeGaussianStimuli();
 		runSimulationUntilFieldStable("nf 1");
@@ -139,9 +139,9 @@ namespace neat_dnfs
 		addGaussianStimulus("nf 1",
 			{ 5.0, 15.0, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
-	//	addGaussianStimulus("nf 1",
-			//{ 5.0, 15.0, 80.0, true, false },
-			//{ DimensionConstants::xSize, DimensionConstants::dx });
+		addGaussianStimulus("nf 1",
+			{ 5.0, 15.0, 80.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		runSimulationUntilFieldStable("nf 1");
 		runSimulationUntilFieldStable("nf 2");
@@ -155,10 +155,10 @@ namespace neat_dnfs
 		runSimulationUntilFieldStable("nf 2");
 		runSimulationUntilFieldStable("nf 3");
 
-		const double fa_a = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 20.0, 10, 5);
-		const double fa_b = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 80.0, 10, 5);
+		//const double fa_a = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 20.0, 10, 5);
+		//const double fa_b = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 80.0, 10, 5);
 
-		const double fa = std::max(fa_a, fa_b);
+		const double fa = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3", { 20.0, 50.0, 80.0 }, 5, 8);
 
 		removeGaussianStimuli();
 		runSimulationUntilFieldStable("nf 1");
@@ -179,44 +179,44 @@ namespace neat_dnfs
 		parameters.fitness += stages * (wfa * fa + wfb_1 * fb_1 + wfb_2 * fb_2 + wfb_3 * fb_3);
 
 
-		initSimulation();
-		addGaussianStimulus("nf 1",
-			{ 5.0, 15.0, 80.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
-		addGaussianStimulus("nf 1",
-			{ 5.0, 15.0, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+		//initSimulation();
 		//addGaussianStimulus("nf 1",
-			//{ 5.0, 15.0, 80.0, true, false },
-			//{ DimensionConstants::xSize, DimensionConstants::dx });
+		//	{ 5.0, 15.0, 80.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//addGaussianStimulus("nf 1",
+		//	{ 5.0, 15.0, 50.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		////addGaussianStimulus("nf 1",
+		//	//{ 5.0, 15.0, 80.0, true, false },
+		//	//{ DimensionConstants::xSize, DimensionConstants::dx });
 
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
-		runSimulationUntilFieldStable("nf 3");
+		//runSimulationUntilFieldStable("nf 1");
+		//runSimulationUntilFieldStable("nf 2");
+		//runSimulationUntilFieldStable("nf 3");
 
-		addGaussianStimulus("nf 2",
-			{ 5.0, 15.0, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+		//addGaussianStimulus("nf 2",
+		//	{ 5.0, 15.0, 50.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
 
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
-		runSimulationUntilFieldStable("nf 3");
+		//runSimulationUntilFieldStable("nf 1");
+		//runSimulationUntilFieldStable("nf 2");
+		//runSimulationUntilFieldStable("nf 3");
 
-		const double fa_a_ = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 80.0, 10, 5);
-		const double fa_b_ = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 80.0, 10, 5);
+		//const double fa_a_ = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 80.0, 10, 5);
+		//const double fa_b_ = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 80.0, 10, 5);
 
-		const double fa_ = std::max(fa_a_, fa_b_);
+		//const double fa_ = std::max(fa_a_, fa_b_);
 
-		removeGaussianStimuli();
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
-		runSimulationUntilFieldStable("nf 3");
+		//removeGaussianStimuli();
+		//runSimulationUntilFieldStable("nf 1");
+		//runSimulationUntilFieldStable("nf 2");
+		//runSimulationUntilFieldStable("nf 3");
 
-		const double fb_1_ = closenessToRestingLevel("nf 1");
-		const double fb_2_ = closenessToRestingLevel("nf 2");
-		const double fb_3_ = closenessToRestingLevel("nf 3");
+		//const double fb_1_ = closenessToRestingLevel("nf 1");
+		//const double fb_2_ = closenessToRestingLevel("nf 2");
+		//const double fb_3_ = closenessToRestingLevel("nf 3");
 
-		parameters.fitness += stages * (wfa * fa_ + wfb_1 * fb_1_ + wfb_2 * fb_2_ + wfb_3 * fb_3_);
+		//parameters.fitness += stages * (wfa * fa_ + wfb_1 * fb_1_ + wfb_2 * fb_2_ + wfb_3 * fb_3_);
 	}
 
 	void ActionExecutionSimulation::createPhenotypeEnvironment()
@@ -231,7 +231,7 @@ namespace neat_dnfs
 			{ 5.0, 15.0, 80.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 
-		addGaussianStimulus("nf 1",
+		addGaussianStimulus("nf 2",
 			{ 5.0, 0.0, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 	}

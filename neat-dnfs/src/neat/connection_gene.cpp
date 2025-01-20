@@ -128,9 +128,10 @@ namespace neat_dnfs
 			const auto gaussKernel = std::dynamic_pointer_cast<GaussKernel>(kernel);
 			GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
 			ElementDimensions gkd = kernel->getElementCommonParameters().dimensionParameters;
+			const int amp_sign = gkp.amplitude < 0 ? -1 : 1;
 
 			const int mutationSelection = generateRandomInt(0, 2 
-				//+ ConnectionGeneConstants::allowAllKernelTypes 
+				+ ConnectionGeneConstants::allowAllKernelTypes 
 				+ ConnectionGeneConstants::allowInhibitoryConnections
 			); // number of mutable parameters + change type + inhibitory connections
 			switch (mutationSelection)
@@ -141,7 +142,7 @@ namespace neat_dnfs
 					GaussKernelConstants::widthMaxVal);
 				break;
 			case 1: // amplitude
-				gkp.amplitude = std::clamp(gkp.amplitude + GaussKernelConstants::ampStep * signal,
+				gkp.amplitude = amp_sign * std::clamp(gkp.amplitude + GaussKernelConstants::ampStep * signal,
 					GaussKernelConstants::ampMinVal,
 					GaussKernelConstants::ampMaxVal);
 				break;
@@ -150,23 +151,23 @@ namespace neat_dnfs
 					GaussKernelConstants::ampGlobalMinVal,
 					GaussKernelConstants::ampGlobalMaxVal);
 				break;
-			//case 3: // change type
-			//{
-			//	const int typeSelection = generateRandomInt(0, 1); // number of (other) kernel types
-			//	switch (typeSelection)
-			//	{
-			//	case 0:
-			//		initializeMexicanHatKernel(gkd);
-			//		return;
-			//	case 1:
-			//		initializeOscillatoryKernel(gkd);
-			//		return;
-			//	default:
-			//		break;
-			//	}
-			//}
-			//return; // this is a return because the kernel type has changed
-			case 3: // toggle signal
+			case 3: // change type
+			{
+				const int typeSelection = generateRandomInt(0, 1); // number of (other) kernel types
+				switch (typeSelection)
+				{
+				case 0:
+					initializeMexicanHatKernel(gkd);
+					return;
+				case 1:
+					initializeOscillatoryKernel(gkd);
+					return;
+				default:
+					break;
+				}
+			}
+			return; // this is a return because the kernel type has changed
+			case 4: // toggle signal
 				gkp.amplitude = -gkp.amplitude;
 				break;
 			default:
@@ -181,6 +182,7 @@ namespace neat_dnfs
 			const auto mexicanHatKernel = std::dynamic_pointer_cast<MexicanHatKernel>(kernel);
 			MexicanHatKernelParameters mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
 			ElementDimensions mhkd = kernel->getElementCommonParameters().dimensionParameters;
+			const int amp_sign = mhkp.amplitudeExc < 0 ? -1 : 1;
 
 			const int mutationSelection = generateRandomInt(0, 4
 				+ ConnectionGeneConstants::allowAllKernelTypes
@@ -194,7 +196,7 @@ namespace neat_dnfs
 					MexicanHatKernelConstants::widthExcMaxVal);
 				break;
 			case 1: // amplitude exc
-				mhkp.amplitudeExc = std::clamp(mhkp.amplitudeExc + MexicanHatKernelConstants::ampExcStep * signal,
+				mhkp.amplitudeExc = amp_sign * std::clamp(mhkp.amplitudeExc + MexicanHatKernelConstants::ampExcStep * signal,
 					MexicanHatKernelConstants::ampExcMinVal,
 					MexicanHatKernelConstants::ampExcMaxVal);
 				break;
@@ -229,6 +231,9 @@ namespace neat_dnfs
 				}
 			}
 			return; // this is a return because the kernel type has changed
+			case 6: // toggle signal
+				mhkp.amplitudeExc = -mhkp.amplitudeExc;
+				break;
 			default:
 				break;
 			}
@@ -240,6 +245,7 @@ namespace neat_dnfs
 			const auto oscillatoryKernel = std::dynamic_pointer_cast<OscillatoryKernel>(kernel);
 			OscillatoryKernelParameters okp = std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->getParameters();
 			ElementDimensions okd = kernel->getElementCommonParameters().dimensionParameters;
+			const int amp_sign = okp.amplitude < 0 ? -1 : 1;
 
 			const int mutationSelection = generateRandomInt(0, 3
 				+ ConnectionGeneConstants::allowAllKernelTypes
@@ -248,7 +254,7 @@ namespace neat_dnfs
 			switch (mutationSelection)
 			{
 			case 0: // amplitude
-				okp.amplitude = std::clamp(okp.amplitude + OscillatoryKernelConstants::amplitudeStep * signal,
+				okp.amplitude = amp_sign * std::clamp(okp.amplitude + OscillatoryKernelConstants::amplitudeStep * signal,
 					OscillatoryKernelConstants::amplitudeMinVal,
 					OscillatoryKernelConstants::amplitudeMaxVal);
 				break;
@@ -283,6 +289,9 @@ namespace neat_dnfs
 				}
 			}
 			return; // this is a return because the kernel type has changed
+			case 5: // toggle signal
+				okp.amplitude = -okp.amplitude;
+				break;
 			default:
 				break;
 			}

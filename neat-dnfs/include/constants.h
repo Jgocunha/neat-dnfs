@@ -12,8 +12,8 @@ namespace neat_dnfs
 	struct SimulationConstants
 	{
 		inline static std::string name = "solution ";
-		static constexpr double deltaT = 10.0;
-		static constexpr size_t maxSimulationSteps = 300;
+		static constexpr double deltaT = 15.0;
+		static constexpr size_t maxSimulationSteps = 200;
 	};
 
 	struct DimensionConstants
@@ -25,7 +25,7 @@ namespace neat_dnfs
 	struct NoiseConstants
 	{
 		inline static std::string namePrefix = "nn ";
-		static constexpr double amplitude = 0.2;
+		static constexpr double amplitude = 0.2; //0.2 (if selection is required), null otherwise
 	};
 
 	struct GaussStimulusConstants
@@ -40,7 +40,7 @@ namespace neat_dnfs
 	struct NeuralFieldConstants
 	{
 		inline static std::string namePrefix = "nf ";
-		static constexpr double stabilityThreshold = 0.90;
+		static constexpr double stabilityThreshold = 0.9; // 0.90 if amp noise is 0.2, 0.035 otherwise
 		static constexpr double tau = 25;
 		static constexpr double restingLevel = -5;
 		inline static dnf_composer::element::HeavisideFunction activationFunction{ 0.0 };
@@ -140,9 +140,9 @@ namespace neat_dnfs
 	struct MutationConstants
 	{
 		static constexpr double addFieldGeneProbability = 0.00;
-		static constexpr double mutateFieldGeneProbability = 0.45;
-		static constexpr double addConnectionGeneProbability = 0.15;
-		static constexpr double mutateConnectionGeneProbability = 0.40;
+		static constexpr double mutateFieldGeneProbability = 0.75;
+		static constexpr double addConnectionGeneProbability = 0.10;
+		static constexpr double mutateConnectionGeneProbability = 0.15;
 		static constexpr double toggleConnectionGeneProbability = 0.00;
 	};
 

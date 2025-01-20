@@ -6,7 +6,21 @@ namespace neat_dnfs
 		: Solution(topology)
 	{
 		name = "Selective output";
-		// target fitness is 0.85
+		// target fitness is 0.80/0.85
+		// for better results, reduce the search space by:
+		// - not allowing inhibitory connections;
+		// - not allowing all types of inter-field kernels;
+		// - not allowing adding field genes.
+		// make sure these settings are:
+		// - set noise amplitude to 0.2;
+		// - set stabilityThreshold to 0.9.
+		// - setting delta_t to 10;
+		// - setting max iterations to 300.
+		//static constexpr double addFieldGeneProbability = 0.00;
+		//static constexpr double mutateFieldGeneProbability = 0.75;
+		//static constexpr double addConnectionGeneProbability = 0.10;
+		//static constexpr double mutateConnectionGeneProbability = 0.15;
+		//static constexpr double toggleConnectionGeneProbability = 0.00;
 	}
 
 	SolutionPtr SelectiveOutputSolution::clone() const
@@ -74,8 +88,8 @@ namespace neat_dnfs
 		const double f2_1_1 = closenessToRestingLevel("nf 1");
 		const double f2_2_1 = closenessToRestingLevel("nf 2");
 
-		static constexpr double wf1_1_1 = 0.20;
-		static constexpr double wf1_4_1 = 0.60;
+		static constexpr double wf1_1_1 = 0.30;
+		static constexpr double wf1_4_1 = 0.50;
 		static constexpr double wf2_1_1 = 0.10;
 		static constexpr double wf2_2_1 = 0.10;
 
@@ -108,8 +122,8 @@ namespace neat_dnfs
 		const double f2_1_2 = closenessToRestingLevel("nf 1");
 		const double f2_2_2 = closenessToRestingLevel("nf 2");
 
-		static constexpr double wf1_1_2 = 0.20;
-		static constexpr double wf1_5_2 = 0.60;
+		static constexpr double wf1_1_2 = 0.30;
+		static constexpr double wf1_5_2 = 0.50;
 		static constexpr double wf2_1_2 = 0.10;
 		static constexpr double wf2_2_2 = 0.10;
 
