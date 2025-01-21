@@ -6,7 +6,7 @@ namespace neat_dnfs
 		: Solution(topology)
 	{
 		name = "Selective output";
-		// target fitness is 0.80/0.85
+		// target fitness is 0.85
 		// for better results, reduce the search space by:
 		// - not allowing inhibitory connections;
 		// - not allowing all types of inter-field kernels;
@@ -14,8 +14,8 @@ namespace neat_dnfs
 		// make sure these settings are:
 		// - set noise amplitude to 0.2;
 		// - set stabilityThreshold to 0.9.
-		// - setting delta_t to 10;
-		// - setting max iterations to 300.
+		// - setting delta_t to 25;
+		// - setting max iterations to 200.
 		//static constexpr double addFieldGeneProbability = 0.00;
 		//static constexpr double mutateFieldGeneProbability = 0.75;
 		//static constexpr double addConnectionGeneProbability = 0.10;
@@ -36,21 +36,30 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
 
-		static constexpr double wbehaviour = 0.3333333;
+		static constexpr double wbehaviour = 1.f / 2.f;
+
+		static constexpr int iterations = 50;
+
+		static constexpr double in_amp = 8.0;
+		static constexpr double in_width = 10.0;
+		static constexpr double out_amp = 6.0;
+		static constexpr double out_width = 5.0;
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
-			{ 5.0, 15.0, 50.0, true, false },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
+		//runSimulationUntilFieldStable("nf 1");
+		//runSimulationUntilFieldStable("nf 2");
+		runSimulation(iterations);
 
-		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 5, 10);
-		const double f1_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 5, 8);
+		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, in_amp, in_width);
+		const double f1_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, out_amp, out_width);
 
 		removeGaussianStimuli();
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
+		//runSimulationUntilFieldStable("nf 1");
+		//runSimulationUntilFieldStable("nf 2");
+		runSimulation(iterations);
 
 		const double f2_1 = closenessToRestingLevel("nf 1");
 		const double f2_2 = closenessToRestingLevel("nf 2");
@@ -68,22 +77,25 @@ namespace neat_dnfs
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
-			{ 5.0, 15.0, 20.0, true, false },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulationUntilFieldStable("nf 1");
 		addGaussianStimulus("nf 1",
-			{ 5.0, 15.0, 50.0, true, false },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
+		//runSimulationUntilFieldStable("nf 1");
+		//runSimulationUntilFieldStable("nf 2");
+		runSimulation(iterations);
 
-		const double f1_1_1 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1", 20.0, 5.0, 10.0, 
-			50.0, 5.0, 10.0);
-		const double f1_4_1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 2", { 20.0, 50.0 }, 5.0, 8.0);
+		const double f1_1_1 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1", 
+			20.0, in_amp, in_width, 
+			50.0, in_amp, in_width);
+		const double f1_4_1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 2", { 20.0, 50.0 }, out_amp, out_width);
 
 		removeGaussianStimuli();
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
+		//runSimulationUntilFieldStable("nf 1");
+		//runSimulationUntilFieldStable("nf 2");
+		runSimulation(iterations);
 
 		const double f2_1_1 = closenessToRestingLevel("nf 1");
 		const double f2_2_1 = closenessToRestingLevel("nf 2");
@@ -95,7 +107,7 @@ namespace neat_dnfs
 
 		parameters.fitness += wbehaviour * (wf1_1_1 * f1_1_1 + wf1_4_1 * f1_4_1 + wf2_1_1 * f2_1_1 + wf2_2_1 * f2_2_1);
 
-		initSimulation();
+		/*initSimulation();
 		addGaussianStimulus("nf 1",
 			{ 5.0, 15.0, 20.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
@@ -127,7 +139,7 @@ namespace neat_dnfs
 		static constexpr double wf2_1_2 = 0.10;
 		static constexpr double wf2_2_2 = 0.10;
 
-		parameters.fitness += wbehaviour * (wf1_1_2 * f1_1_2 + wf1_5_2 * f1_5_2 + wf2_1_2 * f2_1_2 + wf2_2_2 * f2_2_2);
+		parameters.fitness += wbehaviour * (wf1_1_2 * f1_1_2 + wf1_5_2 * f1_5_2 + wf2_1_2 * f2_1_2 + wf2_2_2 * f2_2_2);*/
 	}
 
 	void SelectiveOutputSolution::createPhenotypeEnvironment()

@@ -12,7 +12,7 @@ namespace neat_dnfs
 	struct SimulationConstants
 	{
 		inline static std::string name = "solution ";
-		static constexpr double deltaT = 15.0;
+		static constexpr double deltaT = 10.0;
 		static constexpr size_t maxSimulationSteps = 200;
 	};
 
@@ -45,7 +45,7 @@ namespace neat_dnfs
 		static constexpr double restingLevel = -5;
 		inline static dnf_composer::element::HeavisideFunction activationFunction{ 0.0 };
 		static constexpr double tauMinVal = 15.0;
-		static constexpr double tauMaxVal = 300.0;
+		static constexpr double tauMaxVal = 200.0;
 		static constexpr double tauStep = 5.0;
 		static constexpr double restingLevelMinVal = -20.0;
 		static constexpr double restingLevelMaxVal = -1.0;
@@ -71,7 +71,7 @@ namespace neat_dnfs
 		static constexpr double widthMaxVal = 10.0; // 5.0
 		static constexpr double widthStep = 0.5; // 0.5
 		static constexpr double ampMinVal = 3.0; // 0.5
-		static constexpr double ampMaxVal = 25.0; // 8.0
+		static constexpr double ampMaxVal = 30.0; // 8.0
 		static constexpr double ampStep = 0.5; // 0.5
 		static constexpr double ampGlobalMinVal = -5.0; // -0.5
 		static constexpr double ampGlobalMaxVal = 0.0; // -0.01
@@ -140,8 +140,8 @@ namespace neat_dnfs
 	struct MutationConstants
 	{
 		static constexpr double addFieldGeneProbability = 0.10;
-		static constexpr double mutateFieldGeneProbability = 0.35;
-		static constexpr double addConnectionGeneProbability = 0.20;
+		static constexpr double mutateFieldGeneProbability = 0.45;
+		static constexpr double addConnectionGeneProbability = 0.10;
 		static constexpr double mutateConnectionGeneProbability = 0.35;
 		static constexpr double toggleConnectionGeneProbability = 0.00;
 	};
@@ -171,7 +171,7 @@ namespace neat_dnfs
 
 	struct SpeciesConstants
 	{
-		static constexpr double compatibilityThreshold = 5.0;
+		static constexpr double compatibilityThreshold = 8.0;
 		static constexpr double excessGenesCompatibilityWeight = 0.5;
 		static constexpr double disjointGenesCompatibilityWeight = 0.5;
 		static constexpr double averageConnectionDifferenceCompatibilityWeight = 0.5;

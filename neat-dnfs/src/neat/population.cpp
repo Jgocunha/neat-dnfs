@@ -300,9 +300,10 @@ namespace neat_dnfs
 
 		const uint16_t newPopulationSize = eliteCount + totalOffspringAcrossSpecies;
 		int error = parameters.size - newPopulationSize;
+		// commented this out because error correction is working fine
+		/*int error = initial_error;
 		if (error > 30)
 		{
-			log(tools::logger::LogLevel::WARNING, "Huuuuggggeee error!");
 			log(tools::logger::LogLevel::WARNING, "Error: " + std::to_string(error) +
 				" Elite count: " + std::to_string(eliteCount) +
 				" Total offspring: " + std::to_string(totalOffspringAcrossSpecies) +
@@ -313,7 +314,7 @@ namespace neat_dnfs
 				" Total offspring across species: " + std::to_string(totalOffspringAcrossSpecies) +
 				" Species list size: " + std::to_string(speciesList.size()) +
 				" Kill count: " + std::to_string(killCount));
-		}
+		}*/
 		while (error != 0)
 		{
 			const int randomIndex = tools::utils::generateRandomInt(0, static_cast<int>(speciesList.size() - 1));

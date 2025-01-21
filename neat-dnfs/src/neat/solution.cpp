@@ -616,7 +616,7 @@ namespace neat_dnfs
 		if (u_tar_pos >= neuralField->getParameters().startingRestingLevel)
 			return 0.0;
 
-		static constexpr double epsilon = 0.005;
+		static constexpr double epsilon = 0.015;
 		// activation of field at position should be lower than the rest of the neighboring positions
 		for(const auto& u_pos : neuralField->getComponent("activation"))
 		{

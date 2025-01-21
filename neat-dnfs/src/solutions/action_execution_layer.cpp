@@ -23,20 +23,19 @@ namespace neat_dnfs
 		parameters.fitness = 0.0;
 
 
-		using namespace dnf_composer::element;
-		parameters.fitness = 0.0;
-
-		static constexpr double wbehaviour = 1.f / 4.f;
+		static constexpr double wbehaviour = 1.f / 2.f;
+		static constexpr double amp_tar = 10;
+		static constexpr double width_tar = 12;
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
-			{ 5.0, 15.0, 50.0, true, false },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulationUntilFieldStable("nf 1");
 		runSimulationUntilFieldStable("nf 3");
 
-		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 5, 10);
-		const double f1_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 50.0, 5, 8);
+		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, amp_tar, width_tar);
+		const double f1_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 50.0, amp_tar, width_tar);
 
 		removeGaussianStimuli();
 		runSimulationUntilFieldStable("nf 1");
@@ -54,22 +53,30 @@ namespace neat_dnfs
 		static constexpr double wf2_1 = 0.10;
 		static constexpr double wf2_2 = 0.20;
 
+		/*std::cout << "Stimulus at nf 1 should create a bump in nf 1 and nf3" << '\n';
+		std::cout << "f1_1 a bump at nf 1: " << f1_1 << '\n';
+		std::cout << "f1_2 a bump at nf 3: " << f1_2 << '\n';
+		std::cout << "f2_1 resting level at nf 1: " << f2_1 << '\n';
+		std::cout << "f2_2 resting level at nf 3: " << f2_2 << '\n';*/
+
 		parameters.fitness = wbehaviour * (wf1_1 * f1_1 + wf1_2 * f1_2 + wf2_1 * f2_1 + wf2_2 * f2_2);
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
-			{ 5.0, 15.0, 20.0, true, false },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude,20.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulationUntilFieldStable("nf 1");
 		addGaussianStimulus("nf 1",
-			{ 5.0, 15.0, 50.0, true, false },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulationUntilFieldStable("nf 1");
 		runSimulationUntilFieldStable("nf 3");
 
-		const double f1_1_1 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1", 20.0, 5.0, 10.0,
-			50.0, 5.0, 10.0);
-		const double f1_4_1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3", { 20.0, 50.0 }, 5.0, 8.0);
+		const double f1_1_1 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1", 
+			20.0, amp_tar, width_tar,
+			50.0, amp_tar, width_tar);
+		const double f1_4_1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3", 
+			{ 20.0, 50.0 }, amp_tar, width_tar);
 
 		removeGaussianStimuli();
 		runSimulationUntilFieldStable("nf 1");
@@ -83,9 +90,15 @@ namespace neat_dnfs
 		static constexpr double wf2_1_1 = 0.10;
 		static constexpr double wf2_2_1 = 0.10;
 
+		/*std::cout << "Two stimuli at nf 1 should create two bumps in nf 1 and one bump in nf3 (selection)" << '\n';
+		std::cout << "f1_1_1 two bumps at nf 1: " << f1_1_1 << '\n';
+		std::cout << "f1_4_1 one bump at nf 3: " << f1_4_1 << '\n';
+		std::cout << "f2_1_1 resting level at nf 1: " << f2_1_1 << '\n';
+		std::cout << "f2_2_1 resting level at nf 3: " << f2_2_1 << '\n';*/
+
 		parameters.fitness += wbehaviour * (wf1_1_1 * f1_1_1 + wf1_4_1 * f1_4_1 + wf2_1_1 * f2_1_1 + wf2_2_1 * f2_2_1);
 
-		initSimulation();
+		/*initSimulation();
 		addGaussianStimulus("nf 1",
 			{ 5.0, 15.0, 20.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
@@ -100,10 +113,12 @@ namespace neat_dnfs
 		runSimulationUntilFieldStable("nf 1");
 		runSimulationUntilFieldStable("nf 3");
 
-		const double f1_1_2 = threeBumpsAtPositionWithAmplitudeAndWidth("nf 1", 20.0, 5.0, 10.0,
+		const double f1_1_2 = threeBumpsAtPositionWithAmplitudeAndWidth("nf 1", 
+			20.0, 5.0, 10.0,
 			50.0, 5.0, 10.0,
 			80.0, 5.0, 10.0);
-		const double f1_5_2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3", { 20.0, 50.0, 80.0 }, 5.0, 8.0);
+		const double f1_5_2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3", 
+			{ 20.0, 50.0, 80.0 }, 5.0, 8.0);
 
 		removeGaussianStimuli();
 		runSimulationUntilFieldStable("nf 1");
@@ -117,29 +132,61 @@ namespace neat_dnfs
 		static constexpr double wf2_1_2 = 0.10;
 		static constexpr double wf2_2_2 = 0.10;
 
-		parameters.fitness += wbehaviour * (wf1_1_2 * f1_1_2 + wf1_5_2 * f1_5_2 + wf2_1_2 * f2_1_2 + wf2_2_2 * f2_2_2);
+		parameters.fitness += wbehaviour * (wf1_1_2 * f1_1_2 + wf1_5_2 * f1_5_2 + wf2_1_2 * f2_1_2 + wf2_2_2 * f2_2_2);*/
 
 
-		initSimulation();
-		addGaussianStimulus("nf 2",
-					{ 5.0, 15.0, 20.0, true, false },
-					{ DimensionConstants::xSize, DimensionConstants::dx });
-		runSimulationUntilFieldStable("nf 2");
-		runSimulationUntilFieldStable("nf 3");
+		//initSimulation();
+		//addGaussianStimulus("nf 2",
+		//			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+		//			{ DimensionConstants::xSize, DimensionConstants::dx });
+		//runSimulationUntilFieldStable("nf 2");
+		//runSimulationUntilFieldStable("nf 3");
+		//const double f3_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 20.0, amp_tar, width_tar);
+		//const double f3_2 = closenessToRestingLevel("nf 3");
+		//addGaussianStimulus("nf 1",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//runSimulationUntilFieldStable("nf 1");
+		//runSimulationUntilFieldStable("nf 2");
+		//runSimulationUntilFieldStable("nf 3");
+		//const double f3_3 = negativePreShapednessAtPosition("nf 3", 20.0);
+		//addGaussianStimulus("nf 1",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//runSimulationUntilFieldStable("nf 1");
+		//runSimulationUntilFieldStable("nf 2");
+		//runSimulationUntilFieldStable("nf 3");
+		//const double f3_4 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 50.0, amp_tar, width_tar);
 
-		const double f3 = negativePreShapednessAtPosition("nf 3", 20.0);
-		parameters.fitness += wbehaviour * f3;
+		//removeGaussianStimuli();
+		//runSimulationUntilFieldStable("nf 1");
+		//runSimulationUntilFieldStable("nf 2");
+		//runSimulationUntilFieldStable("nf 3");
+		//const double f3_5 = closenessToRestingLevel("nf 1");
+		//const double f3_6 = closenessToRestingLevel("nf 2");
+		//const double f3_7 = closenessToRestingLevel("nf 3");
 
+		///*std::cout << "Stimulus at nf 2 should create a bump in nf 2 and a negative pre-shapedness in nf3" << '\n';
+		//std::cout << "f3_1 a bump at nf 2: " << f3_1 << '\n';
+		//std::cout << "f3_2 negative pre-shapedness at nf 3: " << f3_2 << '\n';
+		//std::cout << "f3_3 resting level at nf 2: " << f3_3 << '\n';
+		//std::cout << "f3_4 resting level at nf 3: " << f3_4 << '\n';*/
+
+		//static constexpr double wf3_1 = 0.10;
+		//static constexpr double wf3_2 = 0.20;
+		//static constexpr double wf3_3 = 0.20;
+		//static constexpr double wf3_4 = 0.20;
+		//static constexpr double wf3_5 = 0.10;
+		//static constexpr double wf3_6 = 0.10;
+		//static constexpr double wf3_7 = 0.10;
+
+		//parameters.fitness += wbehaviour * (wf3_1 * f3_1 + wf3_2 * f3_2 + wf3_3 * f3_3 + wf3_4 * f3_4 + wf3_5 * f3_5 + wf3_6 * f3_6 + wf3_7 * f3_7);
+
+		//std::cout << "Total fitness: " << parameters.fitness << " of solution " << std::to_string(id) << '\n' << '\n';
 
 
 
 		//constexpr double stages = 1.f / 5.f;
-
-
-
-
-
-
 
 		//// stage 1 multi-bump input field 1
 		//initSimulation();
