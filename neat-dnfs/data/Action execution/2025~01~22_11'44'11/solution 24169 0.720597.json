@@ -1,0 +1,457 @@
+[
+    {
+        "activationFunction": {
+            "type": "heaviside",
+            "x_shift": 0.0
+        },
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "gk 1",
+                "output"
+            ],
+            [
+                "nn 1",
+                "output"
+            ]
+        ],
+        "label": [
+            1,
+            "neural field"
+        ],
+        "restingLevel": -13.550255320253243,
+        "tau": 73.48551031603073,
+        "uniqueName": "nf 1",
+        "x_max": 100
+    },
+    {
+        "amplitude": 25.298576545538562,
+        "amplitudeGlobal": -0.407835225992109,
+        "circular": true,
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "nf 1",
+                "output"
+            ]
+        ],
+        "label": [
+            3,
+            "gauss kernel"
+        ],
+        "normalized": true,
+        "uniqueName": "gk 1",
+        "width": 3.677910953485272,
+        "x_max": 100
+    },
+    {
+        "amplitude": 0.2,
+        "d_x": 1.0,
+        "inputs": null,
+        "label": [
+            7,
+            "normal noise"
+        ],
+        "uniqueName": "nn 1",
+        "x_max": 100
+    },
+    {
+        "activationFunction": {
+            "type": "heaviside",
+            "x_shift": 0.0
+        },
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "mhk 2",
+                "output"
+            ],
+            [
+                "nn 2",
+                "output"
+            ]
+        ],
+        "label": [
+            1,
+            "neural field"
+        ],
+        "restingLevel": -7.1345940500695395,
+        "tau": 64.65152436590918,
+        "uniqueName": "nf 2",
+        "x_max": 100
+    },
+    {
+        "amplitudeExc": 18.510042879578833,
+        "amplitudeGlobal": -3.420972406355891,
+        "amplitudeInh": 22.372051318367298,
+        "circular": true,
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "nf 2",
+                "output"
+            ]
+        ],
+        "label": [
+            4,
+            "mexican hat kernel"
+        ],
+        "normalized": true,
+        "uniqueName": "mhk 2",
+        "widthExc": 2.2235669920849337,
+        "widthInh": 5.750585783059568,
+        "x_max": 100
+    },
+    {
+        "amplitude": 0.2,
+        "d_x": 1.0,
+        "inputs": null,
+        "label": [
+            7,
+            "normal noise"
+        ],
+        "uniqueName": "nn 2",
+        "x_max": 100
+    },
+    {
+        "activationFunction": {
+            "type": "heaviside",
+            "x_shift": 0.0
+        },
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "osck 3",
+                "output"
+            ],
+            [
+                "gk cg 2 - 3 465",
+                "output"
+            ],
+            [
+                "nn 3",
+                "output"
+            ],
+            [
+                "gk cg 1 - 3 0",
+                "output"
+            ],
+            [
+                "gk cg 4 - 3 2531",
+                "output"
+            ],
+            [
+                "gk cg 5 - 3 4073",
+                "output"
+            ]
+        ],
+        "label": [
+            1,
+            "neural field"
+        ],
+        "restingLevel": -7.9083917161062125,
+        "tau": 20.075409026058193,
+        "uniqueName": "nf 3",
+        "x_max": 100
+    },
+    {
+        "amplitude": 9.598444256183235,
+        "amplitudeGlobal": -3.1893298688568685,
+        "circular": true,
+        "d_x": 1.0,
+        "decay": 0.40268411776758634,
+        "inputs": [
+            [
+                "nf 3",
+                "output"
+            ]
+        ],
+        "label": [
+            5,
+            "oscillatory kernel"
+        ],
+        "normalized": false,
+        "uniqueName": "osck 3",
+        "x_max": 100,
+        "zeroCrossings": 1.0
+    },
+    {
+        "amplitude": 0.2,
+        "d_x": 1.0,
+        "inputs": null,
+        "label": [
+            7,
+            "normal noise"
+        ],
+        "uniqueName": "nn 3",
+        "x_max": 100
+    },
+    {
+        "activationFunction": {
+            "type": "heaviside",
+            "x_shift": 0.0
+        },
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "mhk 4",
+                "output"
+            ],
+            [
+                "nn 4",
+                "output"
+            ],
+            [
+                "gk cg 1 - 4 2530",
+                "output"
+            ]
+        ],
+        "label": [
+            1,
+            "neural field"
+        ],
+        "restingLevel": -18.800278004895866,
+        "tau": 131.6814390871132,
+        "uniqueName": "nf 4",
+        "x_max": 100
+    },
+    {
+        "amplitudeExc": 15.575591083329224,
+        "amplitudeGlobal": -1.419161291124862,
+        "amplitudeInh": 20.045388113491956,
+        "circular": true,
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "nf 4",
+                "output"
+            ]
+        ],
+        "label": [
+            4,
+            "mexican hat kernel"
+        ],
+        "normalized": true,
+        "uniqueName": "mhk 4",
+        "widthExc": 2.867713453739515,
+        "widthInh": 16.882093445254675,
+        "x_max": 100
+    },
+    {
+        "amplitude": 0.2,
+        "d_x": 1.0,
+        "inputs": null,
+        "label": [
+            7,
+            "normal noise"
+        ],
+        "uniqueName": "nn 4",
+        "x_max": 100
+    },
+    {
+        "activationFunction": {
+            "type": "heaviside",
+            "x_shift": 0.0
+        },
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "mhk 5",
+                "output"
+            ],
+            [
+                "nn 5",
+                "output"
+            ],
+            [
+                "gk cg 1 - 5 4072",
+                "output"
+            ],
+            [
+                "gk cg 4 - 5 4556",
+                "output"
+            ]
+        ],
+        "label": [
+            1,
+            "neural field"
+        ],
+        "restingLevel": -3.979840055077954,
+        "tau": 79.74181960781428,
+        "uniqueName": "nf 5",
+        "x_max": 100
+    },
+    {
+        "amplitudeExc": 18.348836145691624,
+        "amplitudeGlobal": -1.639921138005704,
+        "amplitudeInh": 20.129418307262483,
+        "circular": true,
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "nf 5",
+                "output"
+            ]
+        ],
+        "label": [
+            4,
+            "mexican hat kernel"
+        ],
+        "normalized": true,
+        "uniqueName": "mhk 5",
+        "widthExc": 8.368456980274924,
+        "widthInh": 16.70887124313043,
+        "x_max": 100
+    },
+    {
+        "amplitude": 0.2,
+        "d_x": 1.0,
+        "inputs": null,
+        "label": [
+            7,
+            "normal noise"
+        ],
+        "uniqueName": "nn 5",
+        "x_max": 100
+    },
+    {
+        "amplitude": 18.67892326017518,
+        "amplitudeGlobal": -0.6960256162345955,
+        "circular": true,
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "nf 1",
+                "output"
+            ]
+        ],
+        "label": [
+            3,
+            "gauss kernel"
+        ],
+        "normalized": true,
+        "uniqueName": "gk cg 1 - 3 0",
+        "width": 3.6205979518053306,
+        "x_max": 100
+    },
+    {
+        "amplitude": -3.0,
+        "amplitudeGlobal": -0.8214795180271737,
+        "circular": true,
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "nf 2",
+                "output"
+            ]
+        ],
+        "label": [
+            3,
+            "gauss kernel"
+        ],
+        "normalized": true,
+        "uniqueName": "gk cg 2 - 3 465",
+        "width": 7.1148696453232985,
+        "x_max": 100
+    },
+    {
+        "amplitude": 2.0,
+        "amplitudeGlobal": -0.01,
+        "circular": true,
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "nf 1",
+                "output"
+            ]
+        ],
+        "label": [
+            3,
+            "gauss kernel"
+        ],
+        "normalized": true,
+        "uniqueName": "gk cg 1 - 4 2530",
+        "width": 5.0,
+        "x_max": 100
+    },
+    {
+        "amplitude": -18.17892326017518,
+        "amplitudeGlobal": -0.19602561623459547,
+        "circular": true,
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "nf 4",
+                "output"
+            ]
+        ],
+        "label": [
+            3,
+            "gauss kernel"
+        ],
+        "normalized": true,
+        "uniqueName": "gk cg 4 - 3 2531",
+        "width": 4.120597951805331,
+        "x_max": 100
+    },
+    {
+        "amplitude": 2.0,
+        "amplitudeGlobal": -0.51,
+        "circular": true,
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "nf 1",
+                "output"
+            ]
+        ],
+        "label": [
+            3,
+            "gauss kernel"
+        ],
+        "normalized": true,
+        "uniqueName": "gk cg 1 - 5 4072",
+        "width": 5.0,
+        "x_max": 100
+    },
+    {
+        "amplitude": 18.17892326017518,
+        "amplitudeGlobal": -0.19602561623459547,
+        "circular": true,
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "nf 5",
+                "output"
+            ]
+        ],
+        "label": [
+            3,
+            "gauss kernel"
+        ],
+        "normalized": true,
+        "uniqueName": "gk cg 5 - 3 4073",
+        "width": 3.6205979518053306,
+        "x_max": 100
+    },
+    {
+        "amplitude": -28.81083830444534,
+        "amplitudeGlobal": -3.023657852122252,
+        "circular": true,
+        "d_x": 1.0,
+        "inputs": [
+            [
+                "nf 4",
+                "output"
+            ]
+        ],
+        "label": [
+            3,
+            "gauss kernel"
+        ],
+        "normalized": true,
+        "uniqueName": "gk cg 4 - 5 4556",
+        "width": 9.390023461194112,
+        "x_max": 100
+    }
+]

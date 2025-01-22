@@ -30,15 +30,15 @@ int main(int argc, char* argv[])
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
 
-		SelectiveOutputSolution solution{
+		ActionExecutionSimulation solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}}
 			}}
 		};
-		const PopulationParameters parameters{ 1000, 30, 0.90};
-		Population population{ parameters, std::make_shared<SelectiveOutputSolution>(solution) };
+		const PopulationParameters parameters{ 1000, 30, 0.78};
+		Population population{ parameters, std::make_shared<ActionExecutionSimulation>(solution) };
 
 		population.initialize();
 		population.evolve();
