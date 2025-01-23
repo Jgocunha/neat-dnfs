@@ -624,11 +624,12 @@ namespace neat_dnfs
 				return 0.0;
 		}
 
-		const double restingLevel = std::abs(neuralField->getParameters().startingRestingLevel);
-		const double targetActivation = restingLevel + restingLevel / 2.0;
-		const double width = std::abs(restingLevel);
+		// this should not be like this - I am hardcoding the position of the baseline activation
+		const double u_baseline = std::abs(neuralField->getComponent("activation")[0]);
+		const double u_target = u_baseline + u_baseline * 2.0;
+		const double width = u_baseline + u_baseline / 2.0;// *2.0;// / 2.0;
 
-		return tools::utils::normalizeWithGaussian(std::abs(u_tar_pos), targetActivation, width);
+		return tools::utils::normalizeWithGaussian(std::abs(u_tar_pos), u_target, width);
 	}
 
 	double Solution::justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName, const std::vector<double>& positions, const double& amplitude, const double& width)
