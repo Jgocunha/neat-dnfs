@@ -245,36 +245,43 @@ namespace neat_dnfs
 		addHiddenGene({ DimensionConstants::xSize, DimensionConstants::dx });
 
 		// create two new connection genes
-		const auto connectionGeneKernelParametersIn = GaussKernelParameters{ GaussKernelConstants::width,
-														GaussKernelConstants::amplitude,
-															GaussKernelConstants::amplitudeGlobal,
-														KernelConstants::circularity,
-														KernelConstants::normalization };
+		//const auto connectionGeneKernelParametersIn = GaussKernelParameters{ GaussKernelConstants::width,
+														//GaussKernelConstants::amplitude,
+														//GaussKernelConstants::amplitudeGlobal,
+														//KernelConstants::circularity,
+														//KernelConstants::normalization };
 
-		const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId,
-			fieldGenes.back().getParameters().id}, connectionGeneKernelParametersIn };
-		connectionGenes.push_back(connectionGeneIn);
+		//const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId,
+		//	fieldGenes.back().getParameters().id}, connectionGeneKernelParametersIn };
+		//connectionGenes.push_back(connectionGeneIn);
 
 		switch (kernel->getLabel())
 		{
 		case GAUSS_KERNEL:
 			{
 				const auto gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
+				const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, gkp };
 				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, gkp };
+				connectionGenes.push_back(connectionGeneIn);
 				connectionGenes.push_back(connectionGeneOut);
 			}
 			break;
 		case MEXICAN_HAT_KERNEL:
 			{
 				const auto mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
+				const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, mhkp };
 				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, mhkp };
+				connectionGenes.push_back(connectionGeneIn);
 				connectionGenes.push_back(connectionGeneOut);
+
 			}
 			break;
 		case OSCILLATORY_KERNEL:
 			{
 				const auto osckp = std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->getParameters();
+				const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, osckp };
 				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, osckp };
+				connectionGenes.push_back(connectionGeneIn);
 				connectionGenes.push_back(connectionGeneOut);
 			}
 			break;

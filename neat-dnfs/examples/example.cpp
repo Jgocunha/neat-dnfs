@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}}
 			}}
 		};
-		const PopulationParameters parameters{ 1000, 30, 0.90};
+		const PopulationParameters parameters{ 1000, 30, 0.80};
 		Population population{ parameters, std::make_shared<ActionExecutionSimulation>(solution) };
 
 		population.initialize();
@@ -45,6 +45,7 @@ int main(int argc, char* argv[])
 
 		const auto bestSolution = population.getBestSolution();
 		bestSolution->createPhenotypeEnvironment();
+		bestSolution->print();
 		const auto phenotype = bestSolution->getPhenotype();
 
 		// run dnf-composer
