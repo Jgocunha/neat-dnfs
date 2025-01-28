@@ -15,6 +15,17 @@ namespace neat_dnfs
 
 	void Population::evolve()
 	{
+		std::thread keyListener([this]() {
+			while (!control.stop)
+			{
+				if (std::cin.get() == 's')
+				{
+					control.stop = true;
+					tools::logger::log(tools::logger::LogLevel::INFO, "Stopping evolution after the current cycle...");
+				}
+			}
+			});
+
 		do
 		{
 			evaluate();
@@ -40,7 +51,9 @@ namespace neat_dnfs
 
 		} while (!endConditionMet());
 
-		saveAllSolutionsWithFitnessAbove(parameters.targetFitness - 0.2);
+		saveAllSolutionsWithFitnessAbove(parameters.targetFitness - 0.1);
+
+		keyListener.detach();
 	}
 
 	void Population::evolutionaryStep()
@@ -424,7 +437,7 @@ namespace neat_dnfs
 				}
 			}
 		}
-		if(counter>0)
+		if(counter > 0)
 		{
 			log(tools::logger::LogLevel::FATAL, "Duplicate solutions found.");
 			throw std::runtime_error("Duplicate solutions found.");

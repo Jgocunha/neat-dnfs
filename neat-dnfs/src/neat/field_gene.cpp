@@ -431,6 +431,4 @@ namespace neat_dnfs
 		const ElementCommonParameters nncp{  NoiseConstants::namePrefix + std::to_string(parameters.id), dimensions };
 		noise = std::make_shared<NormalNoise>(nncp, nnp);
 	}
-
-
 }

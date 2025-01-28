@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}}
 			}}
 		};
-		const PopulationParameters parameters{ 1000, 30, 0.80};
+		const PopulationParameters parameters{ 1000, 50, 0.70};
 		Population population{ parameters, std::make_shared<ActionExecutionSimulation>(solution) };
 
 		population.initialize();
