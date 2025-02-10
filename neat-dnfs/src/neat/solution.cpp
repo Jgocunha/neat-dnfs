@@ -369,14 +369,13 @@ namespace neat_dnfs
 	{
 		std::stringstream address;
 		address << this;
-		std::string result = "Solution: \n";
-		result += "Address: " + address.str() + "\n";
-		result += "Topology: " + initialTopology.toString() + "\n";
-		result += "Parameters: " + parameters.toString() + "\n";
-		result += "Genome: " + genome.toString() + "\n";
-		result += "Phenotype: \n";
-		for (const auto& element : phenotype->getElements())
-			result += element->toString() + "\n";
+		std::string result = "Solution: " + std::to_string(id);
+		result += " { Address: " + address.str();
+		result += " } \n" + parameters.toString() + "\n";
+		result += genome.toString() + "\n";
+		//result += "Phenotype: \n";
+		//for (const auto& element : phenotype->getElements())
+			//result += element->toString() + "\n";
 		return result;
 	}
 

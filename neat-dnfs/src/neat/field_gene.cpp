@@ -45,204 +45,35 @@ namespace neat_dnfs
 	void FieldGene::setAsHidden(const dnf_composer::element::ElementDimensions& dimensions)
 	{
 		parameters.type = FieldGeneType::HIDDEN;
-		//initializeNeuralField(dimensions);
-		//initializeKernel(dimensions);
 
-		using namespace dnf_composer::element;
-		using namespace neat_dnfs::tools::utils;
-
-		constexpr double tau = NeuralFieldConstants::tau;
-		constexpr double restingLevel = NeuralFieldConstants::restingLevel;
-
-		const NeuralFieldParameters nfp{ tau, restingLevel,
-											NeuralFieldConstants::activationFunction };
-		const ElementCommonParameters nfcp{ NeuralFieldConstants::namePrefix + std::to_string(parameters.id),
-						dimensions };
-		neuralField = std::make_shared<NeuralField>(nfcp, nfp);
-		neuralField->setThresholdForStability(NeuralFieldConstants::stabilityThreshold);
-
-		constexpr double width = GaussKernelConstants::width;
-		constexpr double amplitude = GaussKernelConstants::amplitude;
-		constexpr double amplitudeGlobal = GaussKernelConstants::amplitudeGlobal;
-		const GaussKernelParameters gkp{ width, amplitude, amplitudeGlobal,
-									KernelConstants::circularity,
-									KernelConstants::normalization
-		};
-		const ElementCommonParameters gkcp{ GaussKernelConstants::namePrefix + std::to_string(parameters.id),
-						dimensions };
-		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
-
+		initializeNeuralField(dimensions);
+		initializeKernel(dimensions);
 		initializeNoise(dimensions);
 	}
 
 	void FieldGene::mutate()
 	{
-		using namespace dnf_composer::element;
-		using namespace neat_dnfs::tools::utils;
+		static constexpr double totalProbability = MutationConstants::mutateFielGeneKernelProbability +
+			MutationConstants::mutateFieldGeneNeuralFieldProbability +
+			MutationConstants::mutateFielGeneKernelTypeProbability;
 
-		// discover kernel type
-		const ElementLabel label = kernel->getLabel();
-		const int signal = generateRandomSignal();
-		switch(label)
+		constexpr double epsilon = 1e-6;
+		if (std::abs(totalProbability - 1.0) > epsilon)
+			throw std::runtime_error("Mutation probabilities in field gene mutation must sum up to 1.");
+
+		const double randomValue = tools::utils::generateRandomDouble(0.0, 1.0);
+		if (randomValue < MutationConstants::mutateFielGeneKernelProbability)
 		{
-		case ElementLabel::GAUSS_KERNEL:
-			{
-				const auto gaussKernel = std::dynamic_pointer_cast<GaussKernel>(kernel);
-				GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
-				ElementDimensions gkd = kernel->getElementCommonParameters().dimensionParameters;
-
-				const int mutationSelection = generateRandomInt(0, 2); // number of mutable parameters + change type
-				switch(mutationSelection)
-				{
-				case 0: // width
-					gkp.width = std::clamp(gkp.width + GaussKernelConstants::widthStep * signal,
-						GaussKernelConstants::widthMinVal, 
-						GaussKernelConstants::widthMaxVal);
-					break;
-				case 1: // amplitude
-					gkp.amplitude = std::clamp(gkp.amplitude + GaussKernelConstants::ampStep * signal,
-						GaussKernelConstants::ampMinVal,
-						GaussKernelConstants::ampMaxVal);
-					break;
-				case 2: // amplitude global
-					gkp.amplitudeGlobal = std::clamp(gkp.amplitudeGlobal + GaussKernelConstants::ampStep * signal,
-						GaussKernelConstants::ampGlobalMinVal,
-						GaussKernelConstants::ampGlobalMaxVal);
-					break;
-				case 3: // change type
-					{
-						const int typeSelection = generateRandomInt(0, 1); // number of (other) kernel types
-						switch(typeSelection)
-						{
-							case 0:
-								initializeMexicanHatKernel(gkd);
-							return;
-							case 1:
-								initializeOscillatoryKernel(gkd);
-							return;
-							default:
-								break;
-						}
-					}
-					return; // this is a return because the kernel type has changed
-				default:
-					break;
-				}
-				std::dynamic_pointer_cast<GaussKernel>(kernel)->setParameters(gkp);
-			}
-
-			break;
-		case ElementLabel::MEXICAN_HAT_KERNEL:
-			{
-				const auto mexicanHatKernel = std::dynamic_pointer_cast<MexicanHatKernel>(kernel);
-				MexicanHatKernelParameters mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
-				ElementDimensions mhkd = kernel->getElementCommonParameters().dimensionParameters;
-
-				const int mutationSelection = generateRandomInt(0, 4); // number of mutable parameters + change type
-				switch (mutationSelection)
-				{
-				case 0: // width exc
-					mhkp.widthExc = std::clamp(mhkp.widthExc + MexicanHatKernelConstants::widthExcStep * signal,
-						MexicanHatKernelConstants::widthExcMinVal,
-						MexicanHatKernelConstants::widthExcMaxVal);
-					break;
-				case 1: // amplitude exc
-					mhkp.amplitudeExc = std::clamp(mhkp.amplitudeExc + MexicanHatKernelConstants::ampExcStep * signal,
-						MexicanHatKernelConstants::ampExcMinVal,
-						MexicanHatKernelConstants::ampExcMaxVal);
-					break;
-				case 2: // width inh
-					mhkp.widthInh = std::clamp(mhkp.widthInh + MexicanHatKernelConstants::widthInhStep * signal,
-						MexicanHatKernelConstants::widthInhMinVal,
-						MexicanHatKernelConstants::widthInhMaxVal);
-					break;
-				case 3: // amplitude inh
-					mhkp.amplitudeInh = std::clamp(mhkp.amplitudeInh + MexicanHatKernelConstants::ampInhStep * signal,
-						MexicanHatKernelConstants::ampInhMinVal,
-						MexicanHatKernelConstants::ampInhMaxVal);
-					break;
-				case 4: // amplitude global
-					mhkp.amplitudeGlobal = std::clamp(mhkp.amplitudeGlobal + MexicanHatKernelConstants::ampGlobStep * signal,
-						MexicanHatKernelConstants::ampGlobMin,
-						MexicanHatKernelConstants::ampGlobMax);
-					break;
-				case 5: // change type
-					{
-						const int typeSelection = generateRandomInt(0, 1); // number of (other) kernel types
-						switch (typeSelection)
-						{
-						case 0:
-							initializeGaussKernel(mhkd);
-							break;
-						case 1:
-							initializeOscillatoryKernel(mhkd);
-							break;
-						default:
-							break;
-						}
-					}
-					return; // this is a return because the kernel type has changed
-				default:
-					break;
-				}
-				std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->setParameters(mhkp);
-			}
-			break;
-		case ElementLabel::OSCILLATORY_KERNEL:
-		{
-			const auto oscillatoryKernel = std::dynamic_pointer_cast<OscillatoryKernel>(kernel);
-			OscillatoryKernelParameters okp = std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->getParameters();
-			ElementDimensions okd = kernel->getElementCommonParameters().dimensionParameters;
-
-			const int mutationSelection = generateRandomInt(0, 3); // number of mutable parameters + change type
-			switch (mutationSelection)
-			{
-				case 0: // amplitude
-					okp.amplitude = std::clamp(okp.amplitude + OscillatoryKernelConstants::amplitudeStep * signal,
-													OscillatoryKernelConstants::amplitudeMinVal,
-													OscillatoryKernelConstants::amplitudeMaxVal);
-					break;
-				case 1: // decay
-					okp.decay = std::clamp(okp.decay + OscillatoryKernelConstants::decayStep * signal,
-																		OscillatoryKernelConstants::decayMinVal,
-																		OscillatoryKernelConstants::decayMaxVal);
-					break;
-				case 2: // zero crossings
-					okp.zeroCrossings = std::clamp(okp.zeroCrossings + OscillatoryKernelConstants::zeroCrossingsStep * signal,
-																				OscillatoryKernelConstants::zeroCrossingsMinVal,
-																				OscillatoryKernelConstants::zeroCrossingsMaxVal);
-					break;
-				case 3: // amplitude global
-					okp.amplitudeGlobal = std::clamp(okp.amplitudeGlobal + OscillatoryKernelConstants::ampGlobStep * signal,
-																				OscillatoryKernelConstants::ampGlobMin,
-																				OscillatoryKernelConstants::ampGlobMax);
-					break;
-				case 4: // change type
-					{
-						const int typeSelection = generateRandomInt(0, 1); // number of (other) kernel types
-						switch (typeSelection)
-						{
-							case 0:
-								initializeGaussKernel(okd);
-								break;
-							case 1:
-								initializeMexicanHatKernel(okd);
-								break;
-							default:
-								break;
-						}
-					}
-					return; // this is a return because the kernel type has changed
-				default:
-					break;
-			}
-			std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->setParameters(okp);
+			mutateKernel();
 		}
-		break;
-		default:
-			tools::logger::log(tools::logger::FATAL, "FieldGene::mutate() - Kernel type not recognized.");
-			throw std::runtime_error("FieldGene::mutate() - Kernel type not recognized.");
-			break;
+		else if (randomValue < MutationConstants::mutateFielGeneKernelProbability +
+						MutationConstants::mutateFieldGeneNeuralFieldProbability)
+		{
+			mutateNeuralField();
+		}
+		else
+		{
+			mutateKernelType();
 		}
 	}
 
@@ -284,15 +115,23 @@ namespace neat_dnfs
 		std::string result = "FieldGene: ";
 		result += parameters.toString();
 
+		result += "{\n";
+
 		std::stringstream addr_nf;
 		addr_nf << neuralField.get();
 		result += "NeuralField: " + addr_nf.str() + '\n';
-		result += neuralField->toString();
+		result += neuralField->toString() + '\n';
+
 
 		std::stringstream addr_k;
 		addr_k << kernel.get();
 		result += "Kernel: " + addr_k.str() + '\n';
-		result += kernel->toString();
+		result += kernel->toString() + '\n';
+
+		std::stringstream addr_n;
+		addr_n << noise.get();
+		result += "Noise: " + addr_n.str() + '\n';
+		result += noise->toString() + "\n}\n";
 
 		return result;
 	}
@@ -316,49 +155,53 @@ namespace neat_dnfs
 
 	void FieldGene::initializeNeuralField(const dnf_composer::element::ElementDimensions& dimensions)
 	{
-		// variable neural field parameters
-		/*using namespace dnf_composer::element;
-		using namespace neat_dnfs::tools::utils;
-
-		const double tau = generateRandomDouble(NeuralFieldConstants::tauMinVal, NeuralFieldConstants::tauMaxVal);
-		const double restingLevel = generateRandomDouble(NeuralFieldConstants::restingLevelMinVal, NeuralFieldConstants::restingLevelMaxVal);
-
-		const NeuralFieldParameters nfp{ tau, restingLevel,
-											NeuralFieldConstants::activationFunction };
-		const ElementCommonParameters nfcp{ NeuralFieldConstants::namePrefix + std::to_string(parameters.id),
-						dimensions };
-		neuralField = std::make_shared<NeuralField>(nfcp, nfp);
-		neuralField->setThresholdForStability(NeuralFieldConstants::stabilityThreshold);*/
-
-		// static neural field parameters
 		using namespace dnf_composer::element;
 		using namespace neat_dnfs::tools::utils;
 
-		constexpr double tau = NeuralFieldConstants::tau;
-		constexpr double restingLevel = NeuralFieldConstants::restingLevel;
-		const NeuralFieldParameters nfp{ tau, restingLevel, NeuralFieldConstants::activationFunction };
-		const ElementCommonParameters nfcp{ NeuralFieldConstants::namePrefix + std::to_string(parameters.id), dimensions };
+		if(FieldGeneConstants::variableParameters)
+		{
+			const double tau = generateRandomDouble(NeuralFieldConstants::tauMinVal, NeuralFieldConstants::tauMaxVal);
+			const double restingLevel = generateRandomDouble(NeuralFieldConstants::restingLevelMinVal, NeuralFieldConstants::restingLevelMaxVal);
 
-		neuralField = std::make_shared<NeuralField>(nfcp, nfp);
+			const NeuralFieldParameters nfp{ tau, restingLevel, NeuralFieldConstants::activationFunction };
+			const ElementCommonParameters nfcp{ NeuralFieldConstants::namePrefix + std::to_string(parameters.id), dimensions };
+			neuralField = std::make_shared<NeuralField>(nfcp, nfp);
+		}
+		else
+		{
+			constexpr double tau = NeuralFieldConstants::tau;
+			constexpr double restingLevel = NeuralFieldConstants::restingLevel;
+			const NeuralFieldParameters nfp{ tau, restingLevel, NeuralFieldConstants::activationFunction };
+			const ElementCommonParameters nfcp{ NeuralFieldConstants::namePrefix + std::to_string(parameters.id), dimensions };
+			neuralField = std::make_shared<NeuralField>(nfcp, nfp);
+		}
+		neuralField->setThresholdForStability(NeuralFieldConstants::stabilityThreshold);
 	}
 
 	void FieldGene::initializeKernel(const dnf_composer::element::ElementDimensions& dimensions)
 	{
 		using namespace neat_dnfs::tools::utils;
 
-		// randomly select kernel type
-		switch (generateRandomInt(0, 1))
+		static constexpr double totalProbability = FieldGeneConstants::gaussKernelProbability +
+			FieldGeneConstants::mexicanHatKernelProbability +
+			FieldGeneConstants::oscillatoryKernelProbability;
+
+		constexpr double epsilon = 1e-6;
+		if (std::abs(totalProbability - 1.0) > epsilon)
+			throw std::runtime_error("Kernel probabilities in field gene initialization must sum up to 1.");
+
+		const double randomValue = generateRandomDouble(0.0, 1.0);
+		if (randomValue < FieldGeneConstants::gaussKernelProbability)
 		{
-		case 0:
 			initializeGaussKernel(dimensions);
-		break;
-		case 1:
+		}
+		else if (randomValue < FieldGeneConstants::gaussKernelProbability + FieldGeneConstants::mexicanHatKernelProbability)
+		{
 			initializeMexicanHatKernel(dimensions);
-		break;
-		//case 2:
-		//	initializeOscillatoryKernel(dimensions);
-		//default:
-		//	break;
+		}
+		else
+		{
+			initializeOscillatoryKernel(dimensions);
 		}
 	}
 
@@ -367,18 +210,34 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		using namespace neat_dnfs::tools::utils;
 
-		const double width = generateRandomDouble(GaussKernelConstants::widthMinVal, GaussKernelConstants::widthMaxVal);
-		const double amplitude = generateRandomDouble(GaussKernelConstants::ampMinVal, GaussKernelConstants::ampMaxVal);
-		const double amplitudeGlobal = generateRandomDouble(GaussKernelConstants::ampGlobalMinVal, GaussKernelConstants::ampGlobalMaxVal);
-		const GaussKernelParameters gkp{ width,
-										amplitude,
-											amplitudeGlobal,
-									KernelConstants::circularity,
-									KernelConstants::normalization
-		};
-		const ElementCommonParameters gkcp{ GaussKernelConstants::namePrefix + std::to_string(parameters.id),
-						dimensions};
-		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
+		if (FieldGeneConstants::variableParameters)
+		{
+			const double width = generateRandomDouble(GaussKernelConstants::widthMinVal, GaussKernelConstants::widthMaxVal);
+			const double amplitude = generateRandomDouble(GaussKernelConstants::ampMinVal, GaussKernelConstants::ampMaxVal);
+			const double amplitudeGlobal = generateRandomDouble(GaussKernelConstants::ampGlobalMinVal, GaussKernelConstants::ampGlobalMaxVal);
+			const GaussKernelParameters gkp{ width,
+											amplitude,
+												amplitudeGlobal,
+										KernelConstants::circularity,
+										KernelConstants::normalization
+			};
+			const ElementCommonParameters gkcp{ GaussKernelConstants::namePrefix + std::to_string(parameters.id),
+							dimensions };
+			kernel = std::make_shared<GaussKernel>(gkcp, gkp);
+		}
+		else
+		{
+			constexpr double width = GaussKernelConstants::width;
+			constexpr double amplitude = GaussKernelConstants::amplitude;
+			constexpr double amplitudeGlobal = GaussKernelConstants::amplitudeGlobal;
+			const GaussKernelParameters gkp{ width, amplitude, amplitudeGlobal,
+										KernelConstants::circularity,
+										KernelConstants::normalization
+			};
+			const ElementCommonParameters gkcp{ GaussKernelConstants::namePrefix + std::to_string(parameters.id),
+							dimensions };
+			kernel = std::make_shared<GaussKernel>(gkcp, gkp);
+		}
 	}
 
 	void FieldGene::initializeMexicanHatKernel(const dnf_composer::element::ElementDimensions& dimensions)
@@ -430,5 +289,243 @@ namespace neat_dnfs
 		const NormalNoiseParameters nnp{ NoiseConstants::amplitude };
 		const ElementCommonParameters nncp{  NoiseConstants::namePrefix + std::to_string(parameters.id), dimensions };
 		noise = std::make_shared<NormalNoise>(nncp, nnp);
+	}
+
+	void FieldGene::mutateKernel() const
+	{
+		switch (kernel->getLabel())
+		{
+		case dnf_composer::element::ElementLabel::GAUSS_KERNEL:
+			mutateGaussKernel();
+			break;
+		case dnf_composer::element::ElementLabel::MEXICAN_HAT_KERNEL:
+			mutateMexicanHatKernel();
+			break;
+		case dnf_composer::element::ElementLabel::OSCILLATORY_KERNEL:
+			mutateOscillatoryKernel();
+			break;
+		default:
+			tools::logger::log(tools::logger::FATAL, "FieldGene::mutate() - Kernel type not recognized.");
+			throw std::runtime_error("FieldGene::mutate() - Kernel type not recognized.");
+		}
+	}
+
+	void FieldGene::mutateGaussKernel() const
+	{
+		using namespace dnf_composer::element;
+		using namespace neat_dnfs::tools::utils;
+
+		const int signal = generateRandomSignal(); // +/- to add or sum a step
+
+		const auto gaussKernel = std::dynamic_pointer_cast<GaussKernel>(kernel);
+		GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
+
+		constexpr double totalProbability = MutationConstants::mutateGaussKernelWidthProbability +
+			MutationConstants::mutateGaussKernelAmplitudeProbability +
+			MutationConstants::mutateGaussKernelGlobalAmplitudeProbability;
+
+		constexpr double epsilon = 1e-6;
+		if (std::abs(totalProbability - 1.0) > epsilon)
+			throw std::runtime_error("Mutation probabilities in field gene gauss kernel mutation must sum up to 1.");
+
+
+		const double mutationSelection = generateRandomDouble(0.0, 1.0);
+
+		if (mutationSelection < MutationConstants::mutateGaussKernelWidthProbability)
+		{
+			gkp.width = std::clamp(gkp.width + GaussKernelConstants::widthStep * signal,
+								GaussKernelConstants::widthMinVal,
+								GaussKernelConstants::widthMaxVal);
+		}
+		else if (mutationSelection < MutationConstants::mutateGaussKernelWidthProbability +
+						MutationConstants::mutateGaussKernelAmplitudeProbability)
+		{
+			gkp.amplitude = std::clamp(gkp.amplitude + GaussKernelConstants::ampStep * signal,
+								GaussKernelConstants::ampMinVal,
+								GaussKernelConstants::ampMaxVal);
+		}
+		else
+		{
+			gkp.amplitudeGlobal = std::clamp(gkp.amplitudeGlobal + GaussKernelConstants::ampStep * signal,
+								GaussKernelConstants::ampGlobalMinVal,
+								GaussKernelConstants::ampGlobalMaxVal);
+		}
+		std::dynamic_pointer_cast<GaussKernel>(kernel)->setParameters(gkp);
+	}
+
+	void FieldGene::mutateMexicanHatKernel() const
+	{
+		using namespace dnf_composer::element;
+		using namespace neat_dnfs::tools::utils;
+
+		const int signal = generateRandomSignal();  // +/- to add or sum a step
+
+		const auto mexicanHatKernel = std::dynamic_pointer_cast<MexicanHatKernel>(kernel);
+		MexicanHatKernelParameters mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
+
+		constexpr double totalProbability = MutationConstants::mutateMexicanHatKernelAmplitudeExcProbability +
+			MutationConstants::mutateMexicanHatKernelWidthExcProbability +
+			MutationConstants::mutateMexicanHatKernelAmplitudeInhProbability +
+			MutationConstants::mutateMexicanHatKernelWidthInhProbability +
+			MutationConstants::mutateMexicanHatKernelGlobalAmplitudeProbability;
+
+		constexpr double epsilon = 1e-6;
+		if (std::abs(totalProbability - 1.0) > epsilon)
+			throw std::runtime_error("Mutation probabilities in field gene mexican-hat kernel mutation must sum up to 1.");
+
+
+		const double mutationSelection = generateRandomDouble(0.0, 1.0);
+		if(mutationSelection < MutationConstants::mutateMexicanHatKernelAmplitudeExcProbability)
+		{
+			mhkp.amplitudeExc = std::clamp(mhkp.amplitudeExc + MexicanHatKernelConstants::ampExcStep * signal,
+								MexicanHatKernelConstants::ampExcMinVal,
+								MexicanHatKernelConstants::ampExcMaxVal);
+		}
+		else if (mutationSelection < MutationConstants::mutateMexicanHatKernelAmplitudeExcProbability +
+			MutationConstants::mutateMexicanHatKernelWidthExcProbability)
+		{
+			mhkp.widthExc = std::clamp(mhkp.widthExc + MexicanHatKernelConstants::widthExcStep * signal,
+												MexicanHatKernelConstants::widthExcMinVal,
+												MexicanHatKernelConstants::widthExcMaxVal);
+		}
+		else if (mutationSelection < MutationConstants::mutateMexicanHatKernelAmplitudeExcProbability +
+							MutationConstants::mutateMexicanHatKernelWidthExcProbability +
+							MutationConstants::mutateMexicanHatKernelAmplitudeInhProbability)
+		{
+			mhkp.amplitudeInh = std::clamp(mhkp.amplitudeInh + MexicanHatKernelConstants::ampInhStep * signal,
+																MexicanHatKernelConstants::ampInhMinVal,
+																MexicanHatKernelConstants::ampInhMaxVal);
+		}
+		else if (mutationSelection < MutationConstants::mutateMexicanHatKernelAmplitudeExcProbability +
+						MutationConstants::mutateMexicanHatKernelWidthExcProbability +
+						MutationConstants::mutateMexicanHatKernelAmplitudeInhProbability +
+						MutationConstants::mutateMexicanHatKernelWidthInhProbability)
+		{
+			mhkp.widthInh = std::clamp(mhkp.widthInh + MexicanHatKernelConstants::widthInhStep * signal,
+															MexicanHatKernelConstants::widthInhMinVal,
+															MexicanHatKernelConstants::widthInhMaxVal);
+		}
+		else
+		{
+			mhkp.amplitudeGlobal = std::clamp(mhkp.amplitudeGlobal + MexicanHatKernelConstants::ampGlobStep * signal,
+															MexicanHatKernelConstants::ampGlobMin,
+															MexicanHatKernelConstants::ampGlobMax);
+		}
+		std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->setParameters(mhkp);
+	}
+
+	void FieldGene::mutateOscillatoryKernel() const
+	{
+		using namespace dnf_composer::element;
+		using namespace neat_dnfs::tools::utils;
+
+		const int signal = generateRandomSignal();  // +/- to add or sum a step
+
+		const auto oscillatoryKernel = std::dynamic_pointer_cast<OscillatoryKernel>(kernel);
+		OscillatoryKernelParameters okp = std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->getParameters();
+
+		constexpr double totalProbability = MutationConstants::mutateOscillatoryKernelAmplitudeProbability +
+			MutationConstants::mutateOscillatoryKernelDecayProbability +
+			MutationConstants::mutateOscillatoryKernelZeroCrossingsProbability +
+			MutationConstants::mutateOscillatoryKernelGlobalAmplitudeProbability;
+
+		constexpr double epsilon = 1e-6;
+		if (std::abs(totalProbability - 1.0) > epsilon)
+			throw std::runtime_error("Mutation probabilities in field gene oscillatory kernel mutation must sum up to 1.");
+
+
+		const double mutationSelection = generateRandomDouble(0.0, 1.0);
+
+
+		if ( mutationSelection < MutationConstants::mutateOscillatoryKernelAmplitudeProbability)
+		{
+			okp.amplitude = std::clamp(okp.amplitude + OscillatoryKernelConstants::amplitudeStep * signal,
+											OscillatoryKernelConstants::amplitudeMinVal,
+											OscillatoryKernelConstants::amplitudeMaxVal);
+		}
+		else if (mutationSelection < MutationConstants::mutateOscillatoryKernelAmplitudeProbability +
+						MutationConstants::mutateOscillatoryKernelDecayProbability)
+		{
+			okp.decay = std::clamp(okp.decay + OscillatoryKernelConstants::decayStep * signal,
+											OscillatoryKernelConstants::decayMinVal,
+											OscillatoryKernelConstants::decayMaxVal);
+		}
+		else if (mutationSelection < MutationConstants::mutateOscillatoryKernelAmplitudeProbability +
+						MutationConstants::mutateOscillatoryKernelDecayProbability +
+						MutationConstants::mutateOscillatoryKernelZeroCrossingsProbability)
+		{
+			okp.zeroCrossings = std::clamp(okp.zeroCrossings + OscillatoryKernelConstants::zeroCrossingsStep * signal,
+											OscillatoryKernelConstants::zeroCrossingsMinVal,
+											OscillatoryKernelConstants::zeroCrossingsMaxVal);
+		}
+		else
+		{
+			okp.amplitudeGlobal = std::clamp(okp.amplitudeGlobal + OscillatoryKernelConstants::ampGlobStep * signal,
+											OscillatoryKernelConstants::ampGlobMin,
+											OscillatoryKernelConstants::ampGlobMax);
+		}
+		std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->setParameters(okp);
+	}
+
+	void FieldGene::mutateKernelType()
+	{
+		using namespace dnf_composer::element;
+		using namespace neat_dnfs::tools::utils;
+
+		const auto dimensions = neuralField->getElementCommonParameters().dimensionParameters;
+
+		constexpr double totalProbability = FieldGeneConstants::gaussKernelProbability +
+			FieldGeneConstants::mexicanHatKernelProbability +
+			FieldGeneConstants::oscillatoryKernelProbability;
+
+		constexpr double epsilon = 1e-6;
+		if (std::abs(totalProbability - 1.0) > epsilon)
+			throw std::runtime_error("Mutation probabilities in field gene kernel type mutation must sum up to 1.");
+
+		const double randomValue = generateRandomDouble(0.0, 1.0);
+
+		if (randomValue < FieldGeneConstants::gaussKernelProbability)
+		{
+			initializeGaussKernel(dimensions);
+		}
+		else if (randomValue < FieldGeneConstants::gaussKernelProbability + FieldGeneConstants::mexicanHatKernelProbability)
+		{
+			initializeMexicanHatKernel(dimensions);
+		}
+		else
+		{
+			initializeOscillatoryKernel(dimensions);
+		}
+	}
+
+	void FieldGene::mutateNeuralField() const
+	{
+		static constexpr double totalProbability = MutationConstants::mutateNeuralFieldTauProbability +
+			MutationConstants::mutateNeuralFieldRestingLevelProbability;
+
+		constexpr double epsilon = 1e-6;
+		if (std::abs(totalProbability - 1.0) > epsilon)
+			throw std::runtime_error("Mutation probabilities in field gene neural field mutation must sum up to 1.");
+
+		const double signal = tools::utils::generateRandomSignal();
+		dnf_composer::element::NeuralFieldParameters nfp = neuralField->getParameters();
+
+		const double mutationSelection = tools::utils::generateRandomDouble(0.0, 1.0);
+		if (mutationSelection < MutationConstants::mutateNeuralFieldTauProbability)
+		{
+			const double tau = neuralField->getParameters().tau;
+			nfp.tau = std::clamp(tau + NeuralFieldConstants::tauStep * signal,
+												NeuralFieldConstants::tauMinVal,
+												NeuralFieldConstants::tauMaxVal);
+			neuralField->setParameters(nfp);
+		}
+		else
+		{
+			const double restingLevel = neuralField->getParameters().startingRestingLevel;
+			nfp.startingRestingLevel = std::clamp(restingLevel + NeuralFieldConstants::restingLevelStep * signal,
+												NeuralFieldConstants::restingLevelMinVal,
+												NeuralFieldConstants::restingLevelMaxVal);
+			neuralField->setParameters(nfp);
+		}
 	}
 }

@@ -139,11 +139,49 @@ namespace neat_dnfs
 
 	struct MutationConstants
 	{
+		// genome mutation probabilities (sum must be 1.0)
 		static constexpr double addFieldGeneProbability = 0.10;
 		static constexpr double mutateFieldGeneProbability = 0.40;
 		static constexpr double addConnectionGeneProbability = 0.10;
-		static constexpr double mutateConnectionGeneProbability = 0.40;
-		static constexpr double toggleConnectionGeneProbability = 0.00;
+		static constexpr double mutateConnectionGeneProbability = 0.35;
+		static constexpr double toggleConnectionGeneProbability = 0.05;
+		// field gene mutation probabilities (sum must be 1.0)
+		static constexpr double mutateFielGeneKernelProbability = 0.40;
+		static constexpr double mutateFielGeneKernelTypeProbability = 0.10;
+		static constexpr double mutateFieldGeneNeuralFieldProbability = 0.50;
+		// field gene gauss kernel mutation probabilities (sum must be 1.0)
+		static constexpr double mutateGaussKernelAmplitudeProbability = 1.0f / 3.0f;
+		static constexpr double mutateGaussKernelWidthProbability = 1.0f / 3.0f;
+		static constexpr double mutateGaussKernelGlobalAmplitudeProbability = 1.0f / 3.0f;
+		// field gene mexican hat kernel mutation probabilities (sum must be 1.0)
+		static constexpr double mutateMexicanHatKernelAmplitudeExcProbability = 1.0f / 5.0f;
+		static constexpr double mutateMexicanHatKernelAmplitudeInhProbability = 1.0f / 5.0f;
+		static constexpr double mutateMexicanHatKernelWidthExcProbability = 1.0f / 5.0f;
+		static constexpr double mutateMexicanHatKernelWidthInhProbability = 1.0f / 5.0f;
+		static constexpr double mutateMexicanHatKernelGlobalAmplitudeProbability = 1.0f / 5.0f;
+		// field gene oscillatory kernel mutation probabilities (sum must be 1.0)
+		static constexpr double mutateOscillatoryKernelAmplitudeProbability = 1.0f / 4.0f;
+		static constexpr double mutateOscillatoryKernelDecayProbability = 1.0f / 4.0f;
+		static constexpr double mutateOscillatoryKernelZeroCrossingsProbability = 1.0f / 4.0f;
+		static constexpr double mutateOscillatoryKernelGlobalAmplitudeProbability = 1.0f / 4.0f;
+		// field gene neural field mutation probabilities (sum must be 1.0)
+		static constexpr double mutateNeuralFieldTauProbability = 0.50;
+		static constexpr double mutateNeuralFieldRestingLevelProbability = 0.50;
+
+
+		static constexpr double mutateConnectionGeneKernelProbability = 0.70;
+		static constexpr double mutateConnectionGeneKernelTypeProbability = 0.20;
+		static constexpr double mutateConnectionGeneConnectionSignalProbability = 0.10;
+		
+	};
+
+	struct FieldGeneConstants
+	{
+		static constexpr bool variableParameters = true;
+
+		static constexpr double gaussKernelProbability = 0.5;
+		static constexpr double mexicanHatKernelProbability = 0.5;
+		static constexpr double oscillatoryKernelProbability = 0.0;
 	};
 
 	struct CompatibilityCoefficients
@@ -156,10 +194,11 @@ namespace neat_dnfs
 
 	struct ConnectionGeneConstants
 	{
-		static constexpr int allowAllKernelTypes = false;
-		// set to true to allow all kernel types, if false only gauss kernel is allowed
 		static constexpr int allowInhibitoryConnections = true;
-		// set to true to allow inhibitory connections, if false only excitatory connections are allowed
+ 
+		static constexpr double gaussKernelProbability = 0.5;
+		static constexpr double mexicanHatKernelProbability = 0.5;
+		static constexpr double oscillatoryKernelProbability = 0.0;
 	};
 
 	struct SolutionConstants
@@ -187,5 +226,4 @@ namespace neat_dnfs
 		static constexpr bool validateUniqueKernelAndNeuralFieldPtrs = true;
 		static constexpr bool logs = false;
 	};
-
 }

@@ -21,21 +21,21 @@ namespace neat_dnfs
 			return geneTopology == other.geneTopology;
 		}
 
-		std::string toString() const
+		/*std::string toString() const
 		{
-			/*std::string result = "Initial solution topology \n"
+			std::string result = "Initial solution topology \n"
 				"InputGenes: " + std::to_string(numInputGenes) +
 				", OutputGenes: " + std::to_string(numOutputGenes) +
 				", HiddenGenes: " + std::to_string(numHiddenGenes) +
 				", Connections: " + std::to_string(numConnections);
-			return result;*/
+			return result;
 			return "Initial solution topology to do";
 		}
 
 		void print() const
 		{
 			tools::logger::log(tools::logger::INFO, toString());
-		}
+		}*/
 	};
 
 	struct SolutionParameters
@@ -62,10 +62,10 @@ namespace neat_dnfs
 
 		std::string toString() const
 		{
-			std::string result = "Solution parameters \n"
-				"Fitness: " + std::to_string(fitness) +
+			std::string result = 
+				"{ Fitness: " + std::to_string(fitness) +
 				", AdjustedFitness: " + std::to_string(adjustedFitness) +
-				", Age: " + std::to_string(age);
+				", Age: " + std::to_string(age) + " }";
 			return result;
 		}
 

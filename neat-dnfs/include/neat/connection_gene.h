@@ -139,5 +139,12 @@ namespace neat_dnfs
 		void initializeGaussKernel(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeMexicanHatKernel(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeOscillatoryKernel(const dnf_composer::element::ElementDimensions& dimensions);
+
+		void mutateKernel() const;
+		void mutateKernelType();
+		void mutateGaussKernel() const;
+		void mutateMexicanHatKernel() const;
+		void mutateOscillatoryKernel() const;
+		void mutateConnectionSignal() const;
 	};
 }

@@ -44,7 +44,7 @@ namespace neat_dnfs
 				typeStr = "HIDDEN";
 				break;
 			}
-			return "FieldGeneParameters{type=" + typeStr + ", id=" + std::to_string(id) + "}" + '\n';
+			return "{ id: " + std::to_string(id) + ", type: " + typeStr + " }\n";
 		}
 
 		void print() const
@@ -90,5 +90,13 @@ namespace neat_dnfs
 		void initializeMexicanHatKernel(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeOscillatoryKernel(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeNoise(const dnf_composer::element::ElementDimensions& dimensions);
+
+		void mutateKernel() const;
+		void mutateGaussKernel() const;
+		void mutateMexicanHatKernel() const;
+		void mutateOscillatoryKernel() const;
+
+		void mutateKernelType();
+		void mutateNeuralField() const;
 	};
 }

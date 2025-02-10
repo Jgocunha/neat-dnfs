@@ -55,7 +55,7 @@ namespace neat_dnfs
 
 		constexpr double epsilon = 1e-6;
 		if ( std::abs(totalProbability - 1.0) > epsilon )
-			throw std::runtime_error("Mutation probabilities must sum up to 1.");
+			throw std::runtime_error("Mutation probabilities in genome mutation must sum up to 1.");
 
 		const double randomValue = tools::utils::generateRandomDouble(0.0, 1.0);
 
@@ -546,13 +546,17 @@ namespace neat_dnfs
 
 	std::string Genome::toString() const
 	{
-		std::string genomeString = "Field genes:\n";
+		std::string genomeString = "Genome { " + std::to_string(fieldGenes.size()) + " field genes, "
+		+ std::to_string(connectionGenes.size()) + " connection genes }\n{\n";
+		genomeString += "{ \nField genes (total: " + std::to_string(fieldGenes.size()) +")\n{\n";
 		for (const auto& fieldGene : fieldGenes)
 			genomeString += fieldGene.toString() + "\n";
+		genomeString += "}\n";
 
-		genomeString += "Connection genes:\n";
+		genomeString += "Connection genes (total: " + std::to_string(connectionGenes.size()) + ")\n{\n";
 		for (const auto& connectionGene : connectionGenes)
 			genomeString += connectionGene.toString() + "\n";
+		genomeString += "}\n}";
 
 		return genomeString;
 	}
