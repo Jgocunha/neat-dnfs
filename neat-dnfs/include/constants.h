@@ -140,15 +140,16 @@ namespace neat_dnfs
 	struct MutationConstants
 	{
 		// genome mutation probabilities (sum must be 1.0)
-		static constexpr double addFieldGeneProbability = 0.10;
-		static constexpr double mutateFieldGeneProbability = 0.40;
+		static constexpr double addFieldGeneProbability = 0.0;
+		static constexpr double mutateFieldGeneProbability = 0.30;
 		static constexpr double addConnectionGeneProbability = 0.10;
-		static constexpr double mutateConnectionGeneProbability = 0.35;
-		static constexpr double toggleConnectionGeneProbability = 0.05;
+		static constexpr double mutateConnectionGeneProbability = 0.60;
+		static constexpr double toggleConnectionGeneProbability = 0.00;
+
 		// field gene mutation probabilities (sum must be 1.0)
-		static constexpr double mutateFielGeneKernelProbability = 0.40;
+		static constexpr double mutateFielGeneKernelProbability = 0.50;
 		static constexpr double mutateFielGeneKernelTypeProbability = 0.10;
-		static constexpr double mutateFieldGeneNeuralFieldProbability = 0.50;
+		static constexpr double mutateFieldGeneNeuralFieldProbability = 0.40;
 		// field gene gauss kernel mutation probabilities (sum must be 1.0)
 		static constexpr double mutateGaussKernelAmplitudeProbability = 1.0f / 3.0f;
 		static constexpr double mutateGaussKernelWidthProbability = 1.0f / 3.0f;
@@ -169,8 +170,8 @@ namespace neat_dnfs
 		static constexpr double mutateNeuralFieldRestingLevelProbability = 0.50;
 
 
-		static constexpr double mutateConnectionGeneKernelProbability = 0.70;
-		static constexpr double mutateConnectionGeneKernelTypeProbability = 0.20;
+		static constexpr double mutateConnectionGeneKernelProbability = 0.80;
+		static constexpr double mutateConnectionGeneKernelTypeProbability = 0.10;
 		static constexpr double mutateConnectionGeneConnectionSignalProbability = 0.10;
 		
 	};
@@ -218,6 +219,7 @@ namespace neat_dnfs
 
 	struct PopulationConstants
 	{
+		static constexpr bool parallelEvolution = true;
 		static constexpr double killRatio = 0.8;
 		static constexpr bool validateUniqueSolutions = true;
 		static constexpr bool validatePopulationSize = true;

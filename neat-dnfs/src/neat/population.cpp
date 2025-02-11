@@ -69,21 +69,27 @@ namespace neat_dnfs
 
 	void Population::evaluate() const
 	{
-		std::vector<std::future<void>> futures;
-		for (const auto& solution : solutions)
+		if (PopulationConstants::parallelEvolution)
 		{
-			futures.emplace_back(std::async(std::launch::async, [&solution]()
-				{
-					solution->evaluate();
-				}));
-		}
+			std::vector<std::future<void>> futures;
+			for (const auto& solution : solutions)
+			{
+				futures.emplace_back(std::async(std::launch::async, [&solution]()
+					{
+						solution->evaluate();
+					}));
+			}
 
-		for (auto& future : futures)
-		{
-			future.get();
+			for (auto& future : futures)
+			{
+				future.get();
+			}
 		}
-		/*for (const auto& solution : solutions)
-			solution->evaluate();*/
+		else
+		{
+			for (const auto& solution : solutions)
+				solution->evaluate();
+		}
 	}
 
 	void Population::speciate()

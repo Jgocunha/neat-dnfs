@@ -485,12 +485,12 @@ namespace neat_dnfs
 	double Solution::twoBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position1, const double& amplitude1, const double& width1, const double& position2, const double& amplitude2, const double& width2)
 	{
 		static constexpr int targetNumberOfBumps = 2;
-		static constexpr double weightBumps = 0.40 / targetNumberOfBumps;
+		static constexpr double weightBumps = 0.40;
 		static constexpr double weightPos = 0.20 / targetNumberOfBumps;
 		static constexpr double weightAmp = 0.20 / targetNumberOfBumps;
 		static constexpr double weightWidth = 0.20 / targetNumberOfBumps;
 		// if sum of weights is not 1.0, throw exception
-		if (std::abs((weightBumps + weightPos + weightAmp + weightWidth) * targetNumberOfBumps - 1.0) > 1e-6)
+		if (std::abs(weightBumps + (weightPos + weightAmp + weightWidth) * targetNumberOfBumps - 1.0) > 1e-6)
 			throw std::invalid_argument("Sum of weights must be 1.0");
 		double fitness = 0.0;
 
@@ -527,13 +527,16 @@ namespace neat_dnfs
 	double Solution::threeBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position1, const double& amplitude1, const double& width1, const double& position2, const double& amplitude2, const double& width2, const double& position3, const double& amplitude3, const double& width3)
 	{
 		static constexpr int targetNumberOfBumps = 3;
-		static constexpr double weightBumps = 0.40 / targetNumberOfBumps;
+		static constexpr double weightBumps = 0.40;
 		static constexpr double weightPos = 0.20 / targetNumberOfBumps;
 		static constexpr double weightAmp = 0.20 / targetNumberOfBumps;
 		static constexpr double weightWidth = 0.20 / targetNumberOfBumps;
 		// if sum of weights is not 1.0, throw exception
-		if (std::abs((weightBumps + weightPos + weightAmp + weightWidth) * targetNumberOfBumps - 1.0) > 1e-6)
-			throw std::invalid_argument("Sum of weights must be 1.0");
+		if (std::abs(weightBumps + (weightPos + weightAmp + weightWidth) * targetNumberOfBumps - 1.0) > 1e-6)
+		{
+			tools::logger::log(tools::logger::LogLevel::ERROR, "Sum of weights must be 1.0 in three bump fitness evaluation.");
+			throw std::invalid_argument("Sum of weights must be 1.0 in three bump fitness evaluation.");
+		}
 		double fitness = 0.0;
 
 		using namespace dnf_composer::element;

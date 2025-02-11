@@ -6,16 +6,8 @@ namespace neat_dnfs
 		: Solution(topology)
 	{
 		name = "Logic AND";
-		// target fitness is 0.85
-		// for better results, reduce the search space by:
-		// - not allowing inhibitory connections;
-		// - not allowing all types of inter-field kernels;
-		// - not allowing adding field genes;
-		// - reduce noise amplitude to null;
-		// - reduce stabilityThreshold to 0.035.
-		// for faster results, change simulation parameters by:
-		// - setting delta_t to 25;
-		// - setting max iterations to 200.
+		// target fitness is 0.90
+		// same parameters as single bump
 	}
 
 	SolutionPtr AndSolution::clone() const
