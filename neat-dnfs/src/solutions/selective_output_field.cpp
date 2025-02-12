@@ -7,20 +7,6 @@ namespace neat_dnfs
 	{
 		name = "Selective output";
 		// target fitness is 0.85
-		// for better results, reduce the search space by:
-		// - not allowing inhibitory connections;
-		// - not allowing all types of inter-field kernels;
-		// - not allowing adding field genes.
-		// make sure these settings are:
-		// - set noise amplitude to 0.2;
-		// - set stabilityThreshold to 0.9.
-		// - setting delta_t to 25;
-		// - setting max iterations to 200.
-		//static constexpr double addFieldGeneProbability = 0.00;
-		//static constexpr double mutateFieldGeneProbability = 0.75;
-		//static constexpr double addConnectionGeneProbability = 0.10;
-		//static constexpr double mutateConnectionGeneProbability = 0.15;
-		//static constexpr double toggleConnectionGeneProbability = 0.00;
 	}
 
 	SolutionPtr SelectiveOutputSolution::clone() const

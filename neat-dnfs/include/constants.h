@@ -25,7 +25,7 @@ namespace neat_dnfs
 	struct NoiseConstants
 	{
 		inline static std::string namePrefix = "nn ";
-		static constexpr double amplitude = 0.05; //0.2 (if selection is required), null otherwise
+		static constexpr double amplitude = 0.2; //0.2 (if selection is required), null otherwise
 	};
 
 	struct GaussStimulusConstants
@@ -97,8 +97,8 @@ namespace neat_dnfs
 		static constexpr double widthInhMaxVal = 30.0; // 30.0
 		static constexpr double widthInhStep = 0.5; // 0.5
 
-		static constexpr double ampExcMinVal = 1.0; // 8.0
-		static constexpr double ampExcMaxVal = 20.0; // 25.0
+		static constexpr double ampExcMinVal = 5.0; // 8.0
+		static constexpr double ampExcMaxVal = 35.0; // 25.0
 		static constexpr double ampExcStep = 0.5; // 0.5
 
 		static constexpr double ampInhMinVal = 15.0; // 12.0
@@ -173,7 +173,6 @@ namespace neat_dnfs
 		static constexpr double mutateConnectionGeneKernelProbability = 0.80;
 		static constexpr double mutateConnectionGeneKernelTypeProbability = 0.10;
 		static constexpr double mutateConnectionGeneConnectionSignalProbability = 0.10;
-		
 	};
 
 	struct FieldGeneConstants

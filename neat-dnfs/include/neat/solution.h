@@ -149,5 +149,6 @@ namespace neat_dnfs
 		double justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName,
 			const std::vector<double>& positions, const double& amplitude, const double& width);
 		void removeGaussianStimuliFromField(const std::string& fieldName);
+		double noBumps(const std::string& fieldName);
 	};
 }

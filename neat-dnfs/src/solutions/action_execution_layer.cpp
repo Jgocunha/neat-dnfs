@@ -22,74 +22,111 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
 
-		static constexpr double w_behaviour = 1.f / 2.f;
 		static constexpr int iterations = SimulationConstants::maxSimulationSteps;
 
-		static constexpr double in_amp = 8.0;
+		static constexpr double in_amp = 9.0;
 		static constexpr double in_width = 10.0;
-		static constexpr double out_amp = 6.0;
-		static constexpr double out_width = 5.0;
+		static constexpr double out_amp = 9.0;
+		static constexpr double out_width = 10.0;
+
+		static constexpr double wf1 = 0.30; // multi bump ORL
+		static constexpr double wf2 = 0.30; // ORL creates a selective single bump in AEL
+		static constexpr double wf3 = 0.20; // AOL single bump
+		static constexpr double wf4 = 0.20; // AOL inhibits AEL
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
-		runSimulation(iterations);
 		addGaussianStimulus("nf 1",
 						{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
 						{ DimensionConstants::xSize, DimensionConstants::dx });
-		runSimulation(iterations);
 		addGaussianStimulus("nf 1",
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
+		const double f1 = threeBumpsAtPositionWithAmplitudeAndWidth("nf 1",
+				20.0, in_amp, in_width,
+				50.0, in_amp, in_width,
+				80.0, in_amp, in_width);
+		parameters.fitness = wf1 * f1;
 
-		const double f1_1 = threeBumpsAtPositionWithAmplitudeAndWidth("nf 1",
-						20.0, in_amp, in_width,
-						50.0, in_amp, in_width,
-						80.0, in_amp, in_width);
-		const double f1_2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3", 
-			{ 20.0, 50.0, 80.0 }, out_amp, out_width);
+		const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3", { 20.0, 50.0, 80.0 }, out_amp, out_width);
+		parameters.fitness += wf2 * f2;
 
 		removeGaussianStimuli();
-		runSimulation(iterations);
-
-		const double f1_3 = closenessToRestingLevel("nf 1");
-		const double f1_4 = closenessToRestingLevel("nf 3");
-
-		static constexpr double wf1_1 = 0.35;
-		static constexpr double wf1_2 = 0.45;
-		static constexpr double wf1_3 = 0.10;
-		static constexpr double wf1_4 = 0.10;
-
-		parameters.fitness = w_behaviour * (wf1_1 * f1_1 + wf1_2 * f1_2 + wf1_3 * f1_3 + wf1_4 * f1_4);
-
 		initSimulation();
-		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
-		runSimulation(iterations);
-
-		const double f2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, in_amp, in_width);
-		const double f2_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 50.0, out_amp, out_width);
-
 		addGaussianStimulus("nf 2",
-						{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+						{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
 						{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
+		const double f3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 20.0, in_amp, in_width);
+		parameters.fitness += wf3 * f3;
 
-		const double f2_3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, in_amp, in_width);
-		const double f2_4 = negativePreShapednessAtPosition("nf 3", 50);
-
+		const double f4 = negativePreShapednessAtPosition("nf 3", 20.0);
+		parameters.fitness += wf4 * f4;
 		removeGaussianStimuli();
-		runSimulation(iterations);
 
-		static constexpr double wf2_1 = 0.10;
-		static constexpr double wf2_2 = 0.30;
-		static constexpr double wf2_3 = 0.10;
-		static constexpr double wf2_4 = 0.30;
+		//initSimulation();
+		//addGaussianStimulus("nf 1",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//runSimulation(iterations);
+		//addGaussianStimulus("nf 1",
+		//				{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+		//				{ DimensionConstants::xSize, DimensionConstants::dx });
+		//runSimulation(iterations);
+		//addGaussianStimulus("nf 1",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//runSimulation(iterations);
 
-		parameters.fitness += w_behaviour * (wf2_1 * f2_1 + wf2_2 * f2_2 + wf2_3 * f2_3 + wf2_4 * f2_4);
+		//const double f1_1 = threeBumpsAtPositionWithAmplitudeAndWidth("nf 1",
+		//				20.0, in_amp, in_width,
+		//				50.0, in_amp, in_width,
+		//				80.0, in_amp, in_width);
+		//const double f1_2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3", 
+		//	{ 20.0, 50.0, 80.0 }, out_amp, out_width);
+
+		//removeGaussianStimuli();
+		//runSimulation(iterations);
+
+		//const double f1_3 = closenessToRestingLevel("nf 1");
+		//const double f1_4 = closenessToRestingLevel("nf 3");
+
+		//static constexpr double wf1_1 = 0.35;
+		//static constexpr double wf1_2 = 0.45;
+		//static constexpr double wf1_3 = 0.10;
+		//static constexpr double wf1_4 = 0.10;
+
+		//parameters.fitness = w_behaviour * (wf1_1 * f1_1 + wf1_2 * f1_2 + wf1_3 * f1_3 + wf1_4 * f1_4);
+
+		//initSimulation();
+		//addGaussianStimulus("nf 1",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//runSimulation(iterations);
+
+		//const double f2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, in_amp, in_width);
+		//const double f2_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 50.0, out_amp, out_width);
+
+		//addGaussianStimulus("nf 2",
+		//				{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+		//				{ DimensionConstants::xSize, DimensionConstants::dx });
+		//runSimulation(iterations);
+
+		//const double f2_3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, in_amp, in_width);
+		//const double f2_4 = negativePreShapednessAtPosition("nf 3", 50);
+
+		//removeGaussianStimuli();
+		//runSimulation(iterations);
+
+		//static constexpr double wf2_1 = 0.25;
+		//static constexpr double wf2_2 = 0.25;
+		//static constexpr double wf2_3 = 0.10;
+		//static constexpr double wf2_4 = 0.40;
+
+		//parameters.fitness += w_behaviour * (wf2_1 * f2_1 + wf2_2 * f2_2 + wf2_3 * f2_3 + wf2_4 * f2_4);
 
 
 		/*initSimulation();

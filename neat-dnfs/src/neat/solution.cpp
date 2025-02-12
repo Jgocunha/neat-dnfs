@@ -628,8 +628,8 @@ namespace neat_dnfs
 
 		// this should not be like this - I am hardcoding the position of the baseline activation
 		const double u_baseline = std::abs(neuralField->getComponent("activation")[0]);
-		const double u_target = u_baseline + u_baseline * 2.0;
-		const double width = u_baseline + u_baseline / 2.0;// *2.0;// / 2.0;
+		const double u_target = u_baseline + u_baseline/2;
+		const double width = u_baseline/2;
 
 		return tools::utils::normalizeWithGaussian(std::abs(u_tar_pos), u_target, width);
 	}
@@ -674,5 +674,18 @@ namespace neat_dnfs
 		for (const auto& input : neuralField->getInputs())
 			if (input->getLabel() == GAUSS_STIMULUS)
 				phenotype->removeElement(input->getUniqueName());
+	}
+
+	double Solution::noBumps(const std::string& fieldName)
+	{
+		using namespace dnf_composer::element;
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype->getElement(fieldName));
+
+		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
+		if (numberOfBumps > 0)
+		{
+			return 0.0f;
+		}
+		return 1.0f;
 	}
 }
