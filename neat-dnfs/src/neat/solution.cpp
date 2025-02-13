@@ -700,13 +700,7 @@ namespace neat_dnfs
 			phenotype->step();
 			it++;
 			if (!neuralField->getBumps().empty())
-			{
-				//std::cout << "Solution id: " << id << " ";
-				//std::cout << ", Bump detected after " << it << " iterations";
-				const double f = 1.0 / (1.0 + std::abs(targetIterations - it));
-				//std::cout << ", Fitness: " << f << std::endl;
-				return f;
-			}
+				return 1.0 / (1.0 + std::abs(targetIterations - it));
 
 		} while (it < targetIterations);
 
@@ -726,13 +720,7 @@ namespace neat_dnfs
 			if (!neuralField->getBumps().empty())
 			{
 				if(neuralField->getBumps()[0].amplitude > targetAmplitude)
-				{
-					//std::cout << "Solution id: " << id << " ";
-					//std::cout << ", Bump detected after " << it << " iterations";
-					const double f = 1.0 / (1.0 + std::abs(targetIterations - it));
-					//std::cout << ", Fitness: " << f << std::endl;
-					return f;
-				}
+					return 1.0 / (1.0 + std::abs(targetIterations - it));
 			}
 
 		} while (it < targetIterations);
