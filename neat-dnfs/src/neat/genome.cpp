@@ -47,11 +47,11 @@ namespace neat_dnfs
 
 	void Genome::mutate()
 	{
-		constexpr double totalProbability = MutationConstants::addFieldGeneProbability +
-			MutationConstants::mutateFieldGeneProbability +
-			MutationConstants::addConnectionGeneProbability +
-			MutationConstants::mutateConnectionGeneProbability +
-			MutationConstants::toggleConnectionGeneProbability;
+		constexpr double totalProbability = GenomeMutationConstants::addFieldGeneProbability +
+			GenomeMutationConstants::mutateFieldGeneProbability +
+			GenomeMutationConstants::addConnectionGeneProbability +
+			GenomeMutationConstants::mutateConnectionGeneProbability +
+			GenomeMutationConstants::toggleConnectionGeneProbability;
 
 		constexpr double epsilon = 1e-6;
 		if ( std::abs(totalProbability - 1.0) > epsilon )
@@ -59,22 +59,22 @@ namespace neat_dnfs
 
 		const double randomValue = tools::utils::generateRandomDouble(0.0, 1.0);
 
-		if (randomValue < MutationConstants::addFieldGeneProbability) {
+		if (randomValue < GenomeMutationConstants::addFieldGeneProbability) {
 			addGene();
 		}
-		else if (randomValue < MutationConstants::addFieldGeneProbability +
-			MutationConstants::mutateFieldGeneProbability) {
+		else if (randomValue < GenomeMutationConstants::addFieldGeneProbability +
+			GenomeMutationConstants::mutateFieldGeneProbability) {
 			mutateGene();
 		}
-		else if (randomValue < MutationConstants::addFieldGeneProbability +
-			MutationConstants::mutateFieldGeneProbability +
-			MutationConstants::addConnectionGeneProbability) {
+		else if (randomValue < GenomeMutationConstants::addFieldGeneProbability +
+			GenomeMutationConstants::mutateFieldGeneProbability +
+			GenomeMutationConstants::addConnectionGeneProbability) {
 			addConnectionGene();
 		}
-		else if (randomValue < MutationConstants::addFieldGeneProbability +
-			MutationConstants::mutateFieldGeneProbability +
-			MutationConstants::addConnectionGeneProbability +
-			MutationConstants::mutateConnectionGeneProbability) {
+		else if (randomValue < GenomeMutationConstants::addFieldGeneProbability +
+			GenomeMutationConstants::mutateFieldGeneProbability +
+			GenomeMutationConstants::addConnectionGeneProbability +
+			GenomeMutationConstants::mutateConnectionGeneProbability) {
 			mutateConnectionGene();
 		}
 		else {

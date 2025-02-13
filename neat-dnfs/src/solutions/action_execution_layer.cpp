@@ -6,7 +6,8 @@ namespace neat_dnfs
 		: Solution(topology)
 	{
 		name = "Action execution";
-		// target fitness is 0.90
+		// target fitness is 0.85
+		// deltaT = 25, iterations = 200
 	}
 
 	SolutionPtr ActionExecutionSimulation::clone() const
@@ -29,10 +30,11 @@ namespace neat_dnfs
 		static constexpr double out_amp = 9.0;
 		static constexpr double out_width = 10.0;
 
-		static constexpr double wf1 = 0.30; // multi bump ORL
-		static constexpr double wf2 = 0.30; // ORL creates a selective single bump in AEL
+		static constexpr double wf1 = 0.20; // multi bump ORL
+		static constexpr double wf2 = 0.20; // ORL creates a selective single bump in AEL
 		static constexpr double wf3 = 0.20; // AOL single bump
 		static constexpr double wf4 = 0.20; // AOL inhibits AEL
+		static constexpr double wf5 = 0.20; // travelling bump in AEL
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
@@ -56,6 +58,12 @@ namespace neat_dnfs
 
 		removeGaussianStimuli();
 		initSimulation();
+		addGaussianStimulus("nf 1",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		addGaussianStimulus("nf 1",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 2",
 						{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
 						{ DimensionConstants::xSize, DimensionConstants::dx });
@@ -65,6 +73,10 @@ namespace neat_dnfs
 
 		const double f4 = negativePreShapednessAtPosition("nf 3", 20.0);
 		parameters.fitness += wf4 * f4;
+
+		const double f5 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 50.0, out_amp, out_width);
+		parameters.fitness += wf5 * f5;
+
 		removeGaussianStimuli();
 
 		//initSimulation();

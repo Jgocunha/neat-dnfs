@@ -53,21 +53,21 @@ namespace neat_dnfs
 
 	void FieldGene::mutate()
 	{
-		static constexpr double totalProbability = MutationConstants::mutateFielGeneKernelProbability +
-			MutationConstants::mutateFieldGeneNeuralFieldProbability +
-			MutationConstants::mutateFielGeneKernelTypeProbability;
+		static constexpr double totalProbability = FieldGeneConstants::mutateFielGeneKernelProbability +
+			FieldGeneConstants::mutateFieldGeneNeuralFieldProbability +
+			FieldGeneConstants::mutateFielGeneKernelTypeProbability;
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(totalProbability - 1.0) > epsilon)
 			throw std::runtime_error("Mutation probabilities in field gene mutation must sum up to 1.");
 
 		const double randomValue = tools::utils::generateRandomDouble(0.0, 1.0);
-		if (randomValue < MutationConstants::mutateFielGeneKernelProbability)
+		if (randomValue < FieldGeneConstants::mutateFielGeneKernelProbability)
 		{
 			mutateKernel();
 		}
-		else if (randomValue < MutationConstants::mutateFielGeneKernelProbability +
-						MutationConstants::mutateFieldGeneNeuralFieldProbability)
+		else if (randomValue < FieldGeneConstants::mutateFielGeneKernelProbability +
+			FieldGeneConstants::mutateFieldGeneNeuralFieldProbability)
 		{
 			mutateNeuralField();
 		}
@@ -320,9 +320,9 @@ namespace neat_dnfs
 		const auto gaussKernel = std::dynamic_pointer_cast<GaussKernel>(kernel);
 		GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
 
-		constexpr double totalProbability = MutationConstants::mutateGaussKernelWidthProbability +
-			MutationConstants::mutateGaussKernelAmplitudeProbability +
-			MutationConstants::mutateGaussKernelGlobalAmplitudeProbability;
+		constexpr double totalProbability = FieldGeneConstants::mutateFieldGeneGaussKernelWidthProbability +
+			FieldGeneConstants::mutateFieldGeneGaussKernelAmplitudeProbability +
+			FieldGeneConstants::mutateFieldGeneGaussKernelGlobalAmplitudeProbability;
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(totalProbability - 1.0) > epsilon)
@@ -331,14 +331,14 @@ namespace neat_dnfs
 
 		const double mutationSelection = generateRandomDouble(0.0, 1.0);
 
-		if (mutationSelection < MutationConstants::mutateGaussKernelWidthProbability)
+		if (mutationSelection < FieldGeneConstants::mutateFieldGeneGaussKernelWidthProbability)
 		{
 			gkp.width = std::clamp(gkp.width + GaussKernelConstants::widthStep * signal,
 								GaussKernelConstants::widthMinVal,
 								GaussKernelConstants::widthMaxVal);
 		}
-		else if (mutationSelection < MutationConstants::mutateGaussKernelWidthProbability +
-						MutationConstants::mutateGaussKernelAmplitudeProbability)
+		else if (mutationSelection < FieldGeneConstants::mutateFieldGeneGaussKernelWidthProbability +
+			FieldGeneConstants::mutateFieldGeneGaussKernelAmplitudeProbability)
 		{
 			gkp.amplitude = std::clamp(gkp.amplitude + GaussKernelConstants::ampStep * signal,
 								GaussKernelConstants::ampMinVal,
@@ -363,11 +363,11 @@ namespace neat_dnfs
 		const auto mexicanHatKernel = std::dynamic_pointer_cast<MexicanHatKernel>(kernel);
 		MexicanHatKernelParameters mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
 
-		constexpr double totalProbability = MutationConstants::mutateMexicanHatKernelAmplitudeExcProbability +
-			MutationConstants::mutateMexicanHatKernelWidthExcProbability +
-			MutationConstants::mutateMexicanHatKernelAmplitudeInhProbability +
-			MutationConstants::mutateMexicanHatKernelWidthInhProbability +
-			MutationConstants::mutateMexicanHatKernelGlobalAmplitudeProbability;
+		constexpr double totalProbability = FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeExcProbability +
+			FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthExcProbability +
+			FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeInhProbability +
+			FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthInhProbability +
+			FieldGeneConstants::mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability;
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(totalProbability - 1.0) > epsilon)
@@ -375,31 +375,31 @@ namespace neat_dnfs
 
 
 		const double mutationSelection = generateRandomDouble(0.0, 1.0);
-		if(mutationSelection < MutationConstants::mutateMexicanHatKernelAmplitudeExcProbability)
+		if(mutationSelection < FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeExcProbability)
 		{
 			mhkp.amplitudeExc = std::clamp(mhkp.amplitudeExc + MexicanHatKernelConstants::ampExcStep * signal,
 								MexicanHatKernelConstants::ampExcMinVal,
 								MexicanHatKernelConstants::ampExcMaxVal);
 		}
-		else if (mutationSelection < MutationConstants::mutateMexicanHatKernelAmplitudeExcProbability +
-			MutationConstants::mutateMexicanHatKernelWidthExcProbability)
+		else if (mutationSelection < FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeExcProbability +
+			FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthExcProbability)
 		{
 			mhkp.widthExc = std::clamp(mhkp.widthExc + MexicanHatKernelConstants::widthExcStep * signal,
 												MexicanHatKernelConstants::widthExcMinVal,
 												MexicanHatKernelConstants::widthExcMaxVal);
 		}
-		else if (mutationSelection < MutationConstants::mutateMexicanHatKernelAmplitudeExcProbability +
-							MutationConstants::mutateMexicanHatKernelWidthExcProbability +
-							MutationConstants::mutateMexicanHatKernelAmplitudeInhProbability)
+		else if (mutationSelection < FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeExcProbability +
+			FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthExcProbability +
+			FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeInhProbability)
 		{
 			mhkp.amplitudeInh = std::clamp(mhkp.amplitudeInh + MexicanHatKernelConstants::ampInhStep * signal,
 																MexicanHatKernelConstants::ampInhMinVal,
 																MexicanHatKernelConstants::ampInhMaxVal);
 		}
-		else if (mutationSelection < MutationConstants::mutateMexicanHatKernelAmplitudeExcProbability +
-						MutationConstants::mutateMexicanHatKernelWidthExcProbability +
-						MutationConstants::mutateMexicanHatKernelAmplitudeInhProbability +
-						MutationConstants::mutateMexicanHatKernelWidthInhProbability)
+		else if (mutationSelection < FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeExcProbability +
+						FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthExcProbability +
+						FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeInhProbability +
+						FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthInhProbability)
 		{
 			mhkp.widthInh = std::clamp(mhkp.widthInh + MexicanHatKernelConstants::widthInhStep * signal,
 															MexicanHatKernelConstants::widthInhMinVal,
@@ -424,10 +424,10 @@ namespace neat_dnfs
 		const auto oscillatoryKernel = std::dynamic_pointer_cast<OscillatoryKernel>(kernel);
 		OscillatoryKernelParameters okp = std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->getParameters();
 
-		constexpr double totalProbability = MutationConstants::mutateOscillatoryKernelAmplitudeProbability +
-			MutationConstants::mutateOscillatoryKernelDecayProbability +
-			MutationConstants::mutateOscillatoryKernelZeroCrossingsProbability +
-			MutationConstants::mutateOscillatoryKernelGlobalAmplitudeProbability;
+		constexpr double totalProbability = FieldGeneConstants::mutateFieldGeneOscillatoryKernelAmplitudeProbability +
+			FieldGeneConstants::mutateFieldGeneOscillatoryKernelDecayProbability +
+			FieldGeneConstants::mutateFieldGeneOscillatoryKernelZeroCrossingsProbability +
+			FieldGeneConstants::mutateFieldGeneOscillatoryKernelGlobalAmplitudeProbability;
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(totalProbability - 1.0) > epsilon)
@@ -437,22 +437,22 @@ namespace neat_dnfs
 		const double mutationSelection = generateRandomDouble(0.0, 1.0);
 
 
-		if ( mutationSelection < MutationConstants::mutateOscillatoryKernelAmplitudeProbability)
+		if ( mutationSelection < FieldGeneConstants::mutateFieldGeneOscillatoryKernelAmplitudeProbability)
 		{
 			okp.amplitude = std::clamp(okp.amplitude + OscillatoryKernelConstants::amplitudeStep * signal,
 											OscillatoryKernelConstants::amplitudeMinVal,
 											OscillatoryKernelConstants::amplitudeMaxVal);
 		}
-		else if (mutationSelection < MutationConstants::mutateOscillatoryKernelAmplitudeProbability +
-						MutationConstants::mutateOscillatoryKernelDecayProbability)
+		else if (mutationSelection < FieldGeneConstants::mutateFieldGeneOscillatoryKernelAmplitudeProbability +
+			FieldGeneConstants::mutateFieldGeneOscillatoryKernelDecayProbability)
 		{
 			okp.decay = std::clamp(okp.decay + OscillatoryKernelConstants::decayStep * signal,
 											OscillatoryKernelConstants::decayMinVal,
 											OscillatoryKernelConstants::decayMaxVal);
 		}
-		else if (mutationSelection < MutationConstants::mutateOscillatoryKernelAmplitudeProbability +
-						MutationConstants::mutateOscillatoryKernelDecayProbability +
-						MutationConstants::mutateOscillatoryKernelZeroCrossingsProbability)
+		else if (mutationSelection < FieldGeneConstants::mutateFieldGeneOscillatoryKernelAmplitudeProbability +
+			FieldGeneConstants::mutateFieldGeneOscillatoryKernelDecayProbability +
+			FieldGeneConstants::mutateFieldGeneOscillatoryKernelZeroCrossingsProbability)
 		{
 			okp.zeroCrossings = std::clamp(okp.zeroCrossings + OscillatoryKernelConstants::zeroCrossingsStep * signal,
 											OscillatoryKernelConstants::zeroCrossingsMinVal,
@@ -500,8 +500,8 @@ namespace neat_dnfs
 
 	void FieldGene::mutateNeuralField() const
 	{
-		static constexpr double totalProbability = MutationConstants::mutateNeuralFieldTauProbability +
-			MutationConstants::mutateNeuralFieldRestingLevelProbability;
+		static constexpr double totalProbability = FieldGeneConstants::mutateFieldGeneNeuralFieldTauProbability +
+			FieldGeneConstants::mutateFieldGeneNeuralFieldRestingLevelProbability;
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(totalProbability - 1.0) > epsilon)
@@ -511,7 +511,7 @@ namespace neat_dnfs
 		dnf_composer::element::NeuralFieldParameters nfp = neuralField->getParameters();
 
 		const double mutationSelection = tools::utils::generateRandomDouble(0.0, 1.0);
-		if (mutationSelection < MutationConstants::mutateNeuralFieldTauProbability)
+		if (mutationSelection < FieldGeneConstants::mutateFieldGeneNeuralFieldTauProbability)
 		{
 			const double tau = neuralField->getParameters().tau;
 			nfp.tau = std::clamp(tau + NeuralFieldConstants::tauStep * signal,

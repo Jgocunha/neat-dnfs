@@ -22,6 +22,7 @@
 #include "solutions/action_simulation_layer.h"
 #include "solutions/action_execution_layer.h"
 #include "solutions/selective_output_field.h"
+#include "solutions/timing_response.h"
 
 int main(int argc, char* argv[])
 {
@@ -30,15 +31,15 @@ int main(int argc, char* argv[])
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
 
-		ActionExecutionSimulation solution{
+		TimingResponse solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}}
 			}}
 		};
-		const PopulationParameters parameters{ 1000, 100, 0.95};
-		Population population{ parameters, std::make_shared<ActionExecutionSimulation>(solution) };
+		const PopulationParameters parameters{ 2000, 100, 0.95};
+		Population population{ parameters, std::make_shared<TimingResponse>(solution) };
 
 		population.initialize();
 		population.evolve();

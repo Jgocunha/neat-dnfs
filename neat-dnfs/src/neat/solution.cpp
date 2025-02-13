@@ -688,4 +688,55 @@ namespace neat_dnfs
 		}
 		return 1.0f;
 	}
+
+	double Solution::iterationsUntilBump(const std::string& fieldName, double targetIterations)
+	{
+		using namespace dnf_composer::element;
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype->getElement(fieldName));
+
+		int it = 0;
+		do
+		{
+			phenotype->step();
+			it++;
+			if (!neuralField->getBumps().empty())
+			{
+				//std::cout << "Solution id: " << id << " ";
+				//std::cout << ", Bump detected after " << it << " iterations";
+				const double f = 1.0 / (1.0 + std::abs(targetIterations - it));
+				//std::cout << ", Fitness: " << f << std::endl;
+				return f;
+			}
+
+		} while (it < targetIterations);
+
+		return 0.0f;
+	}
+
+	double Solution::iterationsUntilBumpWithAmplitude(const std::string& fieldName, double targetIterations, double targetAmplitude)
+	{
+		using namespace dnf_composer::element;
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype->getElement(fieldName));
+
+		int it = 0;
+		do
+		{
+			phenotype->step();
+			it++;
+			if (!neuralField->getBumps().empty())
+			{
+				if(neuralField->getBumps()[0].amplitude > targetAmplitude)
+				{
+					//std::cout << "Solution id: " << id << " ";
+					//std::cout << ", Bump detected after " << it << " iterations";
+					const double f = 1.0 / (1.0 + std::abs(targetIterations - it));
+					//std::cout << ", Fitness: " << f << std::endl;
+					return f;
+				}
+			}
+
+		} while (it < targetIterations);
+
+		return 0.0f;
+	}
 }

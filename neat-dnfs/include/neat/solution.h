@@ -150,5 +150,7 @@ namespace neat_dnfs
 			const std::vector<double>& positions, const double& amplitude, const double& width);
 		void removeGaussianStimuliFromField(const std::string& fieldName);
 		double noBumps(const std::string& fieldName);
+		double iterationsUntilBump(const std::string& fieldName, double targetIterations);
+		double iterationsUntilBumpWithAmplitude(const std::string& fieldName, double targetIterations, double targetAmplitude);
 	};
 }
