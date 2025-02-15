@@ -88,6 +88,7 @@ namespace neat_dnfs
 		void validatePopulationSize() const;
 		void validateUniqueGenesInGenomes() const;
 		void validateUniqueKernelAndNeuralFieldPtrs() const;
+		void validateIfSpeciesHaveUniqueRepresentative() const;
 		void print() const;
 		void saveAllSolutionsWithFitnessAbove(double fitness) const;
 	};

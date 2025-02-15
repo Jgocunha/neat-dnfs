@@ -65,6 +65,13 @@ namespace neat_dnfs
 		return parameters;
 	}
 
+	std::string Solution::getAddress() const
+	{
+		std::stringstream address;
+		address << this;
+		return address.str();
+	}
+
 	double Solution::getFitness() const
 	{
 		return parameters.fitness;

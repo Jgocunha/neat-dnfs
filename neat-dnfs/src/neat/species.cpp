@@ -141,4 +141,22 @@ namespace neat_dnfs
 		for (const auto& child : offspring)
 			members.push_back(child);
 	}
+
+	std::string Species::toString() const
+	{
+		std::string str = "Species " + std::to_string(id);
+		str += " { Offspring count: " + std::to_string(offspringCount);
+		str += ", Members count: " + std::to_string(members.size());
+		str += ", Elites count: " + std::to_string(elites.size());
+		str += " Representative: " + (representative == nullptr ? "None" :
+			" { Address: " + representative->getAddress()
+			+ ", Fitness: " + std::to_string(representative->getParameters().fitness) 
+			+ ", Gene count: " + std::to_string(representative->getGenomeSize()) + " } }");
+		return str;
+	}
+
+	void Species::print() const
+	{
+		tools::logger::log(tools::logger::INFO, toString());
+	}
 }

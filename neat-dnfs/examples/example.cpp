@@ -31,15 +31,15 @@ int main(int argc, char* argv[])
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
 
-		TimingResponse solution{
+		ActionExecutionSimulation solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}}
 			}}
 		};
-		const PopulationParameters parameters{ 2000, 100, 0.95};
-		Population population{ parameters, std::make_shared<TimingResponse>(solution) };
+		const PopulationParameters parameters{ 1000, 100, 0.95};
+		Population population{ parameters, std::make_shared<ActionExecutionSimulation>(solution) };
 
 		population.initialize();
 		population.evolve();

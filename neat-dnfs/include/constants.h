@@ -12,8 +12,8 @@ namespace neat_dnfs
 	struct SimulationConstants
 	{
 		inline static std::string name = "solution ";
-		static constexpr double deltaT = 5.0;
-		static constexpr size_t maxSimulationSteps = 1000;
+		static constexpr double deltaT = 25.0;
+		static constexpr size_t maxSimulationSteps = 200;
 	};
 
 	struct DimensionConstants
@@ -140,11 +140,11 @@ namespace neat_dnfs
 	struct GenomeMutationConstants
 	{
 		// genome mutation probabilities (sum must be 1.0)
-		static constexpr double addFieldGeneProbability = 0.0;
-		static constexpr double mutateFieldGeneProbability = 0.30;
+		static constexpr double addFieldGeneProbability = 0.10;
+		static constexpr double mutateFieldGeneProbability = 0.35;
 		static constexpr double addConnectionGeneProbability = 0.10;
-		static constexpr double mutateConnectionGeneProbability = 0.60;
-		static constexpr double toggleConnectionGeneProbability = 0.00;
+		static constexpr double mutateConnectionGeneProbability = 0.40;
+		static constexpr double toggleConnectionGeneProbability = 0.05;
 	};
 
 	struct FieldGeneConstants
@@ -183,8 +183,8 @@ namespace neat_dnfs
 	{
 		static constexpr double excessCoefficient = 1.0;
 		static constexpr double disjointCoefficient = 1.0;
-		static constexpr double amplitudeDifferenceCoefficient = 0.8;
-		static constexpr double widthDifferenceCoefficient = 0.2;
+		static constexpr double amplitudeDifferenceCoefficient = 0.4;
+		static constexpr double widthDifferenceCoefficient = 0.4;
 	};
 
 	struct ConnectionGeneConstants
@@ -226,10 +226,10 @@ namespace neat_dnfs
 
 	struct SpeciesConstants
 	{
-		static constexpr double compatibilityThreshold = 6.0;
-		static constexpr double excessGenesCompatibilityWeight = 0.5;
-		static constexpr double disjointGenesCompatibilityWeight = 0.5;
-		static constexpr double averageConnectionDifferenceCompatibilityWeight = 0.5;
+		static constexpr double compatibilityThreshold = 3.0;
+		static constexpr double excessGenesCompatibilityWeight = 1.0;
+		static constexpr double disjointGenesCompatibilityWeight = 1.0;
+		static constexpr double averageConnectionDifferenceCompatibilityWeight = 0.0;
 	};
 
 	struct PopulationConstants
@@ -241,6 +241,7 @@ namespace neat_dnfs
 		static constexpr bool validateElitism = true;
 		static constexpr bool validateUniqueGenesInGenomes = true;
 		static constexpr bool validateUniqueKernelAndNeuralFieldPtrs = true;
+		static constexpr bool validateIfSpeciesHaveUniqueRepresentative = true;
 		static constexpr bool logs = false;
 	};
 }

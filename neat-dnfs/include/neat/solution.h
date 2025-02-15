@@ -96,6 +96,7 @@ namespace neat_dnfs
 		Genome getGenome() const;
 		SolutionParameters getParameters() const;
 		std::string getName() const { return name; }
+		std::string getAddress() const;
 		double getFitness() const;
 		size_t getGenomeSize() const;
 		std::vector<uint16_t> getInnovationNumbers() const;

@@ -29,19 +29,9 @@ namespace neat_dnfs
 		do
 		{
 			evaluate();
-			//log(tools::logger::LogLevel::INFO, "Evaluation done.");
-			//print();
-
 			speciate();
-			//log(tools::logger::LogLevel::INFO, "Speciation done.");
-			//print();
 			reproduceAndSelect();
-			//log(tools::logger::LogLevel::INFO, "Reproduction and selection done.");
-			//print();
-
 			upkeep();
-			//log(tools::logger::LogLevel::INFO, "Upkeep done.");
-			//print();
 
 			while (control.pause)
 			{
@@ -96,6 +86,8 @@ namespace neat_dnfs
 	{
 		for (const auto& solution : solutions)
 			assignToSpecies(solution);
+		for (auto& species : speciesList)
+			species.print();
 	}
 
 	void Population::reproduceAndSelect()
@@ -186,6 +178,8 @@ namespace neat_dnfs
 			validateUniqueGenesInGenomes();
 		if (PopulationConstants::validateUniqueKernelAndNeuralFieldPtrs)
 			validateUniqueKernelAndNeuralFieldPtrs();
+		if (PopulationConstants::validateIfSpeciesHaveUniqueRepresentative)
+			validateIfSpeciesHaveUniqueRepresentative();
 
 		std::stringstream addr_bs;
 		addr_bs << bestSolution.get();
@@ -319,8 +313,6 @@ namespace neat_dnfs
 
 		const uint16_t newPopulationSize = eliteCount + totalOffspringAcrossSpecies;
 		int error = parameters.size - newPopulationSize;
-		// commented this out because error correction is working fine
-		//int error = initial_error;
 		if (error > 30)
 		{
 			log(tools::logger::LogLevel::WARNING, "Error: " + std::to_string(error) +
@@ -529,6 +521,25 @@ namespace neat_dnfs
 					}
 				}
 
+			}
+		}
+	}
+
+	void Population::validateIfSpeciesHaveUniqueRepresentative() const
+	{
+		for (const auto& species_a : speciesList)
+		{
+			for (const auto& species_b : speciesList)
+			{
+				if (species_a.getId() == species_b.getId())
+					continue;
+
+				const auto representative_a = species_a.getRepresentative()->getAddress();
+				const auto representative_b = species_b.getRepresentative()->getAddress();
+				if (representative_a == representative_b)
+				{
+					log(tools::logger::LogLevel::FATAL, "Species have the same representative.");
+				}
 			}
 		}
 	}

@@ -43,5 +43,8 @@ namespace neat_dnfs
         void selectElitesAndLeastFit();
         void crossover();
         void updateMembers();
+
+        std::string toString() const;
+        void print() const;
     };
 }
