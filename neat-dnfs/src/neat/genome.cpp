@@ -2,7 +2,7 @@
 
 namespace neat_dnfs
 {
-	std::map<ConnectionTuple, uint16_t> Genome::connectionToInnovationNumberMap;
+	std::map<ConnectionTuple, uint16_t> Genome::connectionTupleAndInnovationNumberWithinGeneration;
 
 	void Genome::addInputGene(const dnf_composer::element::ElementDimensions& dimensions)
 	{
@@ -22,27 +22,6 @@ namespace neat_dnfs
 		const auto index = fieldGenes.size() + 1;
 		fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN,
 			static_cast<uint16_t>(index) }, dimensions));
-	}
-
-	void Genome::addRandomInitialConnectionGene()
-	{
-		/*if (fieldGenes.size() < 2)
-			throw std::invalid_argument(
-				"There must be at least two genes to add a connection gene.");
-
-		const auto inGeneId = getRandomGeneIdByType(FieldGeneType::INPUT);
-		const auto outGeneId = getRandomGeneIdByType(FieldGeneType::OUTPUT);
-
-		if (inGeneId == -1 || outGeneId == -1)
-			throw std::invalid_argument(
-				"Could not find input and output genes to add a connection gene.");
-
-		const dnf_composer::element::ElementDimensions dimensions1 = getFieldGeneById(static_cast<uint16_t>(inGeneId)).getNeuralField()->getElementCommonParameters().dimensionParameters;
-		const dnf_composer::element::ElementDimensions dimensions2 = getFieldGeneById(static_cast<uint16_t>(outGeneId)).getNeuralField()->getElementCommonParameters().dimensionParameters;
-
-		connectionGenes.emplace_back(ConnectionTuple{ static_cast<uint16_t>(inGeneId),
-			static_cast<uint16_t>(outGeneId)}, dimensions1, dimensions2);*/
-		tools::logger::log(tools::logger::LogLevel::FATAL, "Method addRandomInitialConnectionGene is not implemented.");
 	}
 
 	void Genome::mutate()
@@ -82,18 +61,21 @@ namespace neat_dnfs
 		}
 
 		// check if there are connection genes with the same input output pair
-		for (const auto& gene : connectionGenes)
+		if (PopulationConstants::checkForDuplicateConnectionGenesInGenome)
 		{
-			const auto inFieldGeneId = gene.getInFieldGeneId();
-			const auto outFieldGeneId = gene.getOutFieldGeneId();
-			for (const auto& otherGene : connectionGenes)
+			for (const auto& gene : connectionGenes)
 			{
-				if (gene.getInnovationNumber() != otherGene.getInnovationNumber() &&
-					inFieldGeneId == otherGene.getInFieldGeneId() &&
-					outFieldGeneId == otherGene.getOutFieldGeneId())
+				const auto inFieldGeneId = gene.getInFieldGeneId();
+				const auto outFieldGeneId = gene.getOutFieldGeneId();
+				for (const auto& otherGene : connectionGenes)
 				{
-					tools::logger::log(tools::logger::LogLevel::ERROR, "Mutation produced offspring with duplicate connection genes.");
-					break;
+					if (gene.getInnovationNumber() != otherGene.getInnovationNumber() &&
+						inFieldGeneId == otherGene.getInFieldGeneId() &&
+						outFieldGeneId == otherGene.getOutFieldGeneId())
+					{
+						tools::logger::log(tools::logger::LogLevel::ERROR, "Mutation produced offspring with duplicate connection genes.");
+						break;
+					}
 				}
 			}
 		}
@@ -101,7 +83,7 @@ namespace neat_dnfs
 
 	void Genome::clearGenerationalInnovations()
 	{
-		connectionToInnovationNumberMap.clear();
+		connectionTupleAndInnovationNumberWithinGeneration.clear();
 	}
 
 	std::vector<FieldGene> Genome::getFieldGenes() const
@@ -215,17 +197,20 @@ namespace neat_dnfs
 
 	void Genome::addConnectionGeneIfNewWithinGeneration(ConnectionTuple connectionTuple)
 	{
-		if (connectionToInnovationNumberMap.contains(connectionTuple))
+		const int innov = getInnovationNumberOfTupleWithinGeneration(connectionTuple);
+		if (innov)
+			// exists in the current generation
+			// use the same innovation number
 		{
-			const uint16_t innovationNumber = connectionToInnovationNumberMap[connectionTuple];
-			connectionGenes.emplace_back(connectionTuple);
-			connectionGenes.back().setInnovationNumber(innovationNumber);
+			connectionGenes.emplace_back(connectionTuple, innov);
 		}
 		else
+			// does not exist in the current generation
+			// create new innovation number
 		{
-			connectionGenes.emplace_back(connectionTuple);
-			connectionToInnovationNumberMap.insert({ connectionTuple,
-				connectionGenes.back().getInnovationNumber() });
+			currentInnovationNumber++;
+			connectionGenes.emplace_back(connectionTuple, currentInnovationNumber);
+			connectionTupleAndInnovationNumberWithinGeneration[connectionTuple] = currentInnovationNumber;
 		}
 	}
 
@@ -255,6 +240,20 @@ namespace neat_dnfs
 		//	fieldGenes.back().getParameters().id}, connectionGeneKernelParametersIn };
 		//connectionGenes.push_back(connectionGeneIn);
 
+		// when creating the two new connection genes we have to obey the same rules in add connection gene mutation
+
+		ConnectionTuple connectionTupleIn{ inGeneId, fieldGenes.back().getParameters().id };
+		ConnectionTuple connectionTupleOut{ fieldGenes.back().getParameters().id, outGeneId };
+		const int innovIn = getInnovationNumberOfTupleWithinGeneration(connectionTupleIn);
+		const int innovOut = getInnovationNumberOfTupleWithinGeneration(connectionTupleOut);
+
+		if!(innovIn)
+		{
+			currentInnovationNumber++;
+			//connectionGenes.emplace_back(connectionTupleIn, currentInnovationNumber, kernel);
+			connectionTupleAndInnovationNumberWithinGeneration[connectionTupleIn] = currentInnovationNumber;
+		}
+
 		switch (kernel->getLabel())
 		{
 		case GAUSS_KERNEL:
@@ -262,8 +261,8 @@ namespace neat_dnfs
 				const auto gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
 				const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, gkp };
 				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, gkp };
-				connectionGenes.push_back(connectionGeneIn);
-				connectionGenes.push_back(connectionGeneOut);
+				connectionGenes.emplace_back(connectionGeneIn);
+				connectionGenes.emplace_back(connectionGeneOut);
 			}
 			break;
 		case MEXICAN_HAT_KERNEL:
@@ -271,8 +270,8 @@ namespace neat_dnfs
 				const auto mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
 				const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, mhkp };
 				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, mhkp };
-				connectionGenes.push_back(connectionGeneIn);
-				connectionGenes.push_back(connectionGeneOut);
+				connectionGenes.emplace_back(connectionGeneIn);
+				connectionGenes.emplace_back(connectionGeneOut);
 
 			}
 			break;
@@ -281,8 +280,8 @@ namespace neat_dnfs
 				const auto osckp = std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->getParameters();
 				const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, osckp };
 				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, osckp };
-				connectionGenes.push_back(connectionGeneIn);
-				connectionGenes.push_back(connectionGeneOut);
+				connectionGenes.emplace_back(connectionGeneIn);
+				connectionGenes.emplace_back(connectionGeneOut);
 			}
 			break;
 		default:
@@ -349,6 +348,15 @@ namespace neat_dnfs
 			return;
 		const auto connectionGeneId = tools::utils::generateRandomInt(0, static_cast<int>(connectionGenes.size()) - 1);
 		connectionGenes[connectionGeneId].toggle();
+	}
+
+	uint16_t Genome::getInnovationNumberOfTupleWithinGeneration(const ConnectionTuple& tuple)
+	{
+		if (connectionTupleAndInnovationNumberWithinGeneration.contains(tuple))
+		{
+			return connectionTupleAndInnovationNumberWithinGeneration[tuple];
+		}
+		return -1;
 	}
 
 	void Genome::removeConnectionGene(uint16_t innov)

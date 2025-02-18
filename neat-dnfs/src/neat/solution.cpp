@@ -313,7 +313,6 @@ namespace neat_dnfs
 								if (fieldGene.getParameters().id == inFieldGeneId || fieldGene.getParameters().id == outFieldGeneId)
 									offspring->addFieldGene(fieldGene.clone());
 							}
-
 						}
 					}
 				}

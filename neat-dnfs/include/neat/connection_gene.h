@@ -10,8 +10,6 @@
 
 namespace neat_dnfs
 {
-	static uint16_t currentInnovationNumber = 0;
-
 	struct ConnectionTuple
 	{
 		uint16_t inFieldGeneId;
@@ -52,19 +50,17 @@ namespace neat_dnfs
 		uint16_t innovationNumber;
 		bool enabled;
 
-		ConnectionGeneParameters(ConnectionTuple connectionTuple)
-			: connectionTuple(connectionTuple),
-			innovationNumber(currentInnovationNumber++), enabled(true)
+		ConnectionGeneParameters(ConnectionTuple connectionTuple, uint16_t innov)
+			: connectionTuple(connectionTuple), innovationNumber(innov), enabled(true)
 		{}
 
-		ConnectionGeneParameters(uint16_t inFieldGeneId, uint16_t outFieldGeneId)
-			: connectionTuple(inFieldGeneId, outFieldGeneId),
-			innovationNumber(currentInnovationNumber++), enabled(true)
+		ConnectionGeneParameters(uint16_t inFieldGeneId, uint16_t outFieldGeneId, uint16_t innov)
+			: connectionTuple(inFieldGeneId, outFieldGeneId), innovationNumber(innov), enabled(true)
 		{}
 
 		ConnectionGeneParameters(const ConnectionGeneParameters& other)
 			: connectionTuple(other.connectionTuple) ,
-					innovationNumber(other.innovationNumber), enabled(other.enabled)
+		innovationNumber(other.innovationNumber), enabled(other.enabled)
 		{}
 		
 		bool operator==(const ConnectionGeneParameters& other) const
@@ -93,13 +89,13 @@ namespace neat_dnfs
 		ConnectionGeneParameters parameters;
 		KernelPtr kernel;
 	public:
-		ConnectionGene(ConnectionTuple connectionTuple);
+		ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov);
 
-		ConnectionGene(ConnectionTuple connectionTuple,
+		ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov,
 			const dnf_composer::element::GaussKernelParameters& gkp);
-		ConnectionGene(ConnectionTuple connectionTuple,
+		ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov,
 			const dnf_composer::element::MexicanHatKernelParameters& mhkp);
-		ConnectionGene(ConnectionTuple connectionTuple,
+		ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov,
 			const dnf_composer::element::OscillatoryKernelParameters& osckp);
 
 		ConnectionGene(const ConnectionGeneParameters& parameters,
@@ -109,8 +105,7 @@ namespace neat_dnfs
 		ConnectionGene(const ConnectionGeneParameters& parameters,
 			const dnf_composer::element::OscillatoryKernelParameters& osckp);
 
-		ConnectionGene(ConnectionTuple connectionTuple,
-			const KernelPtr& kernel);
+		ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov, const KernelPtr& kernel);
 
 		void mutate();
 		void disable();

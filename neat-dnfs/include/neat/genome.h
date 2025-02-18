@@ -7,19 +7,20 @@
 
 namespace neat_dnfs
 {
+	static uint16_t currentInnovationNumber = 0;
+
 	class Genome
 	{
 	private:
 		std::vector<FieldGene> fieldGenes;
 		std::vector<ConnectionGene> connectionGenes;
-		static std::map<ConnectionTuple, uint16_t> connectionToInnovationNumberMap;
+		static std::map<ConnectionTuple, uint16_t> connectionTupleAndInnovationNumberWithinGeneration;
 	public:
 		Genome() = default;
 
 		void addInputGene(const dnf_composer::element::ElementDimensions& dimensions);
 		void addOutputGene(const dnf_composer::element::ElementDimensions& dimensions);
 		void addHiddenGene(const dnf_composer::element::ElementDimensions& dimensions);
-		void addRandomInitialConnectionGene();
 		void mutate();
 		static void clearGenerationalInnovations();
 		void removeConnectionGene(uint16_t innov);
@@ -40,6 +41,8 @@ namespace neat_dnfs
 		void addConnectionGene();
 		void mutateConnectionGene();
 		void toggleConnectionGene();
+
+		static uint16_t getInnovationNumberOfTupleWithinGeneration(const ConnectionTuple& tuple);
 	public:
 		int excessGenes(const Genome& other) const;
 		int disjointGenes(const Genome& other) const;
@@ -54,7 +57,7 @@ namespace neat_dnfs
 		ConnectionGene getConnectionGeneByInnovationNumber(uint16_t innovationNumber) const;
 		FieldGene getFieldGeneById(uint16_t id) const;
 
-		static std::map<ConnectionTuple, uint16_t> getConnectionToInnovationNumberMap() { return connectionToInnovationNumberMap; }
+		//static std::map<ConnectionTuple, uint16_t> getConnectionToInnovationNumberMap() { return connectionToInnovationNumberMap; }
 		bool operator==(const Genome& other) const;
 		std::string toString() const;
 		void print() const;

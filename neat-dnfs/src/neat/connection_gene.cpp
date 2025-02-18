@@ -3,15 +3,15 @@
 
 namespace neat_dnfs
 {
-	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple)
-		: parameters(connectionTuple)
+	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov)
+		: parameters(connectionTuple, innov)
 	{
 		initializeKernel({ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 
-	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple,
+	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov,
 		const dnf_composer::element::GaussKernelParameters& gkp)
-		: parameters(connectionTuple)
+		: parameters(connectionTuple, innov)
 	{
 		using namespace dnf_composer::element;
 
@@ -22,11 +22,14 @@ namespace neat_dnfs
 		const ElementCommonParameters gkcp{ elementName,
 			{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<GaussKernel>(gkcp, gkp);
+		/*std::cout << "cst 1 ";
+		std::cout << "Connection gene: " << connectionTuple.inFieldGeneId << "-" << connectionTuple.outFieldGeneId <<
+			" innovation number: " << parameters.innovationNumber << std::endl;*/
 	}
 
-	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple,
+	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov,
 		const dnf_composer::element::MexicanHatKernelParameters& mhkp)
-		: parameters(connectionTuple)
+		: parameters(connectionTuple, innov)
 	{
 		using namespace dnf_composer::element;
 
@@ -37,11 +40,14 @@ namespace neat_dnfs
 		const ElementCommonParameters mhkcp{ elementName,
 			{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<MexicanHatKernel>(mhkcp, mhkp);
+		/*std::cout << "cst 2 ";
+		std::cout << "Connection gene: " << connectionTuple.inFieldGeneId << "-" << connectionTuple.outFieldGeneId <<
+			" innovation number: " << parameters.innovationNumber << std::endl;*/
 	}
 
-	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple,
+	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov,
 		const dnf_composer::element::OscillatoryKernelParameters& osckp)
-		: parameters(connectionTuple)
+		: parameters(connectionTuple, innov)
 	{
 		using namespace dnf_composer::element;
 
@@ -52,6 +58,9 @@ namespace neat_dnfs
 		const ElementCommonParameters osckcp{ elementName,
 			{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<OscillatoryKernel>(osckcp, osckp);
+		/*std::cout << "cst 3 ";
+		std::cout << "Connection gene: " << connectionTuple.inFieldGeneId << "-" << connectionTuple.outFieldGeneId <<
+			" innovation number: " << parameters.innovationNumber << std::endl;*/
 	}
 
 	ConnectionGene::ConnectionGene(const ConnectionGeneParameters& parameters,
@@ -67,13 +76,16 @@ namespace neat_dnfs
 		const ElementCommonParameters gkcp{ elementName,
 			{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<GaussKernel>(gkcp, gkp);
+		/*std::cout << "cst 4 ";
+		std::cout << "Connection gene: " << parameters.connectionTuple.inFieldGeneId << "-" << parameters.connectionTuple.outFieldGeneId <<
+			" innovation number: " << parameters.innovationNumber << std::endl;*/
 	}
 
 	ConnectionGene::ConnectionGene(const ConnectionGeneParameters& parameters,
 				const dnf_composer::element::MexicanHatKernelParameters& mhkp)
 		: parameters(parameters)
 	{
-				using namespace dnf_composer::element;
+		using namespace dnf_composer::element;
 
 		const std::string elementName = MexicanHatKernelConstants::namePrefixConnectionGene +
 			std::to_string(parameters.connectionTuple.inFieldGeneId) +
@@ -82,13 +94,16 @@ namespace neat_dnfs
 		const ElementCommonParameters mhkcp{ elementName,
 					{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<MexicanHatKernel>(mhkcp, mhkp);
+		/*std::cout << "cst 5 ";
+		std::cout << "Connection gene: " << parameters.connectionTuple.inFieldGeneId << "-" << parameters.connectionTuple.outFieldGeneId <<
+			" innovation number: " << parameters.innovationNumber << std::endl;*/
 	}
 
 	ConnectionGene::ConnectionGene(const ConnectionGeneParameters& parameters,
 						const dnf_composer::element::OscillatoryKernelParameters& osckp)
 		: parameters(parameters)
 	{
-						using namespace dnf_composer::element;
+		using namespace dnf_composer::element;
 
 		const std::string elementName = OscillatoryKernelConstants::namePrefixConnectionGene +
 			std::to_string(parameters.connectionTuple.inFieldGeneId) +
@@ -97,11 +112,18 @@ namespace neat_dnfs
 		const ElementCommonParameters osckcp{ elementName,
 							{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<OscillatoryKernel>(osckcp, osckp);
+		/*std::cout << "cst 6 ";
+		std::cout << "Connection gene: " << parameters.connectionTuple.inFieldGeneId << "-" << parameters.connectionTuple.outFieldGeneId <<
+			" innovation number: " << parameters.innovationNumber << std::endl;*/
 	}
 
-	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, const KernelPtr& kernel)
-		: parameters(connectionTuple), kernel(kernel)
-	{}
+	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov, const KernelPtr& kernel)
+		: parameters(connectionTuple, innov), kernel(kernel)
+	{
+		/*std::cout << "cst 7 ";
+		std::cout << "Connection gene: " << connectionTuple.inFieldGeneId << "-" << connectionTuple.outFieldGeneId <<
+			" innovation number: " << parameters.innovationNumber << std::endl;*/
+	}
 
 	void ConnectionGene::mutate()
 	{
