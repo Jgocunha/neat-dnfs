@@ -60,9 +60,6 @@ namespace neat_dnfs
 		void stop() { control.stop = true; }
 		void start() { control.stop = false; }
 
-		std::vector<SolutionPtr> selectElites() const;
-		std::vector<SolutionPtr> selectLessFit() const;
-		std::vector<SolutionPtr> reproduce() const;
 		bool endConditionMet() const;
 
 		SolutionPtr getBestSolution() const;
@@ -77,10 +74,16 @@ namespace neat_dnfs
 	private:
 		void createInitialEmptySolutions(const SolutionPtr& initialSolution);
 		void buildInitialSolutionsGenome() const;
+
 		void assignToSpecies(const SolutionPtr& solution);
 		Species* findSpecies(const SolutionPtr& solution);
+
 		void calculateAdjustedFitness();
-		void calculateSpeciesOffspring(const size_t eliteCount, const size_t killCount);
+		void assignOffspringToSpecies();
+		void pruneWorsePreformingSolutions();
+		void replaceEntirePopulationWithOffspring();
+		void mutate() const;
+
 		void upkeepBestSolution();
 		void updateGenerationAndAges();
 		void validateElitism() const;
@@ -89,6 +92,7 @@ namespace neat_dnfs
 		void validateUniqueGenesInGenomes() const;
 		void validateUniqueKernelAndNeuralFieldPtrs() const;
 		void validateIfSpeciesHaveUniqueRepresentative() const;
+
 		void print() const;
 		void saveAllSolutionsWithFitnessAbove(double fitness) const;
 	};

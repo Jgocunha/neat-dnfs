@@ -30,25 +30,33 @@ namespace neat_dnfs
 		{
 			evaluate();
 			speciate();
-			reproduceAndSelect();
+
+			//for (const auto& solution : solutions)
+			//{
+			//	std::vector<ConnectionGene> connectionGenes = solution->getGenome().getConnectionGenes();
+			//	std::vector<FieldGene> fieldGenes = solution->getGenome().getFieldGenes();
+			//	const int species = findSpecies(solution)->getId();
+
+			//	std::string result = "sol." + std::to_string(solution->getId());
+			//	result += " fit." + std::to_string(solution->getFitness());
+			//	result += " adj." + std::to_string(solution->getParameters().adjustedFitness);
+			//	result += " spec." + std::to_string(species) + " { ";
+			//	for (const auto& fieldGene : fieldGenes)
+			//	{
+			//		result += "fg [" + std::to_string(fieldGene.getParameters().id) + "] ";
+			//	}
+			//	result += "} { ";
+			//	for (const auto& connectionGene : connectionGenes)
+			//	{
+			//		result += "cg [innov: " + std::to_string(connectionGene.getInnovationNumber()) + " ";
+			//		result += ", tuple (" + std::to_string(connectionGene.getInFieldGeneId()) + "-" + std::to_string(connectionGene.getOutFieldGeneId()) + ") ] ";
+			//	}
+			//	result += "}";
+			//	std::cout << result << std::endl;
+			//}
+
 			upkeep();
-
-			for (const auto& solution : solutions)
-			{
-				std::vector<ConnectionGene> connectionGenes = solution->getGenome().getConnectionGenes();
-				const int species = findSpecies(solution)->getId();
-
-				std::string result = "sol." + std::to_string(solution->getId());
-				result+= " spec." + std::to_string(species) + " { ";
-				for (const auto& connectionGene : connectionGenes)
-				{
-					result += "cg [innov: " + std::to_string(connectionGene.getInnovationNumber()) + " ";
-					result += ", tuple (" + std::to_string(connectionGene.getInFieldGeneId()) + "-" + std::to_string(connectionGene.getOutFieldGeneId()) + ") ] ";
-				}
-				result += " }";
-				std::cout << result << std::endl;
-			}
-
+			reproduceAndSelect();
 
 			while (control.pause)
 			{
@@ -103,79 +111,18 @@ namespace neat_dnfs
 	{
 		for (const auto& solution : solutions)
 			assignToSpecies(solution);
-		//for (auto& species : speciesList)
-			//species.print();
 	}
 
 	void Population::reproduceAndSelect()
 	{
 		calculateAdjustedFitness();
-
+		assignOffspringToSpecies();
+		pruneWorsePreformingSolutions();
+		replaceEntirePopulationWithOffspring();
+		mutate();
 		for (auto& species : speciesList)
-			species.selectElitesAndLeastFit();
-		std::vector<SolutionPtr> elites = selectElites();
-
-		std::vector<Genome> eliteGenomes;
-		for (const auto& elite : elites)
-			eliteGenomes.push_back(elite->getGenome());
-
-		const std::vector<SolutionPtr> lessFit = selectLessFit();
-		calculateSpeciesOffspring(elites.size(), lessFit.size());
-		for (auto& species : speciesList)
-			species.crossover();
-
-		std::vector<SolutionPtr> offspring = reproduce();
-		for (const auto& solution : offspring)
-		{
-			//std::stringstream addr_offspring;
-			//addr_offspring << solution.get();
-			//log(tools::logger::LogLevel::INFO, "Offspring address: " + addr_offspring.str());
-			solution->mutate();
-		}
-
-		solutions.clear();
-		solutions.insert(solutions.end(), elites.begin(), elites.end());
-		solutions.insert(solutions.end(), offspring.begin(), offspring.end());
-
-		std::vector<Genome> eliteGenomesAfterReproduction;
-		for (const auto& elite : elites)
-			eliteGenomesAfterReproduction.push_back(elite->getGenome());
-	}
-
-	std::vector<SolutionPtr> Population::selectElites() const
-	{
-		std::vector<SolutionPtr> elites;
-		for (auto& species : speciesList)
-		{
-			const auto speciesElites = species.getElites();
-			elites.insert(elites.end(), speciesElites.begin(), speciesElites.end());
-		}
-
-		return elites;
-	}
-
-	std::vector<SolutionPtr> Population::selectLessFit() const
-	{
-		std::vector<SolutionPtr> lessFit;
-		for (auto& species : speciesList)
-		{
-			const auto speciesLessFit = species.getLeastFit();
-			lessFit.insert(lessFit.end(), speciesLessFit.begin(), speciesLessFit.end());
-		}
-
-		return lessFit;
-	}
-
-	std::vector<SolutionPtr> Population::reproduce() const
-	{
-
-		std::vector<SolutionPtr> offspring;
-		for (auto& species : speciesList)
-		{
-			const auto speciesOffspring = species.getOffspring();
-			offspring.insert(offspring.end(), speciesOffspring.begin(), speciesOffspring.end());
-		}
-		return offspring;
+			if (!species.isExtinct())
+				std::cout << "Species: " << species.getId() << " size: " << species.size() << " offspring: " << species.getOffspringCount() << std::endl;
 	}
 
 	void Population::upkeep()
@@ -199,12 +146,21 @@ namespace neat_dnfs
 		std::stringstream addr_bs;
 		addr_bs << bestSolution.get();
 
+		// count active species
+		int numActiveSpecies = 0;
+		for (const auto& species : speciesList)
+		{
+			if (species.isExtinct())
+				continue;
+			numActiveSpecies++;
+		}
+
 		tools::logger::log(tools::logger::INFO,
 			"Current generation: " + std::to_string(parameters.currentGeneration) +
 			" Best solution address: " + addr_bs.str() +
 			" Best fitness: " + std::to_string(bestSolution->getFitness()) +
 			" Adjusted fitness: " + std::to_string(bestSolution->getParameters().adjustedFitness) +
-			" Number of species: " + std::to_string(speciesList.size()) +
+			" Number of active species: " + std::to_string(numActiveSpecies) +
 			" Number of solutions: " + std::to_string(solutions.size())
 		);
 	}
@@ -277,7 +233,6 @@ namespace neat_dnfs
 		for (auto& species : speciesList)
 			if (species.contains(solution))
 				return &species;
-
 		return nullptr;
 	}
 
@@ -291,70 +246,106 @@ namespace neat_dnfs
 			if (std::isnan (adjustedFitness))
 			{
 				log(tools::logger::LogLevel::FATAL, "Adjusted fitness is NaN.");
-				log(tools::logger::LogLevel::FATAL, "Fitness: " + std::to_string(solution->getFitness()) +
-									" Species size: " + std::to_string(speciesSize));
-				//throw std::runtime_error("Adjusted fitness is NaN.");
+				log(tools::logger::LogLevel::FATAL, "Fitness: " + std::to_string(solution->getFitness()) + " Species size: " + std::to_string(speciesSize));
+				throw std::runtime_error("Adjusted fitness is NaN.");
 			}
 			solution->setAdjustedFitness(adjustedFitness);
 		}
 	}
 
-	void Population::calculateSpeciesOffspring(const size_t eliteCount, const size_t killCount)
+	void Population::assignOffspringToSpecies()
 	{
-		const auto offspringPoolSize = static_cast<uint16_t>(killCount);
+		// every species is assigned a potentially different number of offspring
+		// in proportion to the sum of adjusted fitness of its members fitness
 
-		double totalAdjustedFitnessAcrossSpecies = 0.0;
-		for (const auto& species : speciesList)
-			totalAdjustedFitnessAcrossSpecies += species.totalAdjustedFitness();
+		double total_adjusted_fitness = 0.0;
 
-		for (auto& species : speciesList)
+		// Step 1: Calculate total adjusted fitness
+		for (Species& species : speciesList)
 		{
-			if (totalAdjustedFitnessAcrossSpecies == 0.0)
-				species.setOffspringCount(offspringPoolSize);
+			total_adjusted_fitness += species.totalAdjustedFitness();
+		}
+
+		// Step 2: Assign offspring count based on fitness proportion
+		const int total_offspring = parameters.size; // Define how many new organisms we want
+
+		double accumulated_offspring = 0.0;
+		int assigned_offspring = 0;
+
+		for (Species& species : speciesList)
+		{
+			if (total_adjusted_fitness > 0)
+			{
+				species.setOffspringCount((species.totalAdjustedFitness() / total_adjusted_fitness) * total_offspring);
+			}
 			else
 			{
-				const double speciesProportion =
-					species.totalAdjustedFitness() / totalAdjustedFitnessAcrossSpecies;
-				const auto exactOffspring = static_cast<uint16_t>(speciesProportion * static_cast<double>(offspringPoolSize));
-				species.setOffspringCount(exactOffspring);
+				species.setOffspringCount(0); // Edge case: If total fitness is 0, prevent division error
+			}
+
+			// Step 3: Stochastic Rounding
+			accumulated_offspring += species.getOffspringCount();
+			// casting (double + 0.5) to integer leads to incorrect rounding
+			// use lround instead
+			const int rounded_offspring = static_cast<int>(accumulated_offspring + 0.5);
+			species.setOffspringCount(rounded_offspring - assigned_offspring);
+			assigned_offspring += species.getOffspringCount();
+		}
+
+		// Ensure total assigned offspring matches population_size
+		while (assigned_offspring < total_offspring)
+		{
+			// Assign an extra offspring to the best-performing species
+			Species* best_species = nullptr;
+			double max_fitness = -1.0;
+
+			for (Species& species : speciesList)
+			{
+				if (species.totalAdjustedFitness() > max_fitness)
+				{
+					max_fitness = species.totalAdjustedFitness();
+					best_species = &species;
+				}
+			}
+
+			if (best_species)
+			{
+				best_species->setOffspringCount(best_species->getOffspringCount() + 1);
+				assigned_offspring++;
 			}
 		}
 
-		const int totalOffspringAcrossSpecies =
-			std::accumulate(speciesList.begin(), speciesList.end(), 0,
-				[](int sum, const Species& species) {
-					return sum + species.getOffspringCount();
-				});
+	}
 
-		const uint16_t newPopulationSize = eliteCount + totalOffspringAcrossSpecies;
-		int error = parameters.size - newPopulationSize;
-		if (error > 30)
+	void Population::pruneWorsePreformingSolutions()
+	{
+		// species then reproduce by eliminating the lowest performing members of the population
+		for (auto& species : speciesList)
+			species.pruneWorsePerformingMembers(PopulationConstants::pruneRatio);
+	}
+
+	void Population::replaceEntirePopulationWithOffspring()
+	{
+		// the entire population is then replaced by the offspring
+		// of the remaining organisms in each species
+		for (auto& species : speciesList)
 		{
-			log(tools::logger::LogLevel::WARNING, "Error: " + std::to_string(error) +
-				" Elite count: " + std::to_string(eliteCount) +
-				" Total offspring: " + std::to_string(totalOffspringAcrossSpecies) +
-				" New population size: " + std::to_string(newPopulationSize) +
-				" Parameters size: " + std::to_string(parameters.size) +
-				" Offspring pool size: " + std::to_string(offspringPoolSize) +
-				" Total adjusted fitness across species: " + std::to_string(totalAdjustedFitnessAcrossSpecies) +
-				" Total offspring across species: " + std::to_string(totalOffspringAcrossSpecies) +
-				" Species list size: " + std::to_string(speciesList.size()) +
-				" Kill count: " + std::to_string(killCount));
+			species.crossover(); // creation of offspring
+			species.replaceMembersWithOffspring(); // replacement of population
 		}
-		while (error != 0)
+		solutions.clear();
+		solutions.reserve(parameters.size);
+		for (auto& species : speciesList)
 		{
-			const int randomIndex = tools::utils::generateRandomInt(0, static_cast<int>(speciesList.size() - 1));
-			if (error > 0 && speciesList[randomIndex].getOffspringCount() > 0)
-			{
-				speciesList[randomIndex].setOffspringCount(speciesList[randomIndex].getOffspringCount() + 1);
-				error--;
-			}
-			else if (error < 0)
-			{
-				speciesList[randomIndex].setOffspringCount(speciesList[randomIndex].getOffspringCount() - 1);
-				error++;
-			}
+			const auto speciesSolutions = species.getMembers();
+			solutions.insert(solutions.end(), speciesSolutions.begin(), speciesSolutions.end());
 		}
+	}
+
+	void Population::mutate() const
+	{
+		for (const auto& solution : solutions)
+			solution->mutate();
 	}
 
 	bool Population::endConditionMet() const

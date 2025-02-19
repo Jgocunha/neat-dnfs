@@ -40,26 +40,29 @@ namespace neat_dnfs
 
 		if (randomValue < GenomeMutationConstants::addFieldGeneProbability) {
 			addGene();
+			//std::cout << "Added gene.\n";
 		}
 		else if (randomValue < GenomeMutationConstants::addFieldGeneProbability +
 			GenomeMutationConstants::mutateFieldGeneProbability) {
 			mutateGene();
+			//std::cout << "Mutated gene.\n";
 		}
 		else if (randomValue < GenomeMutationConstants::addFieldGeneProbability +
 			GenomeMutationConstants::mutateFieldGeneProbability +
 			GenomeMutationConstants::addConnectionGeneProbability) {
-			std::cout << "Current innovation number: " << currentInnovationNumber << std::endl;
 			addConnectionGene();
-			std::cout << "Connection genes: " << connectionGenes.size() << std::endl;
+			//std::cout << "Added connection gene.\n";
 		}
 		else if (randomValue < GenomeMutationConstants::addFieldGeneProbability +
 			GenomeMutationConstants::mutateFieldGeneProbability +
 			GenomeMutationConstants::addConnectionGeneProbability +
 			GenomeMutationConstants::mutateConnectionGeneProbability) {
 			mutateConnectionGene();
+			//std::cout << "Mutated connection gene.\n";
 		}
 		else {
 			toggleConnectionGene();
+			//std::cout << "Toggled connection gene.\n";
 		}
 
 		// check if there are connection genes with the same input output pair
@@ -85,12 +88,12 @@ namespace neat_dnfs
 
 	void Genome::clearGenerationalInnovations()
 	{
-		std::cout << "innovation numbers (size: " << connectionTupleAndInnovationNumberWithinGeneration.size() << "): [";
-		for (const auto& [key, value] : connectionTupleAndInnovationNumberWithinGeneration)
-			std::cout << " (" + std::to_string(key.inFieldGeneId) << " " << std::to_string(key.outFieldGeneId) << "), innov: " << std::to_string(value) << "; ";
-		std::cout << "]\n";
+		//std::cout << "innovation numbers (size: " << connectionTupleAndInnovationNumberWithinGeneration.size() << "): [";
+		//for (const auto& [key, value] : connectionTupleAndInnovationNumberWithinGeneration)
+		//	std::cout << " (" + std::to_string(key.inFieldGeneId) << " " << std::to_string(key.outFieldGeneId) << "), innov: " << std::to_string(value) << "; ";
+		//std::cout << "]\n";
 		connectionTupleAndInnovationNumberWithinGeneration.clear();
-		std::cout << "Clearing generational innovations. size: " << connectionTupleAndInnovationNumberWithinGeneration.size() << std::endl;
+		//std::cout << "Clearing generational innovations. size: " << connectionTupleAndInnovationNumberWithinGeneration.size() << std::endl;
 	}
 
 	std::vector<FieldGene> Genome::getFieldGenes() const
@@ -210,16 +213,14 @@ namespace neat_dnfs
 			// use the same innovation number
 		{
 			connectionGenes.emplace_back(connectionTuple, innov);
-			std::cout << "Connection gene added with innovation number: " << innov << std::endl;
 		}
 		else
 			// does not exist in the current generation
 			// create new innovation number
 		{
-			currentInnovationNumber++;
 			connectionGenes.emplace_back(connectionTuple, currentInnovationNumber);
 			connectionTupleAndInnovationNumberWithinGeneration[connectionTuple] = currentInnovationNumber;
-			std::cout << "Connection gene added with new innovation number: " << currentInnovationNumber << std::endl;
+			currentInnovationNumber++;
 		}
 	}
 
@@ -248,16 +249,16 @@ namespace neat_dnfs
 
 		if(innovIn == -1) // if this mutation has not been performed in the current generation
 		{
-			currentInnovationNumber++;
 			connectionTupleAndInnovationNumberWithinGeneration[connectionTupleIn] = currentInnovationNumber;
 			innovIn = currentInnovationNumber;
+			currentInnovationNumber++;
 		}
 
 		if (innovOut == -1) // if this mutation has not been performed in the current generation
 		{
-			currentInnovationNumber++;
 			connectionTupleAndInnovationNumberWithinGeneration[connectionTupleOut] = currentInnovationNumber;
 			innovOut = currentInnovationNumber;
+			currentInnovationNumber++;
 		}
 
 		switch (kernel->getLabel())

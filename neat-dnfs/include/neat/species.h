@@ -16,9 +16,8 @@ namespace neat_dnfs
         uint16_t offspringCount;
         SolutionPtr representative;
         std::vector<SolutionPtr> members;
-        std::vector<SolutionPtr> elites;
-        std::vector<SolutionPtr> leastFit;
         std::vector<SolutionPtr> offspring;
+        bool extinct = false;
     public:
         Species();
         void setRepresentative(const SolutionPtr& newRepresentative);
@@ -29,20 +28,16 @@ namespace neat_dnfs
         double totalAdjustedFitness() const;
         uint16_t getOffspringCount() const { return offspringCount; }
         std::vector<SolutionPtr> getMembers() const { return members; }
-        std::vector<SolutionPtr> getElites() const { return elites; }
-        std::vector<SolutionPtr> getLeastFit() const { return leastFit; }
-        std::vector<SolutionPtr> getOffspring() const { return offspring; }
+        bool isExtinct() const { return extinct; }
 
         void addSolution(const SolutionPtr& solution);
         void removeSolution(const SolutionPtr& solution);
         bool isCompatible(const SolutionPtr& solution) const;
         bool contains(const SolutionPtr& solution) const;
-        void clearOffspring() { offspring.clear(); }
         void sortMembersByFitness();
-
-        void selectElitesAndLeastFit();
-        void crossover();
-        void updateMembers();
+        void pruneWorsePerformingMembers(double ratio);
+    	void crossover();
+        void replaceMembersWithOffspring();
 
         std::string toString() const;
         void print() const;

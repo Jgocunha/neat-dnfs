@@ -140,11 +140,11 @@ namespace neat_dnfs
 	struct GenomeMutationConstants
 	{
 		// genome mutation probabilities (sum must be 1.0)
-		static constexpr double addFieldGeneProbability = 0.10;
-		static constexpr double mutateFieldGeneProbability = 0.25;
+		static constexpr double addFieldGeneProbability = 0.0025;
+		static constexpr double mutateFieldGeneProbability = 0.35;
 		static constexpr double addConnectionGeneProbability = 0.20;
-		static constexpr double mutateConnectionGeneProbability = 0.40;
-		static constexpr double toggleConnectionGeneProbability = 0.05;
+		static constexpr double mutateConnectionGeneProbability = 0.44;
+		static constexpr double toggleConnectionGeneProbability = 0.0075;
 	};
 
 	struct FieldGeneConstants
@@ -226,17 +226,17 @@ namespace neat_dnfs
 
 	struct SpeciesConstants
 	{
-		static constexpr double compatibilityThreshold = 3.0;
+		static constexpr double compatibilityThreshold = 5.0;
 		static constexpr double excessGenesCompatibilityWeight = 1.0;
-		static constexpr double disjointGenesCompatibilityWeight = 1.0;
+		static constexpr double disjointGenesCompatibilityWeight = 0.5;
 		static constexpr double averageConnectionDifferenceCompatibilityWeight = 0.0;
 	};
 
 	struct PopulationConstants
 	{
-		static constexpr bool parallelEvolution = false;
+		static constexpr bool parallelEvolution = true;
 		static constexpr bool logs = false;
-		static constexpr double killRatio = 0.8;
+		static constexpr double pruneRatio = 0.2;
 		static constexpr bool validateUniqueSolutions = true;
 		static constexpr bool validatePopulationSize = true;
 		static constexpr bool validateElitism = true;

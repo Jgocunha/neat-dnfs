@@ -72,30 +72,11 @@ namespace neat_dnfs
 		);
 	}
 
-	void Species::selectElitesAndLeastFit()
+	void Species::pruneWorsePerformingMembers(double ratio)
 	{
-		elites.clear();
-		leastFit.clear();
 		sortMembersByFitness();
-
-		const auto numElites = static_cast<size_t>(std::ceil((1 - PopulationConstants::killRatio) * static_cast<double>(members.size())));
-		const size_t numLeastFit = members.size() - numElites;
-
-		elites.reserve(numElites);
-		for (size_t i = 0; i < numElites; ++i)
-			elites.push_back(members[i]);
-
-		leastFit.reserve(numLeastFit);
-		for (size_t i = numElites; i < members.size(); ++i)
-			leastFit.push_back(members[i]);
-
-		// make sure no solution is in both lists
-		for (const auto& elite : elites)
-		{
-			const auto it = std::ranges::find(leastFit, elite);
-			if (it != leastFit.end())
-				throw std::runtime_error("Solution is both elite and least fit.");
-		}
+		for (size_t i = 0; i < static_cast<size_t>(members.size() * ratio); ++i)
+			members.pop_back();
 	}
 
 	void Species::crossover()
@@ -106,10 +87,11 @@ namespace neat_dnfs
 		{
 			if (offspringCount > 0)
 				log(tools::logger::LogLevel::FATAL, "Species " + std::to_string(id) + " with no members has offspring count > 0.");
+			extinct = true;
 			return;
 		}
 
-		if (members.size() <= 1)
+		if (members.size() == 1) // only one organism in the species
 		{
 			for (size_t i = 0; i < offspringCount; ++i)
 			{
@@ -118,7 +100,7 @@ namespace neat_dnfs
 				offspring.push_back(son);
 			}
 		}
-		else
+		else // more than one organism in the species
 		{
 			for (size_t i = 0; i < offspringCount; ++i)
 			{
@@ -128,16 +110,12 @@ namespace neat_dnfs
 				offspring.push_back(son);
 			}
 		}
-
-		updateMembers();
+		extinct = false;
 	}
 
-	void Species::updateMembers()
+	void Species::replaceMembersWithOffspring()
 	{
 		members.clear();
-		members.reserve(elites.size() + offspring.size());
-		for (const auto& elite : elites)
-			members.push_back(elite);
 		for (const auto& child : offspring)
 			members.push_back(child);
 	}
@@ -147,7 +125,6 @@ namespace neat_dnfs
 		std::string str = "Species " + std::to_string(id);
 		str += " { Offspring count: " + std::to_string(offspringCount);
 		str += ", Members count: " + std::to_string(members.size());
-		str += ", Elites count: " + std::to_string(elites.size());
 		str += " Representative: " + (representative == nullptr ? "None" :
 			" { Address: " + representative->getAddress()
 			+ ", Fitness: " + std::to_string(representative->getParameters().fitness) 
