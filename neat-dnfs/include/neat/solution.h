@@ -100,6 +100,7 @@ namespace neat_dnfs
 		double getFitness() const;
 		size_t getGenomeSize() const;
 		std::vector<uint16_t> getInnovationNumbers() const;
+		int getId() const { return id; }
 		void clearGenerationalInnovations() const;
 		void incrementAge();
 		void setAdjustedFitness(double adjustedFitness);
@@ -121,7 +122,6 @@ namespace neat_dnfs
 		void createInputGenes();
 		void createOutputGenes();
 		void createHiddenGenes();
-		void createRandomInitialConnectionGenes();
 		void translateGenesToPhenotype();
 		void translateConnectionGenesToPhenotype();
 	protected:

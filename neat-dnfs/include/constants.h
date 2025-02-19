@@ -140,8 +140,8 @@ namespace neat_dnfs
 	struct GenomeMutationConstants
 	{
 		// genome mutation probabilities (sum must be 1.0)
-		static constexpr double addFieldGeneProbability = 0.00;
-		static constexpr double mutateFieldGeneProbability = 0.35;
+		static constexpr double addFieldGeneProbability = 0.10;
+		static constexpr double mutateFieldGeneProbability = 0.25;
 		static constexpr double addConnectionGeneProbability = 0.20;
 		static constexpr double mutateConnectionGeneProbability = 0.40;
 		static constexpr double toggleConnectionGeneProbability = 0.05;

@@ -33,6 +33,23 @@ namespace neat_dnfs
 			reproduceAndSelect();
 			upkeep();
 
+			for (const auto& solution : solutions)
+			{
+				std::vector<ConnectionGene> connectionGenes = solution->getGenome().getConnectionGenes();
+				const int species = findSpecies(solution)->getId();
+
+				std::string result = "sol." + std::to_string(solution->getId());
+				result+= " spec." + std::to_string(species) + " { ";
+				for (const auto& connectionGene : connectionGenes)
+				{
+					result += "cg [innov: " + std::to_string(connectionGene.getInnovationNumber()) + " ";
+					result += ", tuple (" + std::to_string(connectionGene.getInFieldGeneId()) + "-" + std::to_string(connectionGene.getOutFieldGeneId()) + ") ] ";
+				}
+				result += " }";
+				std::cout << result << std::endl;
+			}
+
+
 			while (control.pause)
 			{
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -86,8 +103,8 @@ namespace neat_dnfs
 	{
 		for (const auto& solution : solutions)
 			assignToSpecies(solution);
-		for (auto& species : speciesList)
-			species.print();
+		//for (auto& species : speciesList)
+			//species.print();
 	}
 
 	void Population::reproduceAndSelect()
@@ -115,9 +132,6 @@ namespace neat_dnfs
 			//log(tools::logger::LogLevel::INFO, "Offspring address: " + addr_offspring.str());
 			solution->mutate();
 		}
-
-		for (const auto& solution : offspring)
-			solution->clearGenerationalInnovations();
 
 		solutions.clear();
 		solutions.insert(solutions.end(), elites.begin(), elites.end());
@@ -167,6 +181,7 @@ namespace neat_dnfs
 	void Population::upkeep()
 	{
 		upkeepBestSolution();
+		bestSolution->clearGenerationalInnovations();
 		updateGenerationAndAges();
 		if (PopulationConstants::validatePopulationSize)
 			validatePopulationSize();

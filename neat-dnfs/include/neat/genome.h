@@ -35,14 +35,14 @@ namespace neat_dnfs
 		int getRandomGeneIdByTypes(const std::vector<FieldGeneType>& types) const;
 		ConnectionGene getEnabledConnectionGene() const;
 
-		void addConnectionGeneIfNewWithinGeneration(ConnectionTuple connectionTuple);
+		void addConnectionGene(ConnectionTuple connectionTuple);
 		void addGene();
 		void mutateGene() const;
 		void addConnectionGene();
 		void mutateConnectionGene();
 		void toggleConnectionGene();
 
-		static uint16_t getInnovationNumberOfTupleWithinGeneration(const ConnectionTuple& tuple);
+		static int getInnovationNumberOfTupleWithinGeneration(const ConnectionTuple& tuple);
 	public:
 		int excessGenes(const Genome& other) const;
 		int disjointGenes(const Genome& other) const;
