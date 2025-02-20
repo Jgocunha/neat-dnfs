@@ -60,7 +60,7 @@ set(header
 "include/solutions/selective_output_field.h"
 "include/solutions/timing_response.h"
 
-"include/application/application.h"
+#"include/application/application.h"
 #"include/user_interface/setup_window.h"
 "include/tools/logger.h"
 "include/tools/utils.h"
@@ -84,7 +84,7 @@ set(src
 "src/solutions/selective_output_field.cpp"
 "src/solutions/timing_response.cpp"
 
-"src/application/application.cpp"
+#"src/application/application.cpp"
 #"src/user_interface/setup_window.cpp"
 "src/tools/logger.cpp"
 )

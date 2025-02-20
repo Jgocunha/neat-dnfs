@@ -16,13 +16,7 @@ namespace neat_dnfs
 		int numGenerations;
 		double targetFitness;
 
-		PopulationParameters(int size = 100,
-			int numGenerations = 1000,
-			double targetFitness = 0.95)
-			: size(size), currentGeneration(0),
-			numGenerations(numGenerations),
-			targetFitness(targetFitness)
-		{}
+		PopulationParameters(int size = 100, int numGenerations = 1000, double targetFitness = 0.95);
 	};
 
 	struct PopulationControl
@@ -30,9 +24,7 @@ namespace neat_dnfs
 		bool pause;
 		bool stop;
 
-		PopulationControl(bool pause = false, bool stop = false)
-			: pause(pause), stop(stop)
-		{}
+		PopulationControl(bool pause = false, bool stop = false);
 	};
 
 	class Population
@@ -48,30 +40,30 @@ namespace neat_dnfs
 			const SolutionPtr& initialSolution);
 		void initialize() const;
 		void evolve();
-		void evolutionaryStep();
-		void evaluate() const;
-		void speciate();
-		void reproduceAndSelect();
 
+		SolutionPtr getBestSolution() const { return bestSolution; }
+		std::vector<Species>& getSpeciesList() { return speciesList; }
+		std::vector<SolutionPtr> getSolutions() const { return solutions; }
+		int getSize() const { return parameters.size; }
+		int getCurrentGeneration() const { return parameters.currentGeneration; }
+		int getNumGenerations() const { return parameters.numGenerations; }
 		bool isInitialized() const { return !solutions.empty(); }
+
+		void setSize(int size) { parameters.size = size; }
+		void setNumGenerations(int numGenerations) { parameters.numGenerations = numGenerations; }
 
 		void pause() { control.pause = true; }
 		void resume() { control.pause = false; }
 		void stop() { control.stop = true; }
 		void start() { control.stop = false; }
+	private:
+		void evaluate() const;
+		void speciate();
+		void reproduceAndSelect();
 
 		bool endConditionMet() const;
 
-		SolutionPtr getBestSolution() const;
-		std::vector<Species>& getSpeciesList() { return speciesList; }
-		std::vector<SolutionPtr> getSolutions() const { return solutions; }
-		void setSize(int size) { parameters.size = size; }
-		void setNumGenerations(int numGenerations) { parameters.numGenerations = numGenerations; }
-		int getSize() const { return parameters.size; }
-		int getCurrentGeneration() const { return parameters.currentGeneration; }
-		int getNumGenerations() const { return parameters.numGenerations; }
 		void upkeep();
-	private:
 		void createInitialEmptySolutions(const SolutionPtr& initialSolution);
 		void buildInitialSolutionsGenome() const;
 
@@ -95,5 +87,10 @@ namespace neat_dnfs
 
 		void print() const;
 		void saveAllSolutionsWithFitnessAbove(double fitness) const;
+
+		void logSolutions();
+		void logSpecies() const;
+
+		void startKeyListenerForUserCommands();
 	};
 }

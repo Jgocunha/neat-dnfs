@@ -2,6 +2,14 @@
 
 namespace neat_dnfs
 {
+	PopulationParameters::PopulationParameters(int size, int numGenerations, double targetFitness)
+		: size(size), currentGeneration(0), numGenerations(numGenerations), targetFitness(targetFitness)
+	{}
+
+	PopulationControl::PopulationControl(bool pause, bool stop)
+		: pause(pause), stop(stop)
+	{}
+
 	Population::Population(const PopulationParameters& parameters, const SolutionPtr& initialSolution)
 		: parameters(parameters), bestSolution(initialSolution->clone())
 	{
@@ -15,46 +23,12 @@ namespace neat_dnfs
 
 	void Population::evolve()
 	{
-		std::thread keyListener([this]() {
-			while (!control.stop)
-			{
-				if (std::cin.get() == 's')
-				{
-					control.stop = true;
-					tools::logger::log(tools::logger::LogLevel::INFO, "Stopping evolution after the current cycle...");
-				}
-			}
-			});
+		startKeyListenerForUserCommands();
 
 		do
 		{
 			evaluate();
 			speciate();
-
-			//for (const auto& solution : solutions)
-			//{
-			//	std::vector<ConnectionGene> connectionGenes = solution->getGenome().getConnectionGenes();
-			//	std::vector<FieldGene> fieldGenes = solution->getGenome().getFieldGenes();
-			//	const int species = findSpecies(solution)->getId();
-
-			//	std::string result = "sol." + std::to_string(solution->getId());
-			//	result += " fit." + std::to_string(solution->getFitness());
-			//	result += " adj." + std::to_string(solution->getParameters().adjustedFitness);
-			//	result += " spec." + std::to_string(species) + " { ";
-			//	for (const auto& fieldGene : fieldGenes)
-			//	{
-			//		result += "fg [" + std::to_string(fieldGene.getParameters().id) + "] ";
-			//	}
-			//	result += "} { ";
-			//	for (const auto& connectionGene : connectionGenes)
-			//	{
-			//		result += "cg [innov: " + std::to_string(connectionGene.getInnovationNumber()) + " ";
-			//		result += ", tuple (" + std::to_string(connectionGene.getInFieldGeneId()) + "-" + std::to_string(connectionGene.getOutFieldGeneId()) + ") ] ";
-			//	}
-			//	result += "}";
-			//	std::cout << result << std::endl;
-			//}
-
 			upkeep();
 			reproduceAndSelect();
 
@@ -66,20 +40,7 @@ namespace neat_dnfs
 
 		} while (!endConditionMet());
 
-		saveAllSolutionsWithFitnessAbove(parameters.targetFitness - 0.1);
-
-		keyListener.detach();
-	}
-
-	void Population::evolutionaryStep()
-	{
-		evaluate();
-		speciate();
-		reproduceAndSelect();
-		upkeep();
-
-		if(endConditionMet())
-			saveAllSolutionsWithFitnessAbove(parameters.targetFitness - 0.2);
+		saveAllSolutionsWithFitnessAbove(bestSolution->getFitness() - 0.1);
 	}
 
 	void Population::evaluate() const
@@ -120,9 +81,6 @@ namespace neat_dnfs
 		pruneWorsePreformingSolutions();
 		replaceEntirePopulationWithOffspring();
 		mutate();
-		//for (auto& species : speciesList)
-			//if (!species.isExtinct())
-				//std::cout << "Species: " << species.getId() << " size: " << species.size() << " offspring: " << species.getOffspringCount() << std::endl;
 	}
 
 	void Population::upkeep()
@@ -142,6 +100,8 @@ namespace neat_dnfs
 			validateUniqueKernelAndNeuralFieldPtrs();
 		if (PopulationConstants::validateIfSpeciesHaveUniqueRepresentative)
 			validateIfSpeciesHaveUniqueRepresentative();
+
+		logSolutions();
 
 		std::stringstream addr_bs;
 		addr_bs << bestSolution.get();
@@ -163,11 +123,8 @@ namespace neat_dnfs
 			" Number of active species: " + std::to_string(numActiveSpecies) +
 			" Number of solutions: " + std::to_string(solutions.size())
 		);
-	}
 
-	SolutionPtr Population::getBestSolution() const
-	{
-		return bestSolution;
+		logSpecies();
 	}
 
 	void Population::createInitialEmptySolutions(const SolutionPtr& initialSolution)
@@ -288,9 +245,7 @@ namespace neat_dnfs
 
 			// Step 3: Stochastic Rounding
 			accumulated_offspring += species.getOffspringCount();
-			// casting (double + 0.5) to integer leads to incorrect rounding
-			// use lround instead
-			const int rounded_offspring = static_cast<int>(accumulated_offspring + 0.5);
+			const int rounded_offspring = static_cast<int>(std::lround(accumulated_offspring));
 			species.setOffspringCount(rounded_offspring - assigned_offspring);
 			assigned_offspring += species.getOffspringCount();
 		}
@@ -609,5 +564,55 @@ namespace neat_dnfs
 				sfm.saveElementsToJson();
 			}
 		}
+	}
+
+	void Population::logSolutions()
+	{
+		for (const auto& solution : solutions)
+		{
+			std::vector<ConnectionGene> connectionGenes = solution->getGenome().getConnectionGenes();
+			std::vector<FieldGene> fieldGenes = solution->getGenome().getFieldGenes();
+			const int species = findSpecies(solution)->getId();
+
+			std::string result = "sol." + std::to_string(solution->getId());
+			result += " fit." + std::to_string(solution->getFitness());
+			result += " adj." + std::to_string(solution->getParameters().adjustedFitness);
+			result += " spec." + std::to_string(species) + " { ";
+			for (const auto& fieldGene : fieldGenes)
+			{
+				result += "fg [" + std::to_string(fieldGene.getParameters().id) + "] ";
+			}
+			result += "} { ";
+			for (const auto& connectionGene : connectionGenes)
+			{
+				result += "cg [innov: " + std::to_string(connectionGene.getInnovationNumber()) + " ";
+				result += ", tuple (" + std::to_string(connectionGene.getInFieldGeneId()) + "-" + std::to_string(connectionGene.getOutFieldGeneId()) + ") ] ";
+			}
+			result += "}";
+			log(tools::logger::LogLevel::INFO, result);
+		}
+	}
+
+	void Population::logSpecies() const
+	{
+		for (const auto& species : speciesList)
+		{
+			species.print();
+		}
+	}
+
+	void Population::startKeyListenerForUserCommands()
+	{
+		std::thread keyListener([this]() {
+			while (!control.stop)
+			{
+				if (std::cin.get() == 's')
+				{
+					control.stop = true;
+					tools::logger::log(tools::logger::LogLevel::INFO, "Stopping evolution after the current cycle...");
+				}
+			}
+			});
+		keyListener.detach();
 	}
 }
