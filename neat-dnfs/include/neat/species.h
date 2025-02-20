@@ -22,6 +22,7 @@ namespace neat_dnfs
     public:
         Species();
         void setRepresentative(const SolutionPtr& newRepresentative);
+        void randomlyAssignRepresentative();
         size_t size() const;
         void setOffspringCount(int count);
         SolutionPtr getRepresentative() const;

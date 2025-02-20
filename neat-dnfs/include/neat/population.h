@@ -90,6 +90,7 @@ namespace neat_dnfs
 
 		void logSolutions();
 		void logSpecies() const;
+		void logOverview();
 
 		void startKeyListenerForUserCommands();
 	};

@@ -14,6 +14,14 @@ namespace neat_dnfs
 		representative = newRepresentative;
 	}
 
+	void Species::randomlyAssignRepresentative()
+	{
+		if (members.empty())
+			return;
+
+		representative = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
+	}
+
 	size_t Species::size() const
 	{
 		return members.size();

@@ -88,6 +88,7 @@ namespace neat_dnfs
 		upkeepBestSolution();
 		bestSolution->clearGenerationalInnovations();
 		updateGenerationAndAges();
+
 		if (PopulationConstants::validatePopulationSize)
 			validatePopulationSize();
 		if (PopulationConstants::validateUniqueSolutions)
@@ -101,30 +102,12 @@ namespace neat_dnfs
 		if (PopulationConstants::validateIfSpeciesHaveUniqueRepresentative)
 			validateIfSpeciesHaveUniqueRepresentative();
 
-		logSolutions();
-
-		std::stringstream addr_bs;
-		addr_bs << bestSolution.get();
-
-		// count active species
-		int numActiveSpecies = 0;
-		for (const auto& species : speciesList)
-		{
-			if (species.isExtinct())
-				continue;
-			numActiveSpecies++;
-		}
-
-		tools::logger::log(tools::logger::INFO,
-			"Current generation: " + std::to_string(parameters.currentGeneration) +
-			" Best solution address: " + addr_bs.str() +
-			" Best fitness: " + std::to_string(bestSolution->getFitness()) +
-			" Adjusted fitness: " + std::to_string(bestSolution->getParameters().adjustedFitness) +
-			" Number of active species: " + std::to_string(numActiveSpecies) +
-			" Number of solutions: " + std::to_string(solutions.size())
-		);
-
-		logSpecies();
+		if (PopulationConstants::logSolutions)
+			logSolutions();
+		if (PopulationConstants::logOverview)
+			logOverview();
+		if (PopulationConstants::logSpecies)
+			logSpecies();
 	}
 
 	void Population::createInitialEmptySolutions(const SolutionPtr& initialSolution)
@@ -174,6 +157,7 @@ namespace neat_dnfs
 					species.addSolution(solution);
 				}
 				assigned = true;
+				species.randomlyAssignRepresentative();
 				break;
 			}
 		}
@@ -183,7 +167,7 @@ namespace neat_dnfs
 				currentSpecies->removeSolution(solution);
 			Species newSpecies;
 			newSpecies.addSolution(solution);
-			newSpecies.setRepresentative(solution);
+			newSpecies.randomlyAssignRepresentative();
 			speciesList.push_back(newSpecies);
 		}
 	}
@@ -599,6 +583,36 @@ namespace neat_dnfs
 		{
 			species.print();
 		}
+	}
+
+	void Population::logOverview()
+	{
+		std::stringstream addr_bs;
+		addr_bs << bestSolution.get();
+
+		// count active species
+		int numActiveSpecies = 0;
+		for (const auto& species : speciesList)
+		{
+			if (species.isExtinct())
+				continue;
+			numActiveSpecies++;
+		}
+
+		int speciesIdOfBestSolution = -1;
+		const Species* speciesOfBestSolution = findSpecies(bestSolution);
+		if (speciesOfBestSolution != nullptr)
+			speciesIdOfBestSolution = speciesOfBestSolution->getId();
+
+		tools::logger::log(tools::logger::INFO,
+			"Current generation: " + std::to_string(parameters.currentGeneration) +
+			" Best solution address: " + addr_bs.str() +
+			" Best fitness: " + std::to_string(bestSolution->getFitness()) +
+			" Adjusted fitness: " + std::to_string(bestSolution->getParameters().adjustedFitness) +
+			" Species of best solution: " + std::to_string(speciesIdOfBestSolution) +
+			" Number of active species: " + std::to_string(numActiveSpecies) +
+			" Number of solutions: " + std::to_string(solutions.size())
+		);
 	}
 
 	void Population::startKeyListenerForUserCommands()

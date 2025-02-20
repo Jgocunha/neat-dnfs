@@ -59,6 +59,7 @@ set(header
 "include/solutions/action_execution_layer.h"
 "include/solutions/selective_output_field.h"
 "include/solutions/timing_response.h"
+"include/solutions/select_the_object.h"
 
 #"include/application/application.h"
 #"include/user_interface/setup_window.h"
@@ -83,6 +84,7 @@ set(src
 "src/solutions/action_execution_layer.cpp"
 "src/solutions/selective_output_field.cpp"
 "src/solutions/timing_response.cpp"
+"src/solutions/select_the_object.cpp"
 
 #"src/application/application.cpp"
 #"src/user_interface/setup_window.cpp"
