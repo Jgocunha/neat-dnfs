@@ -6,29 +6,31 @@
 namespace neat_dnfs
 {
     class Species;
-    static uint16_t currentSpeciesId = 0;
+    static int currentSpeciesId = 0;
     typedef std::unique_ptr<Species> SpeciesPtr;
 
     class Species
     {
     private:
-        uint16_t id;
-        uint16_t offspringCount;
+        int id;
+        int offspringCount;
         SolutionPtr representative;
         std::vector<SolutionPtr> members;
         std::vector<SolutionPtr> offspring;
         bool extinct = false;
+        int age = 0;
     public:
         Species();
         void setRepresentative(const SolutionPtr& newRepresentative);
         size_t size() const { return members.size(); }
-        void setOffspringCount(uint16_t count) { offspringCount = count; }
+        void setOffspringCount(int count) { offspringCount = count; }
         SolutionPtr getRepresentative() const { return representative; }
-        uint16_t getId() const { return id; }
+        int getId() const { return id; }
         double totalAdjustedFitness() const;
-        uint16_t getOffspringCount() const { return offspringCount; }
+        int getOffspringCount() const { return offspringCount; }
         std::vector<SolutionPtr> getMembers() const { return members; }
         bool isExtinct() const { return extinct; }
+        void incrementAge() { age++; }
 
         void addSolution(const SolutionPtr& solution);
         void removeSolution(const SolutionPtr& solution);

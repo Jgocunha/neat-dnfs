@@ -120,9 +120,9 @@ namespace neat_dnfs
 		pruneWorsePreformingSolutions();
 		replaceEntirePopulationWithOffspring();
 		mutate();
-		for (auto& species : speciesList)
-			if (!species.isExtinct())
-				std::cout << "Species: " << species.getId() << " size: " << species.size() << " offspring: " << species.getOffspringCount() << std::endl;
+		//for (auto& species : speciesList)
+			//if (!species.isExtinct())
+				//std::cout << "Species: " << species.getId() << " size: " << species.size() << " offspring: " << species.getOffspringCount() << std::endl;
 	}
 
 	void Population::upkeep()
@@ -196,7 +196,10 @@ namespace neat_dnfs
 		parameters.currentGeneration++;
 		for (const auto& solution : solutions)
 			solution->incrementAge();
-	}
+		for (auto& species : speciesList)
+			if (!species.isExtinct())
+				species.incrementAge();
+	}	
 
 	void Population::assignToSpecies(const SolutionPtr& solution)
 	{

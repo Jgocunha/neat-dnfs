@@ -19,9 +19,8 @@ namespace neat_dnfs
 		}
 	}
 
-	FieldGene::FieldGene(const FieldGeneParameters& parameters, const NeuralFieldPtr& neuralField, 
-		const KernelPtr& kernel)
-		: parameters(parameters), neuralField(neuralField), kernel(kernel)
+	FieldGene::FieldGene(const FieldGeneParameters& parameters, const NeuralFieldPtr& neuralField, KernelPtr kernel)
+		: parameters(parameters), neuralField(neuralField), kernel(std::move(kernel))
 	{
 		initializeNoise(neuralField->getElementCommonParameters().dimensionParameters);
 	}
@@ -498,10 +497,11 @@ namespace neat_dnfs
 		}
 	}
 
-	void FieldGene::mutateNeuralField() const
+	void FieldGene::mutateNeuralField()
 	{
 		static constexpr double totalProbability = FieldGeneConstants::mutateFieldGeneNeuralFieldTauProbability +
-			FieldGeneConstants::mutateFieldGeneNeuralFieldRestingLevelProbability;
+			FieldGeneConstants::mutateFieldGeneNeuralFieldRestingLevelProbability + 
+			FieldGeneConstants::mutateFieldGeneNeuralFieldRandomlyProbability;
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(totalProbability - 1.0) > epsilon)
@@ -519,13 +519,19 @@ namespace neat_dnfs
 												NeuralFieldConstants::tauMaxVal);
 			neuralField->setParameters(nfp);
 		}
-		else
+		else if (mutationSelection < FieldGeneConstants::mutateFieldGeneNeuralFieldTauProbability +
+			FieldGeneConstants::mutateFieldGeneNeuralFieldRestingLevelProbability)
 		{
 			const double restingLevel = neuralField->getParameters().startingRestingLevel;
 			nfp.startingRestingLevel = std::clamp(restingLevel + NeuralFieldConstants::restingLevelStep * signal,
 												NeuralFieldConstants::restingLevelMinVal,
 												NeuralFieldConstants::restingLevelMaxVal);
 			neuralField->setParameters(nfp);
+		}
+		else
+		{
+			dnf_composer::element::ElementCommonParameters nfcp = neuralField->getElementCommonParameters();
+			initializeNeuralField(nfcp.dimensionParameters);
 		}
 	}
 }

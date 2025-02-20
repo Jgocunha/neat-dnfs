@@ -99,7 +99,7 @@ namespace neat_dnfs
 		std::string getAddress() const;
 		double getFitness() const;
 		size_t getGenomeSize() const;
-		std::vector<uint16_t> getInnovationNumbers() const;
+		std::vector<int> getInnovationNumbers() const;
 		int getId() const { return id; }
 		void clearGenerationalInnovations() const;
 		void incrementAge();
@@ -128,7 +128,7 @@ namespace neat_dnfs
 		virtual void testPhenotype() = 0;
 		void initSimulation();
 		void stopSimulation();
-		void runSimulation(const uint16_t iterations);
+		void runSimulation(const int iterations);
 		bool runSimulationUntilFieldStable(const std::string& targetElement);
 		void addGaussianStimulus(const std::string& targetElement, 
 			const dnf_composer::element::GaussStimulusParameters& stimulusParameters,

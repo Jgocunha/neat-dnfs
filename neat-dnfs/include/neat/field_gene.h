@@ -14,13 +14,11 @@ namespace neat_dnfs
 	struct FieldGeneParameters
 	{
 		FieldGeneType type;
-		uint16_t id;
+		int id;
 
-		FieldGeneParameters(const FieldGeneParameters& other)
-			: type(other.type), id(other.id)
-		{}
+		FieldGeneParameters(const FieldGeneParameters& other) = default;
 
-		FieldGeneParameters(FieldGeneType type, uint16_t id)
+		FieldGeneParameters(FieldGeneType type, int id)
 			: type(type), id(id)
 		{}
 
@@ -65,7 +63,7 @@ namespace neat_dnfs
 			const dnf_composer::element::ElementDimensions& dimensions = {100, 1.0});
 		FieldGene(const FieldGeneParameters& parameters,
 			const NeuralFieldPtr& neuralField, 
-			const KernelPtr& kernel);
+			KernelPtr kernel);
 
 		void setAsInput(const dnf_composer::element::ElementDimensions& dimensions);
 		void setAsOutput(const dnf_composer::element::ElementDimensions& dimensions);
@@ -97,6 +95,6 @@ namespace neat_dnfs
 		void mutateOscillatoryKernel() const;
 
 		void mutateKernelType();
-		void mutateNeuralField() const;
+		void mutateNeuralField();
 	};
 }

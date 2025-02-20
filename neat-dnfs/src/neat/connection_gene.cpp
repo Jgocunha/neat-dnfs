@@ -3,13 +3,13 @@
 
 namespace neat_dnfs
 {
-	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov)
+	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, int innov)
 		: parameters(connectionTuple, innov)
 	{
 		initializeKernel({ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 
-	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov,
+	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, int innov,
 		const dnf_composer::element::GaussKernelParameters& gkp)
 		: parameters(connectionTuple, innov)
 	{
@@ -27,7 +27,7 @@ namespace neat_dnfs
 			" innovation number: " << parameters.innovationNumber << std::endl;*/
 	}
 
-	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov,
+	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, int innov,
 		const dnf_composer::element::MexicanHatKernelParameters& mhkp)
 		: parameters(connectionTuple, innov)
 	{
@@ -45,7 +45,7 @@ namespace neat_dnfs
 			" innovation number: " << parameters.innovationNumber << std::endl;*/
 	}
 
-	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov,
+	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, int innov,
 		const dnf_composer::element::OscillatoryKernelParameters& osckp)
 		: parameters(connectionTuple, innov)
 	{
@@ -117,7 +117,7 @@ namespace neat_dnfs
 			" innovation number: " << parameters.innovationNumber << std::endl;*/
 	}
 
-	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov, const KernelPtr& kernel)
+	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, int innov, const KernelPtr& kernel)
 		: parameters(connectionTuple, innov), kernel(kernel)
 	{
 		/*std::cout << "cst 7 ";
@@ -178,7 +178,7 @@ namespace neat_dnfs
 		return parameters.enabled;
 	}
 
-	void ConnectionGene::setInnovationNumber(uint16_t innovationNumber)
+	void ConnectionGene::setInnovationNumber(int innovationNumber)
 	{
 		parameters.innovationNumber = innovationNumber;
 	}
@@ -193,17 +193,17 @@ namespace neat_dnfs
 		return kernel;
 	}
 
-	uint16_t ConnectionGene::getInnovationNumber() const
+	int ConnectionGene::getInnovationNumber() const
 	{
 		return parameters.innovationNumber;
 	}
 
-	uint16_t ConnectionGene::getInFieldGeneId() const
+	int ConnectionGene::getInFieldGeneId() const
 	{
 		return parameters.connectionTuple.inFieldGeneId;
 	}
 
-	uint16_t ConnectionGene::getOutFieldGeneId() const
+	int ConnectionGene::getOutFieldGeneId() const
 	{
 		return parameters.connectionTuple.outFieldGeneId;
 	}

@@ -12,10 +12,10 @@ namespace neat_dnfs
 {
 	struct ConnectionTuple
 	{
-		uint16_t inFieldGeneId;
-		uint16_t outFieldGeneId;
+		int inFieldGeneId;
+		int outFieldGeneId;
 
-		ConnectionTuple(uint16_t inFieldGeneId, uint16_t outFieldGeneId)
+		ConnectionTuple(int inFieldGeneId, int outFieldGeneId)
 			: inFieldGeneId(inFieldGeneId), outFieldGeneId(outFieldGeneId)
 		{}
 
@@ -47,14 +47,14 @@ namespace neat_dnfs
 	struct ConnectionGeneParameters
 	{
 		ConnectionTuple connectionTuple;
-		uint16_t innovationNumber;
+		int innovationNumber;
 		bool enabled;
 
-		ConnectionGeneParameters(ConnectionTuple connectionTuple, uint16_t innov)
+		ConnectionGeneParameters(ConnectionTuple connectionTuple, int innov)
 			: connectionTuple(connectionTuple), innovationNumber(innov), enabled(true)
 		{}
 
-		ConnectionGeneParameters(uint16_t inFieldGeneId, uint16_t outFieldGeneId, uint16_t innov)
+		ConnectionGeneParameters(int inFieldGeneId, int outFieldGeneId, int innov)
 			: connectionTuple(inFieldGeneId, outFieldGeneId), innovationNumber(innov), enabled(true)
 		{}
 
@@ -89,13 +89,13 @@ namespace neat_dnfs
 		ConnectionGeneParameters parameters;
 		KernelPtr kernel;
 	public:
-		ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov);
+		ConnectionGene(ConnectionTuple connectionTuple, int innov);
 
-		ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov,
+		ConnectionGene(ConnectionTuple connectionTuple, int innov,
 			const dnf_composer::element::GaussKernelParameters& gkp);
-		ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov,
+		ConnectionGene(ConnectionTuple connectionTuple, int innov,
 			const dnf_composer::element::MexicanHatKernelParameters& mhkp);
-		ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov,
+		ConnectionGene(ConnectionTuple connectionTuple, int innov,
 			const dnf_composer::element::OscillatoryKernelParameters& osckp);
 
 		ConnectionGene(const ConnectionGeneParameters& parameters,
@@ -105,7 +105,7 @@ namespace neat_dnfs
 		ConnectionGene(const ConnectionGeneParameters& parameters,
 			const dnf_composer::element::OscillatoryKernelParameters& osckp);
 
-		ConnectionGene(ConnectionTuple connectionTuple, uint16_t innov, const KernelPtr& kernel);
+		ConnectionGene(ConnectionTuple connectionTuple, int innov, const KernelPtr& kernel);
 
 		void mutate();
 		void disable();
@@ -113,13 +113,13 @@ namespace neat_dnfs
 
 		bool isEnabled() const;
 
-		void setInnovationNumber(uint16_t innovationNumber);
+		void setInnovationNumber(int innovationNumber);
 
 		ConnectionGeneParameters getParameters() const;
 		KernelPtr getKernel() const;
-		uint16_t getInnovationNumber() const;
-		uint16_t getInFieldGeneId() const;
-		uint16_t getOutFieldGeneId() const;
+		int getInnovationNumber() const;
+		int getInFieldGeneId() const;
+		int getOutFieldGeneId() const;
 		double getKernelAmplitude() const;
 		double getKernelWidth() const;
 

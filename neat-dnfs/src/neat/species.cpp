@@ -37,16 +37,16 @@ namespace neat_dnfs
 		const auto representativeGenome = representative->getGenome();
 		const auto solutionGenome = solution->getGenome();
 
-		const double excessCoefficient = SpeciesConstants::excessGenesCompatibilityWeight
+		const double excessCoefficient = CompatibilityCoefficients::excessGenesCompatibilityWeight
 			* representativeGenome.excessGenes(solutionGenome);
-		const double disjointCoefficient = SpeciesConstants::disjointGenesCompatibilityWeight
+		const double disjointCoefficient = CompatibilityCoefficients::disjointGenesCompatibilityWeight
 			* representativeGenome.disjointGenes(solutionGenome);
-		const double weightCoefficient = SpeciesConstants::averageConnectionDifferenceCompatibilityWeight
+		const double weightCoefficient = CompatibilityCoefficients::averageConnectionDifferenceCompatibilityWeight
 			* representativeGenome.averageConnectionDifference(solutionGenome);
 
 		const double geneticDistance = (excessCoefficient + disjointCoefficient + weightCoefficient) / N;
 
-		return geneticDistance < SpeciesConstants::compatibilityThreshold;
+		return geneticDistance < CompatibilityCoefficients::compatibilityThreshold;
 	}
 
 	bool Species::contains(const SolutionPtr& solution) const

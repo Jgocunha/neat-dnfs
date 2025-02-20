@@ -137,14 +137,25 @@ namespace neat_dnfs
 		static constexpr double ampGlobStep = 0.05;
 	};
 
+	struct CompatibilityCoefficients
+	{
+		static constexpr double compatibilityThreshold = 5.0;
+		static constexpr double excessGenesCompatibilityWeight = 1.0;
+		static constexpr double disjointGenesCompatibilityWeight = 0.5;
+		static constexpr double averageConnectionDifferenceCompatibilityWeight = 0.0;
+
+		static constexpr double amplitudeDifferenceCoefficient = 0.4;
+		static constexpr double widthDifferenceCoefficient = 0.4;
+	};
+
 	struct GenomeMutationConstants
 	{
 		// genome mutation probabilities (sum must be 1.0)
-		static constexpr double addFieldGeneProbability = 0.0025;
-		static constexpr double mutateFieldGeneProbability = 0.35;
-		static constexpr double addConnectionGeneProbability = 0.20;
-		static constexpr double mutateConnectionGeneProbability = 0.44;
-		static constexpr double toggleConnectionGeneProbability = 0.0075;
+		static constexpr double addFieldGeneProbability = 0.0025; // 0.0025
+		static constexpr double mutateFieldGeneProbability = 0.35; // 0.35
+		static constexpr double addConnectionGeneProbability = 0.20; // 0.20
+		static constexpr double mutateConnectionGeneProbability = 0.44; // 0.44
+		static constexpr double toggleConnectionGeneProbability = 0.0075; // 0.0075
 	};
 
 	struct FieldGeneConstants
@@ -175,16 +186,9 @@ namespace neat_dnfs
 		static constexpr double mutateFieldGeneOscillatoryKernelZeroCrossingsProbability = 1.0f / 4.0f;
 		static constexpr double mutateFieldGeneOscillatoryKernelGlobalAmplitudeProbability = 1.0f / 4.0f;
 		// field gene neural field mutation probabilities (sum must be 1.0)
-		static constexpr double mutateFieldGeneNeuralFieldTauProbability = 0.50;
-		static constexpr double mutateFieldGeneNeuralFieldRestingLevelProbability = 0.50;
-	};
-
-	struct CompatibilityCoefficients
-	{
-		static constexpr double excessCoefficient = 1.0;
-		static constexpr double disjointCoefficient = 1.0;
-		static constexpr double amplitudeDifferenceCoefficient = 0.4;
-		static constexpr double widthDifferenceCoefficient = 0.4;
+		static constexpr double mutateFieldGeneNeuralFieldTauProbability = 0.45;
+		static constexpr double mutateFieldGeneNeuralFieldRestingLevelProbability = 0.45;
+		static constexpr double mutateFieldGeneNeuralFieldRandomlyProbability = 0.10;
 	};
 
 	struct ConnectionGeneConstants
@@ -221,15 +225,6 @@ namespace neat_dnfs
 	{
 		static constexpr uint8_t minInitialInputGenes = 1;
 		static constexpr uint8_t minInitialOutputGenes = 1;
-		static constexpr double initialConnectionProbability = 1.0;
-	};
-
-	struct SpeciesConstants
-	{
-		static constexpr double compatibilityThreshold = 5.0;
-		static constexpr double excessGenesCompatibilityWeight = 1.0;
-		static constexpr double disjointGenesCompatibilityWeight = 0.5;
-		static constexpr double averageConnectionDifferenceCompatibilityWeight = 0.0;
 	};
 
 	struct PopulationConstants

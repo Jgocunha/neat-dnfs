@@ -2,26 +2,26 @@
 
 namespace neat_dnfs
 {
-	std::map<ConnectionTuple, uint16_t> Genome::connectionTupleAndInnovationNumberWithinGeneration;
+	std::map<ConnectionTuple, int> Genome::connectionTupleAndInnovationNumberWithinGeneration;
 
 	void Genome::addInputGene(const dnf_composer::element::ElementDimensions& dimensions)
 	{
 		const auto index = fieldGenes.size() + 1;
-		fieldGenes.push_back(FieldGene({ FieldGeneType::INPUT, static_cast<uint16_t>(index)}, dimensions ));
+		fieldGenes.push_back(FieldGene({ FieldGeneType::INPUT, static_cast<int>(index)}, dimensions ));
 	}
 
 	void Genome::addOutputGene(const dnf_composer::element::ElementDimensions& dimensions)
 	{
 		const auto index = fieldGenes.size() + 1;
 		fieldGenes.push_back(FieldGene({ FieldGeneType::OUTPUT,
-			static_cast<uint16_t>(index)}, dimensions ));
+			static_cast<int>(index)}, dimensions ));
 	}
 
 	void Genome::addHiddenGene(const dnf_composer::element::ElementDimensions& dimensions)
 	{
 		const auto index = fieldGenes.size() + 1;
 		fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN,
-			static_cast<uint16_t>(index) }, dimensions));
+			static_cast<int>(index) }, dimensions));
 	}
 
 	void Genome::mutate()
@@ -106,9 +106,9 @@ namespace neat_dnfs
 		return connectionGenes;
 	}
 
-	std::vector<uint16_t> Genome::getInnovationNumbers() const
+	std::vector<int> Genome::getInnovationNumbers() const
 	{
-		std::vector<uint16_t> innovationNumbers;
+		std::vector<int> innovationNumbers;
 		for (const auto& connectionGene : connectionGenes)
 			innovationNumbers.push_back(connectionGene.getInnovationNumber());
 
@@ -141,7 +141,7 @@ namespace neat_dnfs
 			return { 0, 0 };
 		}
 
-		return { static_cast<uint16_t>(geneIndex1), static_cast<uint16_t>(geneIndex2) };
+		return { static_cast<int>(geneIndex1), static_cast<int>(geneIndex2) };
 	}
 
 	int Genome::getRandomGeneId() const
@@ -156,7 +156,7 @@ namespace neat_dnfs
 
 	int Genome::getRandomGeneIdByType(FieldGeneType type) const
 	{
-		std::vector<uint16_t> geneIds;
+		std::vector<int> geneIds;
 		for (const auto& gene : fieldGenes)
 		{
 			if (gene.getParameters().type == type)
@@ -173,7 +173,7 @@ namespace neat_dnfs
 
 	int Genome::getRandomGeneIdByTypes(const std::vector<FieldGeneType>& types) const
 	{
-		std::vector<uint16_t> geneIds;
+		std::vector<int> geneIds;
 		for (const auto& gene : fieldGenes)
 		{
 			if (std::ranges::find(types, gene.getParameters().type) != types.end())
@@ -218,9 +218,9 @@ namespace neat_dnfs
 			// does not exist in the current generation
 			// create new innovation number
 		{
-			connectionGenes.emplace_back(connectionTuple, currentInnovationNumber);
-			connectionTupleAndInnovationNumberWithinGeneration[connectionTuple] = currentInnovationNumber;
-			currentInnovationNumber++;
+			connectionGenes.emplace_back(connectionTuple, globalInnovationNumber);
+			connectionTupleAndInnovationNumberWithinGeneration[connectionTuple] = globalInnovationNumber;
+			globalInnovationNumber++;
 		}
 	}
 
@@ -249,16 +249,16 @@ namespace neat_dnfs
 
 		if(innovIn == -1) // if this mutation has not been performed in the current generation
 		{
-			connectionTupleAndInnovationNumberWithinGeneration[connectionTupleIn] = currentInnovationNumber;
-			innovIn = currentInnovationNumber;
-			currentInnovationNumber++;
+			connectionTupleAndInnovationNumberWithinGeneration[connectionTupleIn] = globalInnovationNumber;
+			innovIn = globalInnovationNumber;
+			globalInnovationNumber++;
 		}
 
 		if (innovOut == -1) // if this mutation has not been performed in the current generation
 		{
-			connectionTupleAndInnovationNumberWithinGeneration[connectionTupleOut] = currentInnovationNumber;
-			innovOut = currentInnovationNumber;
-			currentInnovationNumber++;
+			connectionTupleAndInnovationNumberWithinGeneration[connectionTupleOut] = globalInnovationNumber;
+			innovOut = globalInnovationNumber;
+			globalInnovationNumber++;
 		}
 
 		switch (kernel->getLabel())
@@ -266,8 +266,8 @@ namespace neat_dnfs
 		case GAUSS_KERNEL:
 			{
 				const auto gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
-				const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, static_cast<uint16_t>(innovIn), gkp };
-				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, static_cast<uint16_t>(innovOut), gkp };
+				const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, static_cast<int>(innovIn), gkp };
+				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, static_cast<int>(innovOut), gkp };
 				connectionGenes.emplace_back(connectionGeneIn);
 				connectionGenes.emplace_back(connectionGeneOut);
 			}
@@ -275,8 +275,8 @@ namespace neat_dnfs
 		case MEXICAN_HAT_KERNEL:
 			{
 				const auto mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
-				const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, static_cast<uint16_t>(innovIn), mhkp };
-				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, static_cast<uint16_t>(innovOut), mhkp };
+				const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, static_cast<int>(innovIn), mhkp };
+				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, static_cast<int>(innovOut), mhkp };
 				connectionGenes.emplace_back(connectionGeneIn);
 				connectionGenes.emplace_back(connectionGeneOut);
 
@@ -285,8 +285,8 @@ namespace neat_dnfs
 		case OSCILLATORY_KERNEL:
 			{
 				const auto osckp = std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->getParameters();
-				const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, static_cast<uint16_t>(innovIn), osckp };
-				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, static_cast<uint16_t>(innovOut), osckp };
+				const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, static_cast<int>(innovIn), osckp };
+				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, static_cast<int>(innovOut), osckp };
 				connectionGenes.emplace_back(connectionGeneIn);
 				connectionGenes.emplace_back(connectionGeneOut);
 			}
@@ -301,7 +301,7 @@ namespace neat_dnfs
 		const int geneId = getRandomGeneId();
 		if (geneId == -1)
 			return;
-		auto gene = getFieldGeneById(static_cast<uint16_t>(geneId));
+		auto gene = getFieldGeneById(static_cast<int>(geneId));
 		gene.mutate();
 	}
 
@@ -339,7 +339,7 @@ namespace neat_dnfs
 		return -1;
 	}
 
-	void Genome::removeConnectionGene(uint16_t innov)
+	void Genome::removeConnectionGene(int innov)
 	{
 		const auto it = std::ranges::find_if(connectionGenes, [innov](const ConnectionGene& connectionGene)
 		{
@@ -373,13 +373,13 @@ namespace neat_dnfs
 				otherInnovationNumbers.end());
 
 		// call to count_if can be replaced with ranges::count_if
-		// also narrowing conversion from int to uint16_t
+		// also narrowing conversion from int to int
 		const int thisExcessCount = std::count_if(thisInnovationNumbers.begin(),
-			thisInnovationNumbers.end(), [otherMaxInnovationNumber](const uint16_t innovationNumber)
+			thisInnovationNumbers.end(), [otherMaxInnovationNumber](const int innovationNumber)
 			{return innovationNumber > otherMaxInnovationNumber; });
 
 		const int otherExcessCount = std::count_if(otherInnovationNumbers.begin(), otherInnovationNumbers.end(),
-			[thisMaxInnovationNumber](const uint16_t innovationNumber)
+			[thisMaxInnovationNumber](const int innovationNumber)
 			{return innovationNumber > thisMaxInnovationNumber; });
 
 		return thisExcessCount + otherExcessCount;
@@ -393,14 +393,14 @@ namespace neat_dnfs
 		if (thisInnovationNumbers.empty() && otherInnovationNumbers.empty())
 			return 0;
 
-		std::vector<uint16_t> sortedThisInnovationNumbers = thisInnovationNumbers;
-		std::vector<uint16_t> sortedOtherInnovationNumbers = otherInnovationNumbers;
+		std::vector<int> sortedThisInnovationNumbers = thisInnovationNumbers;
+		std::vector<int> sortedOtherInnovationNumbers = otherInnovationNumbers;
 
 		// call to sort can be replaced with ranges::sort
 		std::sort(sortedThisInnovationNumbers.begin(), sortedThisInnovationNumbers.end());
 		std::sort(sortedOtherInnovationNumbers.begin(), sortedOtherInnovationNumbers.end());
 
-		std::vector<uint16_t> thisDisjointInnovationNumbers, otherDisjointInnovationNumbers;
+		std::vector<int> thisDisjointInnovationNumbers, otherDisjointInnovationNumbers;
 
 		// Get the elements in sortedThisInnovationNumbers that are not in sortedOtherInnovationNumbers
 		// call to set_difference can be replaced with ranges::set_difference
@@ -422,12 +422,12 @@ namespace neat_dnfs
 
 		// Filter out the disjoint genes that are beyond the range of the other genome
 		// call to count_if can be replaced with ranges::count_if
-		// also narrowing conversion from int to uint16_t
+		// also narrowing conversion from int to int
 		const int thisDisjointCount = std::count_if(thisDisjointInnovationNumbers.begin(),
-			thisDisjointInnovationNumbers.end(), [minMaxInnovationNumber](const uint16_t innovationNumber)
+			thisDisjointInnovationNumbers.end(), [minMaxInnovationNumber](const int innovationNumber)
 			{return innovationNumber <= minMaxInnovationNumber; });
 		const int otherDisjointCount = std::count_if(otherDisjointInnovationNumbers.begin(),
-			otherDisjointInnovationNumbers.end(), [minMaxInnovationNumber](const uint16_t innovationNumber)
+			otherDisjointInnovationNumbers.end(), [minMaxInnovationNumber](const int innovationNumber)
 			{return innovationNumber <= minMaxInnovationNumber; });
 
 		return thisDisjointCount + otherDisjointCount;
@@ -499,7 +499,7 @@ namespace neat_dnfs
 		return false;
 	}
 
-	ConnectionGene Genome::getConnectionGeneByInnovationNumber(uint16_t innovationNumber) const
+	ConnectionGene Genome::getConnectionGeneByInnovationNumber(int innovationNumber) const
 	{
 		const auto it = std::ranges::find_if(connectionGenes, [innovationNumber](const ConnectionGene& connectionGene)
 			{
@@ -513,7 +513,7 @@ namespace neat_dnfs
 		return *it;
 	}
 
-	FieldGene Genome::getFieldGeneById(uint16_t id) const
+	FieldGene Genome::getFieldGeneById(int id) const
 	{
 		const auto it = std::ranges::find_if(fieldGenes, [id](const FieldGene& fieldGene)
 			{

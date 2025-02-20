@@ -79,7 +79,7 @@ namespace neat_dnfs
 		genome.clearGenerationalInnovations();
 	}
 
-	std::vector<uint16_t> Solution::getInnovationNumbers() const
+	std::vector<int> Solution::getInnovationNumbers() const
 	{
 		return genome.getInnovationNumbers();
 	}
@@ -297,8 +297,8 @@ namespace neat_dnfs
 						{
 							offspring->addConnectionGene(gene.clone());
 							// make sure the field genes are also added
-							const uint16_t inFieldGeneId = gene.getInFieldGeneId();
-							const uint16_t outFieldGeneId = gene.getOutFieldGeneId();
+							const int inFieldGeneId = gene.getInFieldGeneId();
+							const int outFieldGeneId = gene.getOutFieldGeneId();
 							for (const auto& fieldGene : lessFitParent->getGenome().getFieldGenes())
 							{
 								if (fieldGene.getParameters().id == inFieldGeneId || fieldGene.getParameters().id == outFieldGeneId)
@@ -395,7 +395,7 @@ namespace neat_dnfs
 		phenotype->close();
 	}
 
-	void Solution::runSimulation(const uint16_t iterations)
+	void Solution::runSimulation(const int iterations)
 	{
 		for (int i = 0; i < iterations; ++i)
 			phenotype->step();

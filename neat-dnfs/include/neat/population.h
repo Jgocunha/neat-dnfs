@@ -11,13 +11,13 @@ namespace neat_dnfs
 {
 	struct PopulationParameters
 	{
-		uint16_t size;
-		uint16_t currentGeneration;
-		uint16_t numGenerations;
+		int size;
+		int currentGeneration;
+		int numGenerations;
 		double targetFitness;
 
-		PopulationParameters(uint16_t size = 100,
-			uint16_t numGenerations = 1000,
+		PopulationParameters(int size = 100,
+			int numGenerations = 1000,
 			double targetFitness = 0.95)
 			: size(size), currentGeneration(0),
 			numGenerations(numGenerations),
@@ -65,11 +65,11 @@ namespace neat_dnfs
 		SolutionPtr getBestSolution() const;
 		std::vector<Species>& getSpeciesList() { return speciesList; }
 		std::vector<SolutionPtr> getSolutions() const { return solutions; }
-		void setSize(uint16_t size) { parameters.size = size; }
-		void setNumGenerations(uint16_t numGenerations) { parameters.numGenerations = numGenerations; }
-		uint16_t getSize() const { return parameters.size; }
-		uint16_t getCurrentGeneration() const { return parameters.currentGeneration; }
-		uint16_t getNumGenerations() const { return parameters.numGenerations; }
+		void setSize(int size) { parameters.size = size; }
+		void setNumGenerations(int numGenerations) { parameters.numGenerations = numGenerations; }
+		int getSize() const { return parameters.size; }
+		int getCurrentGeneration() const { return parameters.currentGeneration; }
+		int getNumGenerations() const { return parameters.numGenerations; }
 		void upkeep();
 	private:
 		void createInitialEmptySolutions(const SolutionPtr& initialSolution);
