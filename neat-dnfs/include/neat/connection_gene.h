@@ -15,33 +15,11 @@ namespace neat_dnfs
 		int inFieldGeneId;
 		int outFieldGeneId;
 
-		ConnectionTuple(int inFieldGeneId, int outFieldGeneId)
-			: inFieldGeneId(inFieldGeneId), outFieldGeneId(outFieldGeneId)
-		{}
-
-		bool operator==(const ConnectionTuple& other) const
-		{
-			return inFieldGeneId == other.inFieldGeneId &&
-				outFieldGeneId == other.outFieldGeneId;
-		}
-
-		bool operator<(const ConnectionTuple& other) const {
-			if (inFieldGeneId == other.inFieldGeneId) {
-				return outFieldGeneId < other.outFieldGeneId;
-			}
-			return inFieldGeneId < other.inFieldGeneId;
-		}
-
-		std::string toString() const
-		{
-			return "InFieldGeneId: " + std::to_string(inFieldGeneId) +
-				", OutFieldGeneId: " + std::to_string(outFieldGeneId);
-		}
-
-		void print() const
-		{
-			tools::logger::log(tools::logger::INFO, toString());
-		}
+		ConnectionTuple(int inFieldGeneId, int outFieldGeneId);
+		bool operator==(const ConnectionTuple& other) const;
+		bool operator<(const ConnectionTuple& other) const;
+		std::string toString() const;
+		void print() const;
 	};
 
 	struct ConnectionGeneParameters
@@ -50,37 +28,12 @@ namespace neat_dnfs
 		int innovationNumber;
 		bool enabled;
 
-		ConnectionGeneParameters(ConnectionTuple connectionTuple, int innov)
-			: connectionTuple(connectionTuple), innovationNumber(innov), enabled(true)
-		{}
-
-		ConnectionGeneParameters(int inFieldGeneId, int outFieldGeneId, int innov)
-			: connectionTuple(inFieldGeneId, outFieldGeneId), innovationNumber(innov), enabled(true)
-		{}
-
-		ConnectionGeneParameters(const ConnectionGeneParameters& other)
-			: connectionTuple(other.connectionTuple) ,
-		innovationNumber(other.innovationNumber), enabled(other.enabled)
-		{}
-		
-		bool operator==(const ConnectionGeneParameters& other) const
-		{
-			return connectionTuple == other.connectionTuple &&
-				innovationNumber == other.innovationNumber;
-		}
-
-		std::string toString() const
-		{
-			return connectionTuple.toString() +
-				", InnovationNumber: " + std::to_string(innovationNumber) +
-				", Enabled: " + (enabled ? "true" : "false") + '\n';
-		}
-
-		void print() const
-		{
-			tools::logger::log(tools::logger::INFO, toString());
-		}
-
+		ConnectionGeneParameters(ConnectionTuple connectionTuple, int innov);
+		ConnectionGeneParameters(int inFieldGeneId, int outFieldGeneId, int innov);
+		ConnectionGeneParameters(const ConnectionGeneParameters& other) = default;
+		bool operator==(const ConnectionGeneParameters& other) const;
+		std::string toString() const;
+		void print() const;
 	};
 
 	class ConnectionGene
@@ -105,7 +58,7 @@ namespace neat_dnfs
 		ConnectionGene(const ConnectionGeneParameters& parameters,
 			const dnf_composer::element::OscillatoryKernelParameters& osckp);
 
-		ConnectionGene(ConnectionTuple connectionTuple, int innov, const KernelPtr& kernel);
+		ConnectionGene(ConnectionTuple connectionTuple, int innov, KernelPtr kernel);
 
 		void mutate();
 		void disable();

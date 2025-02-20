@@ -4,13 +4,63 @@
 namespace neat_dnfs
 {
 	Species::Species()
-		: id(currentSpeciesId++), offspringCount(0)
+		: id(currentSpeciesId++), offspringCount(0), representative(nullptr),
+			members(), offspring(), extinct(false), age(0)
 	{
 	}
 
 	void Species::setRepresentative(const SolutionPtr& newRepresentative)
 	{
 		representative = newRepresentative;
+	}
+
+	size_t Species::size() const
+	{
+		return members.size();
+	}
+
+	void Species::setOffspringCount(int count)
+	{
+		offspringCount = count;
+	}
+
+	SolutionPtr Species::getRepresentative() const
+	{
+		return representative;
+	}
+
+	int Species::getId() const
+	{
+		return id;
+	}
+
+	double Species::totalAdjustedFitness() const
+	{
+		double total = 0;
+		for (const auto& member : members)
+			total += member->getParameters().adjustedFitness;
+
+		return total;
+	}
+
+	int Species::getOffspringCount() const
+	{
+		return offspringCount;
+	}
+
+	std::vector<SolutionPtr> Species::getMembers() const
+	{
+		return members;
+	}
+
+	bool Species::isExtinct() const
+	{
+		return extinct;
+	}
+
+	void Species::incrementAge()
+	{
+		age++;
 	}
 
 	void Species::addSolution(const SolutionPtr& solution)
@@ -54,15 +104,6 @@ namespace neat_dnfs
 		return std::ranges::find(members, solution) != members.end();
 	}
 
-	double Species::totalAdjustedFitness() const
-	{
-		double total = 0;
-		for (const auto& member : members)
-			total += member->getParameters().adjustedFitness;
-
-		return total;
-	}
-
 	void Species::sortMembersByFitness()
 	{
 		std::ranges::sort(members, [](const SolutionPtr& a, const SolutionPtr& b)
@@ -75,6 +116,7 @@ namespace neat_dnfs
 	void Species::pruneWorsePerformingMembers(double ratio)
 	{
 		sortMembersByFitness();
+		// narrowing conversion from size_t to double
 		for (size_t i = 0; i < static_cast<size_t>(members.size() * ratio); ++i)
 			members.pop_back();
 	}

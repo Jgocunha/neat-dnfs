@@ -22,29 +22,15 @@ namespace neat_dnfs
 		void addOutputGene(const dnf_composer::element::ElementDimensions& dimensions);
 		void addHiddenGene(const dnf_composer::element::ElementDimensions& dimensions);
 		void mutate();
+		void checkForDuplicateConnectionGenes() const;
 		static void clearGenerationalInnovations();
 		void removeConnectionGene(int innov);
 
 		std::vector<FieldGene> getFieldGenes() const;
 		std::vector<ConnectionGene> getConnectionGenes() const;
 		std::vector<int> getInnovationNumbers() const;
-		static int getGlobalInnovationNumber() { return globalInnovationNumber; }
-	private:
-		ConnectionTuple getNewRandomConnectionGeneTuple() const;
-		int getRandomGeneId() const;
-		int getRandomGeneIdByType(FieldGeneType type) const;
-		int getRandomGeneIdByTypes(const std::vector<FieldGeneType>& types) const;
-		ConnectionGene getEnabledConnectionGene() const;
+		static int getGlobalInnovationNumber();
 
-		void addConnectionGene(ConnectionTuple connectionTuple);
-		void addGene();
-		void mutateGene() const;
-		void addConnectionGene();
-		void mutateConnectionGene();
-		void toggleConnectionGene();
-
-		static int getInnovationNumberOfTupleWithinGeneration(const ConnectionTuple& tuple);
-	public:
 		int excessGenes(const Genome& other) const;
 		int disjointGenes(const Genome& other) const;
 		double averageConnectionDifference(const Genome& other) const;
@@ -61,5 +47,20 @@ namespace neat_dnfs
 		bool operator==(const Genome& other) const;
 		std::string toString() const;
 		void print() const;
+	private:
+		ConnectionTuple getNewRandomConnectionGeneTuple() const;
+		int getRandomGeneId() const;
+		int getRandomGeneIdByType(FieldGeneType type) const;
+		int getRandomGeneIdByTypes(const std::vector<FieldGeneType>& types) const;
+		ConnectionGene getEnabledConnectionGene() const;
+
+		void addConnectionGene(ConnectionTuple connectionTuple);
+		void addGene();
+		void mutateGene() const;
+		void addConnectionGene();
+		void mutateConnectionGene();
+		void toggleConnectionGene();
+
+		static int getInnovationNumberOfTupleWithinGeneration(const ConnectionTuple& tuple);
 	};
 }

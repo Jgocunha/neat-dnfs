@@ -17,20 +17,20 @@ namespace neat_dnfs
         SolutionPtr representative;
         std::vector<SolutionPtr> members;
         std::vector<SolutionPtr> offspring;
-        bool extinct = false;
-        int age = 0;
+        bool extinct;
+        int age;
     public:
         Species();
         void setRepresentative(const SolutionPtr& newRepresentative);
-        size_t size() const { return members.size(); }
-        void setOffspringCount(int count) { offspringCount = count; }
-        SolutionPtr getRepresentative() const { return representative; }
-        int getId() const { return id; }
+        size_t size() const;
+        void setOffspringCount(int count);
+        SolutionPtr getRepresentative() const;
+        int getId() const;
         double totalAdjustedFitness() const;
-        int getOffspringCount() const { return offspringCount; }
-        std::vector<SolutionPtr> getMembers() const { return members; }
-        bool isExtinct() const { return extinct; }
-        void incrementAge() { age++; }
+        int getOffspringCount() const;
+        std::vector<SolutionPtr> getMembers() const;
+        bool isExtinct() const;
+        void incrementAge();
 
         void addSolution(const SolutionPtr& solution);
         void removeSolution(const SolutionPtr& solution);

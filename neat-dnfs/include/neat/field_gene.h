@@ -17,38 +17,11 @@ namespace neat_dnfs
 		int id;
 
 		FieldGeneParameters(const FieldGeneParameters& other) = default;
+		FieldGeneParameters(FieldGeneType type, int id);
 
-		FieldGeneParameters(FieldGeneType type, int id)
-			: type(type), id(id)
-		{}
-
-		bool operator==(const FieldGeneParameters& other) const
-		{
-			return type == other.type && id == other.id;
-		}
-
-		std::string toString() const
-		{
-			std::string typeStr;
-			switch (type)
-			{
-			case FieldGeneType::INPUT:
-				typeStr = "INPUT";
-				break;
-			case FieldGeneType::OUTPUT:
-				typeStr = "OUTPUT";
-				break;
-			case FieldGeneType::HIDDEN:
-				typeStr = "HIDDEN";
-				break;
-			}
-			return "{ id: " + std::to_string(id) + ", type: " + typeStr + " }\n";
-		}
-
-		void print() const
-		{
-			tools::logger::log(tools::logger::INFO, toString());
-		}
+		bool operator==(const FieldGeneParameters& other) const;
+		std::string toString() const;
+		void print() const;
 	};
 
 	class FieldGene

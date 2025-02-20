@@ -2,6 +2,38 @@
 
 namespace neat_dnfs
 {
+	FieldGeneParameters::FieldGeneParameters(FieldGeneType type, int id)
+		: type(type), id(id)
+	{}
+
+	bool FieldGeneParameters::operator==(const FieldGeneParameters& other) const
+	{
+		return type == other.type && id == other.id;
+	}
+
+	std::string FieldGeneParameters::toString() const
+	{
+		std::string typeStr;
+		switch (type)
+		{
+		case FieldGeneType::INPUT:
+			typeStr = "INPUT";
+			break;
+		case FieldGeneType::OUTPUT:
+			typeStr = "OUTPUT";
+			break;
+		case FieldGeneType::HIDDEN:
+			typeStr = "HIDDEN";
+			break;
+		}
+		return "{ id: " + std::to_string(id) + ", type: " + typeStr + " }\n";
+	}
+
+	void FieldGeneParameters::print() const
+	{
+		tools::logger::log(tools::logger::INFO, toString());
+	}
+
 	FieldGene::FieldGene(const FieldGeneParameters& parameters, const dnf_composer::element::ElementDimensions& dimensions)
 		: parameters(parameters)
 	{

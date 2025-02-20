@@ -156,6 +156,8 @@ namespace neat_dnfs
 		static constexpr double addConnectionGeneProbability = 0.20; // 0.20
 		static constexpr double mutateConnectionGeneProbability = 0.44; // 0.44
 		static constexpr double toggleConnectionGeneProbability = 0.0075; // 0.0075
+
+		static constexpr bool checkForDuplicateConnectionGenesInGenome = true;
 	};
 
 	struct FieldGeneConstants
@@ -238,6 +240,5 @@ namespace neat_dnfs
 		static constexpr bool validateUniqueGenesInGenomes = true;
 		static constexpr bool validateUniqueKernelAndNeuralFieldPtrs = true;
 		static constexpr bool validateIfSpeciesHaveUniqueRepresentative = true;
-		static constexpr bool checkForDuplicateConnectionGenesInGenome = true;
 	};
 }

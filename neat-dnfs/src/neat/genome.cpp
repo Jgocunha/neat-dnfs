@@ -40,33 +40,32 @@ namespace neat_dnfs
 
 		if (randomValue < GenomeMutationConstants::addFieldGeneProbability) {
 			addGene();
-			//std::cout << "Added gene.\n";
 		}
 		else if (randomValue < GenomeMutationConstants::addFieldGeneProbability +
 			GenomeMutationConstants::mutateFieldGeneProbability) {
 			mutateGene();
-			//std::cout << "Mutated gene.\n";
 		}
 		else if (randomValue < GenomeMutationConstants::addFieldGeneProbability +
 			GenomeMutationConstants::mutateFieldGeneProbability +
 			GenomeMutationConstants::addConnectionGeneProbability) {
 			addConnectionGene();
-			//std::cout << "Added connection gene.\n";
 		}
 		else if (randomValue < GenomeMutationConstants::addFieldGeneProbability +
 			GenomeMutationConstants::mutateFieldGeneProbability +
 			GenomeMutationConstants::addConnectionGeneProbability +
 			GenomeMutationConstants::mutateConnectionGeneProbability) {
 			mutateConnectionGene();
-			//std::cout << "Mutated connection gene.\n";
 		}
 		else {
 			toggleConnectionGene();
-			//std::cout << "Toggled connection gene.\n";
 		}
 
-		// check if there are connection genes with the same input output pair
-		if (PopulationConstants::checkForDuplicateConnectionGenesInGenome)
+		checkForDuplicateConnectionGenes();
+	}
+
+	void Genome::checkForDuplicateConnectionGenes() const
+	{
+		if (GenomeMutationConstants::checkForDuplicateConnectionGenesInGenome)
 		{
 			for (const auto& gene : connectionGenes)
 			{
@@ -88,12 +87,21 @@ namespace neat_dnfs
 
 	void Genome::clearGenerationalInnovations()
 	{
-		//std::cout << "innovation numbers (size: " << connectionTupleAndInnovationNumberWithinGeneration.size() << "): [";
-		//for (const auto& [key, value] : connectionTupleAndInnovationNumberWithinGeneration)
-		//	std::cout << " (" + std::to_string(key.inFieldGeneId) << " " << std::to_string(key.outFieldGeneId) << "), innov: " << std::to_string(value) << "; ";
-		//std::cout << "]\n";
 		connectionTupleAndInnovationNumberWithinGeneration.clear();
-		//std::cout << "Clearing generational innovations. size: " << connectionTupleAndInnovationNumberWithinGeneration.size() << std::endl;
+	}
+
+	void Genome::removeConnectionGene(int innov)
+	{
+		const auto it = std::ranges::find_if(connectionGenes, [innov](const ConnectionGene& connectionGene)
+		{
+				return connectionGene.getInnovationNumber() == innov;
+		});
+
+		if (it == connectionGenes.end())
+			throw std::invalid_argument("Connection gene with the specified innovation number " +
+				std::to_string(innov) + " does not exist.");
+
+		connectionGenes.erase(it);
 	}
 
 	std::vector<FieldGene> Genome::getFieldGenes() const
@@ -113,6 +121,197 @@ namespace neat_dnfs
 			innovationNumbers.push_back(connectionGene.getInnovationNumber());
 
 		return innovationNumbers;
+	}
+
+	int Genome::getGlobalInnovationNumber()
+	{
+		return globalInnovationNumber;
+	}
+
+	int Genome::excessGenes(const Genome& other) const
+	{
+		const auto thisInnovationNumbers = getInnovationNumbers();
+		const auto otherInnovationNumbers = other.getInnovationNumbers();
+		int thisMaxInnovationNumber = 0;
+		int otherMaxInnovationNumber = 0;
+
+		if (thisInnovationNumbers.empty() && otherInnovationNumbers.empty())
+			return 0;
+
+		if (!thisInnovationNumbers.empty())
+			thisMaxInnovationNumber = *std::ranges::max_element(thisInnovationNumbers);
+
+		if (!otherInnovationNumbers.empty())
+			otherMaxInnovationNumber = *std::ranges::max_element(otherInnovationNumbers);
+
+		const int thisExcessCount = static_cast<int>(std::ranges::count_if(thisInnovationNumbers, [otherMaxInnovationNumber](const int innovationNumber)
+			{
+				return innovationNumber > otherMaxInnovationNumber;
+			}));
+
+		const int otherExcessCount = static_cast<int>(std::ranges::count_if(otherInnovationNumbers, [thisMaxInnovationNumber](const int innovationNumber)
+			{
+				return innovationNumber > thisMaxInnovationNumber;
+			}));
+
+		return thisExcessCount + otherExcessCount;
+	}
+
+	int Genome::disjointGenes(const Genome& other) const
+	{
+		const auto thisInnovationNumbers = getInnovationNumbers();
+		const auto otherInnovationNumbers = other.getInnovationNumbers();
+
+		if (thisInnovationNumbers.empty() && otherInnovationNumbers.empty())
+			return 0;
+
+		std::vector<int> sortedThisInnovationNumbers = thisInnovationNumbers;
+		std::vector<int> sortedOtherInnovationNumbers = otherInnovationNumbers;
+
+		std::ranges::sort(sortedThisInnovationNumbers);
+		std::ranges::sort(sortedOtherInnovationNumbers);
+
+		std::vector<int> thisDisjointInnovationNumbers, otherDisjointInnovationNumbers;
+
+		std::ranges::set_difference(sortedThisInnovationNumbers, sortedOtherInnovationNumbers, std::back_inserter(thisDisjointInnovationNumbers));
+		std::ranges::set_difference(sortedOtherInnovationNumbers, sortedThisInnovationNumbers, std::back_inserter(otherDisjointInnovationNumbers));
+
+		const int thisMaxInnovationNumber = !thisInnovationNumbers.empty() ? *std::ranges::max_element(thisInnovationNumbers) : 0;
+		const int otherMaxInnovationNumber = !otherInnovationNumbers.empty() ? *std::ranges::max_element(otherInnovationNumbers) : 0;
+		int minMaxInnovationNumber = std::min(thisMaxInnovationNumber, otherMaxInnovationNumber);
+
+		const int thisDisjointCount = static_cast<int>(std::ranges::count_if(thisDisjointInnovationNumbers,
+			[minMaxInnovationNumber](const int innovationNumber)
+			{
+				return innovationNumber <= minMaxInnovationNumber;
+			}));
+
+		const int otherDisjointCount = static_cast<int>(std::ranges::count_if(otherDisjointInnovationNumbers,
+			[minMaxInnovationNumber](const int innovationNumber)
+			{
+				return innovationNumber <= minMaxInnovationNumber;
+			}));
+
+		return thisDisjointCount + otherDisjointCount;
+	}
+
+	double Genome::averageConnectionDifference(const Genome& other) const
+	{
+		const auto thisConnectionGenes = getConnectionGenes();
+		const auto otherConnectionGenes = other.getConnectionGenes();
+
+		if (thisConnectionGenes.empty() && otherConnectionGenes.empty())
+			return 0.0;
+
+		double sumAmpDiff = 0.0;
+		double sumWidthDiff = 0.0;
+
+		for (const auto& thisConnectionGene : thisConnectionGenes)
+		{
+			for (const auto& otherConnectionGene : otherConnectionGenes)
+			{
+				if (thisConnectionGene.getInnovationNumber() == otherConnectionGene.getInnovationNumber())
+				{
+					const double ampDiff =
+						std::abs(thisConnectionGene.getKernelAmplitude() - otherConnectionGene.getKernelAmplitude());
+					const double widthDiff =
+						std::abs(thisConnectionGene.getKernelWidth() - otherConnectionGene.getKernelWidth());
+					sumAmpDiff += ampDiff;
+					sumWidthDiff += widthDiff;
+				}
+			}
+		}
+		const double totalDiff = CompatibilityCoefficients::amplitudeDifferenceCoefficient * sumAmpDiff
+								+ CompatibilityCoefficients::widthDifferenceCoefficient * sumWidthDiff;
+		return totalDiff;
+	}
+
+	void Genome::addFieldGene(const FieldGene& fieldGene)
+	{
+		if (containsFieldGene(fieldGene))
+			return;
+		fieldGenes.push_back(fieldGene);
+	}
+
+	void Genome::addConnectionGene(const ConnectionGene& connectionGene)
+	{
+		if (containsConnectionGene(connectionGene))
+			return;
+		connectionGenes.push_back(connectionGene);
+	}
+
+	bool Genome::containsConnectionGene(const ConnectionGene& connectionGene) const
+	{
+		return std::ranges::find(connectionGenes, connectionGene) != connectionGenes.end();
+	}
+
+	bool Genome::containsFieldGene(const FieldGene& fieldGene) const
+	{
+		return std::ranges::find(fieldGenes, fieldGene) != fieldGenes.end();
+	}
+
+	bool Genome::containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const
+	{
+		return std::ranges::any_of(connectionGenes, [&gene](const auto& connectionGene)
+			{
+				return gene.getInFieldGeneId() == connectionGene.getInFieldGeneId() &&
+					gene.getOutFieldGeneId() == connectionGene.getOutFieldGeneId();
+			});
+	}
+
+	ConnectionGene Genome::getConnectionGeneByInnovationNumber(int innovationNumber) const
+	{
+		const auto it = std::ranges::find_if(connectionGenes, [innovationNumber](const ConnectionGene& connectionGene)
+			{
+				return connectionGene.getInnovationNumber() == innovationNumber;
+			});
+
+		if (it == connectionGenes.end())
+			throw std::invalid_argument("Connection gene with the specified innovation number " +
+				std::to_string(innovationNumber) + " does not exist.");
+
+		return *it;
+	}
+
+	FieldGene Genome::getFieldGeneById(int id) const
+	{
+		const auto it = std::ranges::find_if(fieldGenes, [id](const FieldGene& fieldGene)
+			{
+				return fieldGene.getParameters().id == id;
+			});
+
+		if (it == fieldGenes.end())
+			throw std::invalid_argument("Field gene with the specified id " +
+				std::to_string(id) + " does not exist.");
+
+		return *it;
+	}
+
+	bool Genome::operator==(const Genome& other) const
+	{
+		return fieldGenes == other.fieldGenes && connectionGenes == other.connectionGenes;
+	}
+
+	std::string Genome::toString() const
+	{
+		std::string genomeString = "Genome { " + std::to_string(fieldGenes.size()) + " field genes, "
+		+ std::to_string(connectionGenes.size()) + " connection genes }\n{\n";
+		genomeString += "{ \nField genes (total: " + std::to_string(fieldGenes.size()) +")\n{\n";
+		for (const auto& fieldGene : fieldGenes)
+			genomeString += fieldGene.toString() + "\n";
+		genomeString += "}\n";
+
+		genomeString += "Connection genes (total: " + std::to_string(connectionGenes.size()) + ")\n{\n";
+		for (const auto& connectionGene : connectionGenes)
+			genomeString += connectionGene.toString() + "\n";
+		genomeString += "}\n}";
+
+		return genomeString;
+	}
+
+	void Genome::print() const
+	{
+		tools::logger::log(tools::logger::INFO, toString());
 	}
 
 	ConnectionTuple Genome::getNewRandomConnectionGeneTuple() const
@@ -337,220 +536,5 @@ namespace neat_dnfs
 			return connectionTupleAndInnovationNumberWithinGeneration[tuple];
 		}
 		return -1;
-	}
-
-	void Genome::removeConnectionGene(int innov)
-	{
-		const auto it = std::ranges::find_if(connectionGenes, [innov](const ConnectionGene& connectionGene)
-		{
-				return connectionGene.getInnovationNumber() == innov;
-		});
-
-		if (it == connectionGenes.end())
-			throw std::invalid_argument("Connection gene with the specified innovation number " +
-				std::to_string(innov) + " does not exist.");
-
-		connectionGenes.erase(it);
-	}
-
-	int Genome::excessGenes(const Genome& other) const
-	{
-		const auto thisInnovationNumbers = getInnovationNumbers();
-		const auto otherInnovationNumbers = other.getInnovationNumbers();
-		int thisMaxInnovationNumber = 0;
-		int otherMaxInnovationNumber = 0;
-
-		if (thisInnovationNumbers.empty() && otherInnovationNumbers.empty())
-			return 0;
-
-		// max_element can be replaced with ranges::max_element
-		if (!thisInnovationNumbers.empty())
-			thisMaxInnovationNumber = *std::max_element(thisInnovationNumbers.begin(),
-				thisInnovationNumbers.end());
-
-		if (!otherInnovationNumbers.empty())
-			otherMaxInnovationNumber = *std::max_element(otherInnovationNumbers.begin(),
-				otherInnovationNumbers.end());
-
-		// call to count_if can be replaced with ranges::count_if
-		// also narrowing conversion from int to int
-		const int thisExcessCount = std::count_if(thisInnovationNumbers.begin(),
-			thisInnovationNumbers.end(), [otherMaxInnovationNumber](const int innovationNumber)
-			{return innovationNumber > otherMaxInnovationNumber; });
-
-		const int otherExcessCount = std::count_if(otherInnovationNumbers.begin(), otherInnovationNumbers.end(),
-			[thisMaxInnovationNumber](const int innovationNumber)
-			{return innovationNumber > thisMaxInnovationNumber; });
-
-		return thisExcessCount + otherExcessCount;
-	}
-
-	int Genome::disjointGenes(const Genome& other) const
-	{
-		const auto thisInnovationNumbers = getInnovationNumbers();
-		const auto otherInnovationNumbers = other.getInnovationNumbers();
-
-		if (thisInnovationNumbers.empty() && otherInnovationNumbers.empty())
-			return 0;
-
-		std::vector<int> sortedThisInnovationNumbers = thisInnovationNumbers;
-		std::vector<int> sortedOtherInnovationNumbers = otherInnovationNumbers;
-
-		// call to sort can be replaced with ranges::sort
-		std::sort(sortedThisInnovationNumbers.begin(), sortedThisInnovationNumbers.end());
-		std::sort(sortedOtherInnovationNumbers.begin(), sortedOtherInnovationNumbers.end());
-
-		std::vector<int> thisDisjointInnovationNumbers, otherDisjointInnovationNumbers;
-
-		// Get the elements in sortedThisInnovationNumbers that are not in sortedOtherInnovationNumbers
-		// call to set_difference can be replaced with ranges::set_difference
-		std::set_difference(sortedThisInnovationNumbers.begin(), sortedThisInnovationNumbers.end(),
-			sortedOtherInnovationNumbers.begin(), sortedOtherInnovationNumbers.end(),
-			std::inserter(thisDisjointInnovationNumbers, thisDisjointInnovationNumbers.begin()));
-		// Get the elements in sortedOtherInnovationNumbers that are not in sortedThisInnovationNumbers
-		std::set_difference(sortedOtherInnovationNumbers.begin(), sortedOtherInnovationNumbers.end(),
-			sortedThisInnovationNumbers.begin(), sortedThisInnovationNumbers.end(),
-			std::inserter(otherDisjointInnovationNumbers, otherDisjointInnovationNumbers.begin()));
-
-		// Calculate the maximum and minimum innovation numbers
-		// call to max_element can be replaced with ranges::max_element
-		const int thisMaxInnovationNumber = !thisInnovationNumbers.empty() ? *std::max_element(thisInnovationNumbers.begin(),
-			thisInnovationNumbers.end()) : 0;
-		const int otherMaxInnovationNumber = !otherInnovationNumbers.empty() ? *std::max_element(otherInnovationNumbers.begin(),
-			otherInnovationNumbers.end()) : 0;
-		int minMaxInnovationNumber = std::min(thisMaxInnovationNumber, otherMaxInnovationNumber);
-
-		// Filter out the disjoint genes that are beyond the range of the other genome
-		// call to count_if can be replaced with ranges::count_if
-		// also narrowing conversion from int to int
-		const int thisDisjointCount = std::count_if(thisDisjointInnovationNumbers.begin(),
-			thisDisjointInnovationNumbers.end(), [minMaxInnovationNumber](const int innovationNumber)
-			{return innovationNumber <= minMaxInnovationNumber; });
-		const int otherDisjointCount = std::count_if(otherDisjointInnovationNumbers.begin(),
-			otherDisjointInnovationNumbers.end(), [minMaxInnovationNumber](const int innovationNumber)
-			{return innovationNumber <= minMaxInnovationNumber; });
-
-		return thisDisjointCount + otherDisjointCount;
-	}
-
-	double Genome::averageConnectionDifference(const Genome& other) const
-	{
-		const auto thisConnectionGenes = getConnectionGenes();
-		const auto otherConnectionGenes = other.getConnectionGenes();
-
-		if (thisConnectionGenes.empty() && otherConnectionGenes.empty())
-			return 0.0;
-
-		double sumAmpDiff = 0.0;
-		double sumWidthDiff = 0.0;
-
-		for (const auto& thisConnectionGene : thisConnectionGenes)
-		{
-			for (const auto& otherConnectionGene : otherConnectionGenes)
-			{
-				if (thisConnectionGene.getInnovationNumber() == otherConnectionGene.getInnovationNumber())
-				{
-					const double ampDiff =
-						std::abs(thisConnectionGene.getKernelAmplitude() - otherConnectionGene.getKernelAmplitude());
-					const double widthDiff =
-						std::abs(thisConnectionGene.getKernelWidth() - otherConnectionGene.getKernelWidth());
-					sumAmpDiff += ampDiff;
-					sumWidthDiff += widthDiff;
-				}
-			}
-		}
-		const double totalDiff = CompatibilityCoefficients::amplitudeDifferenceCoefficient * sumAmpDiff
-								+ CompatibilityCoefficients::widthDifferenceCoefficient * sumWidthDiff;
-		return totalDiff;
-	}
-
-	void Genome::addFieldGene(const FieldGene& fieldGene)
-	{
-		if (containsFieldGene(fieldGene))
-			return;
-		fieldGenes.push_back(fieldGene);
-	}
-
-	void Genome::addConnectionGene(const ConnectionGene& connectionGene)
-	{
-		if (containsConnectionGene(connectionGene))
-			return;
-		connectionGenes.push_back(connectionGene);
-	}
-
-	bool Genome::containsConnectionGene(const ConnectionGene& connectionGene) const
-	{
-		return std::ranges::find(connectionGenes, connectionGene) != connectionGenes.end();
-	}
-
-	bool Genome::containsFieldGene(const FieldGene& fieldGene) const
-	{
-		return std::ranges::find(fieldGenes, fieldGene) != fieldGenes.end();
-	}
-
-	bool Genome::containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const
-	{
-		for (const auto& connectionGene : connectionGenes)
-		{
-			if (gene.getInFieldGeneId() == connectionGene.getInFieldGeneId() &&
-				gene.getOutFieldGeneId() == connectionGene.getOutFieldGeneId())
-				return true;
-		}
-		return false;
-	}
-
-	ConnectionGene Genome::getConnectionGeneByInnovationNumber(int innovationNumber) const
-	{
-		const auto it = std::ranges::find_if(connectionGenes, [innovationNumber](const ConnectionGene& connectionGene)
-			{
-				return connectionGene.getInnovationNumber() == innovationNumber;
-			});
-
-		if (it == connectionGenes.end())
-			throw std::invalid_argument("Connection gene with the specified innovation number " +
-				std::to_string(innovationNumber) + " does not exist.");
-
-		return *it;
-	}
-
-	FieldGene Genome::getFieldGeneById(int id) const
-	{
-		const auto it = std::ranges::find_if(fieldGenes, [id](const FieldGene& fieldGene)
-			{
-				return fieldGene.getParameters().id == id;
-			});
-
-		if (it == fieldGenes.end())
-			throw std::invalid_argument("Field gene with the specified id " +
-				std::to_string(id) + " does not exist.");
-
-		return *it;
-	}
-
-	bool Genome::operator==(const Genome& other) const
-	{
-		return fieldGenes == other.fieldGenes && connectionGenes == other.connectionGenes;
-	}
-
-	std::string Genome::toString() const
-	{
-		std::string genomeString = "Genome { " + std::to_string(fieldGenes.size()) + " field genes, "
-		+ std::to_string(connectionGenes.size()) + " connection genes }\n{\n";
-		genomeString += "{ \nField genes (total: " + std::to_string(fieldGenes.size()) +")\n{\n";
-		for (const auto& fieldGene : fieldGenes)
-			genomeString += fieldGene.toString() + "\n";
-		genomeString += "}\n";
-
-		genomeString += "Connection genes (total: " + std::to_string(connectionGenes.size()) + ")\n{\n";
-		for (const auto& connectionGene : connectionGenes)
-			genomeString += connectionGene.toString() + "\n";
-		genomeString += "}\n}";
-
-		return genomeString;
-	}
-
-	void Genome::print() const
-	{
-		tools::logger::log(tools::logger::INFO, toString());
 	}
 }

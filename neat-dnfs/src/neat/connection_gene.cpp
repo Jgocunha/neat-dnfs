@@ -3,6 +3,58 @@
 
 namespace neat_dnfs
 {
+	ConnectionTuple::ConnectionTuple(int inFieldGeneId, int outFieldGeneId)
+		: inFieldGeneId(inFieldGeneId), outFieldGeneId(outFieldGeneId)
+	{}
+
+	bool ConnectionTuple::operator==(const ConnectionTuple& other) const
+	{
+		return inFieldGeneId == other.inFieldGeneId && outFieldGeneId == other.outFieldGeneId;
+	}
+
+	bool ConnectionTuple::operator<(const ConnectionTuple& other) const {
+		if (inFieldGeneId == other.inFieldGeneId)
+			return outFieldGeneId < other.outFieldGeneId;
+		return inFieldGeneId < other.inFieldGeneId;
+	}
+
+	std::string ConnectionTuple::toString() const
+	{
+		return "InFieldGeneId: " + std::to_string(inFieldGeneId) +
+			", OutFieldGeneId: " + std::to_string(outFieldGeneId);
+	}
+
+	void ConnectionTuple::print() const
+	{
+		tools::logger::log(tools::logger::INFO, toString());
+	}
+
+	ConnectionGeneParameters::ConnectionGeneParameters(ConnectionTuple connectionTuple, int innov)
+		: connectionTuple(connectionTuple), innovationNumber(innov), enabled(true)
+	{}
+
+	ConnectionGeneParameters::ConnectionGeneParameters(int inFieldGeneId, int outFieldGeneId, int innov)
+		: connectionTuple(inFieldGeneId, outFieldGeneId), innovationNumber(innov), enabled(true)
+	{}
+
+	bool ConnectionGeneParameters::operator==(const ConnectionGeneParameters& other) const
+	{
+		return connectionTuple == other.connectionTuple &&
+			innovationNumber == other.innovationNumber;
+	}
+
+	std::string ConnectionGeneParameters::toString() const
+	{
+		return connectionTuple.toString() +
+			", InnovationNumber: " + std::to_string(innovationNumber) +
+			", Enabled: " + (enabled ? "true" : "false") + '\n';
+	}
+
+	void ConnectionGeneParameters::print() const
+	{
+		tools::logger::log(tools::logger::INFO, toString());
+	}
+
 	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, int innov)
 		: parameters(connectionTuple, innov)
 	{
@@ -22,9 +74,6 @@ namespace neat_dnfs
 		const ElementCommonParameters gkcp{ elementName,
 			{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<GaussKernel>(gkcp, gkp);
-		/*std::cout << "cst 1 ";
-		std::cout << "Connection gene: " << connectionTuple.inFieldGeneId << "-" << connectionTuple.outFieldGeneId <<
-			" innovation number: " << parameters.innovationNumber << std::endl;*/
 	}
 
 	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, int innov,
@@ -40,9 +89,6 @@ namespace neat_dnfs
 		const ElementCommonParameters mhkcp{ elementName,
 			{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<MexicanHatKernel>(mhkcp, mhkp);
-		/*std::cout << "cst 2 ";
-		std::cout << "Connection gene: " << connectionTuple.inFieldGeneId << "-" << connectionTuple.outFieldGeneId <<
-			" innovation number: " << parameters.innovationNumber << std::endl;*/
 	}
 
 	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, int innov,
@@ -58,9 +104,6 @@ namespace neat_dnfs
 		const ElementCommonParameters osckcp{ elementName,
 			{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<OscillatoryKernel>(osckcp, osckp);
-		/*std::cout << "cst 3 ";
-		std::cout << "Connection gene: " << connectionTuple.inFieldGeneId << "-" << connectionTuple.outFieldGeneId <<
-			" innovation number: " << parameters.innovationNumber << std::endl;*/
 	}
 
 	ConnectionGene::ConnectionGene(const ConnectionGeneParameters& parameters,
@@ -76,9 +119,6 @@ namespace neat_dnfs
 		const ElementCommonParameters gkcp{ elementName,
 			{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<GaussKernel>(gkcp, gkp);
-		/*std::cout << "cst 4 ";
-		std::cout << "Connection gene: " << parameters.connectionTuple.inFieldGeneId << "-" << parameters.connectionTuple.outFieldGeneId <<
-			" innovation number: " << parameters.innovationNumber << std::endl;*/
 	}
 
 	ConnectionGene::ConnectionGene(const ConnectionGeneParameters& parameters,
@@ -94,9 +134,6 @@ namespace neat_dnfs
 		const ElementCommonParameters mhkcp{ elementName,
 					{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<MexicanHatKernel>(mhkcp, mhkp);
-		/*std::cout << "cst 5 ";
-		std::cout << "Connection gene: " << parameters.connectionTuple.inFieldGeneId << "-" << parameters.connectionTuple.outFieldGeneId <<
-			" innovation number: " << parameters.innovationNumber << std::endl;*/
 	}
 
 	ConnectionGene::ConnectionGene(const ConnectionGeneParameters& parameters,
@@ -112,17 +149,11 @@ namespace neat_dnfs
 		const ElementCommonParameters osckcp{ elementName,
 							{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<OscillatoryKernel>(osckcp, osckp);
-		/*std::cout << "cst 6 ";
-		std::cout << "Connection gene: " << parameters.connectionTuple.inFieldGeneId << "-" << parameters.connectionTuple.outFieldGeneId <<
-			" innovation number: " << parameters.innovationNumber << std::endl;*/
 	}
 
-	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, int innov, const KernelPtr& kernel)
-		: parameters(connectionTuple, innov), kernel(kernel)
+	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, int innov, KernelPtr kernel)
+		: parameters(connectionTuple, innov), kernel(std::move(kernel))
 	{
-		/*std::cout << "cst 7 ";
-		std::cout << "Connection gene: " << connectionTuple.inFieldGeneId << "-" << connectionTuple.outFieldGeneId <<
-			" innovation number: " << parameters.innovationNumber << std::endl;*/
 	}
 
 	void ConnectionGene::mutate()
@@ -137,7 +168,6 @@ namespace neat_dnfs
 			tools::logger::log(tools::logger::FATAL, message);
 			throw std::runtime_error(message);
 		}
-
 
 		static constexpr double totalProbability = ConnectionGeneConstants::mutateConnectionGeneKernelProbability +
 			ConnectionGeneConstants::mutateConnectionGeneConnectionSignalProbability +
@@ -326,8 +356,7 @@ namespace neat_dnfs
 		const int amplitude_sign = generateRandomSignal();
 		const double width = generateRandomDouble(GaussKernelConstants::widthMinVal, GaussKernelConstants::widthMaxVal);
 		const double amplitude = amplitude_sign * generateRandomDouble(GaussKernelConstants::ampMinVal, GaussKernelConstants::ampMaxVal);
-		const double amplitudeGlobal = 0.0f;
-			//generateRandomDouble(GaussKernelConstants::ampGlobalMinVal, GaussKernelConstants::ampGlobalMaxVal);
+		constexpr double amplitudeGlobal = 0.0f;
 		const GaussKernelParameters gkp{ width,
 										amplitude,
 											amplitudeGlobal,
@@ -351,8 +380,7 @@ namespace neat_dnfs
 		const double amplitudeExc = amplitude_sign * generateRandomDouble(MexicanHatKernelConstants::ampExcMinVal, MexicanHatKernelConstants::ampExcMaxVal);
 		const double widthInh = generateRandomDouble(MexicanHatKernelConstants::widthInhMinVal, MexicanHatKernelConstants::widthInhMaxVal);
 		const double amplitudeInh = generateRandomDouble(MexicanHatKernelConstants::ampInhMinVal, MexicanHatKernelConstants::ampInhMaxVal);
-		const double amplitudeGlobal = 0.0f;
-			//generateRandomDouble(MexicanHatKernelConstants::ampGlobMin, MexicanHatKernelConstants::ampGlobMax);
+		constexpr double amplitudeGlobal = 0.0f;
 		const MexicanHatKernelParameters mhkp{ widthExc,
 								amplitudeExc,
 								widthInh,
@@ -377,8 +405,7 @@ namespace neat_dnfs
 		const double amplitude = amplitude_sign * generateRandomDouble(OscillatoryKernelConstants::amplitudeMinVal, OscillatoryKernelConstants::amplitudeMaxVal);
 		const double decay = generateRandomDouble(OscillatoryKernelConstants::decayMinVal, OscillatoryKernelConstants::decayMaxVal);
 		const double zeroCrossings = generateRandomDouble(OscillatoryKernelConstants::zeroCrossingsMinVal, OscillatoryKernelConstants::zeroCrossingsMaxVal);
-		const double amplitudeGlobal = 0.0f;
-			//generateRandomDouble(OscillatoryKernelConstants::ampGlobMin, OscillatoryKernelConstants::ampGlobMax);
+		constexpr double amplitudeGlobal = 0.0f;
 		const OscillatoryKernelParameters okp{ amplitude, decay, zeroCrossings, amplitudeGlobal,
 											KernelConstants::circularity,
 											KernelConstants::normalization
