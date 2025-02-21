@@ -3,6 +3,38 @@
 namespace neat_dnfs
 {
 	std::map<ConnectionTuple, int> Genome::connectionTupleAndInnovationNumberWithinGeneration;
+	GenomeStatistics Genome::statistics;
+
+	void GenomeStatistics::resetPerGenerationStatistics()
+	{
+		numAddConnectionGeneMutationsPerGeneration = 0;
+		numAddFieldGeneMutationsPerGeneration = 0;
+		numMutateFieldGeneMutationsPerGeneration = 0;
+		numMutateConnectionGeneMutationsPerGeneration = 0;
+		numToggleConnectionGeneMutationsPerGeneration = 0;
+	}
+
+	std::string GenomeStatistics::toString() const
+	{
+		std::string result = "GenomeStatistics: {";
+		result += "Add connection gene mutations per generation: " + std::to_string(numAddConnectionGeneMutationsPerGeneration);
+		result += ", Add field gene mutations per generation: " + std::to_string(numAddFieldGeneMutationsPerGeneration);
+		result += ", Mutate field gene mutations per generation: " + std::to_string(numMutateFieldGeneMutationsPerGeneration);
+		result += ", Mutate connection gene mutations per generation: " + std::to_string(numMutateConnectionGeneMutationsPerGeneration);
+		result += ", Toggle connection gene mutations per generation: " + std::to_string(numToggleConnectionGeneMutationsPerGeneration);
+		result += ", Add connection gene mutations total: " + std::to_string(numAddConnectionGeneMutationsTotal);
+		result += ", Add field gene mutations total: " + std::to_string(numAddFieldGeneMutationsTotal);
+		result += ", Mutate field gene mutations total: " + std::to_string(numMutateFieldGeneMutationsTotal);
+		result += ", Mutate connection gene mutations total: " + std::to_string(numMutateConnectionGeneMutationsTotal);
+		result += ", Toggle connection gene mutations total: " + std::to_string(numToggleConnectionGeneMutationsTotal);
+		result += " }";
+		return result;
+	}
+
+	void GenomeStatistics::print() const
+	{
+		tools::logger::log(tools::logger::INFO, toString());
+	}
 
 	void Genome::addInputGene(const dnf_composer::element::ElementDimensions& dimensions)
 	{
@@ -126,6 +158,31 @@ namespace neat_dnfs
 	int Genome::getGlobalInnovationNumber()
 	{
 		return globalInnovationNumber;
+	}
+
+	GenomeStatistics Genome::getStatistics()
+	{
+		return statistics;
+	}
+
+	std::string Genome::getLastMutationType() const
+	{
+		return lastMutationType;
+	}
+
+	void Genome::resetMutationStatisticsPerGeneration() const
+	{
+		statistics.resetPerGenerationStatistics();
+		for (auto& fieldGene : fieldGenes)
+		{
+			fieldGene.resetMutationStatisticsPerGeneration();
+			break;
+		}
+		for (auto& connectionGene : connectionGenes)
+		{
+			connectionGene.resetMutationStatisticsPerGeneration();
+			break;
+		}
 	}
 
 	int Genome::excessGenes(const Genome& other) const
@@ -294,17 +351,17 @@ namespace neat_dnfs
 
 	std::string Genome::toString() const
 	{
-		std::string genomeString = "Genome { " + std::to_string(fieldGenes.size()) + " field genes, "
-		+ std::to_string(connectionGenes.size()) + " connection genes }\n{\n";
-		genomeString += "{ \nField genes (total: " + std::to_string(fieldGenes.size()) +")\n{\n";
+		std::string genomeString = "genome ( " + std::to_string(fieldGenes.size()) + " field genes, "
+		+ std::to_string(connectionGenes.size()) + " connection genes )";
+		genomeString += " field genes {";
 		for (const auto& fieldGene : fieldGenes)
-			genomeString += fieldGene.toString() + "\n";
-		genomeString += "}\n";
+			genomeString += fieldGene.toString() + ", ";
+		genomeString += "}";
 
-		genomeString += "Connection genes (total: " + std::to_string(connectionGenes.size()) + ")\n{\n";
+		genomeString += " connection genes {";
 		for (const auto& connectionGene : connectionGenes)
-			genomeString += connectionGene.toString() + "\n";
-		genomeString += "}\n}";
+			genomeString += connectionGene.toString() + ", ";
+		genomeString += "}";
 
 		return genomeString;
 	}
@@ -421,6 +478,8 @@ namespace neat_dnfs
 			connectionTupleAndInnovationNumberWithinGeneration[connectionTuple] = globalInnovationNumber;
 			globalInnovationNumber++;
 		}
+		statistics.numAddConnectionGeneMutationsTotal++;
+		statistics.numAddConnectionGeneMutationsPerGeneration++;
 	}
 
 	void Genome::addGene()
@@ -493,40 +552,68 @@ namespace neat_dnfs
 		default:
 			throw std::invalid_argument("Invalid kernel type.");
 		}
+		statistics.numAddFieldGeneMutationsTotal++;
+		statistics.numAddFieldGeneMutationsPerGeneration++;
+		lastMutationType = "add new field gene " + std::to_string(fieldGenes.back().getParameters().id) +
+			" and two new connection genes with innov's " + std::to_string(innovIn) + " and " + std::to_string(innovOut) + ".";
 	}
 
-	void Genome::mutateGene() const
+	void Genome::mutateGene()
 	{
 		const int geneId = getRandomGeneId();
 		if (geneId == -1)
+		{
+			lastMutationType = "no field genes to mutate.";
 			return;
+		}
 		auto gene = getFieldGeneById(static_cast<int>(geneId));
 		gene.mutate();
+		statistics.numMutateFieldGeneMutationsTotal++;
+		statistics.numMutateFieldGeneMutationsPerGeneration++;
+		lastMutationType = "mutate field gene " + std::to_string(geneId) + ".";
 	}
 
 	void Genome::addConnectionGene()
 	{
 		const ConnectionTuple connectionTuple = getNewRandomConnectionGeneTuple();
 		if (connectionTuple == ConnectionTuple{ 0, 0 })
+		{
+			lastMutationType = "no more valid connection gene tuples.";
 			return;
+		}
 		addConnectionGene(connectionTuple);
+		lastMutationType = "add connection gene (" + std::to_string(connectionTuple.inFieldGeneId) +
+			"-" + std::to_string(connectionTuple.outFieldGeneId) + ").";
 	}
 
 	void Genome::mutateConnectionGene()
 	{
 		if (connectionGenes.empty())
+		{
+			lastMutationType = "no connection genes to mutate.";
 			return;
+		}
 
 		const auto connectionGeneId = tools::utils::generateRandomInt(0, static_cast<int>(connectionGenes.size()) - 1);
 		connectionGenes[connectionGeneId].mutate();
+		statistics.numMutateConnectionGeneMutationsPerGeneration++;
+		statistics.numMutateConnectionGeneMutationsTotal++;
+		lastMutationType = "mutate connection gene " + std::to_string(connectionGeneId) + ".";
 	}
 
 	void Genome::toggleConnectionGene()
 	{
 		if (connectionGenes.empty())
+		{
+			lastMutationType = "no connection genes to toggle.";
 			return;
+		}
 		const auto connectionGeneId = tools::utils::generateRandomInt(0, static_cast<int>(connectionGenes.size()) - 1);
 		connectionGenes[connectionGeneId].toggle();
+		statistics.numToggleConnectionGeneMutationsPerGeneration++;
+		statistics.numToggleConnectionGeneMutationsTotal++;
+		lastMutationType = "toggle connection gene " + std::to_string(connectionGeneId) + " to " +
+			(connectionGenes[connectionGeneId].isEnabled() ? "enabled." : "disabled.");
 	}
 
 	int Genome::getInnovationNumberOfTupleWithinGeneration(const ConnectionTuple& tuple)

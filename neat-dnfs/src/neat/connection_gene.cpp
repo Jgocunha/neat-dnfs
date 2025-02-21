@@ -3,6 +3,8 @@
 
 namespace neat_dnfs
 {
+	ConnectionGeneStatistics ConnectionGene::statistics;
+
 	ConnectionTuple::ConnectionTuple(int inFieldGeneId, int outFieldGeneId)
 		: inFieldGeneId(inFieldGeneId), outFieldGeneId(outFieldGeneId)
 	{}
@@ -20,8 +22,7 @@ namespace neat_dnfs
 
 	std::string ConnectionTuple::toString() const
 	{
-		return "InFieldGeneId: " + std::to_string(inFieldGeneId) +
-			", OutFieldGeneId: " + std::to_string(outFieldGeneId);
+		return std::to_string(inFieldGeneId) + "-" + std::to_string(outFieldGeneId);
 	}
 
 	void ConnectionTuple::print() const
@@ -46,11 +47,45 @@ namespace neat_dnfs
 	std::string ConnectionGeneParameters::toString() const
 	{
 		return connectionTuple.toString() +
-			", InnovationNumber: " + std::to_string(innovationNumber) +
-			", Enabled: " + (enabled ? "true" : "false") + '\n';
+			", innov: " + std::to_string(innovationNumber) +
+			", enabled: " + (enabled ? "true" : "false");
 	}
 
 	void ConnectionGeneParameters::print() const
+	{
+		tools::logger::log(tools::logger::INFO, toString());
+	}
+
+	void ConnectionGeneStatistics::resetPerGenerationStatistics()
+	{
+		numKernelMutationsPerGeneration = 0;
+		numKernelTypeMutationsPerGeneration = 0;
+		numGaussKernelMutationsPerGeneration = 0;
+		numMexicanHatKernelMutationsPerGeneration = 0;
+		numOscillatoryKernelMutationsPerGeneration = 0;
+		numConnectionSignalMutationsPerGeneration = 0;
+	}
+
+	std::string ConnectionGeneStatistics::toString() const
+	{
+		std::string result = "ConnectionGeneStatistics: {";
+		result += "Kernel mutations per generation: " + std::to_string(numKernelMutationsPerGeneration);
+		result += ", Kernel type mutations per generation: " + std::to_string(numKernelTypeMutationsPerGeneration);
+		result += ", Gauss kernel mutations per generation: " + std::to_string(numGaussKernelMutationsPerGeneration);
+		result += ", Mexican hat kernel mutations per generation: " + std::to_string(numMexicanHatKernelMutationsPerGeneration);
+		result += ", Oscillatory kernel mutations per generation: " + std::to_string(numOscillatoryKernelMutationsPerGeneration);
+		result += ", Connection signal mutations per generation: " + std::to_string(numConnectionSignalMutationsPerGeneration);
+		result += ", Total kernel mutations: " + std::to_string(numKernelMutationsTotal);
+		result += ", Total kernel type mutations: " + std::to_string(numKernelTypeMutationsTotal);
+		result += ", Total Gauss kernel mutations: " + std::to_string(numGaussKernelMutationsTotal);
+		result += ", Total Mexican hat kernel mutations: " + std::to_string(numMexicanHatKernelMutationsTotal);
+		result += ", Total Oscillatory kernel mutations: " + std::to_string(numOscillatoryKernelMutationsTotal);
+		result += ", Total connection signal mutations: " + std::to_string(numConnectionSignalMutationsTotal);
+		result += " }";
+		return result;
+	}
+
+	void ConnectionGeneStatistics::print() const
 	{
 		tools::logger::log(tools::logger::INFO, toString());
 	}
@@ -272,6 +307,16 @@ namespace neat_dnfs
 		throw std::runtime_error("ConnectionGene::getKernelWidth() - Kernel type not recognized.");
 	}
 
+	void ConnectionGene::resetMutationStatisticsPerGeneration()
+	{
+		statistics.resetPerGenerationStatistics();
+	}
+
+	ConnectionGeneStatistics ConnectionGene::getStatistics()
+	{
+		return statistics;
+	}
+
 	bool ConnectionGene::operator==(const ConnectionGene& other) const
 	{
 		return parameters.innovationNumber == other.parameters.innovationNumber;
@@ -287,13 +332,10 @@ namespace neat_dnfs
 
 	std::string ConnectionGene::toString() const
 	{
-		std::string result = "ConnectionGene: ";
+		// cg (innov, tuple, enabled)
+		std::string result = "cg (";
 		result += parameters.toString();
-
-		std::stringstream address;
-		address << kernel.get();
-		result += "Kernel address: " + address.str() + '\n';
-		result += kernel->toString();
+		result += ")";
 		return result;
 	}
 
@@ -434,6 +476,8 @@ namespace neat_dnfs
 			tools::logger::log(tools::logger::FATAL, "ConnectionGene::mutate() - Kernel type not recognized.");
 			throw std::runtime_error("ConnectionGene::mutate() - Kernel type not recognized.");
 		}
+		statistics.numKernelMutationsPerGeneration++;
+		statistics.numKernelMutationsTotal++;
 	}
 
 	void ConnectionGene::mutateKernelType()
@@ -465,6 +509,8 @@ namespace neat_dnfs
 		{
 			initializeOscillatoryKernel(dimensions);
 		}
+		statistics.numKernelTypeMutationsPerGeneration++;
+		statistics.numKernelTypeMutationsTotal++;
 	}
 
 	void ConnectionGene::mutateGaussKernel() const
@@ -509,6 +555,8 @@ namespace neat_dnfs
 				GaussKernelConstants::ampGlobalMaxVal);
 		}
 		std::dynamic_pointer_cast<GaussKernel>(kernel)->setParameters(gkp);
+		statistics.numGaussKernelMutationsPerGeneration++;
+		statistics.numGaussKernelMutationsTotal++;
 	}
 
 	void ConnectionGene::mutateMexicanHatKernel() const
@@ -571,6 +619,8 @@ namespace neat_dnfs
 				MexicanHatKernelConstants::ampGlobMax);
 		}
 		std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->setParameters(mhkp);
+		statistics.numMexicanHatKernelMutationsPerGeneration++;
+		statistics.numMexicanHatKernelMutationsTotal++;
 	}
 
 	void ConnectionGene::mutateOscillatoryKernel() const
@@ -625,6 +675,8 @@ namespace neat_dnfs
 				OscillatoryKernelConstants::ampGlobMax);
 		}
 		std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->setParameters(okp);
+		statistics.numOscillatoryKernelMutationsPerGeneration++;
+		statistics.numOscillatoryKernelMutationsTotal++;
 	}
 
 	void ConnectionGene::mutateConnectionSignal() const
@@ -661,5 +713,7 @@ namespace neat_dnfs
 			tools::logger::log(tools::logger::FATAL, "ConnectionGene::mutate() - Kernel type not recognized.");
 			throw std::runtime_error("ConnectionGene::mutate() - Kernel type not recognized.");
 		}
+		statistics.numConnectionSignalMutationsPerGeneration++;
+		statistics.numConnectionSignalMutationsTotal++;
 	}
 }

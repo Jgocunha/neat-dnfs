@@ -86,8 +86,6 @@ namespace neat_dnfs
 	void Population::upkeep()
 	{
 		upkeepBestSolution();
-		bestSolution->clearGenerationalInnovations();
-		updateGenerationAndAges();
 
 		if (PopulationConstants::validatePopulationSize)
 			validatePopulationSize();
@@ -108,6 +106,12 @@ namespace neat_dnfs
 			logOverview();
 		if (PopulationConstants::logSpecies)
 			logSpecies();
+		if (PopulationConstants::logMutationStatistics)
+			logMutationStatistics();
+
+		resetGenerationalInnovations();
+		updateGenerationAndAges();
+		resetMutationStatisticsPerGeneration();
 	}
 
 	void Population::createInitialEmptySolutions(const SolutionPtr& initialSolution)
@@ -155,6 +159,7 @@ namespace neat_dnfs
 					if (currentSpecies != nullptr)
 						currentSpecies->removeSolution(solution);
 					species.addSolution(solution);
+					solution->setSpeciesId(species.getId());
 				}
 				assigned = true;
 				species.randomlyAssignRepresentative();
@@ -167,6 +172,7 @@ namespace neat_dnfs
 				currentSpecies->removeSolution(solution);
 			Species newSpecies;
 			newSpecies.addSolution(solution);
+			solution->setSpeciesId(newSpecies.getId());
 			newSpecies.randomlyAssignRepresentative();
 			speciesList.push_back(newSpecies);
 		}
@@ -550,46 +556,34 @@ namespace neat_dnfs
 		}
 	}
 
-	void Population::logSolutions()
+	void Population::resetGenerationalInnovations() const
+	{
+		bestSolution->clearGenerationalInnovations();
+	}
+
+	void Population::resetMutationStatisticsPerGeneration() const
+	{
+			for (const auto& solution : solutions)
+			{
+				solution->resetMutationStatisticsPerGeneration();
+				break;
+			}
+	}
+
+	void Population::logSolutions() const
 	{
 		for (const auto& solution : solutions)
-		{
-			std::vector<ConnectionGene> connectionGenes = solution->getGenome().getConnectionGenes();
-			std::vector<FieldGene> fieldGenes = solution->getGenome().getFieldGenes();
-			const int species = findSpecies(solution)->getId();
-
-			std::string result = "sol." + std::to_string(solution->getId());
-			result += " fit." + std::to_string(solution->getFitness());
-			result += " adj." + std::to_string(solution->getParameters().adjustedFitness);
-			result += " spec." + std::to_string(species) + " { ";
-			for (const auto& fieldGene : fieldGenes)
-			{
-				result += "fg [" + std::to_string(fieldGene.getParameters().id) + "] ";
-			}
-			result += "} { ";
-			for (const auto& connectionGene : connectionGenes)
-			{
-				result += "cg [innov: " + std::to_string(connectionGene.getInnovationNumber()) + " ";
-				result += ", tuple (" + std::to_string(connectionGene.getInFieldGeneId()) + "-" + std::to_string(connectionGene.getOutFieldGeneId()) + ") ] ";
-			}
-			result += "}";
-			log(tools::logger::LogLevel::INFO, result);
-		}
+			solution->print();
 	}
 
 	void Population::logSpecies() const
 	{
 		for (const auto& species : speciesList)
-		{
 			species.print();
-		}
 	}
 
-	void Population::logOverview()
+	void Population::logOverview() const
 	{
-		std::stringstream addr_bs;
-		addr_bs << bestSolution.get();
-
 		// count active species
 		int numActiveSpecies = 0;
 		for (const auto& species : speciesList)
@@ -599,20 +593,37 @@ namespace neat_dnfs
 			numActiveSpecies++;
 		}
 
-		int speciesIdOfBestSolution = -1;
-		const Species* speciesOfBestSolution = findSpecies(bestSolution);
-		if (speciesOfBestSolution != nullptr)
-			speciesIdOfBestSolution = speciesOfBestSolution->getId();
-
 		tools::logger::log(tools::logger::INFO,
 			"Current generation: " + std::to_string(parameters.currentGeneration) +
-			" Best solution address: " + addr_bs.str() +
-			" Best fitness: " + std::to_string(bestSolution->getFitness()) +
-			" Adjusted fitness: " + std::to_string(bestSolution->getParameters().adjustedFitness) +
-			" Species of best solution: " + std::to_string(speciesIdOfBestSolution) +
+			" Number of solutions: " + std::to_string(solutions.size()) +
 			" Number of active species: " + std::to_string(numActiveSpecies) +
-			" Number of solutions: " + std::to_string(solutions.size())
+			" Best solution: [" + bestSolution->toString() + "]"
 		);
+	}
+
+	void Population::logMutationStatistics() const
+	{
+		for (const auto& solution : solutions)
+		{
+			const Genome genome = solution->getGenome();
+			const GenomeStatistics gs = genome.getStatistics();
+			gs.print();
+			const auto fieldGenes = genome.getFieldGenes();
+			for (const auto& fieldGene : fieldGenes)
+			{
+				const auto fgs = fieldGene.getStatistics();
+				fgs.print();
+				break;
+			}
+			const auto connectionGenes = genome.getConnectionGenes();
+			for (const auto& connectionGene : connectionGenes)
+			{
+				const auto cgs = connectionGene.getStatistics();
+				cgs.print();
+				break;
+			}
+			break;
+		}
 	}
 
 	void Population::startKeyListenerForUserCommands()

@@ -244,5 +244,6 @@ namespace neat_dnfs
 		static constexpr bool logSolutions = false;
 		static constexpr bool logOverview = true;
 		static constexpr bool logSpecies = true;
+		static constexpr bool logMutationStatistics = false;
 	};
 }

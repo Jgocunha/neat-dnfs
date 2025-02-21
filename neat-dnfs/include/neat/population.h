@@ -88,9 +88,13 @@ namespace neat_dnfs
 		void print() const;
 		void saveAllSolutionsWithFitnessAbove(double fitness) const;
 
-		void logSolutions();
+		void resetGenerationalInnovations() const;
+		void resetMutationStatisticsPerGeneration() const;
+
+		void logSolutions() const;
 		void logSpecies() const;
-		void logOverview();
+		void logOverview() const;
+		void logMutationStatistics() const;
 
 		void startKeyListenerForUserCommands();
 	};

@@ -24,10 +24,34 @@ namespace neat_dnfs
 		void print() const;
 	};
 
+	struct FieldGeneStatistics
+	{
+		int numNeuralFieldMutationsPerGeneration = 0;
+		int numKernelMutationsPerGeneration = 0;
+		int numKernelTypeMutationsPerGeneration = 0;
+		int numGaussKernelMutationsPerGeneration = 0;
+		int numMexicanHatKernelMutationsPerGeneration = 0;
+		int numOscillatoryKernelMutationsPerGeneration = 0;
+
+		int numNeuralFieldMutationsTotal = 0;
+		int numKernelMutationsTotal = 0;
+		int numKernelTypeMutationsTotal = 0;
+		int numGaussKernelMutationsTotal = 0;
+		int numMexicanHatKernelMutationsTotal = 0;
+		int numOscillatoryKernelMutationsTotal = 0;
+
+		FieldGeneStatistics() = default;
+		void resetPerGenerationStatistics();
+		std::string toString() const;
+		void print() const;
+	};
+
+
 	class FieldGene
 	{
 	private:
 		FieldGeneParameters parameters;
+		static FieldGeneStatistics statistics;
 		NeuralFieldPtr neuralField;
 		KernelPtr kernel;
 		NormalNoisePtr noise;
@@ -48,6 +72,8 @@ namespace neat_dnfs
 		std::shared_ptr<dnf_composer::element::NeuralField> getNeuralField() const;
 		std::shared_ptr<dnf_composer::element::Kernel> getKernel() const;
 		std::shared_ptr<dnf_composer::element::NormalNoise> getNoise() const;
+		static void resetMutationStatisticsPerGeneration();
+		static FieldGeneStatistics getStatistics();
 
 		bool operator==(const FieldGene&) const;
 		bool isCloneOf(const FieldGene&) const;

@@ -9,12 +9,35 @@ namespace neat_dnfs
 {
 	static int globalInnovationNumber = 0;
 
+	struct GenomeStatistics
+	{
+		int numAddConnectionGeneMutationsPerGeneration = 0;
+		int numAddFieldGeneMutationsPerGeneration = 0;
+		int numMutateFieldGeneMutationsPerGeneration = 0;
+		int numMutateConnectionGeneMutationsPerGeneration = 0;
+		int numToggleConnectionGeneMutationsPerGeneration = 0;
+
+		int numAddConnectionGeneMutationsTotal = 0;
+		int numAddFieldGeneMutationsTotal = 0;
+		int numMutateFieldGeneMutationsTotal = 0;
+		int numMutateConnectionGeneMutationsTotal = 0;
+		int numToggleConnectionGeneMutationsTotal = 0;
+
+		GenomeStatistics() = default;
+		void resetPerGenerationStatistics();
+		std::string toString() const;
+		void print() const;
+	};
+
+
 	class Genome
 	{
 	private:
 		std::vector<FieldGene> fieldGenes;
 		std::vector<ConnectionGene> connectionGenes;
 		static std::map<ConnectionTuple, int> connectionTupleAndInnovationNumberWithinGeneration;
+		static GenomeStatistics statistics;
+		std::string lastMutationType;
 	public:
 		Genome() = default;
 
@@ -30,6 +53,10 @@ namespace neat_dnfs
 		std::vector<ConnectionGene> getConnectionGenes() const;
 		std::vector<int> getInnovationNumbers() const;
 		static int getGlobalInnovationNumber();
+		static GenomeStatistics getStatistics();
+		std::string getLastMutationType() const;
+
+		void resetMutationStatisticsPerGeneration() const;
 
 		int excessGenes(const Genome& other) const;
 		int disjointGenes(const Genome& other) const;
@@ -56,7 +83,7 @@ namespace neat_dnfs
 
 		void addConnectionGene(ConnectionTuple connectionTuple);
 		void addGene();
-		void mutateGene() const;
+		void mutateGene();
 		void addConnectionGene();
 		void mutateConnectionGene();
 		void toggleConnectionGene();

@@ -172,16 +172,12 @@ namespace neat_dnfs
 
 	std::string Species::toString() const
 	{
-		std::string str = "Species " + std::to_string(id);
-		str += " { Age: " + std::to_string(age);
-		str += ", Extinct: " + std::string((extinct ? "Yes" : "No"));
-		str += " { Offspring count: " + std::to_string(offspringCount);
-		str += ", Members count: " + std::to_string(members.size());
-		str += " Rep.: " + (representative == nullptr ? "None" :
-			" { Add.: " + representative->getAddress()
-			+ ", Fit.: " + std::to_string(representative->getParameters().fitness) 
-			+ ", CG: " + std::to_string(representative->getGenomeSize())
-			+ ", FG: " + std::to_string(representative->getNumFieldGenes()) + " }");
+		std::string str = "species " + std::to_string(id);
+		str += " [ age: " + std::to_string(age);
+		str += ", extinct: " + std::string((extinct ? "yes" : "no"));
+		str += "  offs.: " + std::to_string(offspringCount);
+		str += ", mem: " + std::to_string(members.size());
+		str += " rep.: {" + (representative == nullptr ? "none}]" : representative->toString()) + "}]";
 		return str;
 	}
 

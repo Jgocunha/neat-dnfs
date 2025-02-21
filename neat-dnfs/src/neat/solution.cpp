@@ -8,7 +8,8 @@ namespace neat_dnfs
 		initialTopology(initialTopology),
 		parameters(),
 		phenotype(std::make_shared<dnf_composer::Simulation>(SimulationConstants::name + std::to_string(id), SimulationConstants::deltaT)),
-		genome()
+		genome(),
+		parents()
 	{
 		// views::keys can be used
 		for(const auto& geneTypeAndDimension : initialTopology.geneTopology)
@@ -39,6 +40,16 @@ namespace neat_dnfs
 	void Solution::mutate()
 	{
 		genome.mutate();
+	}
+
+	void Solution::setSpeciesId(int speciesId)
+	{
+		parameters.speciesId = speciesId;
+	}
+
+	void Solution::setParents(const SolutionPtr& parent1, const SolutionPtr& parent2)
+	{
+		parents = std::make_tuple(parent1, parent2);
 	}
 
 	PhenotypePtr Solution::getPhenotype() const
@@ -84,7 +95,7 @@ namespace neat_dnfs
 		return genome.getInnovationNumbers();
 	}
 
-	void Solution::buildPhenotype()
+	void Solution::buildPhenotype() const
 	{
 		clearPhenotype();
 		translateGenesToPhenotype();
@@ -112,7 +123,7 @@ namespace neat_dnfs
 				genome.addHiddenGene(gene.second);
 	}
 
-	void Solution::translateGenesToPhenotype()
+	void Solution::translateGenesToPhenotype() const
 	{
 		using namespace dnf_composer::element;
 
@@ -175,7 +186,7 @@ namespace neat_dnfs
 		}
 	}
 
-	void Solution::clearPhenotype()
+	void Solution::clearPhenotype() const
 	{
 		for (auto const& element : phenotype->getElements())
 			phenotype->removeElement(element->getUniqueName());
@@ -183,7 +194,7 @@ namespace neat_dnfs
 			throw std::runtime_error("Phenotype elements were not cleared correctly.");
 	}
 
-	void Solution::translateConnectionGenesToPhenotype()
+	void Solution::translateConnectionGenesToPhenotype() const
 	{
 		using namespace dnf_composer::element;
 
@@ -202,6 +213,11 @@ namespace neat_dnfs
 					"output", "nf " + std::to_string(targetId));
 			}
 		}
+	}
+
+	void Solution::resetMutationStatisticsPerGeneration() const
+	{
+		genome.resetMutationStatisticsPerGeneration();
 	}
 
 	bool Solution::containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const
@@ -249,6 +265,7 @@ namespace neat_dnfs
 		const SolutionPtr lessFitParent = self->getFitness() > other->getFitness() ? other : self;
 
 		SolutionPtr offspring = moreFitParent->clone();
+		offspring->setParents(moreFitParent, lessFitParent);
 
 		for (const auto& gene : moreFitParent->getGenome().getFieldGenes())
 			offspring->addFieldGene(gene.clone());
@@ -350,29 +367,23 @@ namespace neat_dnfs
 		return parameters == other->parameters;
 	}
 
-	bool Solution::hasTheSamePhenotype(const SolutionPtr& other) const
-	{
-		log(tools::logger::LogLevel::FATAL, "Checking if phenotypes are the same. "
-			"Functionality still not implemented.");
-		return false;
-	}
-
-	bool Solution::operator==(const SolutionPtr& other) const
-	{
-		return hasTheSameTopology(other) && hasTheSameGenome(other) && hasTheSameParameters(other);
-	}
-
 	std::string Solution::toString() const
 	{
-		std::stringstream address;
-		address << this;
-		std::string result = "Solution: " + std::to_string(id);
-		result += " { Address: " + address.str();
-		result += " } \n" + parameters.toString() + "\n";
-		result += genome.toString() + "\n";
-		//result += "Phenotype: \n";
-		//for (const auto& element : phenotype->getElements())
-			//result += element->toString() + "\n";
+		// solution id [ age, fit. spec., adj. fit., Parents, Genome, Mutation]
+
+		// nullptr check for parents
+		std::string parentsString;
+		if (parents == std::make_tuple(nullptr, nullptr))
+			parentsString = "parents (null, null)";
+		else
+			parentsString = "parents (" + std::to_string(std::get<0>(parents)->getId()) + ", " + std::to_string(std::get<1>(parents)->getId()) + ")";
+
+		std::string result = "solution " + std::to_string(id);
+		result += " [" + parameters.toString() + ", ";
+		result += parentsString + ", ";
+		result += genome.toString();
+		result += ", mutation(" + genome.getLastMutationType();
+		result += ")]";
 		return result;
 	}
 

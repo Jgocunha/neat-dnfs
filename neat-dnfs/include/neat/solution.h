@@ -20,22 +20,6 @@ namespace neat_dnfs
 		{
 			return geneTopology == other.geneTopology;
 		}
-
-		/*std::string toString() const
-		{
-			std::string result = "Initial solution topology \n"
-				"InputGenes: " + std::to_string(numInputGenes) +
-				", OutputGenes: " + std::to_string(numOutputGenes) +
-				", HiddenGenes: " + std::to_string(numHiddenGenes) +
-				", Connections: " + std::to_string(numConnections);
-			return result;
-			return "Initial solution topology to do";
-		}
-
-		void print() const
-		{
-			tools::logger::log(tools::logger::INFO, toString());
-		}*/
 	};
 
 	struct SolutionParameters
@@ -43,12 +27,13 @@ namespace neat_dnfs
 		double fitness;
 		double adjustedFitness;
 		int age;
+		int speciesId;
 		// bumps really should be a parameter?
 		std::vector<dnf_composer::element::NeuralFieldBump> bumps;
 
 		SolutionParameters(double fitness = 0.0,
 			double adjustedFitness = 0.0, int age = 0)
-			: fitness(fitness), adjustedFitness(adjustedFitness), age(age)
+			: fitness(fitness), adjustedFitness(adjustedFitness), age(age), speciesId(-1)
 			, bumps({})
 		{}
 
@@ -63,9 +48,10 @@ namespace neat_dnfs
 		std::string toString() const
 		{
 			std::string result = 
-				"{ Fitness: " + std::to_string(fitness) +
-				", AdjustedFitness: " + std::to_string(adjustedFitness) +
-				", Age: " + std::to_string(age) + " }";
+				" fit.: " + std::to_string(fitness) +
+				", spec.: " + std::to_string(speciesId) +
+				", adj.fit.: " + std::to_string(adjustedFitness) +
+				", age: " + std::to_string(age);
 			return result;
 		}
 
@@ -85,6 +71,7 @@ namespace neat_dnfs
 		SolutionParameters parameters;
 		PhenotypePtr phenotype;
 		Genome genome;
+		std::tuple <SolutionPtr, SolutionPtr> parents;
 	public:
 		Solution(const SolutionTopology& initialTopology);
 		virtual SolutionPtr clone() const = 0;
@@ -92,6 +79,10 @@ namespace neat_dnfs
 		void evaluate();
 		void initialize();
 		void mutate();
+		void setSpeciesId(int speciesId);
+		void setParents(const SolutionPtr& parent1, const SolutionPtr& parent2);
+		int getSpeciesId() const { return parameters.speciesId; }
+		std::tuple<SolutionPtr, SolutionPtr> getParents() const { return parents; }
 		PhenotypePtr getPhenotype() const;
 		Genome getGenome() const;
 		SolutionParameters getParameters() const;
@@ -105,8 +96,8 @@ namespace neat_dnfs
 		void clearGenerationalInnovations() const;
 		void incrementAge();
 		void setAdjustedFitness(double adjustedFitness);
-		void buildPhenotype();
-		void clearPhenotype();
+		void buildPhenotype() const;
+		void clearPhenotype() const;
 		void addFieldGene(const FieldGene& gene);
 		void addConnectionGene(const ConnectionGene& gene);
 		bool containsConnectionGene(const ConnectionGene& gene) const;
@@ -114,17 +105,17 @@ namespace neat_dnfs
 		bool hasTheSameTopology(const SolutionPtr& other) const;
 		bool hasTheSameParameters(const SolutionPtr& other) const;
 		bool hasTheSameGenome(const SolutionPtr& other) const;
-		bool hasTheSamePhenotype(const SolutionPtr& other) const;
-		bool operator==(const SolutionPtr& other) const;
 		std::string toString() const;
 		void print() const;
 		virtual void createPhenotypeEnvironment() = 0;
+		void resetMutationStatisticsPerGeneration() const;
 	private:
 		void createInputGenes();
 		void createOutputGenes();
 		void createHiddenGenes();
-		void translateGenesToPhenotype();
-		void translateConnectionGenesToPhenotype();
+		void translateGenesToPhenotype() const;
+		void translateConnectionGenesToPhenotype() const;
+
 	protected:
 		virtual void testPhenotype() = 0;
 		void initSimulation();

@@ -36,10 +36,34 @@ namespace neat_dnfs
 		void print() const;
 	};
 
+	struct ConnectionGeneStatistics
+	{
+		int numKernelMutationsPerGeneration = 0;
+		int numKernelTypeMutationsPerGeneration = 0;
+		int numGaussKernelMutationsPerGeneration = 0;
+		int numMexicanHatKernelMutationsPerGeneration = 0;
+		int numOscillatoryKernelMutationsPerGeneration = 0;
+		int numConnectionSignalMutationsPerGeneration = 0;
+
+		int numKernelMutationsTotal = 0;
+		int numKernelTypeMutationsTotal = 0;
+		int numGaussKernelMutationsTotal = 0;
+		int numMexicanHatKernelMutationsTotal = 0;
+		int numOscillatoryKernelMutationsTotal = 0;
+		int numConnectionSignalMutationsTotal = 0;
+
+		ConnectionGeneStatistics() = default;
+		void resetPerGenerationStatistics();
+		std::string toString() const;
+		void print() const;
+	};
+
+
 	class ConnectionGene
 	{
 	private:
 		ConnectionGeneParameters parameters;
+		static ConnectionGeneStatistics statistics;
 		KernelPtr kernel;
 	public:
 		ConnectionGene(ConnectionTuple connectionTuple, int innov);
@@ -75,6 +99,8 @@ namespace neat_dnfs
 		int getOutFieldGeneId() const;
 		double getKernelAmplitude() const;
 		double getKernelWidth() const;
+		static void resetMutationStatisticsPerGeneration();
+		static ConnectionGeneStatistics getStatistics();
 
 		bool operator==(const ConnectionGene&) const;
 		bool isCloneOf(const ConnectionGene&) const;
