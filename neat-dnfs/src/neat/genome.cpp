@@ -445,21 +445,21 @@ namespace neat_dnfs
 		return geneIds[randomValue];
 	}
 
-	ConnectionGene Genome::getEnabledConnectionGene() const
+	ConnectionGene* Genome::getEnabledConnectionGene() const
 	{
-		std::vector<ConnectionGene> enabledConnectionGenes;
+		std::vector<ConnectionGene*> enabledConnectionGenes;
 		for (const auto& connectionGene : connectionGenes)
 		{
 			if (connectionGene.isEnabled())
-				enabledConnectionGenes.push_back(connectionGene);
+				enabledConnectionGenes.push_back(const_cast<ConnectionGene*>(&connectionGene));
 		}
 
 		if (enabledConnectionGenes.empty())
-			return ConnectionGene{ {0, 0}, 0};
+			return nullptr; // Return nullptr instead of a temporary object
 
-		const double randomValue = tools::utils::generateRandomDouble(0, static_cast<int>(enabledConnectionGenes.size()) - 1);
-
-		return enabledConnectionGenes[static_cast<int>(randomValue)];
+		// Generate a random valid index
+		const int randomIndex = tools::utils::generateRandomInt(0, static_cast<int>(enabledConnectionGenes.size()) - 1);
+		return enabledConnectionGenes[randomIndex];
 	}
 
 	void Genome::addConnectionGene(ConnectionTuple connectionTuple)
@@ -487,22 +487,22 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer::element;
 
-		auto randEnabledConnectionGene = getEnabledConnectionGene();
-		if (randEnabledConnectionGene.getParameters().connectionTuple == ConnectionTuple{ 0, 0 })
+		ConnectionGene* randEnabledConnectionGene = getEnabledConnectionGene();
+		if (randEnabledConnectionGene == nullptr)
 			return;
-		randEnabledConnectionGene.disable();
+		randEnabledConnectionGene->disable();
 
-		const auto inGeneId = randEnabledConnectionGene.getParameters().connectionTuple.inFieldGeneId;
-		const auto outGeneId = randEnabledConnectionGene.getParameters().connectionTuple.outFieldGeneId;
-		const auto kernel = randEnabledConnectionGene.getKernel();
+		const auto inGeneId = randEnabledConnectionGene->getParameters().connectionTuple.inFieldGeneId;
+		const auto outGeneId = randEnabledConnectionGene->getParameters().connectionTuple.outFieldGeneId;
+		const auto kernel = randEnabledConnectionGene->getKernel();
 
 		addHiddenGene({ DimensionConstants::xSize, DimensionConstants::dx });
 
 		// create two new connection genes
 		// when creating the two new connection genes we have to obey the same rules in add connection gene mutation
 
-		ConnectionTuple connectionTupleIn{ inGeneId, fieldGenes.back().getParameters().id };
-		ConnectionTuple connectionTupleOut{ fieldGenes.back().getParameters().id, outGeneId };
+		const ConnectionTuple connectionTupleIn{ inGeneId, fieldGenes.back().getParameters().id };
+		const ConnectionTuple connectionTupleOut{ fieldGenes.back().getParameters().id, outGeneId };
 		int innovIn = getInnovationNumberOfTupleWithinGeneration(connectionTupleIn);
 		int innovOut = getInnovationNumberOfTupleWithinGeneration(connectionTupleOut);
 

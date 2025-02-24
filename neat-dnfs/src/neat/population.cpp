@@ -246,7 +246,7 @@ namespace neat_dnfs
 		assignOffspringBasedOnAdjustedFitness();
 
 		// after X generations if fitness did not improve, the species is not allowed to reproduce
-		reassignOffspringIfFitnessIsStagnant();
+		//reassignOffspringIfFitnessIsStagnant();
 	}
 
 	void Population::clearSpeciesOffspring()
@@ -445,7 +445,7 @@ namespace neat_dnfs
 		bs = bestSolution;
 		bsf = bs->getFitness();
 
-		static constexpr double epsilon = 0.005;
+		static constexpr double epsilon = 0.000;
 		const bool bsDecreased = bsf < pbsf - epsilon;
 		bool pbsInPopulation = false;
 
