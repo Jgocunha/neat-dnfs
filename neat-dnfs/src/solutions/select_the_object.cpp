@@ -34,13 +34,14 @@ namespace neat_dnfs
 		// nf 3 - input - hand position field (hpf)
 		// nf 4 - output - target action field (taf)
 
-		static constexpr double wf1 = 0.10; // multi bump sof
-		static constexpr double wf2 = 0.15; // sof creates a selective single bump in taf
-		static constexpr double wf3 = 0.10; // lof single bump
-		static constexpr double wf4 = 0.15; // lof pre-shapes taf
-		static constexpr double wf5 = 0.15; // hpf inhibits sof activation in taf
-		static constexpr double wf6 = 0.15; // lof wins over sof in taf
-		static constexpr double wf7 = 0.20; // without hpf, sof wins over lof in taf
+		static constexpr double wf1 = 0.125; // multi bump sof
+		static constexpr double wf2 = 0.125; // sof creates a selective single bump in taf
+		static constexpr double wf3 = 0.125; // lof single bump
+		static constexpr double wf4 = 0.125; // lof pre-shapes taf
+		static constexpr double wf5 = 0.125; // hpf inhibits sof activation in taf
+		static constexpr double wf6 = 0.125; // lof wins over sof in taf
+		static constexpr double wf7 = 0.125; // without hpf, sof wins over lof in taf
+		static constexpr double wf8 = 0.125; // hpf inhibits lof activation in taf
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
@@ -103,6 +104,21 @@ namespace neat_dnfs
 		runSimulation(iterations);
 		const double f7 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0, 80.0 }, out_amp, out_width);
 		parameters.fitness += wf7 * f7;
+
+		removeGaussianStimuli();
+		initSimulation();
+		addGaussianStimulus("nf 1",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		addGaussianStimulus("nf 1",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		addGaussianStimulus("nf 3",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		const double f8 = negativePreShapednessAtPosition("nf 4", 20);
+		parameters.fitness += wf8 * f8;
 
 		removeGaussianStimuli();
 	}

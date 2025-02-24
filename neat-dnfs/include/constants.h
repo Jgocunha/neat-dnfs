@@ -232,7 +232,7 @@ namespace neat_dnfs
 	struct PopulationConstants
 	{
 		static constexpr bool parallelEvolution = true;
-		static constexpr double pruneRatio = 0.2;
+		static constexpr double pruneRatio = 0.8;
 
 		static constexpr bool validateUniqueSolutions = true;
 		static constexpr bool validatePopulationSize = true;
@@ -241,7 +241,7 @@ namespace neat_dnfs
 		static constexpr bool validateUniqueKernelAndNeuralFieldPtrs = true;
 		static constexpr bool validateIfSpeciesHaveUniqueRepresentative = true;
 
-		static constexpr bool logSolutions = false;
+		static constexpr bool logSolutions = true;
 		static constexpr bool logOverview = true;
 		static constexpr bool logSpecies = true;
 		static constexpr bool logMutationStatistics = false;

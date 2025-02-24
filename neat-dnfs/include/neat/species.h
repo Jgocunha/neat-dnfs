@@ -15,6 +15,7 @@ namespace neat_dnfs
         int id;
         int offspringCount;
         SolutionPtr representative;
+        SolutionPtr champion;
         std::vector<SolutionPtr> members;
         std::vector<SolutionPtr> offspring;
         bool extinct;
@@ -23,9 +24,12 @@ namespace neat_dnfs
         Species();
         void setRepresentative(const SolutionPtr& newRepresentative);
         void randomlyAssignRepresentative();
+        void assignChampion();
+
         size_t size() const;
         void setOffspringCount(int count);
         SolutionPtr getRepresentative() const;
+        SolutionPtr getChampion() const;
         int getId() const;
         double totalAdjustedFitness() const;
         int getOffspringCount() const;
@@ -41,6 +45,7 @@ namespace neat_dnfs
         void pruneWorsePerformingMembers(double ratio);
     	void crossover();
         void replaceMembersWithOffspring();
+        void copyChampionToNextGeneration();
 
         std::string toString() const;
         void print() const;

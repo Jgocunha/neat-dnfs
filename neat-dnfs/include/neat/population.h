@@ -74,6 +74,7 @@ namespace neat_dnfs
 		void assignOffspringToSpecies();
 		void pruneWorsePreformingSolutions();
 		void replaceEntirePopulationWithOffspring();
+		void copyChampionToNextGeneration();
 		void mutate() const;
 
 		void upkeepBestSolution();

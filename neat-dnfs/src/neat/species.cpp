@@ -22,6 +22,15 @@ namespace neat_dnfs
 		representative = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
 	}
 
+	void Species::assignChampion()
+	{
+		if (members.empty())
+			return;
+
+		sortMembersByFitness();
+		champion = members[0];
+	}
+
 	size_t Species::size() const
 	{
 		return members.size();
@@ -170,6 +179,23 @@ namespace neat_dnfs
 			members.push_back(child);
 	}
 
+	void Species::copyChampionToNextGeneration()
+	{
+		if (champion == nullptr)
+			return;
+
+		const size_t initialMembersSize = members.size();
+		members.pop_back();
+		members.push_back(champion);
+		const size_t finalMembersSize = members.size();
+
+		if (initialMembersSize != finalMembersSize)
+		{
+			log(tools::logger::LogLevel::FATAL, "Champion was not added to the species.");
+			throw std::runtime_error("Champion was not added to the species.");
+		}
+	}
+
 	std::string Species::toString() const
 	{
 		std::string str = "species " + std::to_string(id);
@@ -177,7 +203,8 @@ namespace neat_dnfs
 		str += ", extinct: " + std::string((extinct ? "yes" : "no"));
 		str += "  offs.: " + std::to_string(offspringCount);
 		str += ", mem: " + std::to_string(members.size());
-		str += " rep.: {" + (representative == nullptr ? "none}]" : representative->toString()) + "}]";
+		str += " rep.: {" + (representative == nullptr ? "none}]" : representative->toString()) + "}";
+		str += " champ.: {" + (champion == nullptr ? "none}]" : champion->toString()) + "}]";
 		return str;
 	}
 

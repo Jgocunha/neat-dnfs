@@ -163,6 +163,7 @@ namespace neat_dnfs
 				}
 				assigned = true;
 				species.randomlyAssignRepresentative();
+				species.assignChampion();
 				break;
 			}
 		}
@@ -174,6 +175,7 @@ namespace neat_dnfs
 			newSpecies.addSolution(solution);
 			solution->setSpeciesId(newSpecies.getId());
 			newSpecies.randomlyAssignRepresentative();
+			newSpecies.assignChampion();
 			speciesList.push_back(newSpecies);
 		}
 	}
@@ -276,10 +278,16 @@ namespace neat_dnfs
 	{
 		// the entire population is then replaced by the offspring
 		// of the remaining organisms in each species
+
+		// the champion of each species with more than five networks
+		// is copied into the next generation unchanged
+
 		for (auto& species : speciesList)
 		{
 			species.crossover(); // creation of offspring
-			species.replaceMembersWithOffspring(); // replacement of population
+			species.replaceMembersWithOffspring(); // replacement of population with offspring
+			if (species.size() > 5)
+				species.copyChampionToNextGeneration(); // elitism
 		}
 		solutions.clear();
 		solutions.reserve(parameters.size);
@@ -343,16 +351,16 @@ namespace neat_dnfs
 					const double opbsf = pbsf;
 					const double npbsf = solution->getFitness();
 
-					log(tools::logger::LogLevel::FATAL, "Fitness decreased but previous best solution is in the population.");
+					log(tools::logger::LogLevel::WARNING, "Fitness decreased but previous best solution is in the population.");
 
 					if (bs == pbs)
-						log(tools::logger::LogLevel::FATAL, "Best solution is the same as previous best solution.");
+						log(tools::logger::LogLevel::WARNING, "Best solution is the same as previous best solution.");
 					else
-						log(tools::logger::LogLevel::FATAL, "Best solution is not the same as previous best solution.");
+						log(tools::logger::LogLevel::ERROR, "Best solution is not the same as previous best solution.");
 
-					log(tools::logger::LogLevel::FATAL, "Best solution address: " + addr_bs.str() + " Fitness: " + std::to_string(bsf));
-					log(tools::logger::LogLevel::FATAL, "New previous best solution address: " + addr_npbs.str() + " Fitness: " + std::to_string(npbsf));
-					log(tools::logger::LogLevel::FATAL, "Old previous best solution address: " + addr_opbs.str() + " Fitness: " + std::to_string(opbsf));
+					//log(tools::logger::LogLevel::FATAL, "Best solution address: " + addr_bs.str() + " Fitness: " + std::to_string(bsf));
+					//log(tools::logger::LogLevel::FATAL, "New previous best solution address: " + addr_npbs.str() + " Fitness: " + std::to_string(npbsf));
+					//log(tools::logger::LogLevel::FATAL, "Old previous best solution address: " + addr_opbs.str() + " Fitness: " + std::to_string(opbsf));
 
 					pbsInPopulation = true;
 					break;
