@@ -44,6 +44,7 @@ namespace neat_dnfs
 		void addInputGene(const dnf_composer::element::ElementDimensions& dimensions);
 		void addOutputGene(const dnf_composer::element::ElementDimensions& dimensions);
 		void addHiddenGene(const dnf_composer::element::ElementDimensions& dimensions);
+
 		void mutate();
 		void checkForDuplicateConnectionGenes() const;
 		static void clearGenerationalInnovations();

@@ -27,6 +27,19 @@ namespace neat_dnfs
 		if (members.empty())
 			return;
 
+		const double prevFitness = champion == nullptr ? 0 : champion->getParameters().fitness;
+		const double currentFitness = members[0]->getParameters().fitness;
+		if (currentFitness > prevFitness)
+		{
+			hasFitnessImproved = true;
+			generationsSinceFitnessImproved = 0;
+		}
+		else
+		{
+			hasFitnessImproved = false;
+			generationsSinceFitnessImproved++;
+		}
+
 		sortMembersByFitness();
 		champion = members[0];
 	}
@@ -44,6 +57,11 @@ namespace neat_dnfs
 	SolutionPtr Species::getRepresentative() const
 	{
 		return representative;
+	}
+
+	SolutionPtr Species::getChampion() const
+	{
+		return champion;
 	}
 
 	int Species::getId() const
@@ -73,6 +91,13 @@ namespace neat_dnfs
 	bool Species::isExtinct() const
 	{
 		return extinct;
+	}
+
+	bool Species::hasFitnessImprovedOverTheLastGenerations() const
+	{
+		if (generationsSinceFitnessImproved >= PopulationConstants::generationsWithoutImprovementThresholdInSpecies)
+			return false;
+		return true;
 	}
 
 	void Species::incrementAge()
@@ -201,6 +226,8 @@ namespace neat_dnfs
 		std::string str = "species " + std::to_string(id);
 		str += " [ age: " + std::to_string(age);
 		str += ", extinct: " + std::string((extinct ? "yes" : "no"));
+		str += ", improved: " + std::string((hasFitnessImproved ? "yes" : "no"));
+		str += ", gens. since imp.: " + std::to_string(generationsSinceFitnessImproved);
 		str += "  offs.: " + std::to_string(offspringCount);
 		str += ", mem: " + std::to_string(members.size());
 		str += " rep.: {" + (representative == nullptr ? "none}]" : representative->toString()) + "}";

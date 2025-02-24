@@ -20,6 +20,8 @@ namespace neat_dnfs
         std::vector<SolutionPtr> offspring;
         bool extinct;
         int age;
+        bool hasFitnessImproved;
+        int generationsSinceFitnessImproved;
     public:
         Species();
         void setRepresentative(const SolutionPtr& newRepresentative);
@@ -35,6 +37,7 @@ namespace neat_dnfs
         int getOffspringCount() const;
         std::vector<SolutionPtr> getMembers() const;
         bool isExtinct() const;
+        bool hasFitnessImprovedOverTheLastGenerations() const;
         void incrementAge();
 
         void addSolution(const SolutionPtr& solution);

@@ -87,6 +87,15 @@ namespace neat_dnfs
 	{
 		upkeepBestSolution();
 
+		if (PopulationConstants::logSolutions)
+			logSolutions();
+		if (PopulationConstants::logOverview)
+			logOverview();
+		if (PopulationConstants::logSpecies)
+			logSpecies();
+		if (PopulationConstants::logMutationStatistics)
+			logMutationStatistics();
+
 		if (PopulationConstants::validatePopulationSize)
 			validatePopulationSize();
 		if (PopulationConstants::validateUniqueSolutions)
@@ -99,15 +108,6 @@ namespace neat_dnfs
 			validateUniqueKernelAndNeuralFieldPtrs();
 		if (PopulationConstants::validateIfSpeciesHaveUniqueRepresentative)
 			validateIfSpeciesHaveUniqueRepresentative();
-
-		if (PopulationConstants::logSolutions)
-			logSolutions();
-		if (PopulationConstants::logOverview)
-			logOverview();
-		if (PopulationConstants::logSpecies)
-			logSpecies();
-		if (PopulationConstants::logMutationStatistics)
-			logMutationStatistics();
 
 		resetGenerationalInnovations();
 		updateGenerationAndAges();
@@ -188,6 +188,23 @@ namespace neat_dnfs
 		return nullptr;
 	}
 
+	Species* Population::getBestActiveSpecies()
+	{
+		Species* bestSpecies = nullptr;
+		double bestFitness = 0.0;
+		for (auto& species : speciesList)
+		{
+			if (species.isExtinct())
+				continue;
+			if (species.getChampion()->getFitness() > bestFitness)
+			{
+				bestFitness = species.getChampion()->getFitness();
+				bestSpecies = &species;
+			}
+		}
+		return bestSpecies;
+	}
+
 	void Population::calculateAdjustedFitness()
 	{
 		for (const auto& solution : solutions)
@@ -207,9 +224,83 @@ namespace neat_dnfs
 
 	void Population::assignOffspringToSpecies()
 	{
+		clearSpeciesOffspring();
+
+		// if fitness of population does not improve for Y generations
+		// only the top two species are allowed to reproduce
+		// (a species is "better than the other" based on its champion)
+		const int numActiveSpecies = std::ranges::count_if(speciesList.begin(), speciesList.end(), [](const Species& species)
+			{ return !species.isExtinct(); });
+
+		if (numActiveSpecies > 2)
+		{
+			if (!hasFitnessImprovedOverTheLastGenerations())
+			{
+				assignOffspringToTopTwoSpecies();
+				return;
+			}
+		}
+
 		// every species is assigned a potentially different number of offspring
 		// in proportion to the sum of adjusted fitness of its members fitness
+		assignOffspringBasedOnAdjustedFitness();
 
+		// after X generations if fitness did not improve, the species is not allowed to reproduce
+		reassignOffspringIfFitnessIsStagnant();
+	}
+
+	void Population::clearSpeciesOffspring()
+	{
+		for (auto& species : speciesList)
+			species.setOffspringCount(0);
+	}
+
+	bool Population::hasFitnessImprovedOverTheLastGenerations()
+	{
+		static double previousBestFitness = 0.0;
+		static int generationsWithoutImprovement = 0;
+
+		if (bestSolution->getFitness() > previousBestFitness)
+		{
+			previousBestFitness = bestSolution->getFitness();
+			generationsWithoutImprovement = 0;
+			hasFitnessImproved = true;
+			return true;
+		}
+		hasFitnessImproved = false;
+		generationsWithoutImprovement++;
+		if (generationsWithoutImprovement >= PopulationConstants::generationsWithoutImprovementThresholdInPopulation)
+			return false;
+
+		return true;
+	}
+
+	void Population::assignOffspringToTopTwoSpecies()
+	{
+		// sort the two best species to the beginning of the list
+		// species cannot be extinct! 
+		std::ranges::sort(speciesList, [](const auto& a, const auto& b) {
+			if (a.isExtinct() != b.isExtinct()) {
+				return !a.isExtinct(); // Non-extinct species come first
+			}
+			return a.getChampion()->getFitness() > b.getChampion()->getFitness(); // Sort by fitness
+			});
+
+		// Assign offspring count only to the top two **non-extinct** species
+		int assigned = 0;
+		for (auto& species : speciesList) 
+		{
+			if (!species.isExtinct()) 
+			{
+				species.setOffspringCount(parameters.size / 2);
+				if (++assigned == 2) break; // Stop after assigning two species
+			}
+		}
+		log(tools::logger::LogLevel::WARNING, "Assigned offspring to top two species.");
+	}
+
+	void Population::assignOffspringBasedOnAdjustedFitness()
+	{
 		double total_adjusted_fitness = 0.0;
 
 		// Step 1: Calculate total adjusted fitness
@@ -264,7 +355,28 @@ namespace neat_dnfs
 				assigned_offspring++;
 			}
 		}
+	}
 
+	void Population::reassignOffspringIfFitnessIsStagnant()
+	{
+		int totalOffspringToReassign = 0;
+		for (auto& species : speciesList)
+		{
+			if (species.getOffspringCount() == 0)
+				continue;
+
+			if (!species.hasFitnessImprovedOverTheLastGenerations())
+			{
+				totalOffspringToReassign += species.getOffspringCount();
+				species.setOffspringCount(0);
+			}
+		}
+		if (totalOffspringToReassign == 0)
+			return;
+		// give the offspring to the top species
+		Species* topSpecies = getBestActiveSpecies();
+		topSpecies->setOffspringCount(topSpecies->getOffspringCount() + totalOffspringToReassign);
+		log(tools::logger::LogLevel::WARNING, "Reassigned " + std::to_string(totalOffspringToReassign) + " offspring to the top species.");
 	}
 
 	void Population::pruneWorsePreformingSolutions()
@@ -286,8 +398,9 @@ namespace neat_dnfs
 		{
 			species.crossover(); // creation of offspring
 			species.replaceMembersWithOffspring(); // replacement of population with offspring
-			if (species.size() > 5)
-				species.copyChampionToNextGeneration(); // elitism
+			if (PopulationConstants::elitism)
+				if (species.size() > 5)
+					species.copyChampionToNextGeneration(); // elitism
 		}
 		solutions.clear();
 		solutions.reserve(parameters.size);
@@ -301,7 +414,8 @@ namespace neat_dnfs
 	void Population::mutate() const
 	{
 		for (const auto& solution : solutions)
-			solution->mutate();
+			if (solution != bestSolution)
+				solution->mutate();
 	}
 
 	bool Population::endConditionMet() const
@@ -331,7 +445,8 @@ namespace neat_dnfs
 		bs = bestSolution;
 		bsf = bs->getFitness();
 
-		const bool bsDecreased = bsf < pbsf;
+		static constexpr double epsilon = 0.005;
+		const bool bsDecreased = bsf < pbsf - epsilon;
 		bool pbsInPopulation = false;
 
 		if (bsDecreased)
@@ -605,8 +720,8 @@ namespace neat_dnfs
 			"Current generation: " + std::to_string(parameters.currentGeneration) +
 			" Number of solutions: " + std::to_string(solutions.size()) +
 			" Number of active species: " + std::to_string(numActiveSpecies) +
-			" Best solution: [" + bestSolution->toString() + "]"
-		);
+			" Has fitness improved: " + (hasFitnessImproved ? "yes" : "no") +
+			" Best solution: [" + bestSolution->toString() + "]");
 	}
 
 	void Population::logMutationStatistics() const

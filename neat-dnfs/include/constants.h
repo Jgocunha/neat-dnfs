@@ -144,7 +144,7 @@ namespace neat_dnfs
 		static constexpr double disjointGenesCompatibilityWeight = 0.5;
 		static constexpr double averageConnectionDifferenceCompatibilityWeight = 0.0;
 
-		static constexpr double amplitudeDifferenceCoefficient = 0.4;
+		static constexpr double amplitudeDifferenceCoefficient = 0.6;
 		static constexpr double widthDifferenceCoefficient = 0.4;
 	};
 
@@ -162,7 +162,7 @@ namespace neat_dnfs
 
 	struct FieldGeneConstants
 	{
-		static constexpr bool variableParameters = true;
+		static constexpr bool variableParameters = false;
 
 		static constexpr double gaussKernelProbability = 0.5;
 		static constexpr double mexicanHatKernelProbability = 0.5;
@@ -232,7 +232,10 @@ namespace neat_dnfs
 	struct PopulationConstants
 	{
 		static constexpr bool parallelEvolution = true;
-		static constexpr double pruneRatio = 0.8;
+		static constexpr double pruneRatio = 0.4;
+		static constexpr int generationsWithoutImprovementThresholdInPopulation = 10;
+		static constexpr int generationsWithoutImprovementThresholdInSpecies = 5;
+		static constexpr bool elitism = true;
 
 		static constexpr bool validateUniqueSolutions = true;
 		static constexpr bool validatePopulationSize = true;
@@ -241,9 +244,9 @@ namespace neat_dnfs
 		static constexpr bool validateUniqueKernelAndNeuralFieldPtrs = true;
 		static constexpr bool validateIfSpeciesHaveUniqueRepresentative = true;
 
-		static constexpr bool logSolutions = true;
+		static constexpr bool logSolutions = false;
 		static constexpr bool logOverview = true;
-		static constexpr bool logSpecies = true;
+		static constexpr bool logSpecies = false;
 		static constexpr bool logMutationStatistics = false;
 	};
 }

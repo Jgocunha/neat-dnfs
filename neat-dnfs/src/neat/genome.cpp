@@ -56,6 +56,7 @@ namespace neat_dnfs
 			static_cast<int>(index) }, dimensions));
 	}
 
+
 	void Genome::mutate()
 	{
 		constexpr double totalProbability = GenomeMutationConstants::addFieldGeneProbability +

@@ -35,6 +35,7 @@ namespace neat_dnfs
 		std::vector<Species> speciesList;
 		SolutionPtr bestSolution;
 		PopulationControl control;
+		bool hasFitnessImproved;
 	public:
 		Population(const PopulationParameters& parameters, 
 			const SolutionPtr& initialSolution);
@@ -69,12 +70,18 @@ namespace neat_dnfs
 
 		void assignToSpecies(const SolutionPtr& solution);
 		Species* findSpecies(const SolutionPtr& solution);
+		Species* getBestActiveSpecies();
 
 		void calculateAdjustedFitness();
 		void assignOffspringToSpecies();
+		void clearSpeciesOffspring();
+		bool hasFitnessImprovedOverTheLastGenerations();
+		void assignOffspringToTopTwoSpecies();
+		void assignOffspringBasedOnAdjustedFitness();
+		void reassignOffspringIfFitnessIsStagnant();
+
 		void pruneWorsePreformingSolutions();
 		void replaceEntirePopulationWithOffspring();
-		void copyChampionToNextGeneration();
 		void mutate() const;
 
 		void upkeepBestSolution();
