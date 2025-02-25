@@ -34,8 +34,10 @@ namespace neat_dnfs
 		std::vector<SolutionPtr> solutions;
 		std::vector<Species> speciesList;
 		SolutionPtr bestSolution;
+		std::vector<SolutionPtr> champions;
 		PopulationControl control;
 		bool hasFitnessImproved;
+		int generationsWithoutImprovement = 0;
 	public:
 		Population(const PopulationParameters& parameters, 
 			const SolutionPtr& initialSolution);
@@ -82,9 +84,10 @@ namespace neat_dnfs
 
 		void pruneWorsePreformingSolutions();
 		void replaceEntirePopulationWithOffspring();
-		void mutate() const;
+		void mutate();
 
 		void upkeepBestSolution();
+		void upkeepChampions();
 		void updateGenerationAndAges();
 		void validateElitism() const;
 		void validateUniqueSolutions() const;

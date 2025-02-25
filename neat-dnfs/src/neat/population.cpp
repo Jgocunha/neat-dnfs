@@ -72,12 +72,19 @@ namespace neat_dnfs
 	{
 		for (const auto& solution : solutions)
 			assignToSpecies(solution);
+		for (auto& species : speciesList)
+			species.assignChampion();
+
+		calculateAdjustedFitness();
 	}
 
 	void Population::reproduceAndSelect()
 	{
-		calculateAdjustedFitness();
 		assignOffspringToSpecies();
+
+		if (PopulationConstants::logSpecies)
+			logSpecies();
+
 		pruneWorsePreformingSolutions();
 		replaceEntirePopulationWithOffspring();
 		mutate();
@@ -86,13 +93,14 @@ namespace neat_dnfs
 	void Population::upkeep()
 	{
 		upkeepBestSolution();
+		upkeepChampions();
 
 		if (PopulationConstants::logSolutions)
 			logSolutions();
 		if (PopulationConstants::logOverview)
 			logOverview();
-		if (PopulationConstants::logSpecies)
-			logSpecies();
+		/*if (PopulationConstants::logSpecies)
+			logSpecies();*/
 		if (PopulationConstants::logMutationStatistics)
 			logMutationStatistics();
 
@@ -128,11 +136,19 @@ namespace neat_dnfs
 
 	void Population::upkeepBestSolution()
 	{
+		bestSolution = nullptr;
 		for (const auto& solution : solutions)
 		{
 			if (bestSolution == nullptr || solution->getFitness() > bestSolution->getFitness())
 				bestSolution = solution;
 		}
+	}
+
+	void Population::upkeepChampions()
+	{
+		champions.clear();
+		for (auto& species : speciesList)
+			champions.emplace_back(species.getChampion());
 	}
 
 	void Population::updateGenerationAndAges()
@@ -152,19 +168,21 @@ namespace neat_dnfs
 
 		for (auto& species : speciesList)
 		{
-			if (species.isCompatible(solution))
+			if (!species.isExtinct())
 			{
-				if (currentSpecies != &species)
+				if (species.isCompatible(solution))
 				{
-					if (currentSpecies != nullptr)
-						currentSpecies->removeSolution(solution);
-					species.addSolution(solution);
+					if (currentSpecies != &species)
+					{
+						if (currentSpecies != nullptr)
+							currentSpecies->removeSolution(solution);
+						species.addSolution(solution);
+					}
 					solution->setSpeciesId(species.getId());
+					species.randomlyAssignRepresentative();
+					assigned = true;
+					break;
 				}
-				assigned = true;
-				species.randomlyAssignRepresentative();
-				species.assignChampion();
-				break;
 			}
 		}
 		if (!assigned)
@@ -175,9 +193,35 @@ namespace neat_dnfs
 			newSpecies.addSolution(solution);
 			solution->setSpeciesId(newSpecies.getId());
 			newSpecies.randomlyAssignRepresentative();
-			newSpecies.assignChampion();
 			speciesList.push_back(newSpecies);
 		}
+
+		// validate assignment into species
+		std::vector<SolutionPtr> speciesSolutions;
+		speciesSolutions.reserve(parameters.size);
+		for (const auto& species : speciesList)
+		{
+			for (const auto& member : species.getMembers())
+			{
+				speciesSolutions.emplace_back(member);
+			}
+		}
+		int counter = 0;
+		for (size_t i = 0; i < speciesSolutions.size(); ++i)
+		{
+			for (size_t j = i + 1; j < speciesSolutions.size(); ++j)
+			{
+				if (speciesSolutions[i] == speciesSolutions[j])
+				{
+					counter++;
+				}
+			}
+		}
+		if (counter > 0)
+		{
+			log(tools::logger::LogLevel::FATAL, "Duplicate solutions found after speciation.");
+		}
+
 	}
 
 	Species* Population::findSpecies(const SolutionPtr& solution)
@@ -232,9 +276,9 @@ namespace neat_dnfs
 		const int numActiveSpecies = std::ranges::count_if(speciesList.begin(), speciesList.end(), [](const Species& species)
 			{ return !species.isExtinct(); });
 
-		if (numActiveSpecies > 2)
+		if (!hasFitnessImprovedOverTheLastGenerations())
 		{
-			if (!hasFitnessImprovedOverTheLastGenerations())
+			if (numActiveSpecies > 2)
 			{
 				assignOffspringToTopTwoSpecies();
 				return;
@@ -246,7 +290,7 @@ namespace neat_dnfs
 		assignOffspringBasedOnAdjustedFitness();
 
 		// after X generations if fitness did not improve, the species is not allowed to reproduce
-		//reassignOffspringIfFitnessIsStagnant();
+		reassignOffspringIfFitnessIsStagnant();
 	}
 
 	void Population::clearSpeciesOffspring()
@@ -258,7 +302,6 @@ namespace neat_dnfs
 	bool Population::hasFitnessImprovedOverTheLastGenerations()
 	{
 		static double previousBestFitness = 0.0;
-		static int generationsWithoutImprovement = 0;
 
 		if (bestSolution->getFitness() > previousBestFitness)
 		{
@@ -296,7 +339,7 @@ namespace neat_dnfs
 				if (++assigned == 2) break; // Stop after assigning two species
 			}
 		}
-		log(tools::logger::LogLevel::WARNING, "Assigned offspring to top two species.");
+		log(tools::logger::LogLevel::WARNING, "Fitness of entire population has not improved for the last " + std::to_string(PopulationConstants::generationsWithoutImprovementThresholdInPopulation) + " generations. Assigned offspring to top two species.");
 	}
 
 	void Population::assignOffspringBasedOnAdjustedFitness()
@@ -369,6 +412,7 @@ namespace neat_dnfs
 			{
 				totalOffspringToReassign += species.getOffspringCount();
 				species.setOffspringCount(0);
+				log(tools::logger::LogLevel::WARNING, "Fitness of species " + std::to_string(species.getId()) + " has not improved for the last " + std::to_string(PopulationConstants::generationsWithoutImprovementThresholdInSpecies) + " generations.");
 			}
 		}
 		if (totalOffspringToReassign == 0)
@@ -376,7 +420,7 @@ namespace neat_dnfs
 		// give the offspring to the top species
 		Species* topSpecies = getBestActiveSpecies();
 		topSpecies->setOffspringCount(topSpecies->getOffspringCount() + totalOffspringToReassign);
-		log(tools::logger::LogLevel::WARNING, "Reassigned " + std::to_string(totalOffspringToReassign) + " offspring to the top species.");
+		log(tools::logger::LogLevel::WARNING, "Reassigned " + std::to_string(totalOffspringToReassign) + " offspring to species " + std::to_string(topSpecies->getId()) + ".");
 	}
 
 	void Population::pruneWorsePreformingSolutions()
@@ -391,6 +435,7 @@ namespace neat_dnfs
 		// the entire population is then replaced by the offspring
 		// of the remaining organisms in each species
 
+		// if elitism is enabled
 		// the champion of each species with more than five networks
 		// is copied into the next generation unchanged
 
@@ -411,10 +456,16 @@ namespace neat_dnfs
 		}
 	}
 
-	void Population::mutate() const
+	void Population::mutate()
 	{
+		upkeepBestSolution();
+		upkeepChampions();
+		//for (const auto& solution : solutions)
+			//if (solution != bestSolution)
+				//solution->mutate();
 		for (const auto& solution : solutions)
-			if (solution != bestSolution)
+			// if champion, do not mutate
+			if (solution != bestSolution && !std::ranges::any_of(champions, [&solution](const auto& champion) { return champion == solution; }))
 				solution->mutate();
 	}
 
@@ -471,7 +522,7 @@ namespace neat_dnfs
 					if (bs == pbs)
 						log(tools::logger::LogLevel::WARNING, "Best solution is the same as previous best solution.");
 					else
-						log(tools::logger::LogLevel::ERROR, "Best solution is not the same as previous best solution.");
+						log(tools::logger::LogLevel::WARNING, "Best solution is not the same as previous best solution.");
 
 					//log(tools::logger::LogLevel::FATAL, "Best solution address: " + addr_bs.str() + " Fitness: " + std::to_string(bsf));
 					//log(tools::logger::LogLevel::FATAL, "New previous best solution address: " + addr_npbs.str() + " Fitness: " + std::to_string(npbsf));
@@ -489,9 +540,9 @@ namespace neat_dnfs
 			addr_bs << bs.get();
 			std::stringstream addr_opbs;
 			addr_opbs << pbs.get();
-			log(tools::logger::LogLevel::FATAL, "Fitness decreased and previous best solution is not in the population.");
-			log(tools::logger::LogLevel::FATAL, "Best solution address: " + addr_bs.str() + " Fitness: " + std::to_string(bsf));
-			log(tools::logger::LogLevel::FATAL, "Previous best solution address: " + addr_opbs.str() + " Fitness: " + std::to_string(pbsf));
+			log(tools::logger::LogLevel::WARNING, "Fitness decreased and previous best solution is not in the population.");
+			log(tools::logger::LogLevel::WARNING, "Best solution address: " + addr_bs.str() + " Fitness: " + std::to_string(bsf));
+			log(tools::logger::LogLevel::WARNING, "Previous best solution address: " + addr_opbs.str() + " Fitness: " + std::to_string(pbsf));
 			//throw std::runtime_error("Best solution decreased and previous best solution not in population.");
 		}
 
@@ -515,7 +566,6 @@ namespace neat_dnfs
 		if(counter > 0)
 		{
 			log(tools::logger::LogLevel::FATAL, "Duplicate solutions found.");
-			throw std::runtime_error("Duplicate solutions found.");
 		}
 	}
 
@@ -524,7 +574,6 @@ namespace neat_dnfs
 		if (solutions.size() != parameters.size)
 		{
 			log(tools::logger::LogLevel::FATAL, "Population size does not match parameters.");
-			throw std::runtime_error("Population size does not match parameters.");
 		}
 	}
 
@@ -610,12 +659,19 @@ namespace neat_dnfs
 			{
 				if (species_a.getId() == species_b.getId())
 					continue;
+				if (species_a.isExtinct() || species_b.isExtinct())
+					continue;
 
 				const auto representative_a = species_a.getRepresentative()->getAddress();
 				const auto representative_b = species_b.getRepresentative()->getAddress();
+
 				if (representative_a == representative_b)
 				{
 					log(tools::logger::LogLevel::FATAL, "Species have the same representative.");
+					log(tools::logger::LogLevel::FATAL, "Species id: " + std::to_string(species_a.getId()) + 
+						" Representative íd: " + representative_a);
+					log(tools::logger::LogLevel::FATAL, "Species id: " + std::to_string(species_b.getId()) +
+						" Representative íd: " + representative_b);
 				}
 			}
 		}
@@ -721,6 +777,7 @@ namespace neat_dnfs
 			" Number of solutions: " + std::to_string(solutions.size()) +
 			" Number of active species: " + std::to_string(numActiveSpecies) +
 			" Has fitness improved: " + (hasFitnessImproved ? "yes" : "no") +
+			" Number of generations without improvement: " + std::to_string(generationsWithoutImprovement) +
 			" Best solution: [" + bestSolution->toString() + "]");
 	}
 

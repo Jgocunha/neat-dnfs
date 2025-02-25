@@ -27,6 +27,8 @@ namespace neat_dnfs
 		if (members.empty())
 			return;
 
+		sortMembersByFitness();
+
 		const double prevFitness = champion == nullptr ? 0 : champion->getParameters().fitness;
 		const double currentFitness = members[0]->getParameters().fitness;
 		if (currentFitness > prevFitness)
@@ -40,7 +42,6 @@ namespace neat_dnfs
 			generationsSinceFitnessImproved++;
 		}
 
-		sortMembersByFitness();
 		champion = members[0];
 	}
 
@@ -121,7 +122,10 @@ namespace neat_dnfs
 	bool Species::isCompatible(const SolutionPtr& solution) const
 	{
 		if (representative == nullptr)
-			throw std::runtime_error("Species " + std::to_string(id) + " has no representative.");
+		{
+			//throw std::runtime_error("Species " + std::to_string(id) + " has no representative.");
+			return false;
+		}
 
 		int N = static_cast<int>(std::max(representative->getGenomeSize(), solution->getGenomeSize()));
 		if (N < 20) N = 1; // Normalize for small genomes
@@ -172,6 +176,10 @@ namespace neat_dnfs
 			if (offspringCount > 0)
 				log(tools::logger::LogLevel::FATAL, "Species " + std::to_string(id) + " with no members has offspring count > 0.");
 			extinct = true;
+			representative = nullptr;
+			champion = nullptr;
+			members.clear();
+			offspring.clear();
 			return;
 		}
 
@@ -181,6 +189,8 @@ namespace neat_dnfs
 			{
 				const SolutionPtr parent1 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
 				const SolutionPtr son = parent1->crossover(parent1);
+				if (son->getId() == parent1->getId())
+					std::cout << "When crossing over with clone parents id's are the same " << parent1->getId() << std::endl;
 				offspring.push_back(son);
 			}
 		}
@@ -191,6 +201,8 @@ namespace neat_dnfs
 				const SolutionPtr parent1 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
 				const SolutionPtr parent2 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
 				const SolutionPtr son = parent1->crossover(parent2);
+				if (son->getId() == parent1->getId() || son->getId() == parent2->getId())
+					std::cout << "When crossing over id's are the same " << parent1->getId() << " or " << parent2->getId() << " is equal to " << son->getId() << std::endl;
 				offspring.push_back(son);
 			}
 		}
@@ -230,8 +242,9 @@ namespace neat_dnfs
 		str += ", gens. since imp.: " + std::to_string(generationsSinceFitnessImproved);
 		str += "  offs.: " + std::to_string(offspringCount);
 		str += ", mem: " + std::to_string(members.size());
-		str += " rep.: {" + (representative == nullptr ? "none}]" : representative->toString()) + "}";
-		str += " champ.: {" + (champion == nullptr ? "none}]" : champion->toString()) + "}]";
+		//str += " rep.: {" + (representative == nullptr ? "none}]" : representative->toString()) + "}";
+		//str += " champ.: {" + (champion == nullptr ? "none}]" : champion->toString()) + "}";
+		str += "]";
 		return str;
 	}
 

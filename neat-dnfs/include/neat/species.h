@@ -20,8 +20,8 @@ namespace neat_dnfs
         std::vector<SolutionPtr> offspring;
         bool extinct;
         int age;
-        bool hasFitnessImproved;
-        int generationsSinceFitnessImproved;
+        bool hasFitnessImproved = true;
+        int generationsSinceFitnessImproved = 0;
     public:
         Species();
         void setRepresentative(const SolutionPtr& newRepresentative);
