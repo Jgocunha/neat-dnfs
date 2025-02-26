@@ -321,15 +321,9 @@ namespace neat_dnfs
 	void Population::assignOffspringToTopTwoSpecies()
 	{
 		// sort the two best species to the beginning of the list
-		// species cannot be extinct! 
-		std::ranges::sort(speciesList, [](const auto& a, const auto& b) {
-			if (a.isExtinct() != b.isExtinct()) {
-				return !a.isExtinct(); // Non-extinct species come first
-			}
-			return a.getChampion()->getFitness() > b.getChampion()->getFitness(); // Sort by fitness
-			});
+		sortSpeciesListByChampionFitness();
 
-		// Assign offspring count only to the top two **non-extinct** species
+		// assign offspring count only to the top two **non-extinct** species
 		int assigned = 0;
 		for (auto& species : speciesList) 
 		{
@@ -339,7 +333,33 @@ namespace neat_dnfs
 				if (++assigned == 2) break; // Stop after assigning two species
 			}
 		}
-		log(tools::logger::LogLevel::WARNING, "Fitness of entire population has not improved for the last " + std::to_string(PopulationConstants::generationsWithoutImprovementThresholdInPopulation) + " generations. Assigned offspring to top two species.");
+		log(tools::logger::LogLevel::WARNING, "Fitness of entire population has not improved for the last " 
+			+ std::to_string(PopulationConstants::generationsWithoutImprovementThresholdInPopulation) + " generations. Assigned offspring to top two species.");
+	}
+
+	void Population::sortSpeciesListByChampionFitness()
+	{
+		std::ranges::sort(speciesList, [](const auto& a, const auto& b) {
+			if (a.isExtinct() != b.isExtinct()) {
+				return !a.isExtinct(); // Non-extinct species come first
+			}
+
+			// Handle cases where getChampion() might return nullptr
+			const SolutionPtr championA = a.getChampion();
+			const SolutionPtr championB = b.getChampion();
+
+			if (!championA && !championB) {
+				return false; // If both are null, maintain relative order
+			}
+			if (!championA) {
+				return false; // Null champions should be treated as less fit
+			}
+			if (!championB) {
+				return true; // Non-null champions come before null ones
+			}
+
+			return championA->getFitness() > championB->getFitness(); // Sort by fitness
+			});
 	}
 
 	void Population::assignOffspringBasedOnAdjustedFitness()

@@ -79,6 +79,7 @@ namespace neat_dnfs
 		void clearSpeciesOffspring();
 		bool hasFitnessImprovedOverTheLastGenerations();
 		void assignOffspringToTopTwoSpecies();
+		void sortSpeciesListByChampionFitness();
 		void assignOffspringBasedOnAdjustedFitness();
 		void reassignOffspringIfFitnessIsStagnant();
 
