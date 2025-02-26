@@ -27,6 +27,8 @@ namespace neat_dnfs
 		void resetPerGenerationStatistics();
 		std::string toString() const;
 		void print() const;
+		void savePerGeneration(const std::string& directory) const;
+		void saveTotal(const std::string& directory) const;
 	};
 
 
@@ -43,7 +45,8 @@ namespace neat_dnfs
 
 		void addInputGene(const dnf_composer::element::ElementDimensions& dimensions);
 		void addOutputGene(const dnf_composer::element::ElementDimensions& dimensions);
-		void addHiddenGene(const dnf_composer::element::ElementDimensions& dimensions);
+		//void addHiddenGene(const dnf_composer::element::ElementDimensions& dimensions);
+		void addHiddenGene(const FieldGene& gene);
 
 		void mutate();
 		void checkForDuplicateConnectionGenes() const;

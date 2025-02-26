@@ -41,7 +41,7 @@ namespace neat_dnfs
 	{
 		inline static std::string namePrefix = "nf ";
 		static constexpr double stabilityThreshold = 0.9; // 0.90 if amp noise is 0.2, 0.035 otherwise
-		static constexpr double tau = 200;
+		static constexpr double tau = 100;
 		static constexpr double restingLevel = -5;
 		inline static dnf_composer::element::HeavisideFunction activationFunction{ 0.0 };
 		static constexpr double tauMinVal = 15.0;
@@ -65,7 +65,7 @@ namespace neat_dnfs
 
 		static constexpr double width = 6;
 		static constexpr double amplitude = 10;
-		static constexpr double amplitudeGlobal = -0.01;
+		static constexpr double amplitudeGlobal = 0.0;
 
 		static constexpr double widthMinVal = 3.0; // 3
 		static constexpr double widthMaxVal = 10.0; // 5.0
@@ -139,13 +139,13 @@ namespace neat_dnfs
 
 	struct CompatibilityCoefficients
 	{
-		static constexpr double compatibilityThreshold = 5.0;
+		static constexpr double compatibilityThreshold = 3.0;
 		static constexpr double excessGenesCompatibilityWeight = 1.0;
 		static constexpr double disjointGenesCompatibilityWeight = 0.5;
-		static constexpr double averageConnectionDifferenceCompatibilityWeight = 0.0;
+		static constexpr double averageConnectionDifferenceCompatibilityWeight = 0.1;
 
-		static constexpr double amplitudeDifferenceCoefficient = 0.1;
-		static constexpr double widthDifferenceCoefficient = 0.05;
+		static constexpr double amplitudeDifferenceCoefficient = 0.05;
+		static constexpr double widthDifferenceCoefficient = 0.01;
 	};
 
 	struct GenomeMutationConstants
@@ -162,7 +162,7 @@ namespace neat_dnfs
 
 	struct FieldGeneConstants
 	{
-		static constexpr bool variableParameters = false;
+		static constexpr bool variableParameters = true;
 
 		static constexpr double gaussKernelProbability = 0.5;
 		static constexpr double mexicanHatKernelProbability = 0.5;
@@ -248,5 +248,8 @@ namespace neat_dnfs
 		static constexpr bool logOverview = true;
 		static constexpr bool logSpecies = true;
 		static constexpr bool logMutationStatistics = false;
+
+		static constexpr bool saveStatistics = true;
+		static constexpr bool saveChampions = true;
 	};
 }

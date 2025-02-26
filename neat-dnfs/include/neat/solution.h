@@ -112,7 +112,7 @@ namespace neat_dnfs
 	private:
 		void createInputGenes();
 		void createOutputGenes();
-		void createHiddenGenes();
+		//void createHiddenGenes();
 		void translateGenesToPhenotype() const;
 		void translateConnectionGenesToPhenotype() const;
 

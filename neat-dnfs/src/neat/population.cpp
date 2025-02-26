@@ -47,6 +47,10 @@ namespace neat_dnfs
 
 		saveAllSolutionsWithFitnessAbove(bestSolution->getFitness() - 0.1);
 		saveTimestampsAndDuration();
+		if (PopulationConstants::saveStatistics)
+			saveFinalStatistics();
+		if (PopulationConstants::saveChampions)
+			saveChampions();
 	}
 
 	void Population::evaluate() const
@@ -122,6 +126,9 @@ namespace neat_dnfs
 			validateUniqueKernelAndNeuralFieldPtrs();
 		if (PopulationConstants::validateIfSpeciesHaveUniqueRepresentative)
 			validateIfSpeciesHaveUniqueRepresentative();
+
+		if (PopulationConstants::saveStatistics)
+			savePerGenerationStatistics();
 
 		resetGenerationalInnovations();
 		updateGenerationAndAges();
@@ -768,6 +775,41 @@ namespace neat_dnfs
 		}
 	}
 
+	void Population::saveChampions() const
+	{
+		using namespace dnf_composer;
+
+		const std::string directoryPath = fileDirectory + "champions/";
+		std::filesystem::create_directories(directoryPath); // Ensure directory exist
+
+		if (champions.empty()) log(tools::logger::LogLevel::ERROR, "No champions to save.");
+
+		for (const auto& champion : champions)
+		{
+			if (champion == nullptr)
+			{
+				log(tools::logger::LogLevel::ERROR, "Champion is nullptr.");
+				continue;
+			}
+			auto simulation = champion->getPhenotype();
+			// save weights
+			for (const auto& element : simulation->getElements())
+			{
+				if (element->getLabel() == element::ElementLabel::FIELD_COUPLING)
+								{
+					const auto fieldCoupling = std::dynamic_pointer_cast<element::FieldCoupling>(element);
+					fieldCoupling->writeWeights();
+				}
+			}
+			// save elements
+			const std::string uniqueIdentifier = simulation->getUniqueIdentifier() + " species " + std::to_string(champion->getSpeciesId())
+			+ " fitness " + std::to_string(champion->getFitness());
+			simulation->setUniqueIdentifier(uniqueIdentifier);
+			SimulationFileManager sfm(simulation, directoryPath);
+			sfm.saveElementsToJson();
+		}
+	}
+
 	void Population::saveTimestampsAndDuration() const
 	{
 		const std::string directoryPath = fileDirectory + "statistics/";
@@ -801,6 +843,62 @@ namespace neat_dnfs
 		else
 		{
 			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for timestamps.");
+		}
+	}
+
+	void Population::saveFinalStatistics() const
+	{
+		const std::string directoryPath = fileDirectory + "statistics/";
+		std::filesystem::create_directories(directoryPath); // Ensure directory exists
+
+		for (const auto& solution : solutions)
+		{
+			const Genome genome = solution->getGenome();
+			const GenomeStatistics gs = genome.getStatistics();
+			gs.saveTotal(directoryPath);
+			const auto fieldGenes = genome.getFieldGenes();
+			for (const auto& fieldGene : fieldGenes)
+			{
+				const auto fgs = fieldGene.getStatistics();
+				fgs.saveTotal(directoryPath);
+				break;
+			}
+			const auto connectionGenes = genome.getConnectionGenes();
+			for (const auto& connectionGene : connectionGenes)
+			{
+				const auto cgs = connectionGene.getStatistics();
+				cgs.saveTotal(directoryPath);
+				break;
+			}
+			break;
+		}
+	}
+
+	void Population::savePerGenerationStatistics() const
+	{
+		const std::string directoryPath = fileDirectory + "statistics/";
+		std::filesystem::create_directories(directoryPath); // Ensure directory exists
+
+		for (const auto& solution : solutions)
+		{
+			const Genome genome = solution->getGenome();
+			const GenomeStatistics gs = genome.getStatistics();
+			gs.savePerGeneration(directoryPath);
+			const auto fieldGenes = genome.getFieldGenes();
+			for (const auto& fieldGene : fieldGenes)
+			{
+				const auto fgs = fieldGene.getStatistics();
+				fgs.savePerGeneration(directoryPath);
+				break;
+			}
+			const auto connectionGenes = genome.getConnectionGenes();
+			for (const auto& connectionGene : connectionGenes)
+			{
+				const auto cgs = connectionGene.getStatistics();
+				cgs.savePerGeneration(directoryPath);
+				break;
+			}
+			break;
 		}
 	}
 

@@ -56,6 +56,8 @@ namespace neat_dnfs
 		void resetPerGenerationStatistics();
 		std::string toString() const;
 		void print() const;
+		void savePerGeneration(const std::string& directory) const;
+		void saveTotal(const std::string& directory) const;
 	};
 
 

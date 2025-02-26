@@ -36,6 +36,43 @@ namespace neat_dnfs
 		tools::logger::log(tools::logger::INFO, toString());
 	}
 
+	void GenomeStatistics::savePerGeneration(const std::string& directory) const
+	{
+		std::ofstream logFile(directory + "genome_statistics_per_generation.txt", std::ios::app);
+		if (logFile.is_open())
+		{
+			logFile << "Add connection gene mutations per generation: " + std::to_string(numAddConnectionGeneMutationsPerGeneration);
+			logFile << ", Add field gene mutations per generation: " + std::to_string(numAddFieldGeneMutationsPerGeneration);
+			logFile << ", Mutate field gene mutations per generation: " + std::to_string(numMutateFieldGeneMutationsPerGeneration);
+			logFile << ", Mutate connection gene mutations per generation: " + std::to_string(numMutateConnectionGeneMutationsPerGeneration);
+			logFile << ", Toggle connection gene mutations per generation: " + std::to_string(numToggleConnectionGeneMutationsPerGeneration);
+			logFile << "\n";
+			logFile.close();
+		}
+		else
+		{
+			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for genome per generation statistics.");
+		}
+	}
+
+	void GenomeStatistics::saveTotal(const std::string& directory) const
+	{
+		std::ofstream logFile(directory + "genome_statistics_total.txt", std::ios::app);
+		if (logFile.is_open())
+		{
+			logFile << ",Add connection gene mutations total: " + std::to_string(numAddConnectionGeneMutationsTotal);
+			logFile << ", Add field gene mutations total: " + std::to_string(numAddFieldGeneMutationsTotal);
+			logFile << ", Mutate field gene mutations total: " + std::to_string(numMutateFieldGeneMutationsTotal);
+			logFile << ", Mutate connection gene mutations total: " + std::to_string(numMutateConnectionGeneMutationsTotal);
+			logFile << ", Toggle connection gene mutations total: " + std::to_string(numToggleConnectionGeneMutationsTotal);
+			logFile.close();
+		}
+		else
+		{
+			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for genome total statistics.");
+		}
+	}
+
 	void Genome::addInputGene(const dnf_composer::element::ElementDimensions& dimensions)
 	{
 		const auto index = fieldGenes.size() + 1;
@@ -49,11 +86,18 @@ namespace neat_dnfs
 			static_cast<int>(index)}, dimensions ));
 	}
 
-	void Genome::addHiddenGene(const dnf_composer::element::ElementDimensions& dimensions)
+	/*void Genome::addHiddenGene(const dnf_composer::element::ElementDimensions& dimensions)
 	{
 		const auto index = fieldGenes.size() + 1;
 		fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN,
 			static_cast<int>(index) }, dimensions));
+	}*/
+
+	void Genome::addHiddenGene(const FieldGene& gene)
+	{
+		const auto index = fieldGenes.size() + 1;
+		fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN,
+					static_cast<int>(index) }, gene));
 	}
 
 
@@ -496,7 +540,8 @@ namespace neat_dnfs
 		const auto outGeneId = randEnabledConnectionGene->getParameters().connectionTuple.outFieldGeneId;
 		const auto kernel = randEnabledConnectionGene->getKernel();
 
-		addHiddenGene({ DimensionConstants::xSize, DimensionConstants::dx });
+		//addHiddenGene({ DimensionConstants::xSize, DimensionConstants::dx });
+		addHiddenGene(getFieldGeneById(inGeneId));
 
 		// create two new connection genes
 		// when creating the two new connection genes we have to obey the same rules in add connection gene mutation
@@ -506,7 +551,7 @@ namespace neat_dnfs
 		int innovIn = getInnovationNumberOfTupleWithinGeneration(connectionTupleIn);
 		int innovOut = getInnovationNumberOfTupleWithinGeneration(connectionTupleOut);
 
-		if(innovIn == -1) // if this mutation has not been performed in the current generation
+		if (innovIn == -1) // if this mutation has not been performed in the current generation
 		{
 			connectionTupleAndInnovationNumberWithinGeneration[connectionTupleIn] = globalInnovationNumber;
 			innovIn = globalInnovationNumber;
@@ -520,12 +565,15 @@ namespace neat_dnfs
 			globalInnovationNumber++;
 		}
 
+		const auto in_kernel_p = GaussKernelParameters{ GaussKernelConstants::width, GaussKernelConstants::amplitude, GaussKernelConstants::amplitudeGlobal };
+		const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, static_cast<int>(innovIn), in_kernel_p };
+
 		switch (kernel->getLabel())
 		{
 		case GAUSS_KERNEL:
 			{
 				const auto gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
-				const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, static_cast<int>(innovIn), gkp };
+				//const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, static_cast<int>(innovIn), gkp };
 				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, static_cast<int>(innovOut), gkp };
 				connectionGenes.emplace_back(connectionGeneIn);
 				connectionGenes.emplace_back(connectionGeneOut);
@@ -534,7 +582,7 @@ namespace neat_dnfs
 		case MEXICAN_HAT_KERNEL:
 			{
 				const auto mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
-				const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, static_cast<int>(innovIn), mhkp };
+				//const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, static_cast<int>(innovIn), mhkp };
 				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, static_cast<int>(innovOut), mhkp };
 				connectionGenes.emplace_back(connectionGeneIn);
 				connectionGenes.emplace_back(connectionGeneOut);
@@ -544,7 +592,7 @@ namespace neat_dnfs
 		case OSCILLATORY_KERNEL:
 			{
 				const auto osckp = std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->getParameters();
-				const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, static_cast<int>(innovIn), osckp };
+				//const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, static_cast<int>(innovIn), osckp };
 				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, static_cast<int>(innovOut), osckp };
 				connectionGenes.emplace_back(connectionGeneIn);
 				connectionGenes.emplace_back(connectionGeneOut);
