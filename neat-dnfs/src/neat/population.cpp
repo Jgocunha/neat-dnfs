@@ -23,6 +23,8 @@ namespace neat_dnfs
 
 	void Population::evolve()
 	{
+		statistics.start = std::chrono::high_resolution_clock::now();
+		setFileDirectory();
 		startKeyListenerForUserCommands();
 
 		do
@@ -40,7 +42,11 @@ namespace neat_dnfs
 
 		} while (!endConditionMet());
 
+		statistics.end = std::chrono::high_resolution_clock::now();
+		statistics.duration = std::chrono::duration_cast<std::chrono::seconds>(statistics.end - statistics.start).count();
+
 		saveAllSolutionsWithFitnessAbove(bestSolution->getFitness() - 0.1);
+		saveTimestampsAndDuration();
 	}
 
 	void Population::evaluate() const
@@ -697,6 +703,21 @@ namespace neat_dnfs
 		}
 	}
 
+	void Population::setFileDirectory()
+	{
+		using namespace dnf_composer;
+		if (solutions.empty()) throw std::runtime_error("No solutions in population.");
+
+		const std::string solutionName = solutions[0]->getName();
+		const auto now = std::time(nullptr);
+		const auto localTime = *std::localtime(&now);
+		char timeBuffer[100];
+		(void)std::strftime(timeBuffer, sizeof(timeBuffer), "%Y~%m~%d_%H'%M'%S", &localTime);
+
+		fileDirectory = std::string(PROJECT_DIR) + "/data/" + solutionName + "/" + timeBuffer + "/";
+		std::filesystem::create_directories(fileDirectory); // Ensure directory exist
+	}
+
 	void Population::print() const
 	{
 		std::string result = "Population: \n";
@@ -719,17 +740,9 @@ namespace neat_dnfs
 	void Population::saveAllSolutionsWithFitnessAbove(double fitness) const
 	{
 		using namespace dnf_composer;
-		if (solutions.empty()) return;
 
-		// Construct directory path
-		const std::string solution_name = solutions[0]->getName(); // Assuming at least one solution exists
-		const auto now = std::time(nullptr);
-		const auto localTime = *std::localtime(&now);
-		char timeBuffer[100];
-		(void)std::strftime(timeBuffer, sizeof(timeBuffer), "%Y~%m~%d_%H'%M'%S", &localTime);
-
-		const std::string directoryPath = std::string(PROJECT_DIR) + "/data/" + solution_name + "/" + timeBuffer + "/";
-		std::filesystem::create_directories(directoryPath); // Ensure directories exist
+		const std::string directoryPath = fileDirectory + "solutions/";
+		std::filesystem::create_directories(directoryPath); // Ensure directory exist
 
 		for (const auto& solution : solutions)
 		{
@@ -754,6 +767,43 @@ namespace neat_dnfs
 			}
 		}
 	}
+
+	void Population::saveTimestampsAndDuration() const
+	{
+		const std::string directoryPath = fileDirectory + "statistics/";
+		std::filesystem::create_directories(directoryPath); // Ensure directory exists
+
+		std::ofstream logFile(directoryPath + "evolution_timestamps.txt", std::ios::app);
+		if (logFile.is_open())
+		{
+			// Convert steady_clock timestamps to system_clock timestamps
+			const auto system_start = std::chrono::system_clock::now() +
+				std::chrono::duration_cast<std::chrono::system_clock::duration>(
+					statistics.start - std::chrono::steady_clock::now());
+
+			const auto system_end = std::chrono::system_clock::now() +
+				std::chrono::duration_cast<std::chrono::system_clock::duration>(
+					statistics.end - std::chrono::steady_clock::now());
+
+			// Convert to time_t for formatting
+			const std::time_t start_time_t = std::chrono::system_clock::to_time_t(system_start);
+			const std::time_t end_time_t = std::chrono::system_clock::to_time_t(system_end);
+
+			// Format and write timestamps
+			logFile << "Evolution Start Time: " << std::put_time(std::localtime(&start_time_t), "%Y-%m-%d %H:%M:%S") << "\n";
+			logFile << "Evolution End Time: " << std::put_time(std::localtime(&end_time_t), "%Y-%m-%d %H:%M:%S") << "\n";
+			logFile << "Duration (seconds): " << statistics.duration << "\n";
+			logFile << "Duration (minutes): " << statistics.duration / 60 << "\n";
+			logFile << "Duration (hours): " << statistics.duration / 3600 << "\n";
+
+			logFile.close();
+		}
+		else
+		{
+			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for timestamps.");
+		}
+	}
+
 
 	void Population::resetGenerationalInnovations() const
 	{

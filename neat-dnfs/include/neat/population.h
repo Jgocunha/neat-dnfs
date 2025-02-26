@@ -27,6 +27,17 @@ namespace neat_dnfs
 		PopulationControl(bool pause = false, bool stop = false);
 	};
 
+	struct PopulationStatistics
+	{
+		std::chrono::time_point<std::chrono::steady_clock> start;
+		std::chrono::time_point<std::chrono::steady_clock> end;
+		long long duration;
+
+		PopulationStatistics() = default;
+
+	};
+
+
 	class Population
 	{
 	private:
@@ -36,8 +47,10 @@ namespace neat_dnfs
 		SolutionPtr bestSolution;
 		std::vector<SolutionPtr> champions;
 		PopulationControl control;
+		PopulationStatistics statistics;
 		bool hasFitnessImproved;
 		int generationsWithoutImprovement = 0;
+		std::string fileDirectory;
 	public:
 		Population(const PopulationParameters& parameters, 
 			const SolutionPtr& initialSolution);
@@ -97,8 +110,10 @@ namespace neat_dnfs
 		void validateUniqueKernelAndNeuralFieldPtrs() const;
 		void validateIfSpeciesHaveUniqueRepresentative() const;
 
+		void setFileDirectory();
 		void print() const;
 		void saveAllSolutionsWithFitnessAbove(double fitness) const;
+		void saveTimestampsAndDuration() const;
 
 		void resetGenerationalInnovations() const;
 		void resetMutationStatisticsPerGeneration() const;
