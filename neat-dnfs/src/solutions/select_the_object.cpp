@@ -6,7 +6,7 @@ namespace neat_dnfs
 		: Solution(topology)
 	{
 		name = "Select the object";
-		// target fitness is 0.85
+		// target fitness is 0.95
 	}
 
 	SolutionPtr SelectTheObject::clone() const

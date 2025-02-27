@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}}
 			}}
 		};
-		const PopulationParameters parameters{ 1000, 100, 0.95};
+		const PopulationParameters parameters{ 2000, 1000, 0.95};
 		Population population{ parameters, std::make_shared<SelectTheObject>(solution) };
 
 		population.initialize();
