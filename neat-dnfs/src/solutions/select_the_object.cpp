@@ -34,18 +34,20 @@ namespace neat_dnfs
 		// nf 3 - input - hand position field (hpf)
 		// nf 4 - output - target action field (taf)
 
-		static constexpr double wf1	 = 1/12.f; // multi bump sof
-		static constexpr double wf2	 = 1/12.f; // sof creates a selective single bump in taf
-		static constexpr double wf3	 = 1/12.f; // lof single bump
-		static constexpr double wf4	 = 1/12.f; // lof pre-shapes taf
-		static constexpr double wf5	 = 1/12.f; // sof + hpf create a selective single bump in taf (pos. 20)
-		static constexpr double wf6	 = 1/12.f; // sof + hpf create a selective single bump in taf (pos. 80)
-		static constexpr double wf7	 = 1/12.f; // hpf single bump
-		static constexpr double wf8	 = 1/12.f; // taf should be close to resting level just with hpf
-		static constexpr double wf9	 = 1/12.f; // lof + hpf create a single bump in taf
-		static constexpr double wf10 = 1/12.f; // lof + sof + hpf create a selective single bump in taf (pos. 50)
-		static constexpr double wf11 = 1/12.f; // 
-		static constexpr double wf12 = 1/12.f; // 
+		static constexpr double wf1		= 1 / 13.f; // multi bump sof
+		static constexpr double wf2		= 1 / 13.f; // sof creates a selective single bump in taf
+		static constexpr double wf3		= 1 / 13.f; // lof single bump
+		static constexpr double wf4		= 1 / 13.f; // lof pre-shapes taf
+		static constexpr double wf5		= 1 / 13.f; // sof + hpf create a selective single bump in taf (pos. 20)
+		static constexpr double wf6		= 1 / 13.f; // sof + hpf create a selective single bump in taf (pos. 80)
+		static constexpr double wf7		= 1 / 13.f; // hpf single bump
+		static constexpr double wf8		= 1 / 13.f; // taf should be close to resting level just with hpf
+		static constexpr double wf9		= 1 / 13.f; // lof + hpf create a single bump in taf
+		static constexpr double wf10	= 1 / 13.f; // lof + sof + hpf create a selective single bump in taf (pos. 50)
+		static constexpr double wf11	= 1 / 13.f; // 
+		static constexpr double wf11_	= 1 / 13.f; //
+		static constexpr double wf12	= 1 / 13.f; //
+
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
@@ -73,7 +75,7 @@ namespace neat_dnfs
 		addGaussianStimulus("nf 2",
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
-	
+
 		runSimulation(iterations);
 		const double f4 = preShapedness("nf 4");
 		parameters.fitness += wf4 * f4;
@@ -138,6 +140,15 @@ namespace neat_dnfs
 		const double f11 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 80.0, in_amp, in_width);
 		parameters.fitness += wf11 * f11;
 
+		// new f11_1
+		removeGaussianStimuliFromField("nf 3");
+		addGaussianStimulus("nf 3",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		const double f11_ = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 50.0, in_amp, in_width);
+		parameters.fitness += wf11_ * f11_;
+
 		removeGaussianStimuli();
 		initSimulation();
 		addGaussianStimulus("nf 1",
@@ -171,7 +182,7 @@ namespace neat_dnfs
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		addGaussianStimulus("nf 3",
-			{ GaussStimulusConstants::width, 0.0, 50.0, true, false },
+			{ GaussStimulusConstants::width, 20.0, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 }

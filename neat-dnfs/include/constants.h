@@ -196,7 +196,7 @@ namespace neat_dnfs
 	struct ConnectionGeneConstants
 	{
 		static constexpr int allowInhibitoryConnections = true;
- 
+
 		static constexpr double gaussKernelProbability = 0.5;
 		static constexpr double mexicanHatKernelProbability = 0.5;
 		static constexpr double oscillatoryKernelProbability = 0.0;
@@ -248,5 +248,8 @@ namespace neat_dnfs
 		static constexpr bool logOverview = true;
 		static constexpr bool logSpecies = true;
 		static constexpr bool logMutationStatistics = false;
+
+		static constexpr bool saveChampions = true;
+		static constexpr bool saveStatistics = true;
 	};
 }

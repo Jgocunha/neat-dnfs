@@ -90,6 +90,45 @@ namespace neat_dnfs
 		tools::logger::log(tools::logger::INFO, toString());
 	}
 
+	void ConnectionGeneStatistics::savePerGeneration(const std::string& directory) const
+	{
+		std::ofstream logFile(directory + "connection_gene_statistics_per_generation.txt", std::ios::app);
+		if (logFile.is_open())
+		{
+			logFile << "Kernel mutations per generation: " + std::to_string(numKernelMutationsPerGeneration);
+			logFile << ", Kernel type mutations per generation: " + std::to_string(numKernelTypeMutationsPerGeneration);
+			logFile << ", Gauss kernel mutations per generation: " + std::to_string(numGaussKernelMutationsPerGeneration);
+			logFile << ", Mexican hat kernel mutations per generation: " + std::to_string(numMexicanHatKernelMutationsPerGeneration);
+			logFile << ", Oscillatory kernel mutations per generation: " + std::to_string(numOscillatoryKernelMutationsPerGeneration);
+			logFile << ", Connection signal mutations per generation: " + std::to_string(numConnectionSignalMutationsPerGeneration);
+			logFile << "\n";
+			logFile.close();
+		}
+		else
+		{
+			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for field gene per generation statistics.");
+		}
+	}
+
+	void ConnectionGeneStatistics::saveTotal(const std::string& directory) const
+	{
+		std::ofstream logFile(directory + "field_gene_statistics_total.txt", std::ios::app);
+		if (logFile.is_open())
+		{
+			logFile << ", Total kernel mutations: " + std::to_string(numKernelMutationsTotal);
+			logFile << ", Total kernel type mutations: " + std::to_string(numKernelTypeMutationsTotal);
+			logFile << ", Total Gauss kernel mutations: " + std::to_string(numGaussKernelMutationsTotal);
+			logFile << ", Total Mexican hat kernel mutations: " + std::to_string(numMexicanHatKernelMutationsTotal);
+			logFile << ", Total Oscillatory kernel mutations: " + std::to_string(numOscillatoryKernelMutationsTotal);
+			logFile << ", Total connection signal mutations: " + std::to_string(numConnectionSignalMutationsTotal);
+			logFile.close();
+		}
+		else
+		{
+			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for field gene total statistics.");
+		}
+	}
+
 	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, int innov)
 		: parameters(connectionTuple, innov)
 	{

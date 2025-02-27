@@ -116,12 +116,12 @@ namespace neat_dnfs
 				genome.addOutputGene(gene.second);
 	}
 
-	void Solution::createHiddenGenes()
-	{
-		for (const auto& gene : initialTopology.geneTopology)
-			if (gene.first == FieldGeneType::HIDDEN)
-				genome.addHiddenGene(gene.second);
-	}
+	//void Solution::createHiddenGenes()
+	//{
+	//	for (const auto& gene : initialTopology.geneTopology)
+	//		if (gene.first == FieldGeneType::HIDDEN)
+	//			genome.addHiddenGene(gene.second);
+	//}
 
 	void Solution::translateGenesToPhenotype() const
 	{

@@ -70,6 +70,45 @@ namespace neat_dnfs
 		tools::logger::log(tools::logger::INFO, toString());
 	}
 
+	void FieldGeneStatistics::savePerGeneration(const std::string& directory) const
+	{
+		std::ofstream logFile(directory + "field_gene_statistics_per_generation.txt", std::ios::app);
+		if (logFile.is_open())
+		{
+			logFile << "Kernel mutations per generation: " + std::to_string(numKernelMutationsPerGeneration);
+			logFile << ", Kernel type mutations per generation: " + std::to_string(numKernelTypeMutationsPerGeneration);
+			logFile << ", Gauss kernel mutations per generation: " + std::to_string(numGaussKernelMutationsPerGeneration);
+			logFile << ", Mexican hat kernel mutations per generation: " + std::to_string(numMexicanHatKernelMutationsPerGeneration);
+			logFile << ", Oscillatory kernel mutations per generation: " + std::to_string(numOscillatoryKernelMutationsPerGeneration);
+			logFile << ", Neural field mutations per generation: " + std::to_string(numNeuralFieldMutationsPerGeneration);
+			logFile << "\n";
+			logFile.close();
+		}
+		else
+		{
+			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for field gene per generation statistics.");
+		}
+	}
+
+	void FieldGeneStatistics::saveTotal(const std::string& directory) const
+	{
+		std::ofstream logFile(directory + "field_gene_statistics_total.txt", std::ios::app);
+		if (logFile.is_open())
+		{
+			logFile << ", Total kernel mutations: " + std::to_string(numKernelMutationsTotal);
+			logFile << ", Total kernel type mutations: " + std::to_string(numKernelTypeMutationsTotal);
+			logFile << ", Total Gauss kernel mutations: " + std::to_string(numGaussKernelMutationsTotal);
+			logFile << ", Total Mexican hat kernel mutations: " + std::to_string(numMexicanHatKernelMutationsTotal);
+			logFile << ", Total Oscillatory kernel mutations: " + std::to_string(numOscillatoryKernelMutationsTotal);
+			logFile << ", Total neural field mutations: " + std::to_string(numNeuralFieldMutationsTotal);
+			logFile.close();
+		}
+		else
+		{
+			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for field gene total statistics.");
+		}
+	}
+
 	FieldGene::FieldGene(const FieldGeneParameters& parameters, const dnf_composer::element::ElementDimensions& dimensions)
 		: parameters(parameters)
 	{
@@ -91,6 +130,50 @@ namespace neat_dnfs
 		: parameters(parameters), neuralField(neuralField), kernel(std::move(kernel))
 	{
 		initializeNoise(neuralField->getElementCommonParameters().dimensionParameters);
+	}
+
+	FieldGene::FieldGene(const FieldGeneParameters& parameters, const FieldGene& other)
+		: parameters(parameters)
+	{
+		using namespace dnf_composer::element;
+		const ElementDimensions dimensions = other.getNeuralField()->getElementCommonParameters().dimensionParameters;
+
+		const std::shared_ptr<NeuralField> nf = other.getNeuralField();
+		const ElementCommonParameters nfcp{ NeuralFieldConstants::namePrefix + std::to_string(parameters.id), dimensions };
+		neuralField = std::make_shared<NeuralField>(nfcp, nf->getParameters());
+
+		const auto k = other.getKernel();
+		switch (k->getLabel())
+		{
+			case ElementLabel::GAUSS_KERNEL:
+				{
+					const auto gkp = std::dynamic_pointer_cast<GaussKernel>(k)->getParameters();
+					const ElementCommonParameters gkcp{ GaussKernelConstants::namePrefix + std::to_string(parameters.id), dimensions };
+					kernel = std::make_shared<GaussKernel>(gkcp, gkp);
+				}
+				break;
+			case ElementLabel::MEXICAN_HAT_KERNEL:
+				{
+					const auto mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(k)->getParameters();
+					const ElementCommonParameters mhcp{ MexicanHatKernelConstants::namePrefix + std::to_string(parameters.id), dimensions };
+					kernel = std::make_shared<MexicanHatKernel>(mhcp, mhkp);
+				}
+				break;
+			case ElementLabel::OSCILLATORY_KERNEL:
+				{
+					const auto oskp = std::dynamic_pointer_cast<OscillatoryKernel>(k)->getParameters();
+					const ElementCommonParameters oskcp{ OscillatoryKernelConstants::namePrefix + std::to_string(parameters.id), dimensions };
+					kernel = std::make_shared<OscillatoryKernel>(oskcp, oskp);
+				}
+				break;
+			default:				
+				tools::logger::log(tools::logger::FATAL, "FieldGene::FieldGene() - Kernel type not recognized.");
+				throw std::runtime_error("FieldGene::FieldGene() - Kernel type not recognized.");
+		}
+
+		const std::shared_ptr<NormalNoise> nn = other.getNoise();
+		const ElementCommonParameters nncp{ NoiseConstants::namePrefix + std::to_string(parameters.id), dimensions };
+		noise = std::make_shared<NormalNoise>(nncp, nn->getParameters());
 	}
 
 	void FieldGene::setAsInput(const dnf_composer::element::ElementDimensions& dimensions)

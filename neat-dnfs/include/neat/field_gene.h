@@ -44,6 +44,8 @@ namespace neat_dnfs
 		void resetPerGenerationStatistics();
 		std::string toString() const;
 		void print() const;
+		void savePerGeneration(const std::string& directory) const;
+		void saveTotal(const std::string& directory) const;
 	};
 
 
@@ -61,6 +63,7 @@ namespace neat_dnfs
 		FieldGene(const FieldGeneParameters& parameters,
 			const NeuralFieldPtr& neuralField, 
 			KernelPtr kernel);
+		FieldGene(const FieldGeneParameters& parameters, const FieldGene& other);
 
 		void setAsInput(const dnf_composer::element::ElementDimensions& dimensions);
 		void setAsOutput(const dnf_composer::element::ElementDimensions& dimensions);
