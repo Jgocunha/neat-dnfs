@@ -163,7 +163,7 @@ namespace neat_dnfs
 
 	struct FieldGeneConstants
 	{
-		static constexpr bool variableParameters = false;
+		static constexpr bool variableParameters = true;
 
 		static constexpr double gaussKernelProbability = 0.5;
 		static constexpr double mexicanHatKernelProbability = 0.5;
@@ -234,7 +234,7 @@ namespace neat_dnfs
 	{
 		static constexpr bool parallelEvolution = true;
 		static constexpr double pruneRatio = 0.2;
-		static constexpr int generationsWithoutImprovementThresholdInPopulation = 10;
+		static constexpr int generationsWithoutImprovementThresholdInPopulation = 15;
 		static constexpr int generationsWithoutImprovementThresholdInSpecies = 8;
 		static constexpr bool elitism = true;
 
@@ -247,7 +247,7 @@ namespace neat_dnfs
 
 		static constexpr bool logSolutions = false;
 		static constexpr bool logOverview = true;
-		static constexpr bool logSpecies = true;
+		static constexpr bool logSpecies = false;
 		static constexpr bool logMutationStatistics = false;
 
 		static constexpr bool saveChampions = true;

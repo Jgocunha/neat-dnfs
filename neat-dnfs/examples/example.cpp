@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
 					{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}}
 				}}
 			};
-			const PopulationParameters parameters{ 1000, 1000, 0.95 };
+			const PopulationParameters parameters{ 100, 1000, 0.95 };
 			Population population{ parameters, std::make_shared<SelectTheObject>(solution) };
 
 			population.initialize();
@@ -64,8 +64,8 @@ int main(int argc, char* argv[])
 		app.addWindow<user_interface::PlotControlWindow>();
 		app.addWindow<user_interface::PlotsWindow>();
 		app.addWindow<user_interface::NodeGraphWindow>();
-		//app.addWindow<user_interface::FieldMetricsWindow>();
-		//app.init();
+		app.addWindow<user_interface::FieldMetricsWindow>();
+		app.init();
 		do
 		{
 			app.step();

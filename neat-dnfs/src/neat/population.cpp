@@ -703,10 +703,8 @@ namespace neat_dnfs
 				if (representative_a == representative_b)
 				{
 					log(tools::logger::LogLevel::FATAL, "Species have the same representative.");
-					log(tools::logger::LogLevel::FATAL, "Species id: " + std::to_string(species_a.getId()) + 
-						" Representative íd: " + representative_a);
-					log(tools::logger::LogLevel::FATAL, "Species id: " + std::to_string(species_b.getId()) +
-						" Representative íd: " + representative_b);
+					log(tools::logger::LogLevel::FATAL, "Species a id: " + std::to_string(species_a.getId()) + " Representative a id: " + representative_a);
+					log(tools::logger::LogLevel::FATAL, "Species b id: " + std::to_string(species_b.getId()) + " Representative b id: " + representative_b);
 				}
 			}
 		}
@@ -769,8 +767,11 @@ namespace neat_dnfs
 					}
 				}
 				// save elements
-				simulation->setUniqueIdentifier(simulation->getUniqueIdentifier() + " " 
-					+ std::to_string(solution->getFitness()));
+				const std::string uniqueIdentifier = "solution " + std::to_string(solution->getId())
+					+ " generation " + std::to_string(parameters.currentGeneration)
+					+ " species " + std::to_string(solution->getSpeciesId())
+					+ " fitness " + std::to_string(solution->getFitness());
+				simulation->setUniqueIdentifier(uniqueIdentifier);
 				SimulationFileManager sfm(simulation, directoryPath);
 				sfm.saveElementsToJson();
 			}
@@ -804,8 +805,10 @@ namespace neat_dnfs
 				}
 			}
 			// save elements
-			const std::string uniqueIdentifier = simulation->getUniqueIdentifier() + " species " + std::to_string(champion->getSpeciesId())
-			+ " fitness " + std::to_string(champion->getFitness());
+			const std::string uniqueIdentifier = "solution " + std::to_string(champion->getId())
+				+ " generation " + std::to_string(parameters.currentGeneration)
+				+ " species " + std::to_string(champion->getSpeciesId())
+				+ " fitness " + std::to_string(champion->getFitness());
 			simulation->setUniqueIdentifier(uniqueIdentifier);
 			SimulationFileManager sfm(simulation, directoryPath);
 			sfm.saveElementsToJson();
@@ -941,7 +944,7 @@ namespace neat_dnfs
 		const std::string directoryPath = fileDirectory + "solutions/prev_generations/";
 		std::filesystem::create_directories(directoryPath); // Ensure directory exist
 
-		auto simulation = bestSolution->getPhenotype();
+		const auto simulation = bestSolution->getPhenotype();
 		// save weights
 		for (const auto& element : simulation->getElements())
 		{
@@ -952,9 +955,12 @@ namespace neat_dnfs
 			}
 		}
 		// save elements
-		simulation->setUniqueIdentifier(simulation->getUniqueIdentifier() + " "
-			+ std::to_string(bestSolution->getFitness()) + " generation " + std::to_string(parameters.currentGeneration));
-		SimulationFileManager sfm(simulation, directoryPath);
+		const std::string uniqueIdentifier = "solution " + std::to_string(bestSolution->getId())
+			+ " generation " + std::to_string(parameters.currentGeneration)
+			+ " species " + std::to_string(bestSolution->getSpeciesId())
+			+ " fitness " + std::to_string(bestSolution->getFitness());
+		simulation->setUniqueIdentifier(uniqueIdentifier);
+		const SimulationFileManager sfm(simulation, directoryPath);
 		sfm.saveElementsToJson();
 	}
 
@@ -985,12 +991,12 @@ namespace neat_dnfs
 				}
 			}
 			// save elements
-			const std::string uniqueIdentifier = simulation->getUniqueIdentifier()
+			const std::string uniqueIdentifier = "solution " + std::to_string(champion->getId())
 				+ " generation " + std::to_string(parameters.currentGeneration)
 				+ " species " + std::to_string(champion->getSpeciesId())
 				+ " fitness " + std::to_string(champion->getFitness());
 			simulation->setUniqueIdentifier(uniqueIdentifier);
-			SimulationFileManager sfm(simulation, directoryPath);
+			const SimulationFileManager sfm(simulation, directoryPath);
 			sfm.saveElementsToJson();
 		}
 	}
