@@ -92,7 +92,7 @@ namespace neat_dnfs
 
 	void ConnectionGeneStatistics::savePerGeneration(const std::string& directory) const
 	{
-		std::ofstream logFile(directory + "field_gene_statistics_per_generation.txt", std::ios::app);
+		std::ofstream logFile(directory + "connection_gene_statistics_per_generation.txt", std::ios::app);
 		if (logFile.is_open())
 		{
 			logFile << "Kernel mutations per generation: " + std::to_string(numKernelMutationsPerGeneration);
