@@ -31,8 +31,8 @@ int main(int argc, char* argv[])
 	{
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
-		for (int i = 0; i < 5; i++)
-		{
+		//for (int i = 0; i < 5; i++)
+		//{
 
 			SelectTheObject solution{
 				SolutionTopology{ {
@@ -42,35 +42,35 @@ int main(int argc, char* argv[])
 					{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}}
 				}}
 			};
-			const PopulationParameters parameters{ 2000, 1000, 0.95 };
+			const PopulationParameters parameters{ 100, 1000, 0.95 };
 			Population population{ parameters, std::make_shared<SelectTheObject>(solution) };
 
 			population.initialize();
 			population.evolve();
-		}
+		//}
 
-		//const auto bestSolution = population.getBestSolution();
-		//bestSolution->createPhenotypeEnvironment();
-		//bestSolution->print();
-		//const auto phenotype = bestSolution->getPhenotype();
-		//
+		const auto bestSolution = population.getBestSolution();
+		bestSolution->createPhenotypeEnvironment();
+		bestSolution->print();
+		const auto phenotype = bestSolution->getPhenotype();
+		
 		// run dnf-composer
-		//using namespace dnf_composer;
-		//const Application app{ phenotype };
-		//app.addWindow<user_interface::MainWindow>();
-		//app.addWindow<user_interface::SimulationWindow>();
-		//app.addWindow<user_interface::ElementWindow>();
-		//app.addWindow<imgui_kit::LogWindow>();
-		//app.addWindow<user_interface::PlotControlWindow>();
-		//app.addWindow<user_interface::PlotsWindow>();
-		//app.addWindow<user_interface::NodeGraphWindow>();
-		////app.addWindow<user_interface::FieldMetricsWindow>();
-		////app.init();
-//		//do
-	//	{//
-			//app.step();
-		//} //while(!app.hasGUIBeenClosed());
-	//	app.close();
+		using namespace dnf_composer;
+		const Application app{ phenotype };
+		app.addWindow<user_interface::MainWindow>();
+		app.addWindow<user_interface::SimulationWindow>();
+		app.addWindow<user_interface::ElementWindow>();
+		app.addWindow<imgui_kit::LogWindow>();
+		app.addWindow<user_interface::PlotControlWindow>();
+		app.addWindow<user_interface::PlotsWindow>();
+		app.addWindow<user_interface::NodeGraphWindow>();
+		app.addWindow<user_interface::FieldMetricsWindow>();
+		app.init();
+		do
+		{
+			app.step();
+		} while(!app.hasGUIBeenClosed());
+		app.close();
 
 		return 0;
 	}

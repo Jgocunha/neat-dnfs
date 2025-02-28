@@ -112,7 +112,7 @@ namespace neat_dnfs
 		const double f7 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 50.0, in_amp, in_width);
 		parameters.fitness += wf7 * f7;
 
-		const double f8 = closenessToRestingLevel("nf 4");
+		const double f8 = preShapedness("nf 4"); // closeness to resting level?
 		parameters.fitness += wf8 * f8;
 
 		addGaussianStimulus("nf 2",
@@ -182,7 +182,7 @@ namespace neat_dnfs
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		addGaussianStimulus("nf 3",
-			{ GaussStimulusConstants::width, 20.0, 50.0, true, false },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 }
