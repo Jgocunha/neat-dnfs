@@ -965,13 +965,13 @@ namespace neat_dnfs
 		const std::string directoryPath = fileDirectory + "champions/prev_generations/";
 		std::filesystem::create_directories(directoryPath); // Ensure directory exist
 
-		if (champions.empty()) log(tools::logger::LogLevel::ERROR, "No champions to save.");
+		//if (champions.empty()) log(tools::logger::LogLevel::ERROR, "No champions to save.");
 
 		for (const auto& champion : champions)
 		{
 			if (champion == nullptr)
 			{
-				log(tools::logger::LogLevel::ERROR, "Champion is nullptr.");
+				//log(tools::logger::LogLevel::ERROR, "Champion is nullptr.");
 				continue;
 			}
 			auto simulation = champion->getPhenotype();
