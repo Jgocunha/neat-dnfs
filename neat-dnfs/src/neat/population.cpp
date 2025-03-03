@@ -85,7 +85,7 @@ namespace neat_dnfs
 		for (const auto& solution : solutions)
 			assignToSpecies(solution);
 		for (auto& species : speciesList)
-			species.assignChampion();
+			species->assignChampion();
 
 		calculateAdjustedFitness();
 	}
@@ -162,8 +162,8 @@ namespace neat_dnfs
 	void Population::upkeepChampions()
 	{
 		champions.clear();
-		for (auto& species : speciesList)
-			champions.emplace_back(species.getChampion());
+		for (const auto& species : speciesList)
+			champions.emplace_back(species->getChampion());
 	}
 
 	void Population::updateGenerationAndAges()
@@ -171,30 +171,29 @@ namespace neat_dnfs
 		parameters.currentGeneration++;
 		for (const auto& solution : solutions)
 			solution->incrementAge();
-		for (auto& species : speciesList)
-			if (!species.isExtinct())
-				species.incrementAge();
+		for (const auto& species : speciesList)
+			if (!species->isExtinct())
+				species->incrementAge();
 	}	
 
 	void Population::assignToSpecies(const SolutionPtr& solution)
 	{
 		bool assigned = false;
-		Species* currentSpecies = findSpecies(solution);
-
-		for (auto& species : speciesList)
+		const std::shared_ptr<Species> currentSpecies = findSpecies(solution);
+		for (const auto& species : speciesList)
 		{
-			if (!species.isExtinct())
+			if (!species->isExtinct())
 			{
-				if (species.isCompatible(solution))
+				if (species->isCompatible(solution))
 				{
-					if (currentSpecies != &species)
+					if (currentSpecies != species) 
 					{
 						if (currentSpecies != nullptr)
 							currentSpecies->removeSolution(solution);
-						species.addSolution(solution);
+						species->addSolution(solution);
 					}
-					solution->setSpeciesId(species.getId());
-					species.randomlyAssignRepresentative();
+					solution->setSpeciesId(species->getId());
+					species->randomlyAssignRepresentative();
 					assigned = true;
 					break;
 				}
@@ -204,61 +203,65 @@ namespace neat_dnfs
 		{
 			if (currentSpecies != nullptr)
 				currentSpecies->removeSolution(solution);
-			Species newSpecies;
-			newSpecies.addSolution(solution);
-			solution->setSpeciesId(newSpecies.getId());
-			newSpecies.randomlyAssignRepresentative();
-			speciesList.push_back(newSpecies);
+
+			// Create a new species properly
+			auto newSpecies = std::make_shared<Species>(); 
+			newSpecies->addSolution(solution);
+			solution->setSpeciesId(newSpecies->getId());
+			newSpecies->randomlyAssignRepresentative();
+			speciesList.emplace_back(newSpecies);
 		}
 
-		// validate assignment into species
-		std::vector<SolutionPtr> speciesSolutions;
-		speciesSolutions.reserve(parameters.size);
-		for (const auto& species : speciesList)
+		if (PopulationConstants::validateAssignmentIntoSpecies)
 		{
-			for (const auto& member : species.getMembers())
+			// validate assignment into species
+			std::vector<SolutionPtr> speciesSolutions;
+			speciesSolutions.reserve(parameters.size);
+			for (const auto& species : speciesList)
 			{
-				speciesSolutions.emplace_back(member);
-			}
-		}
-		int counter = 0;
-		for (size_t i = 0; i < speciesSolutions.size(); ++i)
-		{
-			for (size_t j = i + 1; j < speciesSolutions.size(); ++j)
-			{
-				if (speciesSolutions[i] == speciesSolutions[j])
+				for (const auto& member : species->getMembers())
 				{
-					counter++;
+					speciesSolutions.emplace_back(member);
 				}
 			}
+			int counter = 0;
+			for (size_t i = 0; i < speciesSolutions.size(); ++i)
+			{
+				for (size_t j = i + 1; j < speciesSolutions.size(); ++j)
+				{
+					if (speciesSolutions[i] == speciesSolutions[j])
+					{
+						counter++;
+					}
+				}
+			}
+			if (counter > 0)
+			{
+				log(tools::logger::LogLevel::FATAL, "Duplicate solutions found after speciation.");
+			}
 		}
-		if (counter > 0)
-		{
-			log(tools::logger::LogLevel::FATAL, "Duplicate solutions found after speciation.");
-		}
-
 	}
 
-	Species* Population::findSpecies(const SolutionPtr& solution)
+	std::shared_ptr<Species> Population::findSpecies(const SolutionPtr& solution)
 	{
 		for (auto& species : speciesList)
-			if (species.contains(solution))
-				return &species;
+			if (species->contains(solution))
+				return species;
 		return nullptr;
 	}
 
-	Species* Population::getBestActiveSpecies()
+	std::shared_ptr<Species> Population::getBestActiveSpecies()
 	{
-		Species* bestSpecies = nullptr;
+		std::shared_ptr<Species> bestSpecies = nullptr;
 		double bestFitness = 0.0;
-		for (auto& species : speciesList)
+		for (const auto& species : speciesList)
 		{
-			if (species.isExtinct())
+			if (species->isExtinct())
 				continue;
-			if (species.getChampion()->getFitness() > bestFitness)
+			if (species->getChampion()->getFitness() > bestFitness)
 			{
-				bestFitness = species.getChampion()->getFitness();
-				bestSpecies = &species;
+				bestFitness = species->getChampion()->getFitness();
+				bestSpecies = species;  
 			}
 		}
 		return bestSpecies;
@@ -268,7 +271,7 @@ namespace neat_dnfs
 	{
 		for (const auto& solution : solutions)
 		{
-			const Species* species = findSpecies(solution);
+			const std::shared_ptr<Species> species = findSpecies(solution);
 			const size_t speciesSize = species->size();
 			const double adjustedFitness = solution->getFitness() / static_cast<double>(speciesSize);
 			if (std::isnan (adjustedFitness))
@@ -284,13 +287,11 @@ namespace neat_dnfs
 	void Population::assignOffspringToSpecies()
 	{
 		clearSpeciesOffspring();
-
 		// if fitness of population does not improve for Y generations
 		// only the top two species are allowed to reproduce
 		// (a species is "better than the other" based on its champion)
-		const int numActiveSpecies = std::ranges::count_if(speciesList.begin(), speciesList.end(), [](const Species& species)
-			{ return !species.isExtinct(); });
-
+		const int numActiveSpecies = std::ranges::count_if(speciesList.begin(), speciesList.end(), [](const auto& species)
+			{ return !species->isExtinct(); });
 		if (!hasFitnessImprovedOverTheLastGenerations())
 		{
 			if (numActiveSpecies > 2)
@@ -299,19 +300,17 @@ namespace neat_dnfs
 				return;
 			}
 		}
-
 		// every species is assigned a potentially different number of offspring
 		// in proportion to the sum of adjusted fitness of its members fitness
 		assignOffspringBasedOnAdjustedFitness();
-
 		// after X generations if fitness did not improve, the species is not allowed to reproduce
 		reassignOffspringIfFitnessIsStagnant();
 	}
 
-	void Population::clearSpeciesOffspring()
+	void Population::clearSpeciesOffspring() const
 	{
-		for (auto& species : speciesList)
-			species.setOffspringCount(0);
+		for (const auto& species : speciesList)
+			species->setOffspringCount(0);
 	}
 
 	bool Population::hasFitnessImprovedOverTheLastGenerations()
@@ -342,9 +341,9 @@ namespace neat_dnfs
 		int assigned = 0;
 		for (auto& species : speciesList) 
 		{
-			if (!species.isExtinct()) 
+			if (!species->isExtinct()) 
 			{
-				species.setOffspringCount(parameters.size / 2);
+				species->setOffspringCount(parameters.size / 2);
 				if (++assigned == 2) break; // Stop after assigning two species
 			}
 		}
@@ -355,14 +354,12 @@ namespace neat_dnfs
 	void Population::sortSpeciesListByChampionFitness()
 	{
 		std::ranges::sort(speciesList, [](const auto& a, const auto& b) {
-			if (a.isExtinct() != b.isExtinct()) {
-				return !a.isExtinct(); // Non-extinct species come first
+			if (a->isExtinct() != b->isExtinct()) {
+				return !a->isExtinct(); // Non-extinct species come first
 			}
-
 			// Handle cases where getChampion() might return nullptr
-			const SolutionPtr championA = a.getChampion();
-			const SolutionPtr championB = b.getChampion();
-
+			const SolutionPtr championA = a->getChampion();
+			const SolutionPtr championB = b->getChampion();
 			if (!championA && !championB) {
 				return false; // If both are null, maintain relative order
 			}
@@ -372,19 +369,18 @@ namespace neat_dnfs
 			if (!championB) {
 				return true; // Non-null champions come before null ones
 			}
-
 			return championA->getFitness() > championB->getFitness(); // Sort by fitness
 			});
 	}
 
-	void Population::assignOffspringBasedOnAdjustedFitness()
+	void Population::assignOffspringBasedOnAdjustedFitness() const
 	{
 		double total_adjusted_fitness = 0.0;
 
 		// Step 1: Calculate total adjusted fitness
-		for (Species& species : speciesList)
+		for (const auto& species_ptr : speciesList)  // Use auto& to iterate over shared_ptr
 		{
-			total_adjusted_fitness += species.totalAdjustedFitness();
+			total_adjusted_fitness += species_ptr->totalAdjustedFitness();
 		}
 
 		// Step 2: Assign offspring count based on fitness proportion
@@ -393,37 +389,37 @@ namespace neat_dnfs
 		double accumulated_offspring = 0.0;
 		int assigned_offspring = 0;
 
-		for (Species& species : speciesList)
+		for (const auto& species_ptr : speciesList)
 		{
 			if (total_adjusted_fitness > 0)
 			{
-				species.setOffspringCount((species.totalAdjustedFitness() / total_adjusted_fitness) * total_offspring);
+				species_ptr->setOffspringCount((species_ptr->totalAdjustedFitness() / total_adjusted_fitness) * total_offspring);
 			}
 			else
 			{
-				species.setOffspringCount(0); // Edge case: If total fitness is 0, prevent division error
+				species_ptr->setOffspringCount(0); // Edge case: If total fitness is 0, prevent division error
 			}
 
 			// Step 3: Stochastic Rounding
-			accumulated_offspring += species.getOffspringCount();
+			accumulated_offspring += species_ptr->getOffspringCount();
 			const int rounded_offspring = static_cast<int>(std::lround(accumulated_offspring));
-			species.setOffspringCount(rounded_offspring - assigned_offspring);
-			assigned_offspring += species.getOffspringCount();
+			species_ptr->setOffspringCount(rounded_offspring - assigned_offspring);
+			assigned_offspring += species_ptr->getOffspringCount();
 		}
 
 		// Ensure total assigned offspring matches population_size
 		while (assigned_offspring < total_offspring)
 		{
 			// Assign an extra offspring to the best-performing species
-			Species* best_species = nullptr;
+			std::shared_ptr<Species> best_species = nullptr;
 			double max_fitness = -1.0;
 
-			for (auto& species : speciesList)
+			for (const auto& species_ptr : speciesList)
 			{
-				if (species.totalAdjustedFitness() > max_fitness)
+				if (species_ptr->totalAdjustedFitness() > max_fitness)
 				{
-					max_fitness = species.totalAdjustedFitness();
-					best_species = &species;
+					max_fitness = species_ptr->totalAdjustedFitness();
+					best_species = species_ptr;
 				}
 			}
 
@@ -435,34 +431,35 @@ namespace neat_dnfs
 		}
 	}
 
+
 	void Population::reassignOffspringIfFitnessIsStagnant()
 	{
 		int totalOffspringToReassign = 0;
-		for (auto& species : speciesList)
+		for (const auto& species : speciesList)
 		{
-			if (species.getOffspringCount() == 0)
+			if (species->getOffspringCount() == 0)
 				continue;
 
-			if (!species.hasFitnessImprovedOverTheLastGenerations())
+			if (!species->hasFitnessImprovedOverTheLastGenerations())
 			{
-				totalOffspringToReassign += species.getOffspringCount();
-				species.setOffspringCount(0);
-				log(tools::logger::LogLevel::WARNING, "Fitness of species " + std::to_string(species.getId()) + " has not improved for the last " + std::to_string(PopulationConstants::generationsWithoutImprovementThresholdInSpecies) + " generations.");
+				totalOffspringToReassign += species->getOffspringCount();
+				species->setOffspringCount(0);
+				log(tools::logger::LogLevel::WARNING, "Fitness of species " + std::to_string(species->getId()) + " has not improved for the last " + std::to_string(PopulationConstants::generationsWithoutImprovementThresholdInSpecies) + " generations.");
 			}
 		}
 		if (totalOffspringToReassign == 0)
 			return;
 		// give the offspring to the top species
-		Species* topSpecies = getBestActiveSpecies();
+		const std::shared_ptr<Species> topSpecies = getBestActiveSpecies();
 		topSpecies->setOffspringCount(topSpecies->getOffspringCount() + totalOffspringToReassign);
 		log(tools::logger::LogLevel::WARNING, "Reassigned " + std::to_string(totalOffspringToReassign) + " offspring to species " + std::to_string(topSpecies->getId()) + ".");
 	}
 
-	void Population::pruneWorsePreformingSolutions()
+	void Population::pruneWorsePreformingSolutions() const
 	{
 		// species then reproduce by eliminating the lowest performing members of the population
-		for (auto& species : speciesList)
-			species.pruneWorsePerformingMembers(PopulationConstants::pruneRatio);
+		for (const auto& species : speciesList)
+			species->pruneWorsePerformingMembers(PopulationConstants::pruneRatio);
 	}
 
 	void Population::replaceEntirePopulationWithOffspring()
@@ -474,19 +471,19 @@ namespace neat_dnfs
 		// the champion of each species with more than five networks
 		// is copied into the next generation unchanged
 
-		for (auto& species : speciesList)
+		for (const auto& species : speciesList)
 		{
-			species.crossover(); // creation of offspring
-			species.replaceMembersWithOffspring(); // replacement of population with offspring
+			species->crossover(); // creation of offspring
+			species->replaceMembersWithOffspring(); // replacement of population with offspring
 			if (PopulationConstants::elitism)
-				if (species.size() > 5)
-					species.copyChampionToNextGeneration(); // elitism
+				if (species->size() > 5)
+					species->copyChampionToNextGeneration(); // elitism
 		}
 		solutions.clear();
 		solutions.reserve(parameters.size);
-		for (auto& species : speciesList)
+		for (const auto& species : speciesList)
 		{
-			const auto speciesSolutions = species.getMembers();
+			const auto speciesSolutions = species->getMembers();
 			solutions.insert(solutions.end(), speciesSolutions.begin(), speciesSolutions.end());
 		}
 	}
@@ -692,19 +689,19 @@ namespace neat_dnfs
 		{
 			for (const auto& species_b : speciesList)
 			{
-				if (species_a.getId() == species_b.getId())
+				if (species_a->getId() == species_b->getId())
 					continue;
-				if (species_a.isExtinct() || species_b.isExtinct())
+				if (species_a->isExtinct() || species_b->isExtinct())
 					continue;
 
-				const auto representative_a = species_a.getRepresentative()->getAddress();
-				const auto representative_b = species_b.getRepresentative()->getAddress();
+				const auto representative_a = species_a->getRepresentative()->getAddress();
+				const auto representative_b = species_b->getRepresentative()->getAddress();
 
 				if (representative_a == representative_b)
 				{
 					log(tools::logger::LogLevel::FATAL, "Species have the same representative.");
-					log(tools::logger::LogLevel::FATAL, "Species a id: " + std::to_string(species_a.getId()) + " Representative a id: " + representative_a);
-					log(tools::logger::LogLevel::FATAL, "Species b id: " + std::to_string(species_b.getId()) + " Representative b id: " + representative_b);
+					log(tools::logger::LogLevel::FATAL, "Species a id: " + std::to_string(species_a->getId()) + " Representative a id: " + representative_a);
+					log(tools::logger::LogLevel::FATAL, "Species b id: " + std::to_string(species_b->getId()) + " Representative b id: " + representative_b);
 				}
 			}
 		}
@@ -890,7 +887,7 @@ namespace neat_dnfs
 		int numActiveSpecies = 0;
 		for (const auto& species : speciesList)
 		{
-			if (species.isExtinct())
+			if (species->isExtinct())
 				continue;
 			numActiveSpecies++;
 		}
@@ -1024,7 +1021,7 @@ namespace neat_dnfs
 	void Population::logSpecies() const
 	{
 		for (const auto& species : speciesList)
-			species.print();
+			species->print();
 	}
 
 	void Population::logOverview() const
@@ -1033,7 +1030,7 @@ namespace neat_dnfs
 		int numActiveSpecies = 0;
 		for (const auto& species : speciesList)
 		{
-			if (species.isExtinct())
+			if (species->isExtinct())
 				continue;
 			numActiveSpecies++;
 		}

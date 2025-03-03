@@ -231,26 +231,26 @@ namespace neat_dnfs
 
 	struct PopulationConstants
 	{
-		static constexpr bool parallelEvolution = true;
-		static constexpr double pruneRatio = 0.2;
+		static constexpr bool parallelEvolution									= true;
+		static constexpr double pruneRatio										= 0.2;
 		static constexpr int generationsWithoutImprovementThresholdInPopulation = 10;
-		static constexpr int generationsWithoutImprovementThresholdInSpecies = 5;
-		static constexpr bool elitism = true;
+		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 5;
+		static constexpr bool elitism											= true;
 
-		static constexpr bool validateUniqueSolutions = false;
-		static constexpr bool validatePopulationSize = false;
-		static constexpr bool validateElitism = false;
-		static constexpr bool validateUniqueGenesInGenomes = false;
-		static constexpr bool validateUniqueKernelAndNeuralFieldPtrs = false;
+		static constexpr bool validateUniqueSolutions					= false;
+		static constexpr bool validatePopulationSize					= false;
+		static constexpr bool validateElitism							= false;
+		static constexpr bool validateUniqueGenesInGenomes				= false;
+		static constexpr bool validateUniqueKernelAndNeuralFieldPtrs	= false;
 		static constexpr bool validateIfSpeciesHaveUniqueRepresentative = false;
-		static constexpr bool validateAssignmentIntoSpecies = false;
+		static constexpr bool validateAssignmentIntoSpecies				= false;
 
-		static constexpr bool logSolutions = false;
-		static constexpr bool logOverview = true;
-		static constexpr bool logSpecies = false;
-		static constexpr bool logMutationStatistics = false;
+		static constexpr bool logSolutions				= false;
+		static constexpr bool logOverview				= true;
+		static constexpr bool logSpecies				= false;
+		static constexpr bool logMutationStatistics		= false;
 
-		static constexpr bool saveChampions = true;
-		static constexpr bool saveStatistics = true;
+		static constexpr bool saveChampions		= true;
+		static constexpr bool saveStatistics	= true;
 	};
 }
