@@ -228,6 +228,8 @@ namespace neat_dnfs
 	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, int innov, KernelPtr kernel)
 		: parameters(connectionTuple, innov), kernel(std::move(kernel))
 	{
+		if (!kernel)
+			throw std::invalid_argument("Cannot create ConnectionGene with null kernel");
 	}
 
 	void ConnectionGene::mutate()

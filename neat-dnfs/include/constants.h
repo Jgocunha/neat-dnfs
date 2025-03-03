@@ -237,12 +237,13 @@ namespace neat_dnfs
 		static constexpr int generationsWithoutImprovementThresholdInSpecies = 5;
 		static constexpr bool elitism = true;
 
-		static constexpr bool validateUniqueSolutions = false;
-		static constexpr bool validatePopulationSize = false;
-		static constexpr bool validateElitism = false;
-		static constexpr bool validateUniqueGenesInGenomes = false;
-		static constexpr bool validateUniqueKernelAndNeuralFieldPtrs = false;
+		static constexpr bool validateUniqueSolutions					= false;
+		static constexpr bool validatePopulationSize					= false;
+		static constexpr bool validateElitism							= false;
+		static constexpr bool validateUniqueGenesInGenomes				= false;
+		static constexpr bool validateUniqueKernelAndNeuralFieldPtrs	= false;
 		static constexpr bool validateIfSpeciesHaveUniqueRepresentative = false;
+		static constexpr bool validateAssignmentIntoSpecies				= false;
 
 		static constexpr bool logSolutions = false;
 		static constexpr bool logOverview = true;

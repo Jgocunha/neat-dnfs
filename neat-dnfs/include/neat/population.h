@@ -43,7 +43,7 @@ namespace neat_dnfs
 	private:
 		PopulationParameters parameters;
 		std::vector<SolutionPtr> solutions;
-		std::vector<Species> speciesList;
+		std::vector<std::shared_ptr<Species>> speciesList;
 		SolutionPtr bestSolution;
 		std::vector<SolutionPtr> champions;
 		PopulationControl control;
@@ -58,7 +58,7 @@ namespace neat_dnfs
 		void evolve();
 
 		SolutionPtr getBestSolution() const { return bestSolution; }
-		std::vector<Species>& getSpeciesList() { return speciesList; }
+		std::vector<std::shared_ptr<Species>> getSpeciesList() { return speciesList; }
 		std::vector<SolutionPtr> getSolutions() const { return solutions; }
 		int getSize() const { return parameters.size; }
 		int getCurrentGeneration() const { return parameters.currentGeneration; }
@@ -84,19 +84,19 @@ namespace neat_dnfs
 		void buildInitialSolutionsGenome() const;
 
 		void assignToSpecies(const SolutionPtr& solution);
-		Species* findSpecies(const SolutionPtr& solution);
-		Species* getBestActiveSpecies();
+		std::shared_ptr<Species> findSpecies(const SolutionPtr& solution);
+		std::shared_ptr<Species> getBestActiveSpecies();
 
 		void calculateAdjustedFitness();
 		void assignOffspringToSpecies();
-		void clearSpeciesOffspring();
+		void clearSpeciesOffspring() const;
 		bool hasFitnessImprovedOverTheLastGenerations();
 		void assignOffspringToTopTwoSpecies();
 		void sortSpeciesListByChampionFitness();
-		void assignOffspringBasedOnAdjustedFitness();
+		void assignOffspringBasedOnAdjustedFitness() const;
 		void reassignOffspringIfFitnessIsStagnant();
 
-		void pruneWorsePreformingSolutions();
+		void pruneWorsePreformingSolutions() const;
 		void replaceEntirePopulationWithOffspring();
 		void mutate();
 
