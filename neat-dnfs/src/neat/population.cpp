@@ -418,7 +418,7 @@ namespace neat_dnfs
 			Species* best_species = nullptr;
 			double max_fitness = -1.0;
 
-			for (Species& species : speciesList)
+			for (auto& species : speciesList)
 			{
 				if (species.totalAdjustedFitness() > max_fitness)
 				{
@@ -1000,7 +1000,6 @@ namespace neat_dnfs
 			sfm.saveElementsToJson();
 		}
 	}
-
 
 	void Population::resetGenerationalInnovations() const
 	{

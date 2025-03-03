@@ -112,7 +112,7 @@ namespace neat_dnfs
 		const double f7 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 50.0, in_amp, in_width);
 		parameters.fitness += wf7 * f7;
 
-		const double f8 = preShapedness("nf 4"); // closeness to resting level?
+		const double f8 = closenessToRestingLevel("nf 4");
 		parameters.fitness += wf8 * f8;
 
 		addGaussianStimulus("nf 2",
