@@ -243,6 +243,7 @@ namespace neat_dnfs
 		static constexpr bool validateUniqueGenesInGenomes = false;
 		static constexpr bool validateUniqueKernelAndNeuralFieldPtrs = false;
 		static constexpr bool validateIfSpeciesHaveUniqueRepresentative = false;
+		static constexpr bool validateAssignmentIntoSpecies = false;
 
 		static constexpr bool logSolutions = false;
 		static constexpr bool logOverview = true;
