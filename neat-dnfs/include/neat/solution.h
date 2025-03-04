@@ -74,6 +74,7 @@ namespace neat_dnfs
 		std::tuple <SolutionPtr, SolutionPtr> parents;
 	public:
 		Solution(const SolutionTopology& initialTopology);
+		~Solution();
 		virtual SolutionPtr clone() const = 0;
 		SolutionPtr crossover(const SolutionPtr& other);
 		void evaluate();
@@ -109,6 +110,7 @@ namespace neat_dnfs
 		void print() const;
 		virtual void createPhenotypeEnvironment() = 0;
 		void resetMutationStatisticsPerGeneration() const;
+		static void resetUniqueIdentifier();
 	private:
 		void createInputGenes();
 		void createOutputGenes();

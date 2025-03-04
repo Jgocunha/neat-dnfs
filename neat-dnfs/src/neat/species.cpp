@@ -3,6 +3,8 @@
 
 namespace neat_dnfs
 {
+	int Species::currentSpeciesId = 0;
+
 	Species::Species()
 		: id(currentSpeciesId++), offspringCount(0), representative(nullptr),
 			members(), offspring(), extinct(false), age(0)
@@ -189,8 +191,8 @@ namespace neat_dnfs
 			{
 				const SolutionPtr parent1 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
 				const SolutionPtr son = parent1->crossover(parent1);
-				if (son->getId() == parent1->getId())
-					std::cout << "When crossing over with clone parents id's are the same " << parent1->getId() << std::endl;
+				//if (son->getId() == parent1->getId())
+					//std::cout << "When crossing over with clone parents id's are the same " << parent1->getId() << std::endl;
 				offspring.push_back(son);
 			}
 		}

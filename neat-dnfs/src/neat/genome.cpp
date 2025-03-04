@@ -73,6 +73,12 @@ namespace neat_dnfs
 		}
 	}
 
+	Genome::~Genome()
+	{
+		fieldGenes.clear();
+		connectionGenes.clear();
+	}
+
 	void Genome::addInputGene(const dnf_composer::element::ElementDimensions& dimensions)
 	{
 		const auto index = fieldGenes.size() + 1;
@@ -86,20 +92,12 @@ namespace neat_dnfs
 			static_cast<int>(index)}, dimensions ));
 	}
 
-	/*void Genome::addHiddenGene(const dnf_composer::element::ElementDimensions& dimensions)
-	{
-		const auto index = fieldGenes.size() + 1;
-		fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN,
-			static_cast<int>(index) }, dimensions));
-	}*/
-
 	void Genome::addHiddenGene(const FieldGene& gene)
 	{
 		const auto index = fieldGenes.size() + 1;
 		fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN,
 					static_cast<int>(index) }, gene));
 	}
-
 
 	void Genome::mutate()
 	{
@@ -165,6 +163,11 @@ namespace neat_dnfs
 	void Genome::clearGenerationalInnovations()
 	{
 		connectionTupleAndInnovationNumberWithinGeneration.clear();
+	}
+
+	void Genome::resetGlobalInnovationNumber()
+	{
+		globalInnovationNumber = 0;
 	}
 
 	void Genome::removeConnectionGene(int innov)

@@ -42,15 +42,16 @@ namespace neat_dnfs
 		std::string lastMutationType;
 	public:
 		Genome() = default;
+		~Genome();
 
 		void addInputGene(const dnf_composer::element::ElementDimensions& dimensions);
 		void addOutputGene(const dnf_composer::element::ElementDimensions& dimensions);
-		//void addHiddenGene(const dnf_composer::element::ElementDimensions& dimensions);
 		void addHiddenGene(const FieldGene& gene);
 
 		void mutate();
 		void checkForDuplicateConnectionGenes() const;
 		static void clearGenerationalInnovations();
+		static void resetGlobalInnovationNumber();
 		void removeConnectionGene(int innov);
 
 		std::vector<FieldGene> getFieldGenes() const;

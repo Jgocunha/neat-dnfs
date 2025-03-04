@@ -32,7 +32,7 @@ namespace neat_dnfs
 		std::chrono::time_point<std::chrono::steady_clock> start;
 		std::chrono::time_point<std::chrono::steady_clock> end;
 		long long duration;
-
+		
 		PopulationStatistics() = default;
 
 	};
@@ -54,6 +54,15 @@ namespace neat_dnfs
 	public:
 		Population(const PopulationParameters& parameters, 
 			const SolutionPtr& initialSolution);
+		~Population()
+		{
+			// Clean up any dynamically allocated resources
+			solutions.clear();
+			speciesList.clear();
+			champions.clear();
+			
+		}
+
 		void initialize() const;
 		void evolve();
 
@@ -85,7 +94,7 @@ namespace neat_dnfs
 
 		void assignToSpecies(const SolutionPtr& solution);
 		std::shared_ptr<Species> findSpecies(const SolutionPtr& solution);
-		std::shared_ptr<Species> getBestActiveSpecies();
+		std::shared_ptr<Species> getBestActiveSpecies() const;
 
 		void calculateAdjustedFitness();
 		void assignOffspringToSpecies();
@@ -94,7 +103,7 @@ namespace neat_dnfs
 		void assignOffspringToTopTwoSpecies();
 		void sortSpeciesListByChampionFitness();
 		void assignOffspringBasedOnAdjustedFitness() const;
-		void reassignOffspringIfFitnessIsStagnant();
+		void reassignOffspringIfFitnessIsStagnant() const;
 
 		void pruneWorsePreformingSolutions() const;
 		void replaceEntirePopulationWithOffspring();

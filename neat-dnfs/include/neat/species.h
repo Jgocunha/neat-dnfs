@@ -6,13 +6,13 @@
 namespace neat_dnfs
 {
     class Species;
-    static int currentSpeciesId = 0;
     typedef std::unique_ptr<Species> SpeciesPtr;
 
     class Species
     {
     private:
-        int id;
+		static int currentSpeciesId;
+        int id = 0;
         int offspringCount;
         SolutionPtr representative;
         SolutionPtr champion;
@@ -24,6 +24,14 @@ namespace neat_dnfs
         int generationsSinceFitnessImproved = 0;
     public:
         Species();
+		~Species()
+		{
+			// Clean up any dynamically allocated resources
+			representative = nullptr;
+			champion = nullptr;
+			members.clear();
+			offspring.clear();
+		}
         void setRepresentative(const SolutionPtr& newRepresentative);
         void randomlyAssignRepresentative();
         void assignChampion();
@@ -39,6 +47,10 @@ namespace neat_dnfs
         bool isExtinct() const;
         bool hasFitnessImprovedOverTheLastGenerations() const;
         void incrementAge();
+        static void resetUniqueIdentifier()
+        {
+			currentSpeciesId = 0;
+        }
 
         void addSolution(const SolutionPtr& solution);
         void removeSolution(const SolutionPtr& solution);

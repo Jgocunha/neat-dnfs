@@ -1,4 +1,4 @@
-// This is a personal academic project. Dear PVS-Studio, please check it.
+ // This is a personal academic project. Dear PVS-Studio, please check it.
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
@@ -54,6 +54,11 @@ int main(int argc, char* argv[])
 
 			population.initialize();
 			population.evolve();
+			population.~Population();
+
+			Species::resetUniqueIdentifier();
+			Genome::resetGlobalInnovationNumber();
+			Solution::resetUniqueIdentifier();
 		}
 
 		//const auto bestSolution = population.getBestSolution();

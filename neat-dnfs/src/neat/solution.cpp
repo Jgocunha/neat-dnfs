@@ -25,6 +25,12 @@ namespace neat_dnfs
 		throw std::invalid_argument("Number of input and output genes must be greater than 0");
 	}
 
+	Solution::~Solution()
+	{
+		phenotype = nullptr;
+		parents = std::make_tuple(nullptr, nullptr);
+	}
+
 	void Solution::evaluate()
 	{
 		buildPhenotype();
@@ -218,6 +224,11 @@ namespace neat_dnfs
 	void Solution::resetMutationStatisticsPerGeneration() const
 	{
 		genome.resetMutationStatisticsPerGeneration();
+	}
+
+	void Solution::resetUniqueIdentifier()
+	{
+		uniqueIdentifierCounter = 0;
 	}
 
 	bool Solution::containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const

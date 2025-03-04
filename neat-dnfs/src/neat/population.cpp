@@ -204,7 +204,6 @@ namespace neat_dnfs
 			if (currentSpecies != nullptr)
 				currentSpecies->removeSolution(solution);
 
-			// Create a new species properly
 			auto newSpecies = std::make_shared<Species>(); 
 			newSpecies->addSolution(solution);
 			solution->setSpeciesId(newSpecies->getId());
@@ -250,7 +249,7 @@ namespace neat_dnfs
 		return nullptr;
 	}
 
-	std::shared_ptr<Species> Population::getBestActiveSpecies()
+	std::shared_ptr<Species> Population::getBestActiveSpecies() const
 	{
 		std::shared_ptr<Species> bestSpecies = nullptr;
 		double bestFitness = 0.0;
@@ -432,7 +431,7 @@ namespace neat_dnfs
 	}
 
 
-	void Population::reassignOffspringIfFitnessIsStagnant()
+	void Population::reassignOffspringIfFitnessIsStagnant() const
 	{
 		int totalOffspringToReassign = 0;
 		for (const auto& species : speciesList)
