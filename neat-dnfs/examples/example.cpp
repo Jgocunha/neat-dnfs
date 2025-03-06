@@ -25,41 +25,40 @@
 #include "solutions/timing_response.h"
 #include "solutions/select_the_object.h"
 
-#define _CRTDBG_MAP_ALLOC
-#include <cstdlib>
-#include <crtdbg.h>
-
-
 int main(int argc, char* argv[])
 {
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	try
 	{
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
 
+		SelectTheObject solution{
+			SolutionTopology{ {
+				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}}
+			}}
+		};
+
+		Sleep(1000);
+
 		for (int i = 0; i < 1000; i++)
 		{
+			Sleep(3000);
 
-			SelectTheObject solution{
-				SolutionTopology{ {
-					{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-					{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-					{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-					{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}}
-				}}
-			};
-			const PopulationParameters parameters{ 100, 200, 0.95 };
-			Population population{ parameters, std::make_shared<SelectTheObject>(solution) };
+			const PopulationParameters parameters{ 100, 20, 0.95 };
+			Population population{ parameters, std::make_unique<SelectTheObject>(solution) };
 
 			population.initialize();
 			population.evolve();
-			population.~Population();
-
-			Species::resetUniqueIdentifier();
-			Genome::resetGlobalInnovationNumber();
-			Solution::resetUniqueIdentifier();
 		}
+
+			for (size_t i = 0; i < 1000; i++)
+			{
+				std::cout << "sleep... \n";
+				Sleep(1000);
+			}
 
 		//const auto bestSolution = population.getBestSolution();
 		//bestSolution->createPhenotypeEnvironment();

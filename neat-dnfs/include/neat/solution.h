@@ -69,12 +69,13 @@ namespace neat_dnfs
 		std::string name;
 		SolutionTopology initialTopology;
 		SolutionParameters parameters;
-		PhenotypePtr phenotype;
+		//PhenotypePtr phenotype;
+		//dnf_composer::Simulation phenotype;
 		Genome genome;
-		std::tuple <SolutionPtr, SolutionPtr> parents;
+		//std::tuple <SolutionPtr, SolutionPtr> parents;
 	public:
 		Solution(const SolutionTopology& initialTopology);
-		~Solution();
+		//~Solution();
 		virtual SolutionPtr clone() const = 0;
 		SolutionPtr crossover(const SolutionPtr& other);
 		void evaluate();
@@ -83,8 +84,8 @@ namespace neat_dnfs
 		void setSpeciesId(int speciesId);
 		void setParents(const SolutionPtr& parent1, const SolutionPtr& parent2);
 		int getSpeciesId() const { return parameters.speciesId; }
-		std::tuple<SolutionPtr, SolutionPtr> getParents() const { return parents; }
-		PhenotypePtr getPhenotype() const;
+		//std::tuple<SolutionPtr, SolutionPtr> getParents() const { return parents; }
+		//PhenotypePtr getPhenotype() const;
 		Genome getGenome() const;
 		SolutionParameters getParameters() const;
 		std::string getName() const { return name; }
@@ -97,8 +98,8 @@ namespace neat_dnfs
 		void clearGenerationalInnovations() const;
 		void incrementAge();
 		void setAdjustedFitness(double adjustedFitness);
-		void buildPhenotype() const;
-		void clearPhenotype() const;
+		dnf_composer::Simulation buildPhenotype();
+		void clearPhenotype();
 		void addFieldGene(const FieldGene& gene);
 		void addConnectionGene(const ConnectionGene& gene);
 		bool containsConnectionGene(const ConnectionGene& gene) const;
@@ -115,12 +116,12 @@ namespace neat_dnfs
 		void createInputGenes();
 		void createOutputGenes();
 		//void createHiddenGenes();
-		void translateGenesToPhenotype() const;
-		void translateConnectionGenesToPhenotype() const;
+		void translateGenesToPhenotype(dnf_composer::Simulation* phenotype);
+		void translateConnectionGenesToPhenotype(dnf_composer::Simulation* phenotype);
 
 	protected:
 		virtual void testPhenotype() = 0;
-		void initSimulation();
+		/*void initSimulation();
 		void stopSimulation();
 		void runSimulation(const int iterations);
 		bool runSimulationUntilFieldStable(const std::string& targetElement);
@@ -146,6 +147,6 @@ namespace neat_dnfs
 		void removeGaussianStimuliFromField(const std::string& fieldName);
 		double noBumps(const std::string& fieldName);
 		double iterationsUntilBump(const std::string& fieldName, double targetIterations);
-		double iterationsUntilBumpWithAmplitude(const std::string& fieldName, double targetIterations, double targetAmplitude);
+		double iterationsUntilBumpWithAmplitude(const std::string& fieldName, double targetIterations, double targetAmplitude);*/
 	};
 }

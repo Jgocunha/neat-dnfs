@@ -54,14 +54,7 @@ namespace neat_dnfs
 	public:
 		Population(const PopulationParameters& parameters, 
 			const SolutionPtr& initialSolution);
-		~Population()
-		{
-			// Clean up any dynamically allocated resources
-			solutions.clear();
-			speciesList.clear();
-			champions.clear();
-			
-		}
+		~Population();
 
 		void initialize() const;
 		void evolve();
@@ -118,16 +111,17 @@ namespace neat_dnfs
 		void validateUniqueGenesInGenomes() const;
 		void validateUniqueKernelAndNeuralFieldPtrs() const;
 		void validateIfSpeciesHaveUniqueRepresentative() const;
+		void validateAssignmentIntoSpecies() const;
 
 		void setFileDirectory();
 		void print() const;
-		void saveAllSolutionsWithFitnessAbove(double fitness) const;
-		void saveChampions() const;
+		//void saveAllSolutionsWithFitnessAbove(double fitness) const;
+		//void saveChampions() const;
 		void saveTimestampsAndDuration() const;
 		void saveFinalStatistics() const;
 		void savePerGenerationStatistics() const;
-		void saveBestSolutionOfEachGeneration() const;
-		void saveChampionsOfEachGeneration() const;
+		//void saveBestSolutionOfEachGeneration() const;
+		//void saveChampionsOfEachGeneration() const;
 
 		void resetGenerationalInnovations() const;
 		void resetMutationStatisticsPerGeneration() const;

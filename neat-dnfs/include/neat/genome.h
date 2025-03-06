@@ -61,7 +61,7 @@ namespace neat_dnfs
 		static GenomeStatistics getStatistics();
 		std::string getLastMutationType() const;
 
-		void resetMutationStatisticsPerGeneration() const;
+		static void resetMutationStatisticsPerGeneration();
 
 		int excessGenes(const Genome& other) const;
 		int disjointGenes(const Genome& other) const;

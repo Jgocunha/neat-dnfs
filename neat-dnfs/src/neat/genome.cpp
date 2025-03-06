@@ -218,10 +218,12 @@ namespace neat_dnfs
 		return lastMutationType;
 	}
 
-	void Genome::resetMutationStatisticsPerGeneration() const
+	void Genome::resetMutationStatisticsPerGeneration()
 	{
 		statistics.resetPerGenerationStatistics();
-		for (auto& fieldGene : fieldGenes)
+		FieldGene::resetMutationStatisticsPerGeneration();
+		ConnectionGene::resetMutationStatisticsPerGeneration();
+		/*for (auto& fieldGene : fieldGenes)
 		{
 			fieldGene.resetMutationStatisticsPerGeneration();
 			break;
@@ -230,7 +232,7 @@ namespace neat_dnfs
 		{
 			connectionGene.resetMutationStatisticsPerGeneration();
 			break;
-		}
+		}*/
 	}
 
 	int Genome::excessGenes(const Genome& other) const
