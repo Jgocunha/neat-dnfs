@@ -69,23 +69,21 @@ namespace neat_dnfs
 		std::string name;
 		SolutionTopology initialTopology;
 		SolutionParameters parameters;
-		//PhenotypePtr phenotype;
-		//dnf_composer::Simulation phenotype;
+		dnf_composer::Simulation phenotype;
 		Genome genome;
-		//std::tuple <SolutionPtr, SolutionPtr> parents;
+		std::tuple <int, int> parents;
 	public:
 		Solution(const SolutionTopology& initialTopology);
-		//~Solution();
 		virtual SolutionPtr clone() const = 0;
 		SolutionPtr crossover(const SolutionPtr& other);
 		void evaluate();
 		void initialize();
 		void mutate();
 		void setSpeciesId(int speciesId);
-		void setParents(const SolutionPtr& parent1, const SolutionPtr& parent2);
+		void setParents(int parent1, int parent2);
 		int getSpeciesId() const { return parameters.speciesId; }
-		//std::tuple<SolutionPtr, SolutionPtr> getParents() const { return parents; }
-		//PhenotypePtr getPhenotype() const;
+		std::tuple<int, int> getParents() const { return parents; }
+		dnf_composer::Simulation getPhenotype() const;
 		Genome getGenome() const;
 		SolutionParameters getParameters() const;
 		std::string getName() const { return name; }
@@ -95,10 +93,10 @@ namespace neat_dnfs
 		size_t getNumFieldGenes() const { return genome.getFieldGenes().size(); }
 		std::vector<int> getInnovationNumbers() const;
 		int getId() const { return id; }
-		void clearGenerationalInnovations() const;
+		static void clearGenerationalInnovations();
 		void incrementAge();
 		void setAdjustedFitness(double adjustedFitness);
-		dnf_composer::Simulation buildPhenotype();
+		void buildPhenotype();
 		void clearPhenotype();
 		void addFieldGene(const FieldGene& gene);
 		void addConnectionGene(const ConnectionGene& gene);
@@ -110,18 +108,17 @@ namespace neat_dnfs
 		std::string toString() const;
 		void print() const;
 		virtual void createPhenotypeEnvironment() = 0;
-		void resetMutationStatisticsPerGeneration() const;
+		static void resetMutationStatisticsPerGeneration();
 		static void resetUniqueIdentifier();
 	private:
 		void createInputGenes();
 		void createOutputGenes();
-		//void createHiddenGenes();
-		void translateGenesToPhenotype(dnf_composer::Simulation* phenotype);
-		void translateConnectionGenesToPhenotype(dnf_composer::Simulation* phenotype);
+		void translateGenesToPhenotype();
+		void translateConnectionGenesToPhenotype();
 
 	protected:
 		virtual void testPhenotype() = 0;
-		/*void initSimulation();
+		void initSimulation();
 		void stopSimulation();
 		void runSimulation(const int iterations);
 		bool runSimulationUntilFieldStable(const std::string& targetElement);
@@ -147,6 +144,6 @@ namespace neat_dnfs
 		void removeGaussianStimuliFromField(const std::string& fieldName);
 		double noBumps(const std::string& fieldName);
 		double iterationsUntilBump(const std::string& fieldName, double targetIterations);
-		double iterationsUntilBumpWithAmplitude(const std::string& fieldName, double targetIterations, double targetAmplitude);*/
+		double iterationsUntilBumpWithAmplitude(const std::string& fieldName, double targetIterations, double targetAmplitude);
 	};
 }

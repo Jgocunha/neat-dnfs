@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
 		{
 			Sleep(3000);
 
-			const PopulationParameters parameters{ 100, 20, 0.95 };
+			const PopulationParameters parameters{ 100, 200, 0.95 };
 			Population population{ parameters, std::make_unique<SelectTheObject>(solution) };
 
 			population.initialize();

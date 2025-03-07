@@ -115,13 +115,13 @@ namespace neat_dnfs
 
 		void setFileDirectory();
 		void print() const;
-		//void saveAllSolutionsWithFitnessAbove(double fitness) const;
-		//void saveChampions() const;
+		void saveAllSolutionsWithFitnessAbove(double fitness) const;
+		void saveChampions() const;
 		void saveTimestampsAndDuration() const;
 		void saveFinalStatistics() const;
 		void savePerGenerationStatistics() const;
-		//void saveBestSolutionOfEachGeneration() const;
-		//void saveChampionsOfEachGeneration() const;
+		void saveBestSolutionOfEachGeneration() const;
+		void saveChampionsOfEachGeneration() const;
 
 		void resetGenerationalInnovations() const;
 		void resetMutationStatisticsPerGeneration() const;
