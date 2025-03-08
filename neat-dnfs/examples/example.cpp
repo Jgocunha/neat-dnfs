@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
 
 		for (int i = 0; i < 1000; i++)
 		{
-			const PopulationParameters parameters{ 5000, 500, 0.95 };
+			const PopulationParameters parameters{ 500, 200, 0.95 };
 			Population population{ parameters, std::make_unique<SelectTheObject>(solution) };
 
 			population.initialize();
@@ -51,6 +51,7 @@ int main(int argc, char* argv[])
 		}
 
 		//const auto bestSolution = population.getBestSolution();
+		//bestSolution->buildPhenotype();
 		//bestSolution->createPhenotypeEnvironment();
 		//bestSolution->print();
 		//const auto phenotype = bestSolution->getPhenotype();

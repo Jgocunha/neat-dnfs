@@ -29,24 +29,101 @@ namespace neat_dnfs
 		static constexpr double out_amp = 9.0;
 		static constexpr double out_width = 10.0;
 
+		//initSimulation();
+		//addGaussianStimulus("nf 1",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//addGaussianStimulus("nf 1",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//addGaussianStimulus("nf 2",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//runSimulation(iterations);
+
+		//const double f1 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1",
+		//	20.0, in_amp, in_width,
+		//	80.0, in_amp, in_width);
+		//const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 2", { 50.0 }, out_amp, out_width);
+		//const double f3 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0, 80.0 }, out_amp, out_width);
+
+		//addGaussianStimulus("nf 3",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//runSimulation(iterations);
+
+		//const double f4 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 80.0 }, out_amp, out_width);
+
+		//removeGaussianStimuliFromField("nf 1");
+		//removeGaussianStimuliFromField("nf 3");
+
+		//addGaussianStimulus("nf 3",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//runSimulation(iterations);
+
+		//const double f5 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 50.0 }, out_amp, out_width);
+
+		//removeGaussianStimuli();
+
+		//initSimulation();
+		//addGaussianStimulus("nf 1",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//addGaussianStimulus("nf 1",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//addGaussianStimulus("nf 2",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//addGaussianStimulus("nf 3",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//runSimulation(iterations);
+
+		//const double f6 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 50.0 }, out_amp, out_width);
+
+		//removeGaussianStimuliFromField("nf 2");
+		//removeGaussianStimuliFromField("nf 3");
+
+		//addGaussianStimulus("nf 3",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//runSimulation(iterations);
+
+		//const double f7 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0 }, out_amp, out_width);
+
+		//static constexpr double wf1 = 1 / 7.f;
+		//static constexpr double wf2 = 1 / 7.f;
+		//static constexpr double wf3 = 1 / 7.f;
+		//static constexpr double wf4 = 1 / 7.f;
+		//static constexpr double wf5 = 1 / 7.f;
+		//static constexpr double wf6 = 1 / 7.f;
+		//static constexpr double wf7 = 1 / 7.f;
+
+
+		//parameters.fitness = wf1 * f1 + wf2 * f2 + wf3 * f3 + wf4 * f4 + wf5 * f5 + wf6 * f6 + wf7 * f7;
+
+		//removeGaussianStimuli();
 		// nf 1 - input - small objects field (sof)
 		// nf 2 - input - large object field (lof)
 		// nf 3 - input - hand position field (hpf)
 		// nf 4 - output - target action field (taf)
 
-		static constexpr double wf1		= 1 / 12.f; // multi bump sof
-		static constexpr double wf2		= 1 / 12.f; // sof creates a selective single bump in taf
-		static constexpr double wf3		= 1 / 12.f; // lof single bump
-		static constexpr double wf4		= 1 / 12.f; // lof pre-shapes taf
-		static constexpr double wf5		= 1 / 12.f; // sof + hpf create a selective single bump in taf (pos. 20)
-		static constexpr double wf6		= 1 / 12.f; // sof + hpf create a selective single bump in taf (pos. 80)
-		static constexpr double wf7		= 1 / 12.f; // hpf single bump
-		static constexpr double wf8		= 1 / 12.f; // taf should be close to resting level just with hpf
-		static constexpr double wf9		= 1 / 12.f; // lof + hpf create a single bump in taf
-		static constexpr double wf10	= 1 / 12.f; // lof + sof + hpf create a selective single bump in taf (pos. 50)
-		static constexpr double wf11	= 1 / 12.f; // 
-		static constexpr double wf11_	= 1 / 12.f; //
-		static constexpr double wf12	= 1 / 12.f; //
+		static constexpr double wf1		= 1 / 14.f; // multi bump sof
+		static constexpr double wf2		= 1 / 14.f; // sof creates a selective single bump in taf
+		static constexpr double wf3		= 1 / 14.f; // lof single bump
+		static constexpr double wf4		= 1 / 14.f; // lof pre-shapes taf
+		static constexpr double wf5		= 1 / 14.f; // sof + hpf create a selective single bump in taf (pos. 20)
+		static constexpr double wf6		= 1 / 14.f; // sof + hpf create a selective single bump in taf (pos. 80)
+		static constexpr double wf7		= 1 / 14.f; // hpf single bump
+		static constexpr double wf8		= 1 / 14.f; // taf should be close to resting level just with hpf
+		static constexpr double wf9		= 1 / 14.f; // lof + hpf create a single bump in taf
+		static constexpr double wf10	= 1 / 14.f; // lof + sof + hpf create a selective single bump in taf (pos. 50)
+		static constexpr double wf11	= 1 / 14.f; // 
+		static constexpr double wf11_1	= 1 / 14.f; //
+		static constexpr double wf11_2	= 1 / 14.f; //
+		static constexpr double wf12	= 1 / 14.f; //
 
 
 		initSimulation();
@@ -146,8 +223,17 @@ namespace neat_dnfs
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f11_ = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 50.0, in_amp, in_width);
-		parameters.fitness += wf11_ * f11_;
+		const double f11_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 50.0, in_amp, in_width);
+		parameters.fitness += wf11_1 * f11_1;
+
+		// new f11_2
+		removeGaussianStimuliFromField("nf 3");
+		addGaussianStimulus("nf 3",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		const double f11_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 20.0, in_amp, in_width);
+		parameters.fitness += wf11_2 * f11_2;
 
 		removeGaussianStimuli();
 		initSimulation();
