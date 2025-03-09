@@ -11,7 +11,8 @@ namespace neat_dnfs
 	{}
 
 	Population::Population(const PopulationParameters& parameters, const SolutionPtr& initialSolution)
-		: parameters(parameters), bestSolution(initialSolution->clone())
+		: parameters(parameters)
+	//, bestSolution(initialSolution->clone())
 	{
 		createInitialEmptySolutions(initialSolution);
 	}
@@ -151,8 +152,12 @@ namespace neat_dnfs
 
 	void Population::createInitialEmptySolutions(const SolutionPtr& initialSolution)
 	{
+		initialSolution->buildPhenotype();
 		for (int i = 0; i < parameters.size; i++)
+		{
+			//initialSolution->clearPhenotype();
 			solutions.emplace_back(initialSolution->clone());
+		}
 	}
 
 	void Population::buildInitialSolutionsGenome() const

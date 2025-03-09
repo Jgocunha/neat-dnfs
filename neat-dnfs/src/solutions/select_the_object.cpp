@@ -9,9 +9,16 @@ namespace neat_dnfs
 		// target fitness is 0.95
 	}
 
+	SelectTheObject::SelectTheObject(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+		: Solution(initialTopology, phenotype)
+	{
+		name = "Select the object";
+		// target fitness is 0.95
+	}
+
 	SolutionPtr SelectTheObject::clone() const
 	{
-		SelectTheObject solution(initialTopology);
+		SelectTheObject solution(initialTopology, phenotype);
 		auto clonedSolution = std::make_shared<SelectTheObject>(solution);
 
 		return clonedSolution;

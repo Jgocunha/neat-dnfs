@@ -32,47 +32,64 @@ int main(int argc, char* argv[])
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
 
+
+		const std::shared_ptr<dnf_composer::Simulation> previous_solution = std::make_shared<dnf_composer::Simulation>();
+		const dnf_composer::SimulationFileManager sfm(previous_solution, std::string(PROJECT_DIR) + "/test.json");
+		sfm.loadElementsFromJson();
+		const dnf_composer::Simulation template_solution = *previous_solution;
+
 		SelectTheObject solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}}
-			}}
+			}
+			},
+			template_solution
 		};
 
-		for (int i = 0; i < 1000; i++)
-		{
-			const PopulationParameters parameters{ 500, 200, 0.95 };
+
+		//for (int i = 0; i < 1000; i++)
+		//{
+			const PopulationParameters parameters{ 10, 200, 0.95 };
 			Population population{ parameters, std::make_unique<SelectTheObject>(solution) };
 
 			population.initialize();
 			population.evolve();
-		}
+		//}
 
-		//const auto bestSolution = population.getBestSolution();
-		//bestSolution->buildPhenotype();
-		//bestSolution->createPhenotypeEnvironment();
+		const auto bestSolution = population.getBestSolution();
+		bestSolution->buildPhenotype();
+		bestSolution->createPhenotypeEnvironment();
 		//bestSolution->print();
-		//const auto phenotype = bestSolution->getPhenotype();
+		const auto phenotype = bestSolution->getPhenotype();
 		//
-		//// run dnf-composer
-		//using namespace dnf_composer;
-		//const Application app{ phenotype };
-		//app.addWindow<user_interface::MainWindow>();
-		//app.addWindow<user_interface::SimulationWindow>();
-		//app.addWindow<user_interface::ElementWindow>();
-		//app.addWindow<imgui_kit::LogWindow>();
-		//app.addWindow<user_interface::PlotControlWindow>();
-		//app.addWindow<user_interface::PlotsWindow>();
-		//app.addWindow<user_interface::NodeGraphWindow>();
-		//app.addWindow<user_interface::FieldMetricsWindow>();
-		//app.init();
-		//do
-		//{
-		//	app.step();
-		//} while(!app.hasGUIBeenClosed());
-		//app.close();
+		//solution.clearPhenotype();
+		//solution.buildPhenotype();
+
+		//dnf_composer::SimulationFileManager sfm2(std::make_shared<dnf_composer::Simulation>(solution.getPhenotype()), 
+		//	std::string(PROJECT_DIR) + "/_");
+		//sfm2.saveElementsToJson();
+
+		// run dnf-composer
+		using namespace dnf_composer;
+		const Application app{ std::make_shared<Simulation>(phenotype) };
+		//const Application app{ previous_solution };
+		app.addWindow<user_interface::MainWindow>();
+		app.addWindow<user_interface::SimulationWindow>();
+		app.addWindow<user_interface::ElementWindow>();
+		app.addWindow<imgui_kit::LogWindow>();
+		app.addWindow<user_interface::PlotControlWindow>();
+		app.addWindow<user_interface::PlotsWindow>();
+		app.addWindow<user_interface::NodeGraphWindow>();
+		app.addWindow<user_interface::FieldMetricsWindow>();
+		app.init();
+		do
+		{
+			app.step();
+		} while(!app.hasGUIBeenClosed());
+		app.close();
 
 		return 0;
 	}

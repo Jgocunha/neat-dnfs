@@ -193,7 +193,7 @@ namespace neat_dnfs
 				const SolutionPtr son = parent1->crossover(parent1);
 				//if (son->getId() == parent1->getId())
 					//std::cout << "When crossing over with clone parents id's are the same " << parent1->getId() << std::endl;
-				offspring.push_back(son);
+				offspring.emplace_back(son);
 			}
 		}
 		else // more than one organism in the species
@@ -205,7 +205,7 @@ namespace neat_dnfs
 				const SolutionPtr son = parent1->crossover(parent2);
 				if (son->getId() == parent1->getId() || son->getId() == parent2->getId())
 					std::cout << "When crossing over id's are the same " << parent1->getId() << " or " << parent2->getId() << " is equal to " << son->getId() << std::endl;
-				offspring.push_back(son);
+				offspring.emplace_back(son);
 			}
 		}
 		extinct = false;
@@ -215,7 +215,7 @@ namespace neat_dnfs
 	{
 		members.clear();
 		for (const auto& child : offspring)
-			members.push_back(child);
+			members.emplace_back(child);
 	}
 
 	void Species::copyChampionToNextGeneration()
@@ -225,7 +225,7 @@ namespace neat_dnfs
 
 		const size_t initialMembersSize = members.size();
 		members.pop_back();
-		members.push_back(champion);
+		members.emplace_back(champion);
 		const size_t finalMembersSize = members.size();
 
 		if (initialMembersSize != finalMembersSize)

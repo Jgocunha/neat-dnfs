@@ -25,6 +25,20 @@ namespace neat_dnfs
 		throw std::invalid_argument("Number of input and output genes must be greater than 0");
 	}
 
+	Solution::Solution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+		: id(uniqueIdentifierCounter++),
+		name("undefined"),
+		initialTopology(initialTopology),
+		parameters(),
+		phenotype(phenotype),
+		genome(),
+		parents(0, 0)
+	{
+		translatePhenotypeToGenome();
+		clearPhenotype();
+		this->phenotype = dnf_composer::Simulation(SimulationConstants::name + std::to_string(id), SimulationConstants::deltaT);
+	}
+
 	void Solution::evaluate()
 	{
 		buildPhenotype();
@@ -34,8 +48,11 @@ namespace neat_dnfs
 
 	void Solution::initialize()
 	{
-		createInputGenes();
-		createOutputGenes();
+		if (genome.isEmpty())
+		{
+			createInputGenes();
+			createOutputGenes();
+		}
 	}
 
 	void Solution::mutate()
@@ -218,6 +235,247 @@ namespace neat_dnfs
 		}
 	}
 
+	void Solution::translatePhenotypeToGenome()
+	{
+		// Clear the current genome before rebuilding it
+		genome = Genome();
+
+		using namespace dnf_composer::element;
+
+		// Map to track the field gene IDs by neural field names
+		std::map<std::string, int> fieldNameToIdMap;
+		int nextFieldId = 1;
+
+		// First pass: identify all neural fields and create field genes
+		for (const auto& element : phenotype.getElements())
+		{
+			if (element->getLabel() == ElementLabel::NEURAL_FIELD)
+			{
+				const auto neuralField = std::dynamic_pointer_cast<NeuralField>(element);
+				const auto nfcp = neuralField->getElementCommonParameters();
+				const auto nfp = neuralField->getParameters();
+
+				// Determine field gene type based on naming convention
+				FieldGeneType fieldType;
+				if (nfcp.identifiers.uniqueName.find(NeuralFieldConstants::namePrefix) == 0)
+				{
+					const std::string idStr = nfcp.identifiers.uniqueName.substr(NeuralFieldConstants::namePrefix.length());
+					const int fieldId = std::stoi(idStr);
+
+					// Store mapping for later use with connections
+					fieldNameToIdMap[nfcp.identifiers.uniqueName] = fieldId;
+
+					// Determine if this is input, output, or hidden based on connections
+									// Logic based on connection patterns
+					const size_t numInputs = element->getInputs().size();
+					const size_t numOutputs = element->getOutputs().size();
+
+					if (numInputs == 2 && numOutputs >= 2)
+					{
+						fieldType = FieldGeneType::INPUT;
+					}
+					else if (numInputs >= 3 && numOutputs == 1)
+					{
+						fieldType = FieldGeneType::OUTPUT;
+					}
+					else if (numInputs >= 3 && numOutputs >= 2)
+					{
+						fieldType = FieldGeneType::HIDDEN;
+					}
+					else
+					{
+						// Default to HIDDEN if connection pattern doesn't match expected patterns
+						fieldType = FieldGeneType::HIDDEN;
+						tools::logger::log(tools::logger::LogLevel::WARNING,
+							"Unusual connection pattern for neural field: " + nfcp.identifiers.uniqueName +
+							" (inputs: " + std::to_string(numInputs) + ", outputs: " + std::to_string(numOutputs) + ")");
+					}
+
+					// Create field gene parameters
+					FieldGeneParameters params(fieldType, fieldId);
+
+					// Find associated kernel and noise for this neural field
+					KernelPtr associatedKernel = nullptr;
+					NormalNoisePtr associatedNoise = nullptr;
+
+					for (const auto& outputInteraction : element->getOutputs())
+					{
+						//const auto targetElement = outputInteraction->;
+						if (outputInteraction->getLabel() == ElementLabel::GAUSS_KERNEL ||
+							outputInteraction->getLabel() == ElementLabel::MEXICAN_HAT_KERNEL ||
+							outputInteraction->getLabel() == ElementLabel::OSCILLATORY_KERNEL)
+						{
+							if (outputInteraction->getInputs() ==  outputInteraction->getOutputs())
+							{
+								associatedKernel = std::dynamic_pointer_cast<Kernel>(outputInteraction);
+								//std::cout << "Kernel: " << associatedKernel->toString() << std::endl;
+								break;
+							}
+						}
+					}
+
+					for (const auto& inputInteraction : element->getInputs())
+					{
+						//const auto sourceElement = inputInteraction->getSource();
+						if (inputInteraction->getLabel() == ElementLabel::NORMAL_NOISE)
+						{
+							associatedNoise = std::dynamic_pointer_cast<NormalNoise>(inputInteraction);
+							break;
+						}
+					}
+
+					// If kernel and noise are found, add the field gene
+					if (associatedKernel && associatedNoise)
+					{
+						FieldGene fieldGene(params, neuralField, associatedKernel);
+						genome.addFieldGene(fieldGene);
+					}
+					else
+					{
+						tools::logger::log(tools::logger::LogLevel::WARNING,
+							"Could not find associated kernel or noise for neural field: " + nfcp.identifiers.uniqueName);
+					}
+
+					// Update nextFieldId if necessary
+					nextFieldId = std::max(nextFieldId, fieldId + 1);
+				}
+			}
+		}
+
+		int innovationCounter = 1;
+
+		// Second pass: identify all connections between neural fields and create connection genes
+		for (const auto& element : phenotype.getElements())
+		{
+			// Check if element is a kernel used for connection between neural fields
+			if (element->getLabel() == ElementLabel::GAUSS_KERNEL ||
+				element->getLabel() == ElementLabel::MEXICAN_HAT_KERNEL ||
+				element->getLabel() == ElementLabel::OSCILLATORY_KERNEL)
+			{
+				// Skip self-connection kernels (which are part of field genes)
+				bool isSelfConnection = false;
+				std::string sourceName, targetName;
+
+				// Find source and target of this connection
+				for (const auto& inputInteraction : element->getInputs())
+				{
+					//const auto sourceElement = inputInteraction->getSource();
+					if (inputInteraction->getLabel() == ElementLabel::NEURAL_FIELD)
+					{
+						sourceName = inputInteraction->getUniqueName();
+					}
+				}
+
+				for (const auto& outputInteraction : element->getOutputs())
+				{
+					//const auto targetElement = outputInteraction->getTarget();
+					if (outputInteraction->getLabel() == ElementLabel::NEURAL_FIELD)
+					{
+						targetName = outputInteraction->getUniqueName();
+					}
+				}
+
+				// Skip if this is a self-connection (part of a field gene)
+				if (sourceName == targetName)
+				{
+					continue;
+				}
+
+				// If we have valid source and target field names in our map
+				if (fieldNameToIdMap.find(sourceName) != fieldNameToIdMap.end() &&
+					fieldNameToIdMap.find(targetName) != fieldNameToIdMap.end())
+				{
+					int sourceId = fieldNameToIdMap[sourceName];
+					int targetId = fieldNameToIdMap[targetName];
+
+					// Create connection tuple
+					ConnectionTuple connectionTuple(sourceId, targetId);
+
+					// Create a connection gene with an appropriate innovation number
+					// For reconstructing, we'll use a simple incremental approach
+					//static int innovationCounter = 1;
+
+					// Get the kernel parameters based on type
+					switch (element->getLabel())
+					{
+					case ElementLabel::GAUSS_KERNEL:
+					{
+						auto gaussKernel = std::dynamic_pointer_cast<GaussKernel>(element);
+						ConnectionGene connectionGene(connectionTuple, innovationCounter++, gaussKernel->getParameters());
+						genome.addConnectionGene(connectionGene);
+						break;
+					}
+					case ElementLabel::MEXICAN_HAT_KERNEL:
+					{
+						auto mexicanHatKernel = std::dynamic_pointer_cast<MexicanHatKernel>(element);
+						ConnectionGene connectionGene(connectionTuple, innovationCounter++, mexicanHatKernel->getParameters());
+						genome.addConnectionGene(connectionGene);
+						break;
+					}
+					case ElementLabel::OSCILLATORY_KERNEL:
+					{
+						auto oscillatoryKernel = std::dynamic_pointer_cast<OscillatoryKernel>(element);
+						ConnectionGene connectionGene(connectionTuple, innovationCounter++, oscillatoryKernel->getParameters());
+						genome.addConnectionGene(connectionGene);
+						break;
+					}
+					default:
+						break;
+					}
+
+					//Genome::setNextInnovationNumber(innovationCounter); !!
+				}
+			}
+		}
+
+		// Ensure the genome is valid by adding any missing input or output genes from topology
+		for (const auto& geneTypeAndDimension : initialTopology.geneTopology)
+		{
+			if (geneTypeAndDimension.first == FieldGeneType::INPUT)
+			{
+				bool found = false;
+				for (const auto& fieldGene : genome.getFieldGenes())
+				{
+					if (fieldGene.getParameters().type == FieldGeneType::INPUT)
+					{
+						found = true;
+						break;
+					}
+				}
+
+				if (!found)
+				{
+					genome.addInputGene(geneTypeAndDimension.second);
+				}
+			}
+			else if (geneTypeAndDimension.first == FieldGeneType::OUTPUT)
+			{
+				bool found = false;
+				for (const auto& fieldGene : genome.getFieldGenes())
+				{
+					if (fieldGene.getParameters().type == FieldGeneType::OUTPUT)
+					{
+						found = true;
+						break;
+					}
+				}
+
+				if (!found)
+				{
+					genome.addOutputGene(geneTypeAndDimension.second);
+				}
+			}
+		}
+
+		// Final validation: check for duplicate connection genes
+		genome.checkForDuplicateConnectionGenes();
+	}
+
+	void Solution::clearGenome()
+	{
+		genome = Genome();
+	}
+
 	void Solution::resetMutationStatisticsPerGeneration()
 	{
 		Genome::resetMutationStatisticsPerGeneration();
@@ -274,6 +532,7 @@ namespace neat_dnfs
 
 		SolutionPtr offspring = moreFitParent->clone();
 		offspring->setParents(moreFitParent->getId(), lessFitParent->getId());
+		offspring->clearGenome();
 
 		for (const auto& gene : moreFitParent->getGenome().getFieldGenes())
 			offspring->addFieldGene(gene.clone());
