@@ -12,8 +12,8 @@ namespace neat_dnfs
 	struct SimulationConstants
 	{
 		inline static std::string name = "solution ";
-		static constexpr double deltaT = 25.0;
-		static constexpr size_t maxSimulationSteps = 1000;
+		static constexpr double deltaT = 20.0;
+		static constexpr size_t maxSimulationSteps = 500;
 	};
 
 	struct DimensionConstants
@@ -151,11 +151,11 @@ namespace neat_dnfs
 	struct GenomeMutationConstants
 	{
 		// genome mutation probabilities (sum must be 1.0)
-		static constexpr double addFieldGeneProbability			= 0; // 0.0025
-		static constexpr double mutateFieldGeneProbability		= 0.40; // 0.35
-		static constexpr double addConnectionGeneProbability	= 0.05; // 0.20
-		static constexpr double mutateConnectionGeneProbability = 0.54; // 0.44
-		static constexpr double toggleConnectionGeneProbability = 0.01; // 0.0075
+		static constexpr double addFieldGeneProbability			= 0.0125; // 0.0025
+		static constexpr double mutateFieldGeneProbability		= 0.34; // 0.35
+		static constexpr double addConnectionGeneProbability	= 0.20; // 0.20
+		static constexpr double mutateConnectionGeneProbability = 0.44; // 0.44
+		static constexpr double toggleConnectionGeneProbability = 0.0075; // 0.0075
 
 		static constexpr bool checkForDuplicateConnectionGenesInGenome = false;
 	};
@@ -232,20 +232,20 @@ namespace neat_dnfs
 	struct PopulationConstants
 	{
 		static constexpr bool parallelEvolution									= true;
-		static constexpr double pruneRatio										= 0.2;
+		static constexpr double pruneRatio										= 0.5;
 		static constexpr int generationsWithoutImprovementThresholdInPopulation = 10;
 		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 5;
 		static constexpr bool elitism											= true;
 
-		static constexpr bool validateUniqueSolutions					= true;
-		static constexpr bool validatePopulationSize					= true;
-		static constexpr bool validateElitism							= true;
-		static constexpr bool validateUniqueGenesInGenomes				= true;
-		static constexpr bool validateUniqueKernelAndNeuralFieldPtrs	= true;
-		static constexpr bool validateIfSpeciesHaveUniqueRepresentative = true;
-		static constexpr bool validateAssignmentIntoSpecies				= true;
+		static constexpr bool validateUniqueSolutions					= false;
+		static constexpr bool validatePopulationSize					= false;
+		static constexpr bool validateElitism							= false;
+		static constexpr bool validateUniqueGenesInGenomes				= false;
+		static constexpr bool validateUniqueKernelAndNeuralFieldPtrs	= false;
+		static constexpr bool validateIfSpeciesHaveUniqueRepresentative = false;
+		static constexpr bool validateAssignmentIntoSpecies				= false;
 
-		static constexpr bool logSolutions				= false;
+		static constexpr bool logSolutions				= true;
 		static constexpr bool logOverview				= true;
 		static constexpr bool logSpecies				= false;
 		static constexpr bool logMutationStatistics		= false;

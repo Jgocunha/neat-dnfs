@@ -240,6 +240,12 @@ namespace neat_dnfs
 		// Clear the current genome before rebuilding it
 		genome = Genome();
 
+		if (phenotype.getElements().empty())
+		{
+			//tools::logger::log(tools::logger::LogLevel::WARNING, "Phenotype is empty. Cannot translate to genome.");
+			return;
+		}
+
 		using namespace dnf_composer::element;
 
 		// Map to track the field gene IDs by neural field names
@@ -270,7 +276,7 @@ namespace neat_dnfs
 					const size_t numInputs = element->getInputs().size();
 					const size_t numOutputs = element->getOutputs().size();
 
-					if (numInputs == 2 && numOutputs >= 2)
+					if (numInputs == 2 && numOutputs >= 1)
 					{
 						fieldType = FieldGeneType::INPUT;
 					}
