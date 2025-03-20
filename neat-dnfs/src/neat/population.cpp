@@ -11,7 +11,8 @@ namespace neat_dnfs
 	{}
 
 	Population::Population(const PopulationParameters& parameters, const SolutionPtr& initialSolution)
-		: parameters(parameters), bestSolution(initialSolution->clone())
+		: parameters(parameters)
+	//, bestSolution(initialSolution->clone())
 	{
 		createInitialEmptySolutions(initialSolution);
 	}
@@ -151,8 +152,12 @@ namespace neat_dnfs
 
 	void Population::createInitialEmptySolutions(const SolutionPtr& initialSolution)
 	{
+		initialSolution->buildPhenotype();
 		for (int i = 0; i < parameters.size; i++)
+		{
+			//initialSolution->clearPhenotype();
 			solutions.emplace_back(initialSolution->clone());
+		}
 	}
 
 	void Population::buildInitialSolutionsGenome() const
@@ -726,7 +731,7 @@ namespace neat_dnfs
 		const auto now = std::time(nullptr);
 		const auto localTime = *std::localtime(&now);
 		char timeBuffer[100];
-		(void)std::strftime(timeBuffer, sizeof(timeBuffer), "%Y~%m~%d_%H'%M'%S", &localTime);
+		(void)std::strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d %Hh%Mm%Ss", &localTime);
 
 		fileDirectory = std::string(PROJECT_DIR) + "/data/" + solutionName + "/" + timeBuffer + "/";
 		std::filesystem::create_directories(fileDirectory); // Ensure directory exist
@@ -763,6 +768,7 @@ namespace neat_dnfs
 			if (solution->getFitness() > fitness)
 			{
 				solution->buildPhenotype();
+				solution->createPhenotypeEnvironment();
 				auto simulation = solution->getPhenotype();
 				solution->clearPhenotype();
 				// save weights
@@ -802,6 +808,7 @@ namespace neat_dnfs
 				continue;
 			}
 			champion->buildPhenotype();
+			champion->createPhenotypeEnvironment();
 			auto simulation = champion->getPhenotype();
 			champion->clearPhenotype();
 			// save weights
@@ -954,6 +961,7 @@ namespace neat_dnfs
 		std::filesystem::create_directories(directoryPath); // Ensure directory exist
 
 		bestSolution->buildPhenotype();
+		bestSolution->createPhenotypeEnvironment();
 		auto simulation = bestSolution->getPhenotype();
 		bestSolution->clearPhenotype();
 		// save weights
@@ -989,6 +997,7 @@ namespace neat_dnfs
 				continue;
 			}
 			champion->buildPhenotype();
+			champion->createPhenotypeEnvironment();
 			auto simulation = champion->getPhenotype();
 			champion->clearPhenotype();
 			// save weights

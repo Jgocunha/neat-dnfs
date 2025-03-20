@@ -28,13 +28,13 @@ namespace neat_dnfs
 		double adjustedFitness;
 		int age;
 		int speciesId;
-		// bumps really should be a parameter?
+		std::vector<double> partialFitness;
 		std::vector<dnf_composer::element::NeuralFieldBump> bumps;
 
 		SolutionParameters(double fitness = 0.0,
 			double adjustedFitness = 0.0, int age = 0)
 			: fitness(fitness), adjustedFitness(adjustedFitness), age(age), speciesId(-1)
-			, bumps({})
+			, partialFitness({}), bumps({})
 		{}
 
 		bool operator==(const SolutionParameters& other) const
@@ -47,9 +47,16 @@ namespace neat_dnfs
 
 		std::string toString() const
 		{
-			std::string result = 
+			std::string result =
 				" fit.: " + std::to_string(fitness) +
-				", spec.: " + std::to_string(speciesId) +
+				", part.: (";
+
+			for (const auto& partial : partialFitness)
+			{
+				result += std::to_string(partial) + ", ";
+			}
+
+			result += "), spec.: " + std::to_string(speciesId) +
 				", adj.fit.: " + std::to_string(adjustedFitness) +
 				", age: " + std::to_string(age);
 			return result;
@@ -74,6 +81,7 @@ namespace neat_dnfs
 		std::tuple <int, int> parents;
 	public:
 		Solution(const SolutionTopology& initialTopology);
+		Solution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
 		virtual SolutionPtr clone() const = 0;
 		SolutionPtr crossover(const SolutionPtr& other);
 		void evaluate();
@@ -110,6 +118,8 @@ namespace neat_dnfs
 		virtual void createPhenotypeEnvironment() = 0;
 		static void resetMutationStatisticsPerGeneration();
 		static void resetUniqueIdentifier();
+		void translatePhenotypeToGenome();
+		void clearGenome();
 	private:
 		void createInputGenes();
 		void createOutputGenes();

@@ -32,18 +32,27 @@ int main(int argc, char* argv[])
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
 
+
+		//const std::shared_ptr<dnf_composer::Simulation> previous_solution = std::make_shared<dnf_composer::Simulation>();
+		//const dnf_composer::SimulationFileManager sfm(previous_solution, std::string(PROJECT_DIR) + "/solution 299223 generation 150 species 410 fitness 0.979510.json");
+		//sfm.loadElementsFromJson();
+		//const dnf_composer::Simulation template_solution = *previous_solution;
+
 		SelectTheObject solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}}
-			}}
+			}
+			},
+			//template_solution
 		};
+
 
 		for (int i = 0; i < 1000; i++)
 		{
-			const PopulationParameters parameters{ 500, 200, 0.95 };
+			const PopulationParameters parameters{ 200, 200, 0.99 };
 			Population population{ parameters, std::make_unique<SelectTheObject>(solution) };
 
 			population.initialize();
@@ -53,12 +62,20 @@ int main(int argc, char* argv[])
 		//const auto bestSolution = population.getBestSolution();
 		//bestSolution->buildPhenotype();
 		//bestSolution->createPhenotypeEnvironment();
-		//bestSolution->print();
-		//const auto phenotype = bestSolution->getPhenotype();
-		//
+		////bestSolution->print();
+		////const auto phenotype = bestSolution->getPhenotype();
+		////
+		////solution.clearPhenotype();
+		////solution.buildPhenotype();
+
+		////dnf_composer::SimulationFileManager sfm2(std::make_shared<dnf_composer::Simulation>(solution.getPhenotype()), 
+		////	std::string(PROJECT_DIR) + "/_");
+		////sfm2.saveElementsToJson();
+
 		//// run dnf-composer
 		//using namespace dnf_composer;
-		//const Application app{ phenotype };
+		//const Application app{ std::make_shared<Simulation>(bestSolution->getPhenotype()) };
+		////const Application app{ previous_solution };
 		//app.addWindow<user_interface::MainWindow>();
 		//app.addWindow<user_interface::SimulationWindow>();
 		//app.addWindow<user_interface::ElementWindow>();

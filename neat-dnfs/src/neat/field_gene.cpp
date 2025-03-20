@@ -276,6 +276,14 @@ namespace neat_dnfs
 		std::string result = "fg (";
 		result += parameters.toString();
 		result += ")";
+
+		//result += " nf: [";
+		//result += neuralField->toString();
+		//result += "] k: [";
+		//result += kernel->toString();
+		//result += "] n: [";
+		//result += noise->toString();
+		//result += "]";
 		return result;
 	}
 

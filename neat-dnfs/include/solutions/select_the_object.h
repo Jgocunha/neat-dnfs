@@ -9,6 +9,8 @@ namespace neat_dnfs
 	{
 	public:
 		SelectTheObject(const SolutionTopology& topology);
+		SelectTheObject(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
+
 		SolutionPtr clone() const override;
 	private:
 		void testPhenotype() override;

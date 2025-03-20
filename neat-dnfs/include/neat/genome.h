@@ -76,6 +76,7 @@ namespace neat_dnfs
 		ConnectionGene getConnectionGeneByInnovationNumber(int innovationNumber) const;
 		FieldGene getFieldGeneById(int id) const;
 
+		bool isEmpty() const;
 		bool operator==(const Genome& other) const;
 		std::string toString() const;
 		void print() const;
