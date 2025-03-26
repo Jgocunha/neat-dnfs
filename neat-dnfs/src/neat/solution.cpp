@@ -873,13 +873,14 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
 
-		const double highestActivationValue = neuralField->getHighestActivation();
-		const double restingLevel = neuralField->getParameters().startingRestingLevel;
+		const double highestActivationValue = std::abs(neuralField->getHighestActivation());
+		const double restingLevel = std::abs(neuralField->getParameters().startingRestingLevel);
+
 		// target activation is between the resting level and 0.0 (supra-threshold)
 		const double targetActivation = restingLevel / 2.0;
-		const double width = std::abs(targetActivation);
+		const double width = restingLevel / 12.0;  // Makes both points 3 standard deviations away
 
-		return tools::utils::normalizeWithGaussian(-highestActivationValue, -targetActivation, width);
+		return tools::utils::normalizeWithGaussian(highestActivationValue, targetActivation, width);
 	}
 
 	double Solution::negativePreShapednessAtPosition(const std::string& fieldName, const double& position)
@@ -916,31 +917,38 @@ namespace neat_dnfs
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
 
 		static constexpr double weightBumps = 0.50;
-		static constexpr double weightPos = 0.20;
-		static constexpr double weightAmp = 0.15;
-		static constexpr double weightWidth = 0.15;
+		static constexpr double weightPos = 0.30;
+		static constexpr double weightAmp = 0.10;
+		static constexpr double weightWidth = 0.10;
 
 		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
 		double fitness = weightBumps / (1.0 + std::abs(1 - numberOfBumps));
 
-		if(numberOfBumps == 1)
+		// Only proceed to check position if there's exactly one bump
+		if (numberOfBumps == 1)
 		{
-			NeuralFieldBump bump = neuralField->getBumps().front();
+			const NeuralFieldBump bump = neuralField->getBumps().front();
 
-			for (const auto& position : positions)
-			{
-				static constexpr double epsilon = 1e-6;
-				if (std::abs(bump.centroid - position) < epsilon)
-				{
-					fitness += weightPos / (1.0 + std::abs(bump.centroid - position));
-					fitness += weightAmp / (1.0 + std::abs(bump.amplitude - amplitude));
-					fitness += weightWidth / (1.0 + std::abs(bump.width - width));
-				}
+			// Find the minimum distance to any of the allowed positions
+			double minDistance = std::numeric_limits<double>::max();
+			for (const auto& position : positions) {
+				minDistance = std::min(minDistance, std::abs(bump.centroid - position));
+			}
+
+			// Use a more lenient epsilon based on the scale of your system
+			static constexpr double epsilon = 2.0;  // Adjust based on your position scale
+
+			// Only add position, amplitude, and width fitness if close enough to a target position
+			if (minDistance < epsilon) {
+				fitness += weightPos / (1.0 + minDistance);
+				fitness += weightAmp / (1.0 + std::abs(bump.amplitude - amplitude));
+				fitness += weightWidth / (1.0 + std::abs(bump.width - width));
 			}
 		}
 
 		return fitness;
 	}
+
 
 	void Solution::removeGaussianStimuliFromField(const std::string& fieldName)
 	{
@@ -1013,9 +1021,9 @@ namespace neat_dnfs
 		constexpr double epsilon = 1e-6;
 		double newPosition = 0.0;
 		const auto gaussStimulus = std::dynamic_pointer_cast<dnf_composer::element::GaussStimulus>(phenotype.getElement(stimulusName));
-		double diff_x = std::abs(targetPosition - gaussStimulus->getParameters().position);
-		double steps_x = diff_x / step;
-		int steps_t = static_cast<int>(SimulationConstants::maxSimulationSteps / steps_x);
+		const double diff_x = std::abs(targetPosition - gaussStimulus->getParameters().position);
+		const double steps_x = diff_x / step;
+		const int steps_t = static_cast<int>(SimulationConstants::maxSimulationSteps / steps_x);
 
 		do
 		{

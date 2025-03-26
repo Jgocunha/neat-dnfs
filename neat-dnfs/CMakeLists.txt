@@ -60,6 +60,7 @@ set(header
 "include/solutions/selective_output_field.h"
 "include/solutions/timing_response.h"
 "include/solutions/select_the_object.h"
+"include/solutions/two_robot_team.h"
 
 #"include/application/application.h"
 #"include/user_interface/setup_window.h"
@@ -85,6 +86,7 @@ set(src
 "src/solutions/selective_output_field.cpp"
 "src/solutions/timing_response.cpp"
 "src/solutions/select_the_object.cpp"
+"src/solutions/two_robot_team.cpp"
 
 #"src/application/application.cpp"
 #"src/user_interface/setup_window.cpp"
