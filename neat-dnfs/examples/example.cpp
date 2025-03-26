@@ -33,10 +33,10 @@ int main(int argc, char* argv[])
 		using namespace neat_dnfs;
 
 
-		const std::shared_ptr<dnf_composer::Simulation> previous_solution = std::make_shared<dnf_composer::Simulation>();
-		const dnf_composer::SimulationFileManager sfm(previous_solution, std::string(PROJECT_DIR) + "/solution 83843 generation 168 species 0 fitness 0.883779.json");
-		sfm.loadElementsFromJson();
-		const dnf_composer::Simulation template_solution = *previous_solution;
+		//const std::shared_ptr<dnf_composer::Simulation> previous_solution = std::make_shared<dnf_composer::Simulation>();
+		//const dnf_composer::SimulationFileManager sfm(previous_solution, std::string(PROJECT_DIR) + "/solution 299223 generation 150 species 410 fitness 0.979510.json");
+		//sfm.loadElementsFromJson();
+		//const dnf_composer::Simulation template_solution = *previous_solution;
 
 		SelectTheObject solution{
 			SolutionTopology{ {
@@ -46,18 +46,18 @@ int main(int argc, char* argv[])
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}}
 			}
 			},
-			template_solution
+			//template_solution
 		};
 
 
-		//for (int i = 0; i < 1000; i++)
-		//{
-			const PopulationParameters parameters{ 1000, 200, 0.95 };
+		for (int i = 0; i < 1000; i++)
+		{
+			const PopulationParameters parameters{ 500, 200, 0.99 };
 			Population population{ parameters, std::make_unique<SelectTheObject>(solution) };
 
 			population.initialize();
 			population.evolve();
-		//}
+		}
 
 		//const auto bestSolution = population.getBestSolution();
 		//bestSolution->buildPhenotype();
@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
 		////	std::string(PROJECT_DIR) + "/_");
 		////sfm2.saveElementsToJson();
 
-		//// run dnf-composer
+		// run dnf-composer
 		//using namespace dnf_composer;
 		//const Application app{ std::make_shared<Simulation>(bestSolution->getPhenotype()) };
 		////const Application app{ previous_solution };

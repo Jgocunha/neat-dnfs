@@ -34,38 +34,102 @@ namespace neat_dnfs
 
 		static constexpr double in_amp = 10.0;
 		static constexpr double in_width = 12.0;
-		static constexpr double out_amp = 3.0;
+		static constexpr double out_amp = 5.0;
 		static constexpr double out_width = 10.0;
+
+		//initSimulation();
+		//addGaussianStimulus("nf 1",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//addGaussianStimulus("nf 2",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//addGaussianStimulus("nf 3",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//runSimulation(iterations);
+		//addGaussianStimulus("nf 1",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//runSimulation(iterations);
+		//const double f1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 50.0 }, out_amp, out_width);
+		//parameters.partialFitness.emplace_back(f1);
+
+		//std::string gs = "gs nf 3";
+		//gs += " " + std::to_string(50.0);
+		//moveGaussianStimulusContinously(gs, 80.0, 0.2);
+		//const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0 }, out_amp, out_width);
+		//parameters.partialFitness.emplace_back(f2);
+
+		//moveGaussianStimulusContinously(gs, 20.0, -0.2);
+		//const double f3 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 80.0 }, out_amp, out_width);
+		//parameters.partialFitness.emplace_back(f3);
+
+		//removeGaussianStimuli();
+
+		//// adaptive weights for the fitness function
+		//double inverseSumTotal = 0.0;
+		//std::vector<double> inverseValues(3);
+		//std::vector<double> adaptiveWeights(3);
+
+		//// Calculate inverse values
+		//for (int i = 0; i < 3; ++i) {
+		//	constexpr double epsilon = 1e-10;  // Prevent division by zero
+		//	inverseValues[i] = 1.0 / (parameters.partialFitness[i] + epsilon);
+		//	inverseSumTotal += inverseValues[i];
+		//}
+
+		//// Normalize weights to sum to 1.0
+		//for (int i = 0; i < 3; ++i) {
+		//	adaptiveWeights[i] = inverseValues[i] / inverseSumTotal;
+		//}
+
+		//// Calculate final weighted fitness
+		//parameters.fitness =
+		//	adaptiveWeights[0] * f1 +
+		//	adaptiveWeights[1] * f2 +
+		//	adaptiveWeights[2] * f3;
+
+		//parameters.partialFitness.emplace_back(adaptiveWeights[0]);
+		//parameters.partialFitness.emplace_back(adaptiveWeights[1]);
+		//parameters.partialFitness.emplace_back(adaptiveWeights[2]);
+
+		//parameters.fitness = 1 / 3.f * f1 + 1 / 3.f * f2 + 1 / 3.f * f3;
 
 		// nf 1 - input - small objects field (sof)
 		// nf 2 - input - large object field (lof)
 		// nf 3 - input - hand position field (hpf)
 		// nf 4 - output - target action field (taf)
 
-		static constexpr double wf1		= 0.3; // multi bump sof
-		static constexpr double wf2		= 0.7; // sof creates a selective single bump in taf
-		static constexpr double wf_1_2		= 1 / 5.f; // behaviour 1
+		// stage 1 - intra-field interactions
+		static constexpr double wf1 = 1 / 4.f; // sof multi bump
+		static constexpr double wf2 = 1 / 4.f; // lof single bump
+		static constexpr double wf3 = 1 / 4.f; // hpf single bump
+		static constexpr double wf4 = 1 / 4.f; // taf selective bump
+		static constexpr double wf_1_2_3_4 = 1 / 4.f;
+		// stage 2 - inter-field interactions (two-field interactions)
+		static constexpr double wf5 = 1 / 3.f; // sof (20, 80), -> taf (20 || 80)
+		static constexpr double wf6 = 1 / 3.f; // lof (50) pre-shapes taf
+		static constexpr double wf7 = 1 / 3.f; // hpf (50) -> no bump in taf
+		static constexpr double wf_5_6_7 = 1 / 4.f;
+		// stage 3 - inter-field interactions (three-field interactions)
+		static constexpr double wf8_1 = 1 / 2.f; // sof (20, 80) + hpf(80) -> taf (20)
+		static constexpr double wf8_2 = 1 / 2.f; // sof (20, 80) + hpf(20) -> taf (80)
+		static constexpr double wf8 = 0.35f; // f8_1 and f8_2
+		static constexpr double wf9 = 0.45f; // lof (50) + hpf(50) -> taf (50)
+		static constexpr double wf10_1 = 1 / 2.f; // sof(20) + hpf (20) -> taf no bump
+		static constexpr double wf10_2 = 1 / 2.f; // sof(80) + hpf (80) -> taf no bump
+		static constexpr double wf10 = 0.20f; // f10_1 and f10_2
+		static constexpr double wf_8_9_10 = 1 / 4.f;
+		// stage 4 - inter-field interactions (four-field interactions)
+		static constexpr double wf11 = 1 / 2.f; // lof(50) + hpf(50) + sof(20, 80) -> taf(50)
+		static constexpr double wf12_1 = 1 / 2.f; // lof(50) + hpf(20) + sof(20, 80) -> taf(80)
+		static constexpr double wf12_2 = 1 / 2.f; // lof(50) + hpf(80) + sof(20, 80) -> taf(20)
+		static constexpr double wf12 = 1 / 2.f; // f12_1 and f12_2
+		static constexpr double wf_11_12 = 1 / 4.f;
 
-		static constexpr double wf3		= 0.2; // lof single bump
-		static constexpr double wf4		= 0.8; // lof pre-shapes taf
-		static constexpr double wf_3_4		= 1 / 5.f; // behaviour 2
 
-		static constexpr double wf5		= 0.4; // sof + hpf create a selective single bump in taf (pos. 20)
-		static constexpr double wf6		= 0.4; // sof + hpf create a selective single bump in taf (pos. 80)
-		static constexpr double wf7		= 0.2; // hpf single bump
-		static constexpr double wf_5_6_7	= 1 / 5.f; // behaviour 3
-
-		static constexpr double wf8		= 0.2; // taf should be close to resting level just with hpf
-		static constexpr double wf9		= 0.4; // lof + hpf create a single bump in taf
-		static constexpr double wf10	= 0.4; // lof + sof + hpf create a selective single bump in taf (pos. 50)
-		static constexpr double wf_8_9_10	= 0.5; // behaviour 4
-
-		static constexpr double wf11	= 0.25f; // switch from lof bump position to sof bump position 1 in taf
-		static constexpr double wf12	= 0.25f; // switch from sof position 1 bump position to sof bump position 2 in taf
-		static constexpr double wf13	= 0.25f; // switch from sof position 2 bump position to sof bump position 1 in taf
-		static constexpr double wf14	= 0.25f; // without hpf bump, sof + lof create a selective single bump in taf
-		static constexpr double wf_11_12_13_14 = 1 / 5.f; // behaviour 5
-
+		// stage 1 - intra-field interactions
 		initSimulation();
 		addGaussianStimulus("nf 1",
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
@@ -73,43 +137,47 @@ namespace neat_dnfs
 		runSimulation(iterations);
 		addGaussianStimulus("nf 1",
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
-		runSimulation(iterations);
-		addGaussianStimulus("nf 2",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 		const double f1 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1",
 			20.0, in_amp, in_width,
 			80.0, in_amp, in_width);
 		parameters.partialFitness.emplace_back(f1);
-		//parameters.fitness = wf1 * f1;
-
-		const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0, 80.0 }, out_amp, out_width);
-		parameters.partialFitness.emplace_back(f2);
-		//parameters.fitness += wf2 * f2;
-
-		//behaviour 1
-		parameters.fitness += wf_1_2 * ( wf1 * f1 + wf2 * f2);
-
-		const double f3 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 2", { 50.0 }, in_amp, in_width);
-		parameters.partialFitness.emplace_back(f3);
-		//parameters.fitness += wf3 * f3;
 
 		removeGaussianStimuli();
 		initSimulation();
 		addGaussianStimulus("nf 2",
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
-
 		runSimulation(iterations);
-		const double f4 = preShapedness("nf 4");
+		const double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, in_amp, in_width);
+		parameters.partialFitness.emplace_back(f2);
+
+		removeGaussianStimuli();
+		initSimulation();
+		addGaussianStimulus("nf 3",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		const double f3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 50.0, in_amp, in_width);
+		parameters.partialFitness.emplace_back(f3);
+
+		removeGaussianStimuli();
+		addGaussianStimulus("nf 4",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		addGaussianStimulus("nf 4",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		const double f4 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0, 80.0 }, out_amp, out_width);
 		parameters.partialFitness.emplace_back(f4);
-		//parameters.fitness += wf4 * f4;
 
-		// behaviour 2
-		parameters.fitness += wf_3_4 * (wf3 * f3 + wf4 * f4);
+		parameters.fitness = wf_1_2_3_4 * (wf1 * f1 + wf2 * f2 + wf3 * f3 + wf4 * f4);
 
+		
+		// stage 2 - inter-field interactions (two-field interactions)
 		removeGaussianStimuli();
 		initSimulation();
 		addGaussianStimulus("nf 1",
@@ -120,97 +188,143 @@ namespace neat_dnfs
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		addGaussianStimulus("nf 3",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
-		runSimulation(iterations);
-		const double f5 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 80.0, out_amp, out_width);
+		const double f5 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0, 80.0 }, out_amp, out_width);
 		parameters.partialFitness.emplace_back(f5);
-		//parameters.fitness += wf5 * f5;
-		const double f7_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 20.0, in_amp, in_width);
 
-		removeGaussianStimuliFromField("nf 3");
-		addGaussianStimulus("nf 3",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+		removeGaussianStimuli();
+		initSimulation();
+		addGaussianStimulus("nf 2",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f6 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 20.0, out_amp, out_width);
+		const double f6 = preShapedness("nf 4");
 		parameters.partialFitness.emplace_back(f6);
-		//parameters.fitness += wf6 * f6;
-		const double f7_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 80.0, in_amp, in_width);
 
-		const double f7 = (f7_1 + f7_2) / 2.0;
+		removeGaussianStimuli();
+		initSimulation();
+		addGaussianStimulus("nf 3",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		const double f7 = closenessToRestingLevel("nf 4");
 		parameters.partialFitness.emplace_back(f7);
-		//parameters.fitness += wf7 * f7;
 
-		// behaviour 3
 		parameters.fitness += wf_5_6_7 * (wf5 * f5 + wf6 * f6 + wf7 * f7);
 
+		// stage 3 - inter-field interactions (three-field interactions)
 		removeGaussianStimuli();
-
 		initSimulation();
+		addGaussianStimulus("nf 1",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		addGaussianStimulus("nf 1",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
 		addGaussianStimulus("nf 3",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		const double f8_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 20.0, out_amp, out_width);
+		parameters.partialFitness.emplace_back(f8_1);
+
+		/*removeGaussianStimuli();
+		initSimulation();
+		addGaussianStimulus("nf 1",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		addGaussianStimulus("nf 1",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);*/
+		//addGaussianStimulus("nf 3",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		std::string gs = "gs nf 3";
+		gs += " " + std::to_string(80.0);
+		moveGaussianStimulusContinously(gs, 20.0, -0.2);
+		//runSimulation(iterations);
+		const double f8_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 80.0, out_amp, out_width);
+		parameters.partialFitness.emplace_back(f8_2);
+
+		const double f8 = f8_1 * wf8_1 + f8_2 * wf8_2;
+
+		removeGaussianStimuli();
+		initSimulation();
+		addGaussianStimulus("nf 2",
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		
-		const double f8 = closenessToRestingLevel("nf 4");
-		//parameters.fitness += wf8 * f8;
-		parameters.partialFitness.emplace_back(f8);
-
-		addGaussianStimulus("nf 2",
+		addGaussianStimulus("nf 3",
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 		const double f9 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 50.0, out_amp, out_width);
-		//parameters.fitness += wf9 * f9;
 		parameters.partialFitness.emplace_back(f9);
-
-		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
-		runSimulation(iterations);
-		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
-		runSimulation(iterations);
-		const double f10 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 50.0, out_amp, out_width);
-		//parameters.fitness += wf10 * f10;
-		parameters.partialFitness.emplace_back(f10);
-
-		// behaviour 4
-		parameters.fitness += wf_8_9_10 * (wf8 * f8 + wf9 * f9 + wf10 * f10);
-
-		removeGaussianStimuliFromField("nf 3");
-		addGaussianStimulus("nf 3",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
-		runSimulation(iterations);
-		const double f11 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 80.0, out_amp, out_width);
-		//parameters.fitness += wf11 * f11;
-		parameters.partialFitness.emplace_back(f11);
-
-		removeGaussianStimuliFromField("nf 3");
-		addGaussianStimulus("nf 3",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
-		runSimulation(iterations);
-		const double f12 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 50.0, out_amp, out_width);
-		//parameters.fitness += wf12 * f12;
-		parameters.partialFitness.emplace_back(f12);
-
-		removeGaussianStimuliFromField("nf 3");
-		addGaussianStimulus("nf 3",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
-		runSimulation(iterations);
-		const double f13 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 20.0, out_amp, out_width);
-		//parameters.fitness += wf13 * f13;
-		parameters.partialFitness.emplace_back(f13);
 
 		removeGaussianStimuli();
 		initSimulation();
 		addGaussianStimulus("nf 1",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		addGaussianStimulus("nf 3",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		const double f10_1 = noBumps("nf 4");
+		parameters.partialFitness.emplace_back(f10_1);
+
+		//removeGaussianStimuli();
+		//initSimulation();
+		//addGaussianStimulus("nf 1",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//runSimulation(iterations);
+		std::string gs2 = "gs nf 1";
+		gs2 += " " + std::to_string(20.0);
+		moveGaussianStimulusContinously(gs2, 80.0, 0.2);
+		//addGaussianStimulus("nf 3",
+		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//runSimulation(iterations);
+		std::string gs3 = "gs nf 3";
+		gs3 += " " + std::to_string(20.0);
+		moveGaussianStimulusContinously(gs3, 80.0, 0.2);
+		const double f10_2 = noBumps("nf 4");
+		parameters.partialFitness.emplace_back(f10_2);
+
+		const double f10 = f10_1 * wf10_1 + f10_2 * wf10_2;
+
+		parameters.fitness += wf_8_9_10 * (wf8 * f8 + wf9 * f9 + wf10 * f10);
+
+		// stage 4 - inter-field interactions (four-field interactions)
+		removeGaussianStimuli();
+		initSimulation();
+		addGaussianStimulus("nf 2",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		addGaussianStimulus("nf 3",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		addGaussianStimulus("nf 1",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		addGaussianStimulus("nf 1",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		const double f11 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 50.0, out_amp, in_width);
+		parameters.partialFitness.emplace_back(f11);
+
+		//removeGaussianStimuli();
+		//initSimulation();
+		/*addGaussianStimulus("nf 1",
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
@@ -221,15 +335,48 @@ namespace neat_dnfs
 		addGaussianStimulus("nf 2",
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);*/
+		/*ddGaussianStimulus("nf 3",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);*/
+		std::string gs4 = "gs nf 3";
+		gs4 += " " + std::to_string(50.0);
+		moveGaussianStimulusContinously(gs4, 20.0, -0.2);
+		const double f12_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 80.0, out_amp, in_width);
+		parameters.partialFitness.emplace_back(f12_1);
+
+		/*removeGaussianStimuli();
+		initSimulation();
+		addGaussianStimulus("nf 2",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f14 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0, 80.0 }, out_amp, out_width);
-		//parameters.fitness += wf14 * f14;
-		parameters.partialFitness.emplace_back(f14);
+		addGaussianStimulus("nf 3",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		addGaussianStimulus("nf 1",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		addGaussianStimulus("nf 1",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);*/
+		moveGaussianStimulusContinously(gs4, 80.0, 0.2);
+		const double f12_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 20.0, out_amp, in_width);
+		parameters.partialFitness.emplace_back(f12_2);
 
-		// behaviour 5
-		parameters.fitness += wf_11_12_13_14 * (wf11 * f11 + wf12 * f12 + wf13 * f13 + wf14 * f14);
+		const double f12 = f12_1 * wf12_1 + f12_2 * wf12_2;
 
-		removeGaussianStimuli();
+		parameters.fitness += wf_11_12 * (wf11 * f11 + wf12 * f12);
+
+		static constexpr double totalProbability = wf_1_2_3_4 + wf_5_6_7 + wf_8_9_10 + wf_11_12;
+
+		constexpr double epsilon = 1e-6;
+		if (std::abs(totalProbability - 1.0) > epsilon)
+			throw std::runtime_error("Weight distribution in fitness function must sum up to 1.");
 	}
 
 	void SelectTheObject::createPhenotypeEnvironment()
