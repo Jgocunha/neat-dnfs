@@ -12,8 +12,8 @@ namespace neat_dnfs
 	struct SimulationConstants
 	{
 		inline static std::string name				= "solution ";
-		static constexpr double deltaT				= 25;
-		static constexpr size_t maxSimulationSteps	= 200;
+		static constexpr double deltaT				= 5;
+		static constexpr size_t maxSimulationSteps	= 500;
 	};
 
 	struct DimensionConstants
@@ -152,8 +152,8 @@ namespace neat_dnfs
 	{
 		// genome mutation probabilities (sum must be 1.0)
 		static constexpr double addFieldGeneProbability			= 0.0025; // 0.0025
-		static constexpr double mutateFieldGeneProbability		= 0.00; // 0.35
-		static constexpr double addConnectionGeneProbability	= 0.55; // 0.20
+		static constexpr double mutateFieldGeneProbability		= 0.35; // 0.35
+		static constexpr double addConnectionGeneProbability	= 0.20; // 0.20
 		static constexpr double mutateConnectionGeneProbability = 0.44; // 0.44
 		static constexpr double toggleConnectionGeneProbability = 0.0075; // 0.0075
 
@@ -162,7 +162,7 @@ namespace neat_dnfs
 
 	struct FieldGeneConstants
 	{
-		static constexpr bool variableParameters = false;
+		static constexpr bool variableParameters = true;
 
 		static constexpr double gaussKernelProbability			= 0.5;
 		static constexpr double mexicanHatKernelProbability		= 0.5;
@@ -233,8 +233,8 @@ namespace neat_dnfs
 	{
 		static constexpr bool parallelEvolution									= true;
 		static constexpr double pruneRatio										= 0.2;
-		static constexpr int generationsWithoutImprovementThresholdInPopulation = 10;
-		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 5;
+		static constexpr int generationsWithoutImprovementThresholdInPopulation = 50;
+		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 20;
 		static constexpr bool elitism											= true;
 
 		static constexpr bool validateUniqueSolutions					= false;

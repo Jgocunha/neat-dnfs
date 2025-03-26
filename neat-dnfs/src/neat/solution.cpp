@@ -727,9 +727,9 @@ namespace neat_dnfs
 		// if the field name is not in the phenotype, throw exception
 		// ... .containsElement(name);
 		static constexpr double weightBumps = 0.45;
-		static constexpr double weightPos = 0.25;
+		static constexpr double weightPos = 0.30;
 		static constexpr double weightAmp = 0.15;
-		static constexpr double weightWidth = 0.15;
+		static constexpr double weightWidth = 0.10;
 		// if sum of weights is not 1.0, throw exception
 		if (std::abs(weightBumps + weightPos + weightAmp + weightWidth - 1.0) > 1e-6)
 			throw std::invalid_argument("Sum of weights must be 1.0");
@@ -1007,4 +1007,25 @@ namespace neat_dnfs
 
 		return 0.0f;
 	}
+
+	void Solution::moveGaussianStimulusContinously(const std::string& stimulusName, double targetPosition, double step)
+	{
+		constexpr double epsilon = 1e-6;
+		double newPosition = 0.0;
+		const auto gaussStimulus = std::dynamic_pointer_cast<dnf_composer::element::GaussStimulus>(phenotype.getElement(stimulusName));
+		double diff_x = std::abs(targetPosition - gaussStimulus->getParameters().position);
+		double steps_x = diff_x / step;
+		int steps_t = static_cast<int>(SimulationConstants::maxSimulationSteps / steps_x);
+
+		do
+		{
+			const auto position = gaussStimulus->getParameters().position;
+			newPosition = position + step;
+			gaussStimulus->setParameters({ gaussStimulus->getParameters().amplitude, gaussStimulus->getParameters().width, newPosition });
+
+			for (int i = 0; i < steps_t; i++)
+				phenotype.step();
+		} while (std::abs(newPosition - targetPosition) > epsilon);
+	}
+
 }

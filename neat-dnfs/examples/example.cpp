@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
 
 		for (int i = 0; i < 1000; i++)
 		{
-			const PopulationParameters parameters{ 200, 200, 0.99 };
+			const PopulationParameters parameters{ 500, 200, 0.99 };
 			Population population{ parameters, std::make_unique<SelectTheObject>(solution) };
 
 			population.initialize();
@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
 		////	std::string(PROJECT_DIR) + "/_");
 		////sfm2.saveElementsToJson();
 
-		//// run dnf-composer
+		// run dnf-composer
 		//using namespace dnf_composer;
 		//const Application app{ std::make_shared<Simulation>(bestSolution->getPhenotype()) };
 		////const Application app{ previous_solution };
