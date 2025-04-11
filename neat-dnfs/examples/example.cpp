@@ -52,18 +52,18 @@
 		};
 
 
-		//for (int i = 0; i < 1000; i++)
-		//{
-			const PopulationParameters parameters{ 200, 100, 0.85 };
+		for (int i = 0; i < 1000; i++)
+		{
+			const PopulationParameters parameters{ 200, 251, 0.95 };
 			Population population{ parameters, std::make_unique<TwoRobotTeam>(solution) };
 
 			population.initialize();
 			population.evolve();
-		//}
+		}
 
-		const auto bestSolution = population.getBestSolution();
-		bestSolution->buildPhenotype();
-		bestSolution->createPhenotypeEnvironment();
+		//const auto bestSolution = population.getBestSolution();
+		//bestSolution->buildPhenotype();
+		//bestSolution->createPhenotypeEnvironment();
 		////bestSolution->print();
 		////const auto phenotype = bestSolution->getPhenotype();
 		////
@@ -75,23 +75,23 @@
 		////sfm2.saveElementsToJson();
 
 		// run dnf-composer
-		using namespace dnf_composer;
-		const Application app{ std::make_shared<Simulation>(bestSolution->getPhenotype()) };
-		//const Application app{ previous_solution };
-		app.addWindow<user_interface::MainWindow>();
-		app.addWindow<user_interface::SimulationWindow>();
-		app.addWindow<user_interface::ElementWindow>();
-		app.addWindow<imgui_kit::LogWindow>();
-		app.addWindow<user_interface::PlotControlWindow>();
-		app.addWindow<user_interface::PlotsWindow>();
-		app.addWindow<user_interface::NodeGraphWindow>();
-		app.addWindow<user_interface::FieldMetricsWindow>();
-		app.init();
-		do
-		{
-			app.step();
-		} while(!app.hasGUIBeenClosed());
-		app.close();
+		//using namespace dnf_composer;
+		//const Application app{ std::make_shared<Simulation>(bestSolution->getPhenotype()) };
+		////const Application app{ previous_solution };
+		//app.addWindow<user_interface::MainWindow>();
+		//app.addWindow<user_interface::SimulationWindow>();
+		//app.addWindow<user_interface::ElementWindow>();
+		//app.addWindow<imgui_kit::LogWindow>();
+		//app.addWindow<user_interface::PlotControlWindow>();
+		//app.addWindow<user_interface::PlotsWindow>();
+		//app.addWindow<user_interface::NodeGraphWindow>();
+		//app.addWindow<user_interface::FieldMetricsWindow>();
+		//app.init();
+		//do
+		//{
+		//	app.step();
+		//} while(!app.hasGUIBeenClosed());
+		//app.close();
 
 		return 0;
 	}

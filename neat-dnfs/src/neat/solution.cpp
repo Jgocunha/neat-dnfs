@@ -873,12 +873,12 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
 
-		const double highestActivationValue = std::abs(neuralField->getHighestActivation());
-		const double restingLevel = std::abs(neuralField->getParameters().startingRestingLevel);
+		const double highestActivationValue = neuralField->getHighestActivation();
+		const double restingLevel = neuralField->getParameters().startingRestingLevel;
 
 		// target activation is between the resting level and 0.0 (supra-threshold)
 		const double targetActivation = restingLevel / 2.0;
-		const double width = restingLevel / 12.0;  // Makes both points 3 standard deviations away
+		const double width = std::abs(restingLevel / 6.0);  // Makes both points 3 standard deviations away
 
 		return tools::utils::normalizeWithGaussian(highestActivationValue, targetActivation, width);
 	}
@@ -891,24 +891,20 @@ namespace neat_dnfs
 		const int pos = static_cast<int>(position/neuralField->getElementCommonParameters().dimensionParameters.d_x);
 		const double u_tar_pos = neuralField->getComponent("activation")[pos];
 
-		// activation of field at position should be lower than the resting level
-		if (u_tar_pos >= neuralField->getParameters().startingRestingLevel)
-			return 0.0;
-
-		static constexpr double epsilon = 0.015;
+		//static constexpr double epsilon = 0.015;
 		// activation of field at position should be lower than the rest of the neighboring positions
-		for(const auto& u_pos : neuralField->getComponent("activation"))
-		{
-			if (u_tar_pos >= u_pos + epsilon)
-				return 0.0;
-		}
+		// I thought this was necessary because of mhk shapes, but apparently it can self-correct
+		//for(const auto& u_pos : neuralField->getComponent("activation"))
+		//{
+		//	if (u_tar_pos >= u_pos/* + epsilon*/)
+		//		return 0.0;
+		//}
 
-		// this should not be like this - I am hardcoding the position of the baseline activation
-		const double u_baseline = std::abs(neuralField->getComponent("activation")[0]);
-		const double u_target = u_baseline + u_baseline/2;
-		const double width = u_baseline/2;
+		const double u_baseline = neuralField->getHighestActivation();
+		const double u_target = u_baseline + u_baseline;// / 2.0;
+		const double width = std::abs(u_baseline / 8.0);
 
-		return tools::utils::normalizeWithGaussian(std::abs(u_tar_pos), u_target, width);
+		return tools::utils::normalizeWithGaussian(u_tar_pos, u_target, width);
 	}
 
 	double Solution::justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName, const std::vector<double>& positions, const double& amplitude, const double& width)
@@ -948,7 +944,6 @@ namespace neat_dnfs
 
 		return fitness;
 	}
-
 
 	void Solution::removeGaussianStimuliFromField(const std::string& fieldName)
 	{
@@ -1034,6 +1029,19 @@ namespace neat_dnfs
 			for (int i = 0; i < steps_t; i++)
 				phenotype.step();
 		} while (std::abs(newPosition - targetPosition) > epsilon);
+	}
+
+	double Solution::negativeBaseline(const std::string& fieldName)
+	{
+		using namespace dnf_composer::element;
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const double startingRestingLevel = neuralField->getParameters().startingRestingLevel;
+		const double maxActivation = neuralField->getHighestActivation();
+
+		const double targetBaseline = startingRestingLevel * 2;
+		const double width = std::abs(maxActivation / 8);
+
+		return tools::utils::normalizeWithGaussian(maxActivation, targetBaseline, width);
 	}
 
 }

@@ -156,5 +156,6 @@ namespace neat_dnfs
 		double iterationsUntilBump(const std::string& fieldName, double targetIterations);
 		double iterationsUntilBumpWithAmplitude(const std::string& fieldName, double targetIterations, double targetAmplitude);
 		void moveGaussianStimulusContinously(const std::string& name, double targetPosition, double step);
+		double negativeBaseline(const std::string& fieldName);
 	};
 }
