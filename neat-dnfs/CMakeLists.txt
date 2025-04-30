@@ -61,6 +61,7 @@ set(header
 "include/solutions/timing_response.h"
 "include/solutions/select_the_object.h"
 "include/solutions/two_robot_team.h"
+"include/solutions/xor.h"
 
 #"include/application/application.h"
 #"include/user_interface/setup_window.h"
@@ -87,6 +88,7 @@ set(src
 "src/solutions/timing_response.cpp"
 "src/solutions/select_the_object.cpp"
 "src/solutions/two_robot_team.cpp"
+"src/solutions/xor.cpp"
 
 #"src/application/application.cpp"
 #"src/user_interface/setup_window.cpp"

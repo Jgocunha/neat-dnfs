@@ -883,6 +883,32 @@ namespace neat_dnfs
 		return tools::utils::normalizeWithGaussian(highestActivationValue, targetActivation, width);
 	}
 
+	double Solution::preShapedness(const std::string& fieldName, const std::vector<double>& positions)
+	{
+		using namespace dnf_composer::element;
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const double restingLevel = neuralField->getParameters().startingRestingLevel;
+		// target activation is between the resting level and 0.0 (sub-threshold)
+		const double targetActivation = restingLevel / 2.0;
+		const double width = std::abs(restingLevel / 6.0);  // Makes both points 3 standard deviations away
+
+		// If no positions specified, return 0.0
+		if (positions.empty()) {
+			return 0.0;
+		}
+
+		// Calculate the score for each position
+		double totalScore = 0.0;
+		for (const auto& position : positions) {
+			const double activationAtPosition = neuralField->getComponent("activation")[position];
+			double positionScore = tools::utils::normalizeWithGaussian(activationAtPosition, targetActivation, width);
+			totalScore += positionScore;
+		}
+
+		// Return average score (will be 1.0 if all positions have perfect sub-threshold peaks)
+		return totalScore / positions.size();
+	}
+
 	double Solution::negativePreShapednessAtPosition(const std::string& fieldName, const double& position)
 	{
 		using namespace dnf_composer::element;
@@ -913,9 +939,9 @@ namespace neat_dnfs
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
 
 		static constexpr double weightBumps = 0.50;
-		static constexpr double weightPos = 0.30;
+		static constexpr double weightPos = 0.35;
 		static constexpr double weightAmp = 0.10;
-		static constexpr double weightWidth = 0.10;
+		static constexpr double weightWidth = 0.05;
 
 		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
 		double fitness = weightBumps / (1.0 + std::abs(1 - numberOfBumps));
@@ -963,13 +989,17 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const double highestActivation = neuralField->getHighestActivation();
 
-		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
-
-		if (numberOfBumps == 0)
+		// If activation is below 0, return maximum fitness of 1.0
+		if (highestActivation < 0.0)
 			return 1.0;
-		else
-			return 1.0 / numberOfBumps;
+
+		// For positive activations, apply exponential decay
+		// The decay rate can be adjusted with the constant (5.0 here)
+		// A larger value will make it decline more steeply
+		static constexpr double decayRate = 10.0;
+		return exp(-decayRate * highestActivation);
 	}
 
 	double Solution::iterationsUntilBump(const std::string& fieldName, double targetIterations)
