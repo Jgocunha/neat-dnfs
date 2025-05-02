@@ -333,7 +333,7 @@ def print_summary(agg_metrics, df):
 
 def main():
     # Root directory containing all run folders
-    root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Single bump (self-stabilized)/"  # Current directory, update as needed
+    root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Logic AND/"  # Current directory, update as needed
     
     # Output directory for plots
     output_dir = None  # Set to a path to save plots, or None to display

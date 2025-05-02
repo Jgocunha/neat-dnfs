@@ -22,15 +22,14 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
+		static constexpr int iterations = SimulationConstants::maxSimulationSteps;
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
 			{ 5.0, 15.0, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
-		runSimulationUntilFieldStable("nf 3");
+		runSimulation(iterations);
 
 		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 20, 10);
 		const double f1_2 = closenessToRestingLevel("nf 2");
@@ -40,17 +39,13 @@ namespace neat_dnfs
 			{ 5.0, 15.0, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
-		runSimulationUntilFieldStable("nf 3");
+		runSimulation(iterations);
 
 		const double f2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 20, 10);
 		const double f2_3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 50.0, 10, 5);
 
 		removeGaussianStimuli();
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
-		runSimulationUntilFieldStable("nf 3");
+		runSimulation(iterations);
 
 		const double f3_1 = closenessToRestingLevel("nf 1");
 		const double f3_2 = closenessToRestingLevel("nf 2");
@@ -75,52 +70,52 @@ namespace neat_dnfs
 		static constexpr double wf3_2 = 0.05;
 		static constexpr double wf3_3 = 0.15;
 
-		parameters.fitness = 0.5 * (wf1_1 * f1_1 + wf1_2 * f1_2 + wf1_3 * f1_3 +
+		parameters.fitness = (wf1_1 * f1_1 + wf1_2 * f1_2 + wf1_3 * f1_3 +
 			wf2_1 * f2_1 +  wf2_3 * f2_3 +
 			wf3_1 * f3_1 + wf3_2 * f3_2 + wf3_3 * f3_3);
 
-		initSimulation();
-		addGaussianStimulus("nf 2",
-			{ 5.0, 15.0, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+		//initSimulation();
+		//addGaussianStimulus("nf 2",
+		//	{ 5.0, 15.0, 50.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
 
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
-		runSimulationUntilFieldStable("nf 3");
+		//runSimulationUntilFieldStable("nf 1");
+		//runSimulationUntilFieldStable("nf 2");
+		//runSimulationUntilFieldStable("nf 3");
 
-		const double f1_1_ = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 20, 10);
-		const double f1_2_ = closenessToRestingLevel("nf 1");
-		const double f1_3_ = preShapedness("nf 3");
+		//const double f1_1_ = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 20, 10);
+		//const double f1_2_ = closenessToRestingLevel("nf 1");
+		//const double f1_3_ = preShapedness("nf 3");
 
-		addGaussianStimulus("nf 1",
-			{ 5.0, 15.0, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+		//addGaussianStimulus("nf 1",
+		//	{ 5.0, 15.0, 50.0, true, false },
+		//	{ DimensionConstants::xSize, DimensionConstants::dx });
 
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
-		runSimulationUntilFieldStable("nf 3");
+		//runSimulationUntilFieldStable("nf 1");
+		//runSimulationUntilFieldStable("nf 2");
+		//runSimulationUntilFieldStable("nf 3");
 
-		const double f2_1_ = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 20, 10);
-		const double f2_3_ = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 50.0, 10, 5);
+		//const double f2_1_ = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 20, 10);
+		//const double f2_3_ = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 50.0, 10, 5);
 
-		removeGaussianStimuli();
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
-		runSimulationUntilFieldStable("nf 3");
+		//removeGaussianStimuli();
+		//runSimulationUntilFieldStable("nf 1");
+		//runSimulationUntilFieldStable("nf 2");
+		//runSimulationUntilFieldStable("nf 3");
 
-		const double f3_1_ = closenessToRestingLevel("nf 1");
-		const double f3_2_ = closenessToRestingLevel("nf 2");
-		const double f3_3_ = closenessToRestingLevel("nf 3");
+		//const double f3_1_ = closenessToRestingLevel("nf 1");
+		//const double f3_2_ = closenessToRestingLevel("nf 2");
+		//const double f3_3_ = closenessToRestingLevel("nf 3");
 
-		parameters.fitness += 0.5 * (wf1_1 * f1_1_ + wf1_2 * f1_2_ + wf1_3 * f1_3_ +
-			wf2_1 * f2_1_ + wf2_3 * f2_3_ +
-			wf3_1 * f3_1_ + wf3_2 * f3_2_ + wf3_3 * f3_3_);
+		//parameters.fitness += 0.5 * (wf1_1 * f1_1_ + wf1_2 * f1_2_ + wf1_3 * f1_3_ +
+		//	wf2_1 * f2_1_ + wf2_3 * f2_3_ +
+		//	wf3_1 * f3_1_ + wf3_2 * f3_2_ + wf3_3 * f3_3_);
 	}
 
 	void AndSolution::createPhenotypeEnvironment()
 	{
 		addGaussianStimulus("nf 1",
-			{ 5.0, 0.0, 50.0, true, false },
+			{ 5.0, 15.0, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		addGaussianStimulus("nf 2",

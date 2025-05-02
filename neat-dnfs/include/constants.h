@@ -51,7 +51,7 @@ namespace neat_dnfs
 
 		static constexpr double restingLevelMinVal	= -20.0;
 		static constexpr double restingLevelMaxVal	= -1.0;
-		static constexpr double restingLevelStep	= 0.25;
+		static constexpr double restingLevelStep	= 0.5;
 	};
 
 	struct KernelConstants
@@ -70,12 +70,12 @@ namespace neat_dnfs
 		static constexpr double amplitudeGlobal = -0.01;
 
 		static constexpr double widthMinVal		= 1.0; //3 // 3 // 1
-		static constexpr double widthMaxVal		= 25.0; //25 // 5.0 // 50
-		static constexpr double widthStep		= 0.5; // 0.5 // 1
+		static constexpr double widthMaxVal		= 10.0; //25 // 5.0 // 50
+		static constexpr double widthStep		= 1.0; // 0.5 // 1
 
-		static constexpr double ampMinVal		= 0.5; // 0.5 // 1
+		static constexpr double ampMinVal		= 3.0; // 0.5 // 1
 		static constexpr double ampMaxVal		= 30.0; // 10.0 // 8.0 // 80
-		static constexpr double ampStep			= 0.5; // 0.5 // 1
+		static constexpr double ampStep			= 1.0; // 0.5 // 1
 
 		static constexpr double ampGlobalMinVal = -3.5; // -0.5 // -5
 		static constexpr double ampGlobalMaxVal = 0.0; // -0.01 // 0
@@ -93,21 +93,21 @@ namespace neat_dnfs
 		static constexpr double amplitudeInh	= 15.0;  // 15.0
 		static constexpr double amplitudeGlobal = -0.01; // -0.1
 
-		static constexpr double widthExcMinVal	= 1.0; // 2.0 // 1
-		static constexpr double widthExcMaxVal	= 20.0; // 9.0 // 50
-		static constexpr double widthExcStep	= 0.5; // 0.5
+		static constexpr double widthExcMinVal	= 5.0; // 2.0 // 1
+		static constexpr double widthExcMaxVal	= 30.0; // 9.0 // 50
+		static constexpr double widthExcStep	= 1.0; // 0.5
 
-		static constexpr double widthInhMinVal	= 1.0; // 5.0 // 1
-		static constexpr double widthInhMaxVal	= 30.0; // 30.0 // 60
-		static constexpr double widthInhStep	= 0.5; // 0.5
+		static constexpr double widthInhMinVal	= 5.0; // 5.0 // 1
+		static constexpr double widthInhMaxVal	= 35.0; // 30.0 // 60
+		static constexpr double widthInhStep	= 1.0; // 0.5
 
-		static constexpr double ampExcMinVal	= 1.0; // 8.0
-		static constexpr double ampExcMaxVal	= 35.0; // 25.0 //85
-		static constexpr double ampExcStep		= 0.5; // 0.5
+		static constexpr double ampExcMinVal	= 15.0; // 8.0
+		static constexpr double ampExcMaxVal	= 25.0; // 25.0 //85
+		static constexpr double ampExcStep		= 1.0; // 0.5
 
 		static constexpr double ampInhMinVal	= 1.0; // 12.0 // 1
 		static constexpr double ampInhMaxVal	= 35.0; // 30.0 // 60
-		static constexpr double ampInhStep		= 0.5; // 0.5
+		static constexpr double ampInhStep		= 1.0; // 0.5
 
 		static constexpr double ampGlobMin	= -3.5; // -0.5 // -5
 		static constexpr double ampGlobMax	= 0.0; // -0.01
@@ -155,10 +155,10 @@ namespace neat_dnfs
 	struct GenomeMutationConstants
 	{
 		// genome mutation probabilities (sum must be 1.0)
-		static constexpr double addFieldGeneProbability			= 0.0025; // 0.0025
+		static constexpr double addFieldGeneProbability			= 0.0005; // 0.0025
 		static constexpr double mutateFieldGeneProbability		= 0.35; // 0.35
 		static constexpr double addConnectionGeneProbability	= 0.20; // 0.20
-		static constexpr double mutateConnectionGeneProbability = 0.3975; // 0.44
+		static constexpr double mutateConnectionGeneProbability = 0.3995; // 0.44
 		static constexpr double toggleConnectionGeneProbability = 0.05; // 0.0075 // 0.05
 
 		static constexpr bool checkForDuplicateConnectionGenesInGenome = false;
@@ -237,8 +237,8 @@ namespace neat_dnfs
 	{
 		static constexpr bool parallelEvolution									= true;
 		static constexpr double pruneRatio										= 0.2;
-		static constexpr int generationsWithoutImprovementThresholdInPopulation = 25;
-		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 15;
+		static constexpr int generationsWithoutImprovementThresholdInPopulation = 5;
+		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 3;
 		static constexpr bool elitism											= true;
 
 		static constexpr bool validateUniqueSolutions					= false;

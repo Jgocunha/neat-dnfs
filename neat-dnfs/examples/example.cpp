@@ -40,10 +40,10 @@
 		//sfm.loadElementsFromJson();
 		//const dnf_composer::Simulation template_solution = *previous_solution;
 
-		SingleBumpSolution solution{
+		AndSolution solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
@@ -56,7 +56,7 @@
 		for (int i = 0; i < 100; i++)
 		{
 			const PopulationParameters parameters{ 200, 20, 0.95 };
-			Population population{ parameters, std::make_unique<SingleBumpSolution>(solution) };
+			Population population{ parameters, std::make_unique<AndSolution>(solution) };
 
 			population.initialize();
 			population.evolve();

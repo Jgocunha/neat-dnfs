@@ -263,16 +263,12 @@ namespace neat_dnfs
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		initSimulation();
 		runSimulation(iterations);
-		//runSimulationUntilFieldStable("nf 1");
-		//runSimulationUntilFieldStable("nf 2");
 
 		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 20, 10);
 		const double f1_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 15, 5);
 
 		removeGaussianStimuli();
 		runSimulation(iterations);
-		//runSimulationUntilFieldStable("nf 1");
-		//runSimulationUntilFieldStable("nf 2");
 
 		const double f2_1 = closenessToRestingLevel("nf 1");
 		const double f2_2 = closenessToRestingLevel("nf 2");

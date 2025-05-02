@@ -22,68 +22,44 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
+		parameters.partialFitness.clear();
+		static constexpr int iterations = SimulationConstants::maxSimulationSteps;
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
 			{ 5.0, 15.0, 25.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
+		runSimulation(iterations);
 
-		const double f1_1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 25.0, 20, 10);
-		const double f1_2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 25.0, 15, 10);
+		const double f1_1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 25.0, 20, 16);
+		const double f1_2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 25.0, 20, 16);
+		parameters.partialFitness.emplace_back(f1_1_1);
+		parameters.partialFitness.emplace_back(f1_2_1);
 
 		removeGaussianStimuli();
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
+		runSimulation(iterations);
 
 		const double f2_1_1 = closenessToRestingLevel("nf 1");
-		const double f2_2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 25.0, 10, 5);
+		const double f2_2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 25.0, 10, 15);
+		parameters.partialFitness.emplace_back(f2_1_1);
+		parameters.partialFitness.emplace_back(f2_2_1);
 
 		// f1_1 only one bump at the input field
 		// f1_2 only one bump at the output field
 		// f2_1 closeness to resting level after removing the stimulus
 		// f2_2 only one bump at the output field after removing the stimulus
-		static constexpr double wf1_1 = 0.10;
-		static constexpr double wf1_2 = 0.40;
-		static constexpr double wf2_1 = 0.10;
-		static constexpr double wf2_2 = 0.40;
+		static constexpr double wf1_1 = 0.25;
+		static constexpr double wf1_2 = 0.25;
+		static constexpr double wf2_1 = 0.25;
+		static constexpr double wf2_2 = 0.25;
 
-		parameters.fitness = 0.5 * (wf1_1 * f1_1_1 + wf1_2 * f1_2_1 + wf2_1 * f2_1_1 + wf2_2 * f2_2_1);
-
-		initSimulation();
-		addGaussianStimulus("nf 1",
-			{ 5.0, 15.0, 25.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
-
-		removeGaussianStimuli();
-
-		addGaussianStimulus("nf 1",
-			{ 5.0, 15.0, 75.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
-
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
-
-		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 75.0, 20, 10);
-		const double f1_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 75.0, 15, 10);
-
-		removeGaussianStimuli();
-		runSimulationUntilFieldStable("nf 1");
-		runSimulationUntilFieldStable("nf 2");
-
-		const double f2_1 = closenessToRestingLevel("nf 1");
-		const double f2_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 75.0, 10, 5);
-
-		parameters.fitness += 0.5 * (wf1_1 * f1_1 + wf1_2 * f1_2 + wf2_1 * f2_1 + wf2_2 * f2_2);
+		parameters.fitness = wf1_1 * f1_1_1 + wf1_2 * f1_2_1 + wf2_1 * f2_1_1 + wf2_2 * f2_2_1;
 	}
 
 	void SelfSustainedSingleBumpSolution::createPhenotypeEnvironment()
 	{
 		addGaussianStimulus("nf 1",
-			{ 5.0, 0.0, 25.0, true, false },
+			{ 5.0, 15.0, 25.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 }
