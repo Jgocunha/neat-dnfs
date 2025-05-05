@@ -333,9 +333,10 @@ def print_summary(agg_metrics, df):
 
 def main():
     # Root directory containing all run folders
-    #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Single bump (self-stabilized)/"  # Current directory, update as needed
-    #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Single bump (self-sustained)/"  # Current directory, update as needed
-    root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Logic AND/"  # Current directory, update as needed
+    #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Single bump (self-stabilized)/"
+    #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Single bump (self-sustained)/"
+    #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Logic AND/"
+    root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Selective output/"
     
     # Output directory for plots
     output_dir = None  # Set to a path to save plots, or None to display
@@ -350,7 +351,7 @@ def main():
     print_summary(agg_metrics, metrics_df)
     
     # Generate visualizations
-    visualize_metrics(metrics_df, output_dir)
+    #visualize_metrics(metrics_df, output_dir)
     
 if __name__ == "__main__":
     main()
