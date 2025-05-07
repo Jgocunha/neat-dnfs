@@ -31,20 +31,20 @@ namespace neat_dnfs
 
 		runSimulation(iterations);
 
-		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 20, 10);
+		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 15, 10);
 		const double f1_2 = preShapedness("nf 3");
 		parameters.partialFitness.emplace_back(f1_1);
 		parameters.partialFitness.emplace_back(f1_2);
 
 		removeGaussianStimuli();
-		initSimulation();
+		//initSimulation();
 		addGaussianStimulus("nf 2",
 			{ 5.0, 15.0, 50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		runSimulation(iterations);
 
-		const double f2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 20, 10);
+		const double f2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 15, 10);
 		const double f2_2 = preShapedness("nf 3");
 		parameters.partialFitness.emplace_back(f2_1);
 		parameters.partialFitness.emplace_back(f2_2);

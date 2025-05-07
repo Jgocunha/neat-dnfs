@@ -31,8 +31,8 @@ namespace neat_dnfs
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 
-		const double f1_1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 25.0, 20, 16);
-		const double f1_2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 25.0, 20, 16);
+		const double f1_1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 25.0, 15, 16);
+		const double f1_2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 25.0, 15, 16);
 		parameters.partialFitness.emplace_back(f1_1_1);
 		parameters.partialFitness.emplace_back(f1_2_1);
 
@@ -40,7 +40,7 @@ namespace neat_dnfs
 		runSimulation(iterations);
 
 		const double f2_1_1 = closenessToRestingLevel("nf 1");
-		const double f2_2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 25.0, 10, 15);
+		const double f2_2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 25.0, 6,6);
 		parameters.partialFitness.emplace_back(f2_1_1);
 		parameters.partialFitness.emplace_back(f2_2_1);
 

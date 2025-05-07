@@ -55,7 +55,7 @@
 
 		for (int i = 0; i < 100; i++)
 		{
-			const PopulationParameters parameters{ 200, 25, 0.90 };
+			const PopulationParameters parameters{ 200, 20, 0.90 };
 			Population population{ parameters, std::make_unique<AndSolution>(solution) };
 
 			population.initialize();
