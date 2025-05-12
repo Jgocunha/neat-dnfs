@@ -350,8 +350,8 @@ def print_summary(aggregated_metrics):
 def main():
     # Root directory containing all run folders
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Single bump (self-stabilized)/"
-    #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Single bump (self-sustained)/"
-    root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Logic AND/"
+    root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Single bump (self-sustained)/"
+    #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Logic AND/"
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Selective output/"   
 
     # Fitness threshold to consider a run successful
