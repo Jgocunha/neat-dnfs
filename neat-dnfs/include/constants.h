@@ -25,14 +25,14 @@ namespace neat_dnfs
 	struct NoiseConstants
 	{
 		inline static std::string namePrefix	= "nn ";
-		static constexpr double amplitude		= 0.2; //0.2 (if selection is required), null otherwise
+		static constexpr double amplitude		= 0.2; 
 	};
 
 	struct GaussStimulusConstants
 	{
 		inline static std::string namePrefix	= "gs ";
 		static constexpr double width			= 5.0;
-		static constexpr double amplitude		= 20.0;
+		static constexpr double amplitude		= 15.0;
 		static constexpr bool circularity		= true;
 		static constexpr bool normalization		= false;
 	};
@@ -40,7 +40,7 @@ namespace neat_dnfs
 	struct NeuralFieldConstants
 	{
 		inline static std::string namePrefix		= "nf ";
-		static constexpr double stabilityThreshold	= 0.9; // 0.90 if amp noise is 0.2, 0.035 otherwise
+		static constexpr double stabilityThreshold	= 0.9;
 		static constexpr double tau					= 200;
 		static constexpr double restingLevel		= -5;
 		inline static dnf_composer::element::HeavisideFunction activationFunction{ 0.0 };
@@ -69,13 +69,13 @@ namespace neat_dnfs
 		static constexpr double amplitude		= 10;
 		static constexpr double amplitudeGlobal = -0.01;
 
-		static constexpr double widthMinVal		= 1.0; //3 // 3 // 1
+		static constexpr double widthMinVal		= 3.0; //3 // 3 // 1
 		static constexpr double widthMaxVal		= 10.0; //25 // 5.0 // 50
-		static constexpr double widthStep		= 1.0; // 0.5 // 1
+		static constexpr double widthStep		= 0.5; // 0.5 // 1
 
 		static constexpr double ampMinVal		= 3.0; // 0.5 // 1
-		static constexpr double ampMaxVal		= 30.0; // 10.0 // 8.0 // 80
-		static constexpr double ampStep			= 1.0; // 0.5 // 1
+		static constexpr double ampMaxVal		= 50.0; // 10.0 // 8.0 // 80
+		static constexpr double ampStep			= 0.5; // 0.5 // 1
 
 		static constexpr double ampGlobalMinVal = -3.5; // -0.5 // -5
 		static constexpr double ampGlobalMaxVal = 0.0; // -0.01 // 0
@@ -95,19 +95,19 @@ namespace neat_dnfs
 
 		static constexpr double widthExcMinVal	= 5.0; // 2.0 // 1
 		static constexpr double widthExcMaxVal	= 30.0; // 9.0 // 50
-		static constexpr double widthExcStep	= 1.0; // 0.5
+		static constexpr double widthExcStep	= 0.5; // 0.5
 
 		static constexpr double widthInhMinVal	= 5.0; // 5.0 // 1
-		static constexpr double widthInhMaxVal	= 35.0; // 30.0 // 60
-		static constexpr double widthInhStep	= 1.0; // 0.5
+		static constexpr double widthInhMaxVal	= 30.0; // 30.0 // 60
+		static constexpr double widthInhStep	= 0.5; // 0.5
 
-		static constexpr double ampExcMinVal	= 15.0; // 8.0
-		static constexpr double ampExcMaxVal	= 25.0; // 25.0 //85
-		static constexpr double ampExcStep		= 1.0; // 0.5
+		static constexpr double ampExcMinVal	= 5.0; // 8.0
+		static constexpr double ampExcMaxVal	= 45.0; // 25.0 //85
+		static constexpr double ampExcStep		= 0.5; // 0.5
 
-		static constexpr double ampInhMinVal	= 1.0; // 12.0 // 1
-		static constexpr double ampInhMaxVal	= 35.0; // 30.0 // 60
-		static constexpr double ampInhStep		= 1.0; // 0.5
+		static constexpr double ampInhMinVal	= 10.0; // 12.0 // 1
+		static constexpr double ampInhMaxVal	= 25.0; // 30.0 // 60
+		static constexpr double ampInhStep		= 0.5; // 0.5
 
 		static constexpr double ampGlobMin	= -3.5; // -0.5 // -5
 		static constexpr double ampGlobMax	= 0.0; // -0.01
@@ -236,7 +236,7 @@ namespace neat_dnfs
 	struct PopulationConstants
 	{
 		static constexpr bool parallelEvolution									= true;
-		static constexpr double pruneRatio										= 0.2;
+		static constexpr double pruneRatio										= 0.6;
 		static constexpr int generationsWithoutImprovementThresholdInPopulation = 5;
 		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 3;
 		static constexpr bool elitism											= true;
