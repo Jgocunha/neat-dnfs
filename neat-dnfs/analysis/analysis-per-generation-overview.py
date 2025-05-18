@@ -56,6 +56,8 @@ def analyze_single_run(file_path, fitness_threshold):
     # Check if the run reached the fitness threshold
     max_fitness = max(fitness_values)
     success = max_fitness >= fitness_threshold
+
+    min_fitness = min(fitness_values)
     
     # Calculate generations to threshold
     generation_to_threshold = None
@@ -72,6 +74,7 @@ def analyze_single_run(file_path, fitness_threshold):
     metrics = {
         "success": success,
         "max_fitness": max_fitness,
+        "min_fitness": min_fitness,
         "total_generations": len(generations),
         "generation_to_threshold": generation_to_threshold,
         "avg_improvement_per_gen": avg_improvement_per_gen,
@@ -118,7 +121,7 @@ def analyze_multiple_runs(root_dir, fitness_threshold):
         try:
             metrics = analyze_single_run(str(stats_file), fitness_threshold)
             all_metrics.append(metrics)
-            print(f"Processed: {run_dir.name} - Maximum fitness: {metrics['max_fitness']:.4f}")
+            print(f"Processed: {run_dir.name} - Maximum fitness: {metrics['max_fitness']:.4f} - Minimum fitness: {metrics['min_fitness']:.4f}" )
         except Exception as e:
             print(f"Error processing {run_dir.name}: {e}")
     
@@ -328,6 +331,8 @@ def print_summary(aggregated_metrics):
     all_runs = aggregated_metrics["all_run_metrics"]
     max_fitness_run = max(all_runs, key=lambda x: x["max_fitness"])
     print(f"\nHighest Fitness Achieved: {max_fitness_run['max_fitness']:.4f} (Run: {max_fitness_run['run_dir']})")
+    min_fitness_run = min(all_runs, key=lambda x: x["max_fitness"])
+    print(f"Lowest Fitness Achieved: {min_fitness_run['max_fitness']:.4f} (Run: {min_fitness_run['run_dir']})")
     
     if aggregated_metrics['successful_runs'] > 0:
         successful_runs = [r for r in all_runs if r["success"]]
@@ -357,7 +362,7 @@ def main():
     root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Action execution/"   
 
     # Fitness threshold to consider a run successful
-    fitness_threshold = 0.85  # Adjust based on your specific requirements
+    fitness_threshold = 0.8260  # Adjust based on your specific requirements
     
     # Output directory for plots
     output_dir = None  # Set to a path to save plots, or None to display
