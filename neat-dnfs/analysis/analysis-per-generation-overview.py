@@ -40,6 +40,8 @@ def analyze_single_run(file_path, fitness_threshold):
     field_gene_pattern = r"fg \(id: \d+, type: (INPUT|OUTPUT|HIDDEN)\)"
     field_types = re.findall(field_gene_pattern, field_genes_str)
     hidden_fields_count = field_types.count("HIDDEN")
+    if hidden_fields_count > 0:
+        print(file_path)
     
     # Parse connection genes to count enabled connections
     connection_genes_str = final_gen_data[4]
