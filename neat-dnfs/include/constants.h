@@ -143,7 +143,7 @@ namespace neat_dnfs
 
 	struct CompatibilityCoefficients
 	{
-		static constexpr double compatibilityThreshold							= 5.0;
+		static constexpr double compatibilityThreshold							= 2.0;
 		static constexpr double excessGenesCompatibilityWeight					= 1.0;
 		static constexpr double disjointGenesCompatibilityWeight				= 0.5;
 		static constexpr double averageConnectionDifferenceCompatibilityWeight	= 1.0; //0.5
@@ -254,7 +254,8 @@ namespace neat_dnfs
 		static constexpr bool logSpecies				= false;
 		static constexpr bool logMutationStatistics		= false;
 
-		static constexpr bool saveChampions		= true;
-		static constexpr bool saveStatistics	= true;
+		static constexpr bool saveChampions					= true;
+		static constexpr bool saveStatistics				= true;
+		static constexpr bool saveSolutionsPerGeneration	= true;
 	};
 }

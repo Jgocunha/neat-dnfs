@@ -122,6 +122,7 @@ namespace neat_dnfs
 		void savePerGenerationStatistics() const;
 		void saveBestSolutionOfEachGeneration() const;
 		void saveChampionsOfEachGeneration() const;
+		void saveAllSolutionsPerGeneration() const;
 
 		void resetGenerationalInnovations() const;
 		void resetMutationStatisticsPerGeneration() const;

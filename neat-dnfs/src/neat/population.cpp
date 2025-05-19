@@ -144,6 +144,8 @@ namespace neat_dnfs
 
 		if (PopulationConstants::saveStatistics)
 			savePerGenerationStatistics();
+		if (PopulationConstants::saveSolutionsPerGeneration)
+			saveAllSolutionsPerGeneration();
 
 		resetGenerationalInnovations();
 		updateGenerationAndAges();
@@ -1018,6 +1020,30 @@ namespace neat_dnfs
 			SimulationFileManager sfm(std::make_shared<Simulation>(simulation), directoryPath);
 			sfm.saveElementsToJson();
 		}
+	}
+
+	void Population::saveAllSolutionsPerGeneration() const
+	{
+		using namespace dnf_composer;
+
+		const std::string directoryPath = fileDirectory + "solutions/";
+		std::filesystem::create_directories(directoryPath); // Ensure directory exist
+		const std::string filename = "solutions_generation_" + std::to_string(parameters.currentGeneration) + ".txt";
+
+		std::ofstream logFile(directoryPath + filename, std::ios::app);
+		if (logFile.is_open())
+		{
+			for (const auto& solution : solutions)
+			{
+				logFile << solution->toString() << "\n";
+			}
+			logFile.close();
+		}
+		else
+		{
+			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file to save all solutions each generation.");
+		}
+
 	}
 
 	void Population::resetGenerationalInnovations() const
