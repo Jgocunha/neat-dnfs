@@ -32,7 +32,7 @@ namespace neat_dnfs
 	{
 		inline static std::string namePrefix	= "gs ";
 		static constexpr double width			= 5.0;
-		static constexpr double amplitude		= 15.0;
+		static constexpr double amplitude		= 20.0;
 		static constexpr bool circularity		= true;
 		static constexpr bool normalization		= false;
 	};
@@ -143,7 +143,7 @@ namespace neat_dnfs
 
 	struct CompatibilityCoefficients
 	{
-		static constexpr double compatibilityThreshold							= 5.0;
+		static constexpr double compatibilityThreshold							= 3.0;
 		static constexpr double excessGenesCompatibilityWeight					= 1.0;
 		static constexpr double disjointGenesCompatibilityWeight				= 0.5;
 		static constexpr double averageConnectionDifferenceCompatibilityWeight	= 1.0; //0.5
@@ -156,10 +156,10 @@ namespace neat_dnfs
 	{
 		// genome mutation probabilities (sum must be 1.0)
 		static constexpr double addFieldGeneProbability			= 0.0005; // 0.0025
-		static constexpr double mutateFieldGeneProbability		= 0.35; // 0.35
+		static constexpr double mutateFieldGeneProbability		= 0.3495; // 0.35
 		static constexpr double addConnectionGeneProbability	= 0.20; // 0.20
-		static constexpr double mutateConnectionGeneProbability = 0.3995; // 0.44
-		static constexpr double toggleConnectionGeneProbability = 0.05; // 0.0075 // 0.05
+		static constexpr double mutateConnectionGeneProbability = 0.445; // 0.44
+		static constexpr double toggleConnectionGeneProbability = 0.005; // 0.0075 // 0.05
 
 		static constexpr bool checkForDuplicateConnectionGenesInGenome = false;
 	};
@@ -236,9 +236,9 @@ namespace neat_dnfs
 	struct PopulationConstants
 	{
 		static constexpr bool parallelEvolution									= true;
-		static constexpr double pruneRatio										= 0.6;
-		static constexpr int generationsWithoutImprovementThresholdInPopulation = 5;
-		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 3;
+		static constexpr double pruneRatio										= 0.2;
+		static constexpr int generationsWithoutImprovementThresholdInPopulation = 20;
+		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 10;
 		static constexpr bool elitism											= true;
 
 		static constexpr bool validateUniqueSolutions					= false;

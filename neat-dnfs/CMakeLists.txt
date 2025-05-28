@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.15...3.27)
+﻿cmake_minimum_required(VERSION 3.31.6)
 
 project(neat-dnfs
         DESCRIPTION "Dynamic Neural Field Evolution with NEAT for Robotics"
@@ -51,7 +51,6 @@ set(header
 "include/neat/solution.h"
 "include/neat/species.h"
 
-#"include/solutions/empty_solution.h"
 "include/solutions/single_bump.h"
 "include/solutions/self_sustained_single_bump.h"
 "include/solutions/and.h"
@@ -63,8 +62,6 @@ set(header
 "include/solutions/two_robot_team.h"
 "include/solutions/xor.h"
 
-#"include/application/application.h"
-#"include/user_interface/setup_window.h"
 "include/tools/logger.h"
 "include/tools/utils.h"
 
@@ -78,7 +75,6 @@ set(src
 "src/neat/solution.cpp"
 "src/neat/species.cpp"
 
-#"src/solutions/empty_solution.cpp"
 "src/solutions/single_bump.cpp"
 "src/solutions/self_sustained_single_bump.cpp"
 "src/solutions/and.cpp"
@@ -90,8 +86,6 @@ set(src
 "src/solutions/two_robot_team.cpp"
 "src/solutions/xor.cpp"
 
-#"src/application/application.cpp"
-#"src/user_interface/setup_window.cpp"
 "src/tools/logger.cpp"
 )
 
@@ -160,27 +154,16 @@ install(EXPORT ${CMAKE_PROJECT_NAME}Targets DESTINATION ${NEAT_DNFS_CMAKE_CONFIG
     FILE ${CMAKE_PROJECT_NAME}-config.cmake
 )
 
-# Example executable
-set(EXE_PROJECT_EXAMPLE ${CMAKE_PROJECT_NAME}-example)
-add_executable(${EXE_PROJECT_EXAMPLE} "examples/example.cpp")
-target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
-target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE 
-    imgui::imgui 
-    imgui-platform-kit 
-    dynamic-neural-field-composer 
-    ${CMAKE_PROJECT_NAME}
-)
-
 # Main executable
-#set(EXE_PROJECT_EXAMPLE ${CMAKE_PROJECT_NAME}-exe)
-#add_executable(${EXE_PROJECT_EXAMPLE} "examples/neat_dnfs.cpp")
-#target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
-#target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE 
-#    imgui::imgui 
-#    imgui-platform-kit 
-#    dynamic-neural-field-composer 
-#    ${CMAKE_PROJECT_NAME}
-#)
+set(EXE_PROJECT_EXAMPLE ${CMAKE_PROJECT_NAME}-exe)
+add_executable(${EXE_PROJECT_EXAMPLE} "examples/neat_dnfs.cpp")
+target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
+target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
+        imgui::imgui
+        imgui-platform-kit
+        dynamic-neural-field-composer
+        ${CMAKE_PROJECT_NAME}
+)
 
 # Setup Catch2
 enable_testing()

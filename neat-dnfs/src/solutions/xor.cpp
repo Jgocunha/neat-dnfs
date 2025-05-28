@@ -68,12 +68,17 @@ namespace neat_dnfs
 		parameters.partialFitness.push_back(f3);
 
 		removeGaussianStimuli();
+		runSimulation(iterations);
+		const double f4 = closenessToRestingLevel("nf 3");
+		parameters.partialFitness.push_back(f4);
 
-		static constexpr double wf1 = 1 / 3.f;
-		static constexpr double wf2 = 1 / 3.f;
-		static constexpr double wf3 = 1 / 3.f;
+		static constexpr double wf1 = 1 / 4.f;
+		static constexpr double wf2 = 1 / 4.f;
+		static constexpr double wf3 = 1 / 4.f;
+		static constexpr double wf4 = 1 / 4.f;
 
-		parameters.fitness = wf1 * f1 + wf2 * f2 + wf3 * f3;
+
+		parameters.fitness = wf1 * f1 + wf2 * f2 + wf3 * f3 + wf4 * f4;
 	}
 
 	void XOR::createPhenotypeEnvironment()
