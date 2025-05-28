@@ -9,9 +9,12 @@ namespace neat_dnfs
 	{
 	public:
 		TimingResponse(const SolutionTopology& topology);
+		TimingResponse(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
 		SolutionPtr clone() const override;
 	private:
 		void testPhenotype() override;
 		void createPhenotypeEnvironment() override;
 	};
 }
+
+

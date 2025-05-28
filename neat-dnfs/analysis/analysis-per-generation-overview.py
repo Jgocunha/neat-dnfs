@@ -362,7 +362,8 @@ def main():
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Selective output/"
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Action simulation/"
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Action execution/"
-    root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/XOR/"   
+    #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/XOR/"   
+    root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Timing response/"   
 
 
     # Fitness threshold to consider a run successful
