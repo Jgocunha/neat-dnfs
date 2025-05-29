@@ -338,7 +338,8 @@ def main():
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Logic AND/"
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Selective output/"
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Action simulation/"   
-    root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Action execution/"   
+    #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Action execution/"   
+    root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/XOR/"   
     
     # Output directory for plots
     output_dir = None  # Set to a path to save plots, or None to display
