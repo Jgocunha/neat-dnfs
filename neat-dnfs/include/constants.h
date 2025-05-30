@@ -67,17 +67,17 @@ namespace neat_dnfs
 		static constexpr double amplitude = 10;
 		static constexpr double amplitudeGlobal = -0.01;
 
-		static constexpr double widthMinVal = 3.0; // 3 // 1
-		static constexpr double widthMaxVal = 25.0; // 5.0 // 50
+		static constexpr double widthMinVal = 1.0; // 3 // 1
+		static constexpr double widthMaxVal = 30.0; // 5.0 // 50
 		static constexpr double widthStep = 0.5; // 0.5 // 1
 
-		static constexpr double ampMinVal = 0.5; // 0.5 // 1
-		static constexpr double ampMaxVal = 10.0; // 8.0 // 80
+		static constexpr double ampMinVal = 1.0; // 0.5 // 1
+		static constexpr double ampMaxVal = 60.0; // 8.0 // 80
 		static constexpr double ampStep = 0.5; // 0.5 // 1
 
-		static constexpr double ampGlobalMinVal = -2.5; // -0.5 // -5
+		static constexpr double ampGlobalMinVal = -5.0; // -0.5 // -5
 		static constexpr double ampGlobalMaxVal = 0.0; // -0.01 // 0
-		static constexpr double ampGlobalStep = 0.1; // 0.01	 // 0.05
+		static constexpr double ampGlobalStep = 0.05; // 0.01	 // 0.05
 	};
 
 	struct MexicanHatKernelConstants
@@ -91,25 +91,25 @@ namespace neat_dnfs
 		static constexpr double amplitudeInh = 15.0;  // 15.0
 		static constexpr double amplitudeGlobal = -0.01; // -0.1
 
-		static constexpr double widthExcMinVal = 2.0; // 2.0 // 1
-		static constexpr double widthExcMaxVal = 9.0; // 9.0 // 50
+		static constexpr double widthExcMinVal = 1.0; // 2.0 // 1
+		static constexpr double widthExcMaxVal = 30.0; // 9.0 // 50
 		static constexpr double widthExcStep = 0.5; // 0.5
 
-		static constexpr double widthInhMinVal = 5.0; // 5.0 // 1
+		static constexpr double widthInhMinVal = 1.0; // 5.0 // 1
 		static constexpr double widthInhMaxVal = 30.0; // 30.0 // 60
 		static constexpr double widthInhStep = 0.5; // 0.5
 
-		static constexpr double ampExcMinVal = 8.0; // 8.0
-		static constexpr double ampExcMaxVal = 25.0; // 25.0 //85
+		static constexpr double ampExcMinVal = 1.0; // 8.0
+		static constexpr double ampExcMaxVal = 65.0; // 25.0 //85
 		static constexpr double ampExcStep = 0.5; // 0.5
 
-		static constexpr double ampInhMinVal = 12.0; // 12.0 // 1
+		static constexpr double ampInhMinVal = 1.0; // 12.0 // 1
 		static constexpr double ampInhMaxVal = 30.0; // 30.0 // 60
 		static constexpr double ampInhStep = 0.5; // 0.5
 
-		static constexpr double ampGlobMin = -2.5; // -0.5 // -5
+		static constexpr double ampGlobMin = -5.0; // -0.5 // -5
 		static constexpr double ampGlobMax = 0.0; // -0.01
-		static constexpr double ampGlobStep = 0.1; // 0.01
+		static constexpr double ampGlobStep = 0.05; // 0.01
 	};
 
 	struct OscillatoryKernelConstants
@@ -156,8 +156,8 @@ namespace neat_dnfs
 		static constexpr double addFieldGeneProbability = 0.0025; // 0.0025
 		static constexpr double mutateFieldGeneProbability = 0.35; // 0.35
 		static constexpr double addConnectionGeneProbability = 0.20; // 0.20
-		static constexpr double mutateConnectionGeneProbability = 0.3975; // 0.44
-		static constexpr double toggleConnectionGeneProbability = 0.05; // 0.0075 // 0.05
+		static constexpr double mutateConnectionGeneProbability = 0.44; // 0.44
+		static constexpr double toggleConnectionGeneProbability = 0.0075; // 0.0075 // 0.05
 
 		static constexpr bool checkForDuplicateConnectionGenesInGenome = false;
 	};
@@ -204,9 +204,9 @@ namespace neat_dnfs
 		static constexpr double oscillatoryKernelProbability = 0.0;
 
 		// connection gene mutation probabilities (sum must be 1.0)
-		static constexpr double mutateConnectionGeneKernelProbability = 0.70;
+		static constexpr double mutateConnectionGeneKernelProbability = 0.80;
 		static constexpr double mutateConnectionGeneKernelTypeProbability = 0.10;
-		static constexpr double mutateConnectionGeneConnectionSignalProbability = 0.20;
+		static constexpr double mutateConnectionGeneConnectionSignalProbability = 0.10;
 
 		// field gene gauss kernel mutation probabilities (sum must be 1.0)
 		static constexpr double mutateConnectionGeneGaussKernelAmplitudeProbability = 1.0f / 3.0f;//1.0f / 2.0f;
@@ -235,8 +235,8 @@ namespace neat_dnfs
 	{
 		static constexpr bool parallelEvolution = true;
 		static constexpr double pruneRatio = 0.2;
-		static constexpr int generationsWithoutImprovementThresholdInPopulation = 25;
-		static constexpr int generationsWithoutImprovementThresholdInSpecies = 15;
+		static constexpr int generationsWithoutImprovementThresholdInPopulation = 20;
+		static constexpr int generationsWithoutImprovementThresholdInSpecies = 10;
 		static constexpr bool elitism = true;
 
 		static constexpr bool validateUniqueSolutions = false;
