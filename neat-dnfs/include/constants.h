@@ -12,8 +12,8 @@ namespace neat_dnfs
 	struct SimulationConstants
 	{
 		inline static std::string name = "solution ";
-		static constexpr double deltaT = 25;
-		static constexpr size_t maxSimulationSteps = 2500;
+		static constexpr double deltaT = 1.0;
+		static constexpr size_t maxSimulationSteps = 100;
 	};
 
 	struct DimensionConstants
@@ -25,7 +25,7 @@ namespace neat_dnfs
 	struct NoiseConstants
 	{
 		inline static std::string namePrefix = "nn ";
-		static constexpr double amplitude = 0.2; //0.2 (if selection is required), null otherwise
+		static constexpr double amplitude = 0.15;
 	};
 
 	struct GaussStimulusConstants
@@ -40,12 +40,12 @@ namespace neat_dnfs
 	struct NeuralFieldConstants
 	{
 		inline static std::string namePrefix = "nf ";
-		static constexpr double stabilityThreshold = 0.9; // 0.90 if amp noise is 0.2, 0.035 otherwise
+		static constexpr double stabilityThreshold = 0.9;
 		static constexpr double tau = 200;
 		static constexpr double restingLevel = -5;
-		inline static dnf_composer::element::HeavisideFunction activationFunction{ 0.0 };
-		static constexpr double tauMinVal = 220.0;
-		static constexpr double tauMaxVal = 300.0;
+		inline static dnf_composer::element::SigmoidFunction activationFunction{0.0, 10.0};
+		static constexpr double tauMinVal = 10.0;
+		static constexpr double tauMaxVal = 100.0;
 		static constexpr double tauStep = 5.0;
 		static constexpr double restingLevelMinVal = -20.0;
 		static constexpr double restingLevelMaxVal = -1.0;
