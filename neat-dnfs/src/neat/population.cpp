@@ -335,10 +335,13 @@ namespace neat_dnfs
 		int assigned = 0;
 		for (const auto& species : speciesList) 
 		{
-			if (!species->isExtinct()) 
+			if (!species->isExtinct())
 			{
-				species->setOffspringCount(parameters.size / 2);
-				if (++assigned == 2) break; // Stop after assigning two species
+				if (species->size() > 0)
+				{
+					species->setOffspringCount(parameters.size / 2);
+					if (++assigned == 2) break; // Stop after assigning two species
+				}
 			}
 		}
 		log(tools::logger::LogLevel::WARNING, "Fitness of entire population has not improved for the last " 
