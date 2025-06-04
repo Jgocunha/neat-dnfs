@@ -3,9 +3,60 @@
 
 namespace neat_dnfs
 {
-	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, 
-		const dnf_composer::element::ElementDimensions& inputFieldDimensions, 
-		const dnf_composer::element::ElementDimensions& outputFieldDimensions)
+	ConnectionTuple::ConnectionTuple(int inFieldGeneId, int outFieldGeneId)
+		: inFieldGeneId(inFieldGeneId), outFieldGeneId(outFieldGeneId)
+	{}
+
+	bool ConnectionTuple::operator==(const ConnectionTuple& other) const
+	{
+		return inFieldGeneId == other.inFieldGeneId && outFieldGeneId == other.outFieldGeneId;
+	}
+
+	bool ConnectionTuple::operator<(const ConnectionTuple& other) const {
+		if (inFieldGeneId == other.inFieldGeneId)
+			return outFieldGeneId < other.outFieldGeneId;
+		return inFieldGeneId < other.inFieldGeneId;
+	}
+
+	std::string ConnectionTuple::toString() const
+	{
+		return std::to_string(inFieldGeneId) + "-" + std::to_string(outFieldGeneId);
+	}
+
+	void ConnectionTuple::print() const
+	{
+		tools::logger::log(tools::logger::INFO, toString());
+	}
+
+	ConnectionGeneParameters::ConnectionGeneParameters(ConnectionTuple connectionTuple, int innov)
+		: connectionTuple(connectionTuple), innovationNumber(innov), enabled(true)
+	{}
+
+	ConnectionGeneParameters::ConnectionGeneParameters(int inFieldGeneId, int outFieldGeneId, int innov)
+		: connectionTuple(inFieldGeneId, outFieldGeneId), innovationNumber(innov), enabled(true)
+	{}
+
+	bool ConnectionGeneParameters::operator==(const ConnectionGeneParameters& other) const
+	{
+		return connectionTuple == other.connectionTuple &&
+			innovationNumber == other.innovationNumber;
+	}
+
+	std::string ConnectionGeneParameters::toString() const
+	{
+		return connectionTuple.toString() +
+			", innov: " + std::to_string(innovationNumber) +
+			", enabled: " + (enabled ? "true" : "false");
+	}
+
+	void ConnectionGeneParameters::print() const
+	{
+		tools::logger::log(tools::logger::INFO, toString());
+	}
+
+	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple,
+	                               const dnf_composer::element::ElementDimensions& inputFieldDimensions,
+	                               const dnf_composer::element::ElementDimensions& outputFieldDimensions)
 	: fc_id(fc_id_count++), parameters(connectionTuple)
 	{
 		using namespace dnf_composer::element;

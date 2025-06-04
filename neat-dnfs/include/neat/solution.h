@@ -5,7 +5,7 @@
 namespace neat_dnfs
 {
 	class Solution;
-	typedef dnf_composer::Simulation Phenotype;
+	typedef std::shared_ptr<dnf_composer::Simulation> PhenotypePtr;
 	typedef std::shared_ptr<Solution> SolutionPtr;
 
 	struct SolutionTopology
@@ -20,22 +20,6 @@ namespace neat_dnfs
 		{
 			return geneTopology == other.geneTopology;
 		}
-
-		std::string toString() const
-		{
-			/*std::string result = "Initial solution topology \n"
-				"InputGenes: " + std::to_string(numInputGenes) +
-				", OutputGenes: " + std::to_string(numOutputGenes) +
-				", HiddenGenes: " + std::to_string(numHiddenGenes) +
-				", Connections: " + std::to_string(numConnections);
-			return result;*/
-			return "Initial solution topology to do";
-		}
-
-		void print() const
-		{
-			tools::logger::log(tools::logger::INFO, toString());
-		}
 	};
 
 	struct SolutionParameters
@@ -43,13 +27,14 @@ namespace neat_dnfs
 		double fitness;
 		double adjustedFitness;
 		int age;
-		// bumps really should be a parameter?
+		int speciesId;
+		std::vector<double> partialFitness;
 		std::vector<dnf_composer::element::NeuralFieldBump> bumps;
 
 		SolutionParameters(double fitness = 0.0,
 			double adjustedFitness = 0.0, int age = 0)
-			: fitness(fitness), adjustedFitness(adjustedFitness), age(age)
-			, bumps({})
+			: fitness(fitness), adjustedFitness(adjustedFitness), age(age), speciesId(-1)
+			, partialFitness({}), bumps({})
 		{}
 
 		bool operator==(const SolutionParameters& other) const
@@ -62,10 +47,18 @@ namespace neat_dnfs
 
 		std::string toString() const
 		{
-			std::string result = "Solution parameters \n"
-				"Fitness: " + std::to_string(fitness) +
-				", AdjustedFitness: " + std::to_string(adjustedFitness) +
-				", Age: " + std::to_string(age);
+			std::string result =
+				" fit.: " + std::to_string(fitness) +
+				", part.: (";
+
+			for (const auto& partial : partialFitness)
+			{
+				result += std::to_string(partial) + ", ";
+			}
+
+			result += "), spec.: " + std::to_string(speciesId) +
+				", adj.fit.: " + std::to_string(adjustedFitness) +
+				", age: " + std::to_string(age);
 			return result;
 		}
 
@@ -83,23 +76,32 @@ namespace neat_dnfs
 		std::string name;
 		SolutionTopology initialTopology;
 		SolutionParameters parameters;
-		Phenotype phenotype;
+		dnf_composer::Simulation phenotype;
 		Genome genome;
+		std::tuple <int, int> parents;
 	public:
 		Solution(const SolutionTopology& initialTopology);
+		Solution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
 		virtual SolutionPtr clone() const = 0;
 		SolutionPtr crossover(const SolutionPtr& other);
 		void evaluate();
 		void initialize();
 		void mutate();
-		Phenotype getPhenotype() const;
+		void setSpeciesId(int speciesId);
+		void setParents(int parent1, int parent2);
+		int getSpeciesId() const { return parameters.speciesId; }
+		std::tuple<int, int> getParents() const { return parents; }
+		dnf_composer::Simulation getPhenotype() const;
 		Genome getGenome() const;
 		SolutionParameters getParameters() const;
 		std::string getName() const { return name; }
+		std::string getAddress() const;
 		double getFitness() const;
 		size_t getGenomeSize() const;
-		std::vector<uint16_t> getInnovationNumbers() const;
-		void clearGenerationalInnovations() const;
+		size_t getNumFieldGenes() const { return genome.getFieldGenes().size(); }
+		std::vector<int> getInnovationNumbers() const;
+		int getId() const { return id; }
+		static void clearGenerationalInnovations();
 		void incrementAge();
 		void setAdjustedFitness(double adjustedFitness);
 		void buildPhenotype();
@@ -111,33 +113,50 @@ namespace neat_dnfs
 		bool hasTheSameTopology(const SolutionPtr& other) const;
 		bool hasTheSameParameters(const SolutionPtr& other) const;
 		bool hasTheSameGenome(const SolutionPtr& other) const;
-		bool hasTheSamePhenotype(const SolutionPtr& other) const;
-		bool operator==(const SolutionPtr& other) const;
 		std::string toString() const;
 		void print() const;
+		virtual void createPhenotypeEnvironment() = 0;
+		static void resetMutationStatisticsPerGeneration();
+		static void resetUniqueIdentifier();
+		void translatePhenotypeToGenome();
+		void clearGenome();
 	private:
 		void createInputGenes();
 		void createOutputGenes();
-		void createHiddenGenes();
-		void createRandomInitialConnectionGenes();
 		void translateGenesToPhenotype();
 		void translateConnectionGenesToPhenotype();
+
 	protected:
-		virtual void updateFitness() = 0;
 		virtual void testPhenotype() = 0;
 		void initSimulation();
 		void stopSimulation();
-		void runSimulation(const uint16_t iterations);
+		void runSimulation(const int iterations);
 		bool runSimulationUntilFieldStable(const std::string& targetElement);
-		void addGaussianStimulus(const std::string& targetElement, 
+		void addGaussianStimulus(const std::string& targetElement,
 			const dnf_composer::element::GaussStimulusParameters& stimulusParameters,
 			const dnf_composer::element::ElementDimensions& dimensions
 		);
 		void removeGaussianStimuli();
 		double oneBumpAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
 			const double& position, const double& amplitude, const double& width);
+		double twoBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
+						const double& position1, const double& amplitude1, const double& width1,
+						const double& position2, const double& amplitude2, const double& width2);
+		double threeBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
+									const double& position1, const double& amplitude1, const double& width1,
+									const double& position2, const double& amplitude2, const double& width2,
+									const double& position3, const double& amplitude3, const double& width3);
 		double closenessToRestingLevel(const std::string& fieldName);
-		bool isThereAFieldCoupling() const;
-		void setLearningForFieldCouplings(bool learning);
+		double preShapedness(const std::string& fieldName);
+		double preShapedness(const std::string& fieldName, const std::vector<double>& positions);
+		double negativePreShapednessAtPosition(const std::string& fieldName, const double& position);
+		double justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName,
+			const std::vector<double>& positions, const double& amplitude, const double& width);
+		void removeGaussianStimuliFromField(const std::string& fieldName);
+		double noBumps(const std::string& fieldName);
+		double iterationsUntilBump(const std::string& fieldName, double targetIterations);
+		double iterationsUntilBumpWithAmplitude(const std::string& fieldName, double targetIterations, double targetAmplitude);
+		void moveGaussianStimulusContinously(const std::string& name, double targetPosition, double step);
+		double negativeBaseline(const std::string& fieldName);
 	};
 }
