@@ -128,7 +128,8 @@ namespace neat_dnfs
 		parameters.partialFitness.emplace_back(f7);
 
 		//const double f8 = closenessToRestingLevel("nf 4");
-		const double f8 = negativePreShapednessAtPosition("nf 4", 50);
+		//const double f8 = negativePreShapednessAtPosition("nf 4", 50);
+		const double f8 = noBumps("nf 4");
 		parameters.fitness += wf8 * f8;
 		parameters.partialFitness.emplace_back(f8);
 
