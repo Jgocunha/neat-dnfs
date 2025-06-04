@@ -3,3 +3,5 @@
 
 # neat-dnfs
 Dynamic Neural Field Evolution with NEAT for Robotics
+
+```neat-evaluations``` has successfull evolution of select_the_object task.
