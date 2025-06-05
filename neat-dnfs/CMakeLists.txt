@@ -62,8 +62,7 @@ set(header
 "include/solutions/color_space_map_out_sustained.h"
 
 "include/application/application.h"
-#"include/user_interface/main_window_neat.h"
-#"include/user_interface/solution_window.h"
+"include/user_interface/setup_window.h"
 "include/tools/logger.h"
 "include/tools/utils.h"
 
@@ -88,8 +87,7 @@ set(src
 "src/solutions/color_space_map_out_sustained.cpp"
 
 "src/application/application.cpp"
-#"src/user_interface/main_window_neat.cpp"
-#"src/user_interface/solution_window.cpp"
+"src/user_interface/setup_window.cpp"
 "src/tools/logger.cpp"
 )
 

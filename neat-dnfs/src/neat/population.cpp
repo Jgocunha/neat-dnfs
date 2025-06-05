@@ -32,15 +32,43 @@ namespace neat_dnfs
 			//log(tools::logger::LogLevel::INFO, "Upkeep done.");
 			//print();
 
+			while (control.pause)
+			{
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				tools::logger::log(tools::logger::LogLevel::INFO, "Evolution paused.");
+			}
+
 		} while (!endConditionMet());
 
-		saveAllSolutionsWithFitnessAbove(0.4);
+		saveAllSolutionsWithFitnessAbove(parameters.targetFitness - 0.2);
+	}
+
+	void Population::evolutionaryStep()
+	{
+		evaluate();
+		speciate();
+		reproduceAndSelect();
+		upkeep();
+
+		if(endConditionMet())
+			saveAllSolutionsWithFitnessAbove(parameters.targetFitness - 0.2);
 	}
 
 	void Population::evaluate() const
 	{
+		std::vector<std::future<void>> futures;
 		for (const auto& solution : solutions)
-			solution->evaluate();
+		{
+			futures.emplace_back(std::async(std::launch::async, [&solution]()
+				{
+					solution->evaluate();
+				}));
+		}
+
+		for (auto& future : futures)
+		{
+			future.get();
+		}
 	}
 
 	void Population::speciate()
@@ -304,7 +332,7 @@ namespace neat_dnfs
 	{
 		const bool fitnessCondition = bestSolution->getFitness() > parameters.targetFitness;
 		const bool generationCondition = parameters.currentGeneration >= parameters.numGenerations;
-		return fitnessCondition || generationCondition;
+		return fitnessCondition || generationCondition || control.stop;
 	}
 
 	void Population::validateElitism() const

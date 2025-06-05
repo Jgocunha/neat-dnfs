@@ -14,43 +14,14 @@ namespace neat_dnfs
 	struct FieldGeneParameters
 	{
 		FieldGeneType type;
-		uint16_t id;
+		int id;
 
-		FieldGeneParameters(const FieldGeneParameters& other)
-			: type(other.type), id(other.id)
-		{}
+		FieldGeneParameters(const FieldGeneParameters& other) = default;
+		FieldGeneParameters(FieldGeneType type, int id);
 
-		FieldGeneParameters(FieldGeneType type, uint16_t id)
-			: type(type), id(id)
-		{}
-
-		bool operator==(const FieldGeneParameters& other) const
-		{
-			return type == other.type && id == other.id;
-		}
-
-		std::string toString() const
-		{
-			std::string typeStr;
-			switch (type)
-			{
-			case FieldGeneType::INPUT:
-				typeStr = "INPUT";
-				break;
-			case FieldGeneType::OUTPUT:
-				typeStr = "OUTPUT";
-				break;
-			case FieldGeneType::HIDDEN:
-				typeStr = "HIDDEN";
-				break;
-			}
-			return "FieldGeneParameters{type=" + typeStr + ", id=" + std::to_string(id) + "}" + '\n';
-		}
-
-		void print() const
-		{
-			tools::logger::log(tools::logger::INFO, toString());
-		}
+		bool operator==(const FieldGeneParameters& other) const;
+		std::string toString() const;
+		void print() const;
 	};
 
 	class FieldGene
@@ -59,12 +30,14 @@ namespace neat_dnfs
 		FieldGeneParameters parameters;
 		NeuralFieldPtr neuralField;
 		KernelPtr kernel;
+		NormalNoisePtr noise;
 	public:
 		FieldGene(const FieldGeneParameters& parameters, 
 			const dnf_composer::element::ElementDimensions& dimensions = {100, 1.0});
 		FieldGene(const FieldGeneParameters& parameters,
 			const NeuralFieldPtr& neuralField, 
-			const KernelPtr& kernel);
+			KernelPtr kernel);
+		FieldGene(const FieldGeneParameters& parameters, const FieldGene& other);
 
 		void setAsInput(const dnf_composer::element::ElementDimensions& dimensions);
 		void setAsOutput(const dnf_composer::element::ElementDimensions& dimensions);
@@ -75,6 +48,7 @@ namespace neat_dnfs
 		FieldGeneParameters getParameters() const;
 		std::shared_ptr<dnf_composer::element::NeuralField> getNeuralField() const;
 		std::shared_ptr<dnf_composer::element::Kernel> getKernel() const;
+		std::shared_ptr<dnf_composer::element::NormalNoise> getNoise() const;
 
 		bool operator==(const FieldGene&) const;
 		bool isCloneOf(const FieldGene&) const;
@@ -86,5 +60,13 @@ namespace neat_dnfs
 		void initializeKernel(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeGaussKernel(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeMexicanHatKernel(const dnf_composer::element::ElementDimensions& dimensions);
+		void initializeNoise(const dnf_composer::element::ElementDimensions& dimensions);
+
+		void mutateKernel() const;
+		void mutateGaussKernel() const;
+		void mutateMexicanHatKernel() const;
+
+		void mutateKernelType();
+		void mutateNeuralField();
 	};
 }

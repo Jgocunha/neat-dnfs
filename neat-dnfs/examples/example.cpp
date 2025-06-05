@@ -24,17 +24,17 @@ int main(int argc, char* argv[])
 {
 	try
 	{
-		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::WARNING);
+		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
 
 		//TestZeroSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {50, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
 		//TestOneSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {360, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
-		//ColorSpaceMapStabilizedSolution solution{
-		//	SolutionTopology{ {
-		//		{FieldGeneType::INPUT, {360, 1.0}},
-		//		{FieldGeneType::OUTPUT, {100, 1.0}}
-		//	}}
-		//};
+		/*ColorSpaceMapStabilizedSolution solution{
+			SolutionTopology{ {
+				{FieldGeneType::INPUT, {360, 1.0}},
+				{FieldGeneType::OUTPUT, {100, 1.0}}
+			}}
+		};*/
 		ColorSpaceMapOutputSustainedSolution solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {360, 1.0}},
@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
 			}}
 		};*/
 
-		const PopulationParameters parameters{ 100, 1000, 0.9 };
+		const PopulationParameters parameters{ 1000, 1000, 0.82 };
 		Population population{ parameters, std::make_shared<ColorSpaceMapOutputSustainedSolution>(solution) };
 
 		population.initialize();

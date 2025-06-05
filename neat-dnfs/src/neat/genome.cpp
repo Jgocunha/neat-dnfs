@@ -2,97 +2,159 @@
 
 namespace neat_dnfs
 {
-	std::map<ConnectionTuple, uint16_t> Genome::connectionToInnovationNumberMap;
+	std::map<ConnectionTuple, int> Genome::connectionTupleAndInnovationNumberWithinGeneration;
+	GenomeStatistics Genome::statistics;
+
+	void GenomeStatistics::resetPerGenerationStatistics()
+	{
+		numAddConnectionGeneMutationsPerGeneration = 0;
+		numAddFieldGeneMutationsPerGeneration = 0;
+		numMutateFieldGeneMutationsPerGeneration = 0;
+		numMutateConnectionGeneMutationsPerGeneration = 0;
+		numToggleConnectionGeneMutationsPerGeneration = 0;
+	}
+
+	std::string GenomeStatistics::toString() const
+	{
+		std::string result = "GenomeStatistics: {";
+		result += "Add connection gene mutations per generation: " + std::to_string(numAddConnectionGeneMutationsPerGeneration);
+		result += ", Add field gene mutations per generation: " + std::to_string(numAddFieldGeneMutationsPerGeneration);
+		result += ", Mutate field gene mutations per generation: " + std::to_string(numMutateFieldGeneMutationsPerGeneration);
+		result += ", Mutate connection gene mutations per generation: " + std::to_string(numMutateConnectionGeneMutationsPerGeneration);
+		result += ", Toggle connection gene mutations per generation: " + std::to_string(numToggleConnectionGeneMutationsPerGeneration);
+		result += ", Add connection gene mutations total: " + std::to_string(numAddConnectionGeneMutationsTotal);
+		result += ", Add field gene mutations total: " + std::to_string(numAddFieldGeneMutationsTotal);
+		result += ", Mutate field gene mutations total: " + std::to_string(numMutateFieldGeneMutationsTotal);
+		result += ", Mutate connection gene mutations total: " + std::to_string(numMutateConnectionGeneMutationsTotal);
+		result += ", Toggle connection gene mutations total: " + std::to_string(numToggleConnectionGeneMutationsTotal);
+		result += " }";
+		return result;
+	}
+
+	void GenomeStatistics::print() const
+	{
+		tools::logger::log(tools::logger::INFO, toString());
+	}
+
+	void GenomeStatistics::savePerGeneration(const std::string& directory) const
+	{
+		std::ofstream logFile(directory + "genome_statistics_per_generation.txt", std::ios::app);
+		if (logFile.is_open())
+		{
+			logFile << "Add connection gene mutations per generation: " + std::to_string(numAddConnectionGeneMutationsPerGeneration);
+			logFile << ", Add field gene mutations per generation: " + std::to_string(numAddFieldGeneMutationsPerGeneration);
+			logFile << ", Mutate field gene mutations per generation: " + std::to_string(numMutateFieldGeneMutationsPerGeneration);
+			logFile << ", Mutate connection gene mutations per generation: " + std::to_string(numMutateConnectionGeneMutationsPerGeneration);
+			logFile << ", Toggle connection gene mutations per generation: " + std::to_string(numToggleConnectionGeneMutationsPerGeneration);
+			logFile << "\n";
+			logFile.close();
+		}
+		else
+		{
+			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for genome per generation statistics.");
+		}
+	}
+
+	void GenomeStatistics::saveTotal(const std::string& directory) const
+	{
+		std::ofstream logFile(directory + "genome_statistics_total.txt", std::ios::app);
+		if (logFile.is_open())
+		{
+			logFile << ",Add connection gene mutations total: " + std::to_string(numAddConnectionGeneMutationsTotal);
+			logFile << ", Add field gene mutations total: " + std::to_string(numAddFieldGeneMutationsTotal);
+			logFile << ", Mutate field gene mutations total: " + std::to_string(numMutateFieldGeneMutationsTotal);
+			logFile << ", Mutate connection gene mutations total: " + std::to_string(numMutateConnectionGeneMutationsTotal);
+			logFile << ", Toggle connection gene mutations total: " + std::to_string(numToggleConnectionGeneMutationsTotal);
+			logFile.close();
+		}
+		else
+		{
+			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for genome total statistics.");
+		}
+	}
+
+	Genome::~Genome()
+	{
+		fieldGenes.clear();
+		connectionGenes.clear();
+	}
 
 	void Genome::addInputGene(const dnf_composer::element::ElementDimensions& dimensions)
 	{
 		const auto index = fieldGenes.size() + 1;
-		fieldGenes.push_back(FieldGene({ FieldGeneType::INPUT, static_cast<uint16_t>(index)}, dimensions ));
+		fieldGenes.push_back(FieldGene({ FieldGeneType::INPUT, static_cast<int>(index)}, dimensions ));
 	}
 
 	void Genome::addOutputGene(const dnf_composer::element::ElementDimensions& dimensions)
 	{
 		const auto index = fieldGenes.size() + 1;
 		fieldGenes.push_back(FieldGene({ FieldGeneType::OUTPUT,
-			static_cast<uint16_t>(index)}, dimensions ));
+			static_cast<int>(index)}, dimensions ));
 	}
 
-	void Genome::addHiddenGene(const dnf_composer::element::ElementDimensions& dimensions)
+	void Genome::addHiddenGene(const FieldGene& gene)
 	{
 		const auto index = fieldGenes.size() + 1;
 		fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN,
-			static_cast<uint16_t>(index) }, dimensions));
+					static_cast<int>(index) }, gene));
 	}
 
-	void Genome::addRandomInitialConnectionGene()
+		void Genome::mutate()
 	{
-		/*if (fieldGenes.size() < 2)
-			throw std::invalid_argument(
-				"There must be at least two genes to add a connection gene.");
+		constexpr double totalProbability = GenomeMutationConstants::addFieldGeneProbability +
+			GenomeMutationConstants::mutateFieldGeneProbability +
+			GenomeMutationConstants::addConnectionGeneProbability +
+			GenomeMutationConstants::mutateConnectionGeneProbability +
+			GenomeMutationConstants::toggleConnectionGeneProbability;
 
-		const auto inGeneId = getRandomGeneIdByType(FieldGeneType::INPUT);
-		const auto outGeneId = getRandomGeneIdByType(FieldGeneType::OUTPUT);
-
-		if (inGeneId == -1 || outGeneId == -1)
-			throw std::invalid_argument(
-				"Could not find input and output genes to add a connection gene.");
-
-		const dnf_composer::element::ElementDimensions dimensions1 = getFieldGeneById(static_cast<uint16_t>(inGeneId)).getNeuralField()->getElementCommonParameters().dimensionParameters;
-		const dnf_composer::element::ElementDimensions dimensions2 = getFieldGeneById(static_cast<uint16_t>(outGeneId)).getNeuralField()->getElementCommonParameters().dimensionParameters;
-
-		connectionGenes.emplace_back(ConnectionTuple{ static_cast<uint16_t>(inGeneId),
-			static_cast<uint16_t>(outGeneId)}, dimensions1, dimensions2);*/
-		tools::logger::log(tools::logger::LogLevel::FATAL, "Method addRandomInitialConnectionGene is not implemented.");
-	}
-
-	void Genome::mutate()
-	{
-		constexpr double totalProbability = MutationConstants::addFieldGeneProbability +
-			MutationConstants::mutateFieldGeneProbability +
-			MutationConstants::addConnectionGeneProbability +
-			MutationConstants::mutateConnectionGeneProbability +
-			MutationConstants::toggleConnectionGeneProbability;
-
-		if constexpr (totalProbability != 1.0)
-			throw std::runtime_error("Mutation probabilities must sum up to 1.");
+		constexpr double epsilon = 1e-6;
+		if ( std::abs(totalProbability - 1.0) > epsilon )
+			throw std::runtime_error("Mutation probabilities in genome mutation must sum up to 1.");
 
 		const double randomValue = tools::utils::generateRandomDouble(0.0, 1.0);
 
-		if (randomValue < MutationConstants::addFieldGeneProbability) {
+		if (randomValue < GenomeMutationConstants::addFieldGeneProbability) {
 			addGene();
 		}
-		else if (randomValue < MutationConstants::addFieldGeneProbability +
-			MutationConstants::mutateFieldGeneProbability) {
+		else if (randomValue < GenomeMutationConstants::addFieldGeneProbability +
+			GenomeMutationConstants::mutateFieldGeneProbability) {
 			mutateGene();
 		}
-		else if (randomValue < MutationConstants::addFieldGeneProbability +
-			MutationConstants::mutateFieldGeneProbability +
-			MutationConstants::addConnectionGeneProbability) {
+		else if (randomValue < GenomeMutationConstants::addFieldGeneProbability +
+			GenomeMutationConstants::mutateFieldGeneProbability +
+			GenomeMutationConstants::addConnectionGeneProbability) {
 			addConnectionGene();
 		}
-		else if (randomValue < MutationConstants::addFieldGeneProbability +
-			MutationConstants::mutateFieldGeneProbability +
-			MutationConstants::addConnectionGeneProbability +
-			MutationConstants::mutateConnectionGeneProbability) {
+		else if (randomValue < GenomeMutationConstants::addFieldGeneProbability +
+			GenomeMutationConstants::mutateFieldGeneProbability +
+			GenomeMutationConstants::addConnectionGeneProbability +
+			GenomeMutationConstants::mutateConnectionGeneProbability) {
 			mutateConnectionGene();
 		}
 		else {
 			toggleConnectionGene();
 		}
 
-		// check if there are connection genes with the same input output pair
-		for (const auto& gene : connectionGenes)
+		checkForDuplicateConnectionGenes();
+	}
+
+	void Genome::checkForDuplicateConnectionGenes() const
+	{
+		if (GenomeMutationConstants::checkForDuplicateConnectionGenesInGenome)
 		{
-			const auto inFieldGeneId = gene.getInFieldGeneId();
-			const auto outFieldGeneId = gene.getOutFieldGeneId();
-			for (const auto& otherGene : connectionGenes)
+			for (const auto& gene : connectionGenes)
 			{
-				if (gene.getInnovationNumber() != otherGene.getInnovationNumber() &&
-					inFieldGeneId == otherGene.getInFieldGeneId() &&
-					outFieldGeneId == otherGene.getOutFieldGeneId())
+				const auto inFieldGeneId = gene.getInFieldGeneId();
+				const auto outFieldGeneId = gene.getOutFieldGeneId();
+				for (const auto& otherGene : connectionGenes)
 				{
-					tools::logger::log(tools::logger::LogLevel::ERROR, "Mutation produced offspring with duplicate connection genes.");
-					break;
+					if (gene.getInnovationNumber() != otherGene.getInnovationNumber() &&
+						inFieldGeneId == otherGene.getInFieldGeneId() &&
+						outFieldGeneId == otherGene.getOutFieldGeneId())
+					{
+						tools::logger::log(tools::logger::LogLevel::ERROR, "Mutation produced offspring with duplicate connection genes.");
+						break;
+					}
 				}
 			}
 		}
@@ -100,217 +162,15 @@ namespace neat_dnfs
 
 	void Genome::clearGenerationalInnovations()
 	{
-		connectionToInnovationNumberMap.clear();
+		connectionTupleAndInnovationNumberWithinGeneration.clear();
 	}
 
-	std::vector<FieldGene> Genome::getFieldGenes() const
+	void Genome::resetGlobalInnovationNumber()
 	{
-		return fieldGenes;
+		globalInnovationNumber = 0;
 	}
 
-	std::vector<ConnectionGene> Genome::getConnectionGenes() const
-	{
-		return connectionGenes;
-	}
-
-	std::vector<uint16_t> Genome::getInnovationNumbers() const
-	{
-		std::vector<uint16_t> innovationNumbers;
-		for (const auto& connectionGene : connectionGenes)
-			innovationNumbers.push_back(connectionGene.getInnovationNumber());
-
-		return innovationNumbers;
-	}
-
-	ConnectionTuple Genome::getNewRandomConnectionGeneTuple() const
-	{
-		// if there aren't enough genes to create a connection gene
-		if (fieldGenes.size() < 2)
-			return { 0, 0 };
-
-		int geneIndex1 = getRandomGeneIdByTypes({ FieldGeneType::HIDDEN, FieldGeneType::INPUT });
-		if (geneIndex1 == -1)
-			return { 0, 0 };
-
-		int geneIndex2;
-		do {
-			geneIndex2 = getRandomGeneIdByTypes({ FieldGeneType::HIDDEN, FieldGeneType::OUTPUT });
-			if (geneIndex2 == -1)
-				return { 0, 0 };
-		} while (geneIndex2 == geneIndex1);
-
-		if (std::ranges::find_if(connectionGenes, [geneIndex1, geneIndex2](const ConnectionGene& connectionGene)
-			{
-				return connectionGene.getParameters().connectionTuple.inFieldGeneId == geneIndex1
-					&& connectionGene.getParameters().connectionTuple.outFieldGeneId == geneIndex2;
-			}) != connectionGenes.end())
-		{
-			return { 0, 0 };
-		}
-
-		return { static_cast<uint16_t>(geneIndex1), static_cast<uint16_t>(geneIndex2) };
-	}
-
-	int Genome::getRandomGeneId() const
-	{
-		if (fieldGenes.empty())
-			return -1;
-
-		const int randomValue = tools::utils::generateRandomInt(0, static_cast<int>(fieldGenes.size()) - 1);
-
-		return fieldGenes[randomValue].getParameters().id;
-	}
-
-
-	int Genome::getRandomGeneIdByType(FieldGeneType type) const
-	{
-		std::vector<uint16_t> geneIds;
-		for (const auto& gene : fieldGenes)
-		{
-			if (gene.getParameters().type == type)
-				geneIds.push_back(gene.getParameters().id);
-		}
-
-		if (geneIds.empty())
-			return -1;
-
-		const int randomValue = tools::utils::generateRandomInt(0, static_cast<int>(geneIds.size()) - 1);
-
-		return geneIds[randomValue];
-	}
-
-	int Genome::getRandomGeneIdByTypes(const std::vector<FieldGeneType>& types) const
-	{
-		std::vector<uint16_t> geneIds;
-		for (const auto& gene : fieldGenes)
-		{
-			if (std::ranges::find(types, gene.getParameters().type) != types.end())
-				geneIds.push_back(gene.getParameters().id);
-		}
-
-		if (geneIds.empty())
-			return -1;
-
-		const int randomValue = tools::utils::generateRandomInt(0, static_cast<int>(geneIds.size()) - 1);
-
-		return geneIds[randomValue];
-	}
-
-	ConnectionGene Genome::getEnabledConnectionGene() const
-	{
-		std::vector<ConnectionGene> enabledConnectionGenes;
-		for (const auto& connectionGene : connectionGenes)
-		{
-			if (connectionGene.isEnabled())
-				enabledConnectionGenes.push_back(connectionGene);
-		}
-
-		if (enabledConnectionGenes.empty())
-			return ConnectionGene{ {0, 0}, {DimensionConstants::xSize, DimensionConstants::dx}, {DimensionConstants::xSize, DimensionConstants::dx} };
-
-		const double randomValue = tools::utils::generateRandomDouble(0, static_cast<int>(enabledConnectionGenes.size()) - 1);
-
-		return enabledConnectionGenes[static_cast<int>(randomValue)];
-	}
-
-	void Genome::addConnectionGeneIfNewWithinGeneration(ConnectionTuple connectionTuple)
-	{
-		const FieldGene gene1 = getFieldGeneById(connectionTuple.inFieldGeneId);
-		const dnf_composer::element::ElementDimensions dimensions1 = gene1.getNeuralField()->getElementCommonParameters().dimensionParameters;
-		const FieldGene gene2 = getFieldGeneById(connectionTuple.outFieldGeneId);
-		const dnf_composer::element::ElementDimensions dimensions2 = gene2.getNeuralField()->getElementCommonParameters().dimensionParameters;
-
-		if (connectionToInnovationNumberMap.contains(connectionTuple))
-		{
-			const uint16_t innovationNumber = connectionToInnovationNumberMap[connectionTuple];
-			connectionGenes.emplace_back(connectionTuple, dimensions1, dimensions2);
-			connectionGenes.back().setInnovationNumber(innovationNumber);
-		}
-		else
-		{
-			connectionGenes.emplace_back(connectionTuple, dimensions1, dimensions2);
-			connectionToInnovationNumberMap.insert({ connectionTuple,
-				connectionGenes.back().getInnovationNumber() });
-		}
-	}
-
-	void Genome::addGene()
-	{
-		using namespace dnf_composer::element;
-
-		auto randEnabledConnectionGene = getEnabledConnectionGene();
-		if (randEnabledConnectionGene.getParameters().connectionTuple == ConnectionTuple{ 0, 0 })
-			return;
-		randEnabledConnectionGene.disable();
-
-		const auto inGeneId = randEnabledConnectionGene.getParameters().connectionTuple.inFieldGeneId;
-		const auto outGeneId = randEnabledConnectionGene.getParameters().connectionTuple.outFieldGeneId;
-		const auto coupling = randEnabledConnectionGene.getFieldCoupling();
-		const auto couplingParameters = std::dynamic_pointer_cast<FieldCoupling>(coupling)->getParameters();
-		const auto couplingInputDimensions = couplingParameters.inputFieldDimensions;
-		const auto couplingOutputDimensions = coupling->getElementCommonParameters().dimensionParameters;
-
-		// for now new neural field will have the same dimensions as the input field
-		addHiddenGene(couplingInputDimensions);
-
-		// create two new connection genes
-		const auto connectionGeneCouplingParametersIn = FieldCouplingParameters{ couplingInputDimensions,
-			FieldCouplingConstants::learningRule, FieldCouplingConstants::strength, FieldCouplingConstants::learningRate };
-
-		const auto connectionGeneCouplingParametersOut = FieldCouplingParameters{ couplingInputDimensions,
-			FieldCouplingConstants::learningRule, FieldCouplingConstants::strength, FieldCouplingConstants::learningRate };
-
-
-		const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, connectionGeneCouplingParametersIn, couplingInputDimensions };
-		const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, connectionGeneCouplingParametersOut, couplingOutputDimensions };
-
-		connectionGenes.push_back(connectionGeneIn);
-		connectionGenes.push_back(connectionGeneOut);
-
-		// 1.			// 2.
-		// nf 1			// nf 1
-		//	|			// | fc 1-3
-		//  | fc 1-2	// nf 3     (fc 1-2: disabled)
-		//  |			// | fc 3-2
-		// nf 2			// nf 2
-
-	}
-
-	void Genome::mutateGene() const
-	{
-		const int geneId = getRandomGeneId();
-		if (geneId == -1)
-			return;
-		auto gene = getFieldGeneById(static_cast<uint16_t>(geneId));
-		gene.mutate();
-	}
-
-	void Genome::addConnectionGene()
-	{
-		const ConnectionTuple connectionTuple = getNewRandomConnectionGeneTuple();
-		if (connectionTuple == ConnectionTuple{ 0, 0 })
-			return;
-		addConnectionGeneIfNewWithinGeneration(connectionTuple);
-	}
-
-	void Genome::mutateConnectionGene() const
-	{
-		if (connectionGenes.empty())
-			return;
-
-		const auto connectionGeneId = tools::utils::generateRandomInt(0, static_cast<int>(connectionGenes.size()) - 1);
-		connectionGenes[connectionGeneId].mutate();
-	}
-
-	void Genome::toggleConnectionGene()
-	{
-		if (connectionGenes.empty())
-			return;
-		const auto connectionGeneId = tools::utils::generateRandomInt(0, static_cast<int>(connectionGenes.size()) - 1);
-		connectionGenes[connectionGeneId].toggle();
-	}
-
-	void Genome::removeConnectionGene(uint16_t innov)
+	void Genome::removeConnectionGene(int innov)
 	{
 		const auto it = std::ranges::find_if(connectionGenes, [innov](const ConnectionGene& connectionGene)
 		{
@@ -324,6 +184,47 @@ namespace neat_dnfs
 		connectionGenes.erase(it);
 	}
 
+	std::vector<FieldGene> Genome::getFieldGenes() const
+	{
+		return fieldGenes;
+	}
+
+	std::vector<ConnectionGene> Genome::getConnectionGenes() const
+	{
+		return connectionGenes;
+	}
+
+	std::vector<int> Genome::getInnovationNumbers() const
+	{
+		std::vector<int> innovationNumbers;
+		for (const auto& connectionGene : connectionGenes)
+			innovationNumbers.push_back(connectionGene.getInnovationNumber());
+
+		return innovationNumbers;
+	}
+
+	int Genome::getGlobalInnovationNumber()
+	{
+		return globalInnovationNumber;
+	}
+
+	GenomeStatistics Genome::getStatistics()
+	{
+		return statistics;
+	}
+
+	std::string Genome::getLastMutationType() const
+	{
+		return lastMutationType;
+	}
+
+	void Genome::resetMutationStatisticsPerGeneration()
+	{
+		statistics.resetPerGenerationStatistics();
+		//FieldGene::resetMutationStatisticsPerGeneration();
+		//ConnectionGene::resetMutationStatisticsPerGeneration();
+	}
+
 	int Genome::excessGenes(const Genome& other) const
 	{
 		const auto thisInnovationNumbers = getInnovationNumbers();
@@ -334,24 +235,21 @@ namespace neat_dnfs
 		if (thisInnovationNumbers.empty() && otherInnovationNumbers.empty())
 			return 0;
 
-		// max_element can be replaced with ranges::max_element
 		if (!thisInnovationNumbers.empty())
-			thisMaxInnovationNumber = *std::max_element(thisInnovationNumbers.begin(),
-				thisInnovationNumbers.end());
+			thisMaxInnovationNumber = *std::ranges::max_element(thisInnovationNumbers);
 
 		if (!otherInnovationNumbers.empty())
-			otherMaxInnovationNumber = *std::max_element(otherInnovationNumbers.begin(),
-				otherInnovationNumbers.end());
+			otherMaxInnovationNumber = *std::ranges::max_element(otherInnovationNumbers);
 
-		// call to count_if can be replaced with ranges::count_if
-		// also narrowing conversion from int to uint16_t
-		const int thisExcessCount = std::count_if(thisInnovationNumbers.begin(),
-			thisInnovationNumbers.end(), [otherMaxInnovationNumber](const uint16_t innovationNumber)
-			{return innovationNumber > otherMaxInnovationNumber; });
+		const int thisExcessCount = static_cast<int>(std::ranges::count_if(thisInnovationNumbers, [otherMaxInnovationNumber](const int innovationNumber)
+			{
+				return innovationNumber > otherMaxInnovationNumber;
+			}));
 
-		const int otherExcessCount = std::count_if(otherInnovationNumbers.begin(), otherInnovationNumbers.end(),
-			[thisMaxInnovationNumber](const uint16_t innovationNumber)
-			{return innovationNumber > thisMaxInnovationNumber; });
+		const int otherExcessCount = static_cast<int>(std::ranges::count_if(otherInnovationNumbers, [thisMaxInnovationNumber](const int innovationNumber)
+			{
+				return innovationNumber > thisMaxInnovationNumber;
+			}));
 
 		return thisExcessCount + otherExcessCount;
 	}
@@ -364,42 +262,32 @@ namespace neat_dnfs
 		if (thisInnovationNumbers.empty() && otherInnovationNumbers.empty())
 			return 0;
 
-		std::vector<uint16_t> sortedThisInnovationNumbers = thisInnovationNumbers;
-		std::vector<uint16_t> sortedOtherInnovationNumbers = otherInnovationNumbers;
+		std::vector<int> sortedThisInnovationNumbers = thisInnovationNumbers;
+		std::vector<int> sortedOtherInnovationNumbers = otherInnovationNumbers;
 
-		// call to sort can be replaced with ranges::sort
-		std::sort(sortedThisInnovationNumbers.begin(), sortedThisInnovationNumbers.end());
-		std::sort(sortedOtherInnovationNumbers.begin(), sortedOtherInnovationNumbers.end());
+		std::ranges::sort(sortedThisInnovationNumbers);
+		std::ranges::sort(sortedOtherInnovationNumbers);
 
-		std::vector<uint16_t> thisDisjointInnovationNumbers, otherDisjointInnovationNumbers;
+		std::vector<int> thisDisjointInnovationNumbers, otherDisjointInnovationNumbers;
 
-		// Get the elements in sortedThisInnovationNumbers that are not in sortedOtherInnovationNumbers
-		// call to set_difference can be replaced with ranges::set_difference
-		std::set_difference(sortedThisInnovationNumbers.begin(), sortedThisInnovationNumbers.end(),
-			sortedOtherInnovationNumbers.begin(), sortedOtherInnovationNumbers.end(),
-			std::inserter(thisDisjointInnovationNumbers, thisDisjointInnovationNumbers.begin()));
-		// Get the elements in sortedOtherInnovationNumbers that are not in sortedThisInnovationNumbers
-		std::set_difference(sortedOtherInnovationNumbers.begin(), sortedOtherInnovationNumbers.end(),
-			sortedThisInnovationNumbers.begin(), sortedThisInnovationNumbers.end(),
-			std::inserter(otherDisjointInnovationNumbers, otherDisjointInnovationNumbers.begin()));
+		std::ranges::set_difference(sortedThisInnovationNumbers, sortedOtherInnovationNumbers, std::back_inserter(thisDisjointInnovationNumbers));
+		std::ranges::set_difference(sortedOtherInnovationNumbers, sortedThisInnovationNumbers, std::back_inserter(otherDisjointInnovationNumbers));
 
-		// Calculate the maximum and minimum innovation numbers
-		// call to max_element can be replaced with ranges::max_element
-		const int thisMaxInnovationNumber = !thisInnovationNumbers.empty() ? *std::max_element(thisInnovationNumbers.begin(),
-			thisInnovationNumbers.end()) : 0;
-		const int otherMaxInnovationNumber = !otherInnovationNumbers.empty() ? *std::max_element(otherInnovationNumbers.begin(),
-			otherInnovationNumbers.end()) : 0;
+		const int thisMaxInnovationNumber = !thisInnovationNumbers.empty() ? *std::ranges::max_element(thisInnovationNumbers) : 0;
+		const int otherMaxInnovationNumber = !otherInnovationNumbers.empty() ? *std::ranges::max_element(otherInnovationNumbers) : 0;
 		int minMaxInnovationNumber = std::min(thisMaxInnovationNumber, otherMaxInnovationNumber);
 
-		// Filter out the disjoint genes that are beyond the range of the other genome
-		// call to count_if can be replaced with ranges::count_if
-		// also narrowing conversion from int to uint16_t
-		const int thisDisjointCount = std::count_if(thisDisjointInnovationNumbers.begin(),
-			thisDisjointInnovationNumbers.end(), [minMaxInnovationNumber](const uint16_t innovationNumber)
-			{return innovationNumber <= minMaxInnovationNumber; });
-		const int otherDisjointCount = std::count_if(otherDisjointInnovationNumbers.begin(),
-			otherDisjointInnovationNumbers.end(), [minMaxInnovationNumber](const uint16_t innovationNumber)
-			{return innovationNumber <= minMaxInnovationNumber; });
+		const int thisDisjointCount = static_cast<int>(std::ranges::count_if(thisDisjointInnovationNumbers,
+			[minMaxInnovationNumber](const int innovationNumber)
+			{
+				return innovationNumber <= minMaxInnovationNumber;
+			}));
+
+		const int otherDisjointCount = static_cast<int>(std::ranges::count_if(otherDisjointInnovationNumbers,
+			[minMaxInnovationNumber](const int innovationNumber)
+			{
+				return innovationNumber <= minMaxInnovationNumber;
+			}));
 
 		return thisDisjointCount + otherDisjointCount;
 	}
@@ -412,9 +300,8 @@ namespace neat_dnfs
 		if (thisConnectionGenes.empty() && otherConnectionGenes.empty())
 			return 0.0;
 
-		double sumStrengthDiff = 0.0;
-		static constexpr double strengthDiffCoeff = 1.0;
-		// this should be the difference between the weights?
+		double sumAmpDiff = 0.0;
+		double sumWidthDiff = 0.0;
 
 		for (const auto& thisConnectionGene : thisConnectionGenes)
 		{
@@ -422,13 +309,17 @@ namespace neat_dnfs
 			{
 				if (thisConnectionGene.getInnovationNumber() == otherConnectionGene.getInnovationNumber())
 				{
-					const double strengthDiff =
-						std::abs(thisConnectionGene.getCouplingStrength() - otherConnectionGene.getCouplingStrength());
-					sumStrengthDiff += strengthDiff;
+					const double ampDiff =
+						std::abs(thisConnectionGene.getKernelAmplitude() - otherConnectionGene.getKernelAmplitude());
+					const double widthDiff =
+						std::abs(thisConnectionGene.getKernelWidth() - otherConnectionGene.getKernelWidth());
+					sumAmpDiff += ampDiff;
+					sumWidthDiff += widthDiff;
 				}
 			}
 		}
-		const double totalDiff = sumStrengthDiff * strengthDiffCoeff;
+		const double totalDiff = CompatibilityCoefficients::amplitudeDifferenceCoefficient * sumAmpDiff
+								+ CompatibilityCoefficients::widthDifferenceCoefficient * sumWidthDiff;
 		return totalDiff;
 	}
 
@@ -458,16 +349,14 @@ namespace neat_dnfs
 
 	bool Genome::containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const
 	{
-		for (const auto& connectionGene : connectionGenes)
-		{
-			if (gene.getInFieldGeneId() == connectionGene.getInFieldGeneId() &&
-				gene.getOutFieldGeneId() == connectionGene.getOutFieldGeneId())
-				return true;
-		}
-		return false;
+		return std::ranges::any_of(connectionGenes, [&gene](const auto& connectionGene)
+			{
+				return gene.getInFieldGeneId() == connectionGene.getInFieldGeneId() &&
+					gene.getOutFieldGeneId() == connectionGene.getOutFieldGeneId();
+			});
 	}
 
-	ConnectionGene Genome::getConnectionGeneByInnovationNumber(uint16_t innovationNumber) const
+	ConnectionGene Genome::getConnectionGeneByInnovationNumber(int innovationNumber) const
 	{
 		const auto it = std::ranges::find_if(connectionGenes, [innovationNumber](const ConnectionGene& connectionGene)
 			{
@@ -481,7 +370,7 @@ namespace neat_dnfs
 		return *it;
 	}
 
-	FieldGene Genome::getFieldGeneById(uint16_t id) const
+	FieldGene Genome::getFieldGeneById(int id) const
 	{
 		const auto it = std::ranges::find_if(fieldGenes, [id](const FieldGene& fieldGene)
 			{
@@ -495,6 +384,11 @@ namespace neat_dnfs
 		return *it;
 	}
 
+	bool Genome::isEmpty() const
+	{
+		return fieldGenes.empty() && connectionGenes.empty();
+	}
+
 	bool Genome::operator==(const Genome& other) const
 	{
 		return fieldGenes == other.fieldGenes && connectionGenes == other.connectionGenes;
@@ -502,13 +396,17 @@ namespace neat_dnfs
 
 	std::string Genome::toString() const
 	{
-		std::string genomeString = "Field genes:\n";
+		std::string genomeString = "genome ( " + std::to_string(fieldGenes.size()) + " field genes, "
+		+ std::to_string(connectionGenes.size()) + " connection genes )";
+		genomeString += " field genes {";
 		for (const auto& fieldGene : fieldGenes)
-			genomeString += fieldGene.toString() + "\n";
+			genomeString += fieldGene.toString() + ", ";
+		genomeString += "}";
 
-		genomeString += "Connection genes:\n";
+		genomeString += " connection genes {";
 		for (const auto& connectionGene : connectionGenes)
-			genomeString += connectionGene.toString() + "\n";
+			genomeString += connectionGene.toString() + ", ";
+		genomeString += "}";
 
 		return genomeString;
 	}
@@ -516,5 +414,263 @@ namespace neat_dnfs
 	void Genome::print() const
 	{
 		tools::logger::log(tools::logger::INFO, toString());
+	}
+
+	ConnectionTuple Genome::getNewRandomConnectionGeneTuple() const
+	{
+		// if there aren't enough genes to create a connection gene
+		if (fieldGenes.size() < 2)
+			return { 0, 0 };
+
+		int geneIndex1 = getRandomGeneIdByTypes({ FieldGeneType::HIDDEN, FieldGeneType::INPUT });
+		if (geneIndex1 == -1)
+			return { 0, 0 };
+
+		int geneIndex2;
+		do {
+			geneIndex2 = getRandomGeneIdByTypes({ FieldGeneType::HIDDEN, FieldGeneType::OUTPUT });
+			if (geneIndex2 == -1)
+				return { 0, 0 };
+		} while (geneIndex2 == geneIndex1);
+
+		if (std::ranges::find_if(connectionGenes, [geneIndex1, geneIndex2](const ConnectionGene& connectionGene)
+			{
+				return connectionGene.getParameters().connectionTuple.inFieldGeneId == geneIndex1
+					&& connectionGene.getParameters().connectionTuple.outFieldGeneId == geneIndex2;
+			}) != connectionGenes.end())
+		{
+			return { 0, 0 };
+		}
+
+		return { static_cast<int>(geneIndex1), static_cast<int>(geneIndex2) };
+	}
+
+	int Genome::getRandomGeneId() const
+	{
+		if (fieldGenes.empty())
+			return -1;
+
+		const int randomValue = tools::utils::generateRandomInt(0, static_cast<int>(fieldGenes.size()) - 1);
+
+		return fieldGenes[randomValue].getParameters().id;
+	}
+
+	int Genome::getRandomGeneIdByType(FieldGeneType type) const
+	{
+		std::vector<int> geneIds;
+		for (const auto& gene : fieldGenes)
+		{
+			if (gene.getParameters().type == type)
+				geneIds.push_back(gene.getParameters().id);
+		}
+
+		if (geneIds.empty())
+			return -1;
+
+		const int randomValue = tools::utils::generateRandomInt(0, static_cast<int>(geneIds.size()) - 1);
+
+		return geneIds[randomValue];
+	}
+
+	int Genome::getRandomGeneIdByTypes(const std::vector<FieldGeneType>& types) const
+	{
+		std::vector<int> geneIds;
+		for (const auto& gene : fieldGenes)
+		{
+			if (std::ranges::find(types, gene.getParameters().type) != types.end())
+				geneIds.push_back(gene.getParameters().id);
+		}
+
+		if (geneIds.empty())
+			return -1;
+
+		const int randomValue = tools::utils::generateRandomInt(0, static_cast<int>(geneIds.size()) - 1);
+
+		return geneIds[randomValue];
+	}
+
+	ConnectionGene* Genome::getEnabledConnectionGene() const
+	{
+		std::vector<ConnectionGene*> enabledConnectionGenes;
+		for (const auto& connectionGene : connectionGenes)
+		{
+			if (connectionGene.isEnabled())
+				enabledConnectionGenes.push_back(const_cast<ConnectionGene*>(&connectionGene));
+		}
+
+		if (enabledConnectionGenes.empty())
+			return nullptr; // Return nullptr instead of a temporary object
+
+		// Generate a random valid index
+		const int randomIndex = tools::utils::generateRandomInt(0, static_cast<int>(enabledConnectionGenes.size()) - 1);
+		return enabledConnectionGenes[randomIndex];
+	}
+
+	void Genome::addConnectionGene(ConnectionTuple connectionTuple)
+	{
+		const int innov = getInnovationNumberOfTupleWithinGeneration(connectionTuple);
+		if (innov > -1)
+			// exists in the current generation
+			// use the same innovation number
+		{
+			connectionGenes.emplace_back(connectionTuple, innov);
+		}
+		else
+			// does not exist in the current generation
+			// create new innovation number
+		{
+			connectionGenes.emplace_back(connectionTuple, globalInnovationNumber);
+			connectionTupleAndInnovationNumberWithinGeneration[connectionTuple] = globalInnovationNumber;
+			globalInnovationNumber++;
+		}
+		statistics.numAddConnectionGeneMutationsTotal++;
+		statistics.numAddConnectionGeneMutationsPerGeneration++;
+	}
+
+	void Genome::addGene()
+	{
+		using namespace dnf_composer::element;
+
+		ConnectionGene* randEnabledConnectionGene = getEnabledConnectionGene();
+		if (randEnabledConnectionGene == nullptr)
+			return;
+		randEnabledConnectionGene->disable();
+
+		const auto inGeneId = randEnabledConnectionGene->getParameters().connectionTuple.inFieldGeneId;
+		const auto outGeneId = randEnabledConnectionGene->getParameters().connectionTuple.outFieldGeneId;
+		const auto kernel = randEnabledConnectionGene->getKernel();
+
+		//addHiddenGene({ DimensionConstants::xSize, DimensionConstants::dx });
+		addHiddenGene(getFieldGeneById(inGeneId));
+
+		// create two new connection genes
+		// when creating the two new connection genes we have to obey the same rules in add connection gene mutation
+
+		const ConnectionTuple connectionTupleIn{ inGeneId, fieldGenes.back().getParameters().id };
+		const ConnectionTuple connectionTupleOut{ fieldGenes.back().getParameters().id, outGeneId };
+		int innovIn = getInnovationNumberOfTupleWithinGeneration(connectionTupleIn);
+		int innovOut = getInnovationNumberOfTupleWithinGeneration(connectionTupleOut);
+
+		if (innovIn == -1) // if this mutation has not been performed in the current generation
+		{
+			connectionTupleAndInnovationNumberWithinGeneration[connectionTupleIn] = globalInnovationNumber;
+			innovIn = globalInnovationNumber;
+			globalInnovationNumber++;
+		}
+
+		if (innovOut == -1) // if this mutation has not been performed in the current generation
+		{
+			connectionTupleAndInnovationNumberWithinGeneration[connectionTupleOut] = globalInnovationNumber;
+			innovOut = globalInnovationNumber;
+			globalInnovationNumber++;
+		}
+
+		const auto in_kernel_p = GaussKernelParameters{ GaussKernelConstants::width, GaussKernelConstants::amplitude, GaussKernelConstants::amplitudeGlobal };
+		const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, static_cast<int>(innovIn), in_kernel_p };
+
+		switch (kernel->getLabel())
+		{
+		case GAUSS_KERNEL:
+			{
+				const auto gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
+				//const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, static_cast<int>(innovIn), gkp };
+				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, static_cast<int>(innovOut), gkp };
+				connectionGenes.emplace_back(connectionGeneIn);
+				connectionGenes.emplace_back(connectionGeneOut);
+			}
+			break;
+		case MEXICAN_HAT_KERNEL:
+			{
+				const auto mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
+				//const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, static_cast<int>(innovIn), mhkp };
+				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, static_cast<int>(innovOut), mhkp };
+				connectionGenes.emplace_back(connectionGeneIn);
+				connectionGenes.emplace_back(connectionGeneOut);
+
+			}
+			break;
+		case OSCILLATORY_KERNEL:
+			{
+				const auto osckp = std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->getParameters();
+				//const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, static_cast<int>(innovIn), osckp };
+				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, static_cast<int>(innovOut), osckp };
+				connectionGenes.emplace_back(connectionGeneIn);
+				connectionGenes.emplace_back(connectionGeneOut);
+			}
+			break;
+		default:
+			throw std::invalid_argument("Invalid kernel type.");
+		}
+		statistics.numAddFieldGeneMutationsTotal++;
+		statistics.numAddFieldGeneMutationsPerGeneration++;
+		lastMutationType = "add new field gene " + std::to_string(fieldGenes.back().getParameters().id) +
+			" and two new connection genes with innov's " + std::to_string(innovIn) + " and " + std::to_string(innovOut) + ".";
+	}
+
+	void Genome::mutateGene()
+	{
+		const int geneId = getRandomGeneId();
+		if (geneId == -1)
+		{
+			lastMutationType = "no field genes to mutate.";
+			return;
+		}
+		auto gene = getFieldGeneById(static_cast<int>(geneId));
+		gene.mutate();
+		statistics.numMutateFieldGeneMutationsTotal++;
+		statistics.numMutateFieldGeneMutationsPerGeneration++;
+		lastMutationType = "mutate field gene " + std::to_string(geneId) + ".";
+	}
+
+	void Genome::addConnectionGene()
+	{
+		const ConnectionTuple connectionTuple = getNewRandomConnectionGeneTuple();
+		if (connectionTuple == ConnectionTuple{ 0, 0 })
+		{
+			lastMutationType = "no more valid connection gene tuples.";
+			return;
+		}
+		addConnectionGene(connectionTuple);
+		lastMutationType = "add connection gene (" + std::to_string(connectionTuple.inFieldGeneId) +
+			"-" + std::to_string(connectionTuple.outFieldGeneId) + ").";
+	}
+
+	void Genome::mutateConnectionGene()
+	{
+		if (connectionGenes.empty())
+		{
+			lastMutationType = "no connection genes to mutate.";
+			return;
+		}
+
+		const auto connectionGeneId = tools::utils::generateRandomInt(0, static_cast<int>(connectionGenes.size()) - 1);
+		connectionGenes[connectionGeneId].mutate();
+		statistics.numMutateConnectionGeneMutationsPerGeneration++;
+		statistics.numMutateConnectionGeneMutationsTotal++;
+		lastMutationType = "mutate connection gene " + std::to_string(connectionGeneId) + ".";
+	}
+
+	void Genome::toggleConnectionGene()
+	{
+		if (connectionGenes.empty())
+		{
+			lastMutationType = "no connection genes to toggle.";
+			return;
+		}
+		const auto connectionGeneId = tools::utils::generateRandomInt(0, static_cast<int>(connectionGenes.size()) - 1);
+		connectionGenes[connectionGeneId].toggle();
+		statistics.numToggleConnectionGeneMutationsPerGeneration++;
+		statistics.numToggleConnectionGeneMutationsTotal++;
+		lastMutationType = "toggle connection gene " + std::to_string(connectionGeneId) + " to " +
+			(connectionGenes[connectionGeneId].isEnabled() ? "enabled." : "disabled.");
+	}
+
+	int Genome::getInnovationNumberOfTupleWithinGeneration(const ConnectionTuple& tuple)
+	{
+		if (connectionTupleAndInnovationNumberWithinGeneration.contains(tuple))
+		{
+			return connectionTupleAndInnovationNumberWithinGeneration[tuple];
+		}
+		return -1;
 	}
 }

@@ -2,9 +2,10 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
-#include "application/application.h"
-
 #include <dnf_composer/tools/logger.h>
+
+#include "application/application.h"
+#include "solutions/color_space_map_stabilized.h"
 
 int main(int argc, char* argv[])
 {
@@ -14,12 +15,25 @@ int main(int argc, char* argv[])
 		
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::WARNING);
 
-		const Application app;
-		app.initialize();
+		ColorSpaceMapStabilizedSolution solution{
+			SolutionTopology{ {
+				{FieldGeneType::INPUT, {360, 1.0}},
+				{FieldGeneType::OUTPUT, {100, 1.0}}
+			}}
+		};
+		const PopulationParameters parameters{ 1000, 1000, 0.8 };
+		Population population{ parameters, std::make_shared<ColorSpaceMapStabilizedSolution>(solution) };
 
-		do { app.render(); Sleep(10); } while (!app.hasCloseBeenRequested());
+		const Application app(std::make_shared<Population>(population));
+		app.init();
 
-		app.shutdown();
+		do
+		{
+			app.step();
+			Sleep(10);
+		} while (!app.hasGUIBeenClosed());
+
+		app.close();
 
 		return 0;
 	}

@@ -1,9 +1,10 @@
 #include "application/application.h"
 
+
 namespace neat_dnfs
 {
-	Application::Application(bool activateUI)
-		: ui {nullptr}, activateUI{ activateUI }
+	Application::Application(const std::shared_ptr<Population>& population)
+		: population(population), guiActive(true)
 	{
 		using namespace imgui_kit;
 		const WindowParameters winParams{ "neat dnfs" };
@@ -18,36 +19,42 @@ namespace neat_dnfs
 		const StyleParameters styleParams{ Theme::ClassicSteam };
 		const IconParameters iconParams{ std::string(PROJECT_DIR) + "/resources/icons/icon.ico" };
 		const BackgroundImageParameters bgParams{ std::string(PROJECT_DIR) + "/resources/images/background.png", ImageFitType::ZOOM_TO_FIT};
-		uiParameters = UserInterfaceParameters{ winParams, fontParams, styleParams, iconParams, bgParams };
+		const UserInterfaceParameters guiParameters{ winParams, fontParams, styleParams, iconParams, bgParams };
 
-		ui = std::make_shared<UserInterface>(uiParameters);
+		gui = std::make_shared<UserInterface>(guiParameters);
 	}
 
-	void Application::initialize() const
+	void Application::init() const
 	{
-		if (activateUI)
-		{
-			ui->addWindow<imgui_kit::LogWindow>();
-			//ui->addWindow<MainWindow>();
-			ui->initialize();
-		}
+		gui->addWindow<SetupWindow>(population );
+		gui->addWindow<imgui_kit::LogWindow>();
+
+		if(population)
+			population->initialize();
+
+		gui->initialize();
+		log(tools::logger::LogLevel::INFO, "Application initialized successfully.");
 	}
 
-	void Application::render() const
+	void Application::step() const
 	{
-		if (activateUI)
-			ui->render();
+		if(population->isInitialized() && !population->endConditionMet())
+			population->evolutionaryStep();
+		if (guiActive)
+			gui->render();
 	}
 
-	void Application::shutdown() const
+	void Application::close() const
 	{
-		if (activateUI)
-			ui->shutdown();
+		if (guiActive)
+			gui->shutdown();
 	}
 
-	bool Application::hasCloseBeenRequested() const
+	bool Application::hasGUIBeenClosed() const
 	{
-		return ui->isShutdownRequested();
+		if (guiActive)
+			return gui->isShutdownRequested();
+		return false;
 	}
 
 }
