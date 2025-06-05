@@ -51,18 +51,10 @@ set(header
 "include/neat/solution.h"
 "include/neat/species.h"
 
-#"include/solutions/empty_solution.h"
-#"include/solutions/single_bump.h"
-#"include/solutions/self_sustained_single_bump.h"
-#"include/solutions/asl.h"
-"include/solutions/test_zero.h"
-"include/solutions/test_one.h"
 "include/solutions/color_space_map_stabilized.h"
-"include/solutions/color_space_map_in_sustained.h"
-"include/solutions/color_space_map_out_sustained.h"
+#"include/solutions/color_space_map_in_sustained.h"
+#"include/solutions/color_space_map_out_sustained.h"
 
-"include/application/application.h"
-"include/user_interface/setup_window.h"
 "include/tools/logger.h"
 "include/tools/utils.h"
 
@@ -76,18 +68,10 @@ set(src
 "src/neat/solution.cpp"
 "src/neat/species.cpp"
 
-#"src/solutions/empty_solution.cpp"
-#"src/solutions/single_bump.cpp"
-#"src/solutions/self_sustained_single_bump.cpp"
-#"src/solutions/asl.cpp"
-"src/solutions/test_zero.cpp"
-"src/solutions/test_one.cpp"
 "src/solutions/color_space_map_stabilized.cpp"
-"src/solutions/color_space_map_in_sustained.cpp"
-"src/solutions/color_space_map_out_sustained.cpp"
+#"src/solutions/color_space_map_in_sustained.cpp"
+#"src/solutions/color_space_map_out_sustained.cpp"
 
-"src/application/application.cpp"
-"src/user_interface/setup_window.cpp"
 "src/tools/logger.cpp"
 )
 
@@ -154,17 +138,6 @@ write_basic_package_version_file(${version_file}
 
 install(EXPORT ${CMAKE_PROJECT_NAME}Targets DESTINATION ${NEAT_DNFS_CMAKE_CONFIG_INSTALL_DIR}
     FILE ${CMAKE_PROJECT_NAME}-config.cmake
-)
-
-# Example executable
-set(EXE_PROJECT_EXAMPLE ${CMAKE_PROJECT_NAME}-example)
-add_executable(${EXE_PROJECT_EXAMPLE} "examples/example.cpp")
-target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
-target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE 
-    imgui::imgui 
-    imgui-platform-kit 
-    dynamic-neural-field-composer 
-    ${CMAKE_PROJECT_NAME}
 )
 
 # Main executable

@@ -26,9 +26,9 @@ namespace neat_dnfs
 		uint16_t innovationNumber;
 		bool enabled;
 
-		explicit ConnectionGeneParameters(ConnectionTuple connectionTuple);
-		ConnectionGeneParameters(int inFieldGeneId, uint16_t outFieldGeneId, int innov);
-		ConnectionGeneParameters(const ConnectionGeneParameters& other);
+		explicit ConnectionGeneParameters(ConnectionTuple connectionTuple, int innov);
+		ConnectionGeneParameters(int inFieldGeneId, int outFieldGeneId, int innov);
+		ConnectionGeneParameters(const ConnectionGeneParameters& other) = default;
 		bool operator==(const ConnectionGeneParameters& other) const;
 		[[nodiscard]] std::string toString() const;
 		void print() const;
@@ -37,21 +37,12 @@ namespace neat_dnfs
 	class ConnectionGene
 	{
 	private:
-		//static inline int fc_id_count = 0;
-		//int fc_id;
 		ConnectionGeneParameters parameters;
 		FieldCouplingPtr coupling;
 	public:
-		ConnectionGene(ConnectionTuple connectionTuple, int innov);
-
 		ConnectionGene(ConnectionTuple connectionTuple, int innov,
 			const dnf_composer::element::ElementDimensions& inputFieldDimensions,
 			const dnf_composer::element::ElementDimensions& outputFieldDimensions);
-
-		ConnectionGene(ConnectionTuple connectionTuple,
-			const dnf_composer::element::FieldCouplingParameters& fcp,
-			const dnf_composer::element::ElementDimensions& outputFieldDimensions);
-
 		ConnectionGene(const ConnectionGeneParameters& parameters,
 			const dnf_composer::element::FieldCouplingParameters& fcp,
 			const dnf_composer::element::ElementDimensions& outputFieldDimensions);

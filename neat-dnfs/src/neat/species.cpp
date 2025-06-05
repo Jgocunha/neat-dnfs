@@ -3,14 +3,109 @@
 
 namespace neat_dnfs
 {
+	int Species::currentSpeciesId = 0;
+
 	Species::Species()
-		: id(currentSpeciesId++), offspringCount(0)
+		: id(currentSpeciesId++), offspringCount(0), representative(nullptr),
+			members(), offspring(), extinct(false), age(0)
 	{
 	}
 
 	void Species::setRepresentative(const SolutionPtr& newRepresentative)
 	{
 		representative = newRepresentative;
+	}
+
+	void Species::randomlyAssignRepresentative()
+	{
+		if (members.empty())
+			return;
+
+		representative = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
+	}
+
+	void Species::assignChampion()
+	{
+		if (members.empty())
+			return;
+
+		sortMembersByFitness();
+
+		const double prevFitness = champion == nullptr ? 0 : champion->getParameters().fitness;
+		const double currentFitness = members[0]->getParameters().fitness;
+		if (currentFitness > prevFitness)
+		{
+			hasFitnessImproved = true;
+			generationsSinceFitnessImproved = 0;
+		}
+		else
+		{
+			hasFitnessImproved = false;
+			generationsSinceFitnessImproved++;
+		}
+
+		champion = members[0];
+	}
+
+	size_t Species::size() const
+	{
+		return members.size();
+	}
+
+	void Species::setOffspringCount(int count)
+	{
+		offspringCount = count;
+	}
+
+	SolutionPtr Species::getRepresentative() const
+	{
+		return representative;
+	}
+
+	SolutionPtr Species::getChampion() const
+	{
+		return champion;
+	}
+
+	int Species::getId() const
+	{
+		return id;
+	}
+
+	double Species::totalAdjustedFitness() const
+	{
+		double total = 0;
+		for (const auto& member : members)
+			total += member->getParameters().adjustedFitness;
+
+		return total;
+	}
+
+	int Species::getOffspringCount() const
+	{
+		return offspringCount;
+	}
+
+	std::vector<SolutionPtr> Species::getMembers() const
+	{
+		return members;
+	}
+
+	bool Species::isExtinct() const
+	{
+		return extinct;
+	}
+
+	bool Species::hasFitnessImprovedOverTheLastGenerations() const
+	{
+		if (generationsSinceFitnessImproved >= PopulationConstants::generationsWithoutImprovementThresholdInSpecies)
+			return false;
+		return true;
+	}
+
+	void Species::incrementAge()
+	{
+		age++;
 	}
 
 	void Species::addSolution(const SolutionPtr& solution)
@@ -29,7 +124,10 @@ namespace neat_dnfs
 	bool Species::isCompatible(const SolutionPtr& solution) const
 	{
 		if (representative == nullptr)
-			throw std::runtime_error("Species " + std::to_string(id) + " has no representative.");
+		{
+			//throw std::runtime_error("Species " + std::to_string(id) + " has no representative.");
+			return false;
+		}
 
 		int N = static_cast<int>(std::max(representative->getGenomeSize(), solution->getGenomeSize()));
 		if (N < 20) N = 1; // Normalize for small genomes
@@ -37,30 +135,21 @@ namespace neat_dnfs
 		const auto representativeGenome = representative->getGenome();
 		const auto solutionGenome = solution->getGenome();
 
-		const double excessCoefficient = SpeciesConstants::excessGenesCompatibilityWeight
+		const double excessCoefficient = CompatibilityCoefficients::excessGenesCompatibilityWeight
 			* representativeGenome.excessGenes(solutionGenome);
-		const double disjointCoefficient = SpeciesConstants::disjointGenesCompatibilityWeight
+		const double disjointCoefficient = CompatibilityCoefficients::disjointGenesCompatibilityWeight
 			* representativeGenome.disjointGenes(solutionGenome);
-		const double weightCoefficient = SpeciesConstants::averageConnectionDifferenceCompatibilityWeight
+		const double weightCoefficient = CompatibilityCoefficients::averageConnectionDifferenceCompatibilityWeight
 			* representativeGenome.averageConnectionDifference(solutionGenome);
 
 		const double geneticDistance = (excessCoefficient + disjointCoefficient + weightCoefficient) / N;
 
-		return geneticDistance < SpeciesConstants::compatibilityThreshold;
+		return geneticDistance < CompatibilityCoefficients::compatibilityThreshold;
 	}
 
 	bool Species::contains(const SolutionPtr& solution) const
 	{
 		return std::ranges::find(members, solution) != members.end();
-	}
-
-	double Species::totalAdjustedFitness() const
-	{
-		double total = 0;
-		for (const auto& member : members)
-			total += member->getParameters().adjustedFitness;
-
-		return total;
 	}
 
 	void Species::sortMembersByFitness()
@@ -72,30 +161,12 @@ namespace neat_dnfs
 		);
 	}
 
-	void Species::selectElitesAndLeastFit()
+	void Species::pruneWorsePerformingMembers(double ratio)
 	{
-		elites.clear();
-		leastFit.clear();
 		sortMembersByFitness();
-
-		const auto numElites = static_cast<size_t>(std::ceil((1 - PopulationConstants::killRatio) * static_cast<double>(members.size())));
-		const size_t numLeastFit = members.size() - numElites;
-
-		elites.reserve(numElites);
-		for (size_t i = 0; i < numElites; ++i)
-			elites.push_back(members[i]);
-
-		leastFit.reserve(numLeastFit);
-		for (size_t i = numElites; i < members.size(); ++i)
-			leastFit.push_back(members[i]);
-
-		// make sure no solution is in both lists
-		for (const auto& elite : elites)
-		{
-			const auto it = std::ranges::find(leastFit, elite);
-			if (it != leastFit.end())
-				throw std::runtime_error("Solution is both elite and least fit.");
-		}
+		// narrowing conversion from size_t to double
+		for (size_t i = 0; i < static_cast<size_t>(members.size() * ratio); ++i)
+			members.pop_back();
 	}
 
 	void Species::crossover()
@@ -106,39 +177,81 @@ namespace neat_dnfs
 		{
 			if (offspringCount > 0)
 				log(tools::logger::LogLevel::FATAL, "Species " + std::to_string(id) + " with no members has offspring count > 0.");
+			extinct = true;
+			representative = nullptr;
+			champion = nullptr;
+			members.clear();
+			offspring.clear();
 			return;
 		}
 
-		if (members.size() <= 1)
+		if (members.size() == 1) // only one organism in the species
 		{
 			for (size_t i = 0; i < offspringCount; ++i)
 			{
 				const SolutionPtr parent1 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
 				const SolutionPtr son = parent1->crossover(parent1);
-				offspring.push_back(son);
+				//if (son->getId() == parent1->getId())
+					//std::cout << "When crossing over with clone parents id's are the same " << parent1->getId() << std::endl;
+				offspring.emplace_back(son);
 			}
 		}
-		else
+		else // more than one organism in the species
 		{
 			for (size_t i = 0; i < offspringCount; ++i)
 			{
 				const SolutionPtr parent1 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
 				const SolutionPtr parent2 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
 				const SolutionPtr son = parent1->crossover(parent2);
-				offspring.push_back(son);
+				if (son->getId() == parent1->getId() || son->getId() == parent2->getId())
+					std::cout << "When crossing over id's are the same " << parent1->getId() << " or " << parent2->getId() << " is equal to " << son->getId() << std::endl;
+				offspring.emplace_back(son);
 			}
 		}
-
-		updateMembers();
+		extinct = false;
 	}
 
-	void Species::updateMembers()
+	void Species::replaceMembersWithOffspring()
 	{
 		members.clear();
-		members.reserve(elites.size() + offspring.size());
-		for (const auto& elite : elites)
-			members.push_back(elite);
 		for (const auto& child : offspring)
-			members.push_back(child);
+			members.emplace_back(child);
+	}
+
+	void Species::copyChampionToNextGeneration()
+	{
+		if (champion == nullptr)
+			return;
+
+		const size_t initialMembersSize = members.size();
+		members.pop_back();
+		members.emplace_back(champion);
+		const size_t finalMembersSize = members.size();
+
+		if (initialMembersSize != finalMembersSize)
+		{
+			log(tools::logger::LogLevel::FATAL, "Champion was not added to the species.");
+			throw std::runtime_error("Champion was not added to the species.");
+		}
+	}
+
+	std::string Species::toString() const
+	{
+		std::string str = "species " + std::to_string(id);
+		str += " [ age: " + std::to_string(age);
+		str += ", extinct: " + std::string((extinct ? "yes" : "no"));
+		str += ", improved: " + std::string((hasFitnessImproved ? "yes" : "no"));
+		str += ", gens. since imp.: " + std::to_string(generationsSinceFitnessImproved);
+		str += "  offs.: " + std::to_string(offspringCount);
+		str += ", mem: " + std::to_string(members.size());
+		//str += " rep.: {" + (representative == nullptr ? "none}]" : representative->toString()) + "}";
+		//str += " champ.: {" + (champion == nullptr ? "none}]" : champion->toString()) + "}";
+		str += "]";
+		return str;
+	}
+
+	void Species::print() const
+	{
+		tools::logger::log(tools::logger::INFO, toString());
 	}
 }

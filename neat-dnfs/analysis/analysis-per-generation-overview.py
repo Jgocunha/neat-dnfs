@@ -363,7 +363,7 @@ def main():
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Action simulation/"
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Action execution/"   
     # root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/XOR/"
-    root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Select the object/"   
+    root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Color space map/"   
 
 
     # Fitness threshold to consider a run successful

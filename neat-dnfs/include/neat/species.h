@@ -6,42 +6,63 @@
 namespace neat_dnfs
 {
     class Species;
-    static uint16_t currentSpeciesId = 0;
     typedef std::unique_ptr<Species> SpeciesPtr;
 
     class Species
     {
     private:
-        uint16_t id;
-        uint16_t offspringCount;
+        static int currentSpeciesId;
+        int id = 0;
+        int offspringCount;
         SolutionPtr representative;
+        SolutionPtr champion;
         std::vector<SolutionPtr> members;
-        std::vector<SolutionPtr> elites;
-        std::vector<SolutionPtr> leastFit;
         std::vector<SolutionPtr> offspring;
+        bool extinct;
+        int age;
+        bool hasFitnessImproved = true;
+        int generationsSinceFitnessImproved = 0;
     public:
         Species();
+        ~Species()
+        {
+            // Clean up any dynamically allocated resources
+            representative = nullptr;
+            champion = nullptr;
+            members.clear();
+            offspring.clear();
+        }
         void setRepresentative(const SolutionPtr& newRepresentative);
-        size_t size() const { return members.size(); }
-        void setOffspringCount(uint16_t count) { offspringCount = count; }
-        SolutionPtr getRepresentative() const { return representative; }
-        uint16_t getId() const { return id; }
+        void randomlyAssignRepresentative();
+        void assignChampion();
+
+        size_t size() const;
+        void setOffspringCount(int count);
+        SolutionPtr getRepresentative() const;
+        SolutionPtr getChampion() const;
+        int getId() const;
         double totalAdjustedFitness() const;
-        uint16_t getOffspringCount() const { return offspringCount; }
-        std::vector<SolutionPtr> getMembers() const { return members; }
-        std::vector<SolutionPtr> getElites() const { return elites; }
-        std::vector<SolutionPtr> getLeastFit() const { return leastFit; }
-        std::vector<SolutionPtr> getOffspring() const { return offspring; }
+        int getOffspringCount() const;
+        std::vector<SolutionPtr> getMembers() const;
+        bool isExtinct() const;
+        bool hasFitnessImprovedOverTheLastGenerations() const;
+        void incrementAge();
+        static void resetUniqueIdentifier()
+        {
+            currentSpeciesId = 0;
+        }
 
         void addSolution(const SolutionPtr& solution);
         void removeSolution(const SolutionPtr& solution);
         bool isCompatible(const SolutionPtr& solution) const;
         bool contains(const SolutionPtr& solution) const;
-        void clearOffspring() { offspring.clear(); }
         void sortMembersByFitness();
-
-        void selectElitesAndLeastFit();
+        void pruneWorsePerformingMembers(double ratio);
         void crossover();
-        void updateMembers();
+        void replaceMembersWithOffspring();
+        void copyChampionToNextGeneration();
+
+        std::string toString() const;
+        void print() const;
     };
 }

@@ -1,39 +1,54 @@
-// This is a personal academic project. Dear PVS-Studio, please check it.
+ // This is a personal academic project. Dear PVS-Studio, please check it.
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
+#include <exception>
+#include <iostream>
 #include <dnf_composer/tools/logger.h>
 
-#include "application/application.h"
+#include "neat/population.h"
 #include "solutions/color_space_map_stabilized.h"
+//#include "solutions/color_space_map_in_sustained.h"
+//#include "solutions/color_space_map_out_sustained.h"
 
 int main(int argc, char* argv[])
 {
 	try
 	{
+		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::FATAL);
 		using namespace neat_dnfs;
-		
-		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::WARNING);
 
+		//TestZeroSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {50, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
+		//TestOneSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {360, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
 		ColorSpaceMapStabilizedSolution solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {360, 1.0}},
 				{FieldGeneType::OUTPUT, {100, 1.0}}
 			}}
 		};
-		const PopulationParameters parameters{ 1000, 1000, 0.8 };
-		Population population{ parameters, std::make_shared<ColorSpaceMapStabilizedSolution>(solution) };
+		// ColorSpaceMapOutputSustainedSolution solution{
+		// 	SolutionTopology{ {
+		// 		{FieldGeneType::INPUT, {360, 1.0}},
+		// 		{FieldGeneType::OUTPUT, {100, 1.0}}
+		// 	}}
+		// };
+		/*ColorSpaceMapInputSustainedSolution solution{
+			SolutionTopology{ {
+				{FieldGeneType::INPUT, {360, 1.0}},
+				{FieldGeneType::OUTPUT, {100, 1.0}}
+			}}
+		};*/
 
-		const Application app(std::make_shared<Population>(population));
-		app.init();
+		static constexpr int runs = 100;
 
-		do
+		for (int run = 0; run < runs; ++run)
 		{
-			app.step();
-			Sleep(10);
-		} while (!app.hasGUIBeenClosed());
+			const PopulationParameters parameters{ 100, 100, 0.90 };
+			Population population{ parameters, std::make_shared<ColorSpaceMapStabilizedSolution>(solution) };
 
-		app.close();
+			population.initialize();
+			population.evolve();
+		}
 
 		return 0;
 	}

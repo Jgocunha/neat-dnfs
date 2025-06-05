@@ -11,33 +11,32 @@ namespace neat_dnfs
 		genome(),
 		parents(0,0)
 	{
-		// views::keys can be used
-		for(const auto& geneTypeAndDimension : initialTopology.geneTopology)
+		for(const auto &key: initialTopology.geneTopology | std::views::keys)
 		{
-			if (geneTypeAndDimension.first == FieldGeneType::INPUT)
+			if (key == FieldGeneType::INPUT)
 				break;
 		}
-		for (const auto& geneTypeAndDimension : initialTopology.geneTopology)
+		for (const auto &key: initialTopology.geneTopology | std::views::keys)
 		{
-			if (geneTypeAndDimension.first == FieldGeneType::OUTPUT)
+			if (key == FieldGeneType::OUTPUT)
 				return;
 		}
 		throw std::invalid_argument("Number of input and output genes must be greater than 0");
 	}
 
-	Solution::Solution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
-		: id(uniqueIdentifierCounter++),
-		name("undefined"),
-		initialTopology(initialTopology),
-		parameters(),
-		phenotype(phenotype),
-		genome(),
-		parents(0, 0)
-	{
-		translatePhenotypeToGenome();
-		clearPhenotype();
-		this->phenotype = dnf_composer::Simulation(SimulationConstants::name + std::to_string(id), SimulationConstants::deltaT);
-	}
+	// Solution::Solution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+	// 	: id(uniqueIdentifierCounter++),
+	// 	name("undefined"),
+	// 	initialTopology(initialTopology),
+	// 	parameters(),
+	// 	phenotype(phenotype),
+	// 	genome(),
+	// 	parents(0, 0)
+	// {
+	// 	translatePhenotypeToGenome();
+	// 	clearPhenotype();
+	// 	this->phenotype = dnf_composer::Simulation(SimulationConstants::name + std::to_string(id), SimulationConstants::deltaT);
+	// }
 
 	void Solution::evaluate()
 	{
@@ -146,7 +145,8 @@ namespace neat_dnfs
 			{
 				if (element->getUniqueName() == nfcp.identifiers.uniqueName)
 				{
-					log(tools::logger::LogLevel::ERROR, "Neural field with unique name " + nfcp.identifiers.uniqueName + " already exists in phenotype.");
+					log(tools::logger::LogLevel::ERROR, "Neural field with unique name "
+						+ nfcp.identifiers.uniqueName + " already exists in phenotype.");
 				}
 			}
 
@@ -161,8 +161,10 @@ namespace neat_dnfs
 					const auto gkp = std::dynamic_pointer_cast<GaussKernel>(gene.getKernel())->getParameters();
 					const auto kernel = std::make_shared<GaussKernel>(kcp, gkp);
 					phenotype.addElement(kernel);
-					phenotype.createInteraction(nf->getUniqueName(), "output", kernel->getUniqueName());
-					phenotype.createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
+					phenotype.createInteraction(nf->getUniqueName(), "output",
+						kernel->getUniqueName());
+					phenotype.createInteraction(kernel->getUniqueName(), "output",
+						nf->getUniqueName());
 					break;
 				}
 				case ElementLabel::MEXICAN_HAT_KERNEL:
@@ -170,8 +172,10 @@ namespace neat_dnfs
 					const auto mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(gene.getKernel())->getParameters();
 					const auto kernel = std::make_shared<MexicanHatKernel>(kcp, mhkp);
 					phenotype.addElement(kernel);
-					phenotype.createInteraction(nf->getUniqueName(), "output", kernel->getUniqueName());
-					phenotype.createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
+					phenotype.createInteraction(nf->getUniqueName(), "output",
+						kernel->getUniqueName());
+					phenotype.createInteraction(kernel->getUniqueName(), "output",
+						nf->getUniqueName());
 					break;
 				}
 			case ElementLabel::OSCILLATORY_KERNEL:
@@ -179,8 +183,10 @@ namespace neat_dnfs
 					const auto okp = std::dynamic_pointer_cast<OscillatoryKernel>(gene.getKernel())->getParameters();
 					const auto kernel = std::make_shared<OscillatoryKernel>(kcp, okp);
 					phenotype.addElement(kernel);
-					phenotype.createInteraction(nf->getUniqueName(), "output", kernel->getUniqueName());
-					phenotype.createInteraction(kernel->getUniqueName(), "output", nf->getUniqueName());
+					phenotype.createInteraction(nf->getUniqueName(), "output",
+						kernel->getUniqueName());
+					phenotype.createInteraction(kernel->getUniqueName(), "output",
+						nf->getUniqueName());
 					break;
 				}
 				default:
@@ -191,7 +197,8 @@ namespace neat_dnfs
 			const auto nnp = gene.getNoise()->getParameters();
 			const auto nn = std::make_shared<NormalNoise>(nncp, nnp);
 			phenotype.addElement(nn);
-			phenotype.createInteraction(nn->getUniqueName(), "output", nf->getUniqueName());
+			phenotype.createInteraction(nn->getUniqueName(), "output",
+				nf->getUniqueName());
 		}
 	}
 
@@ -224,267 +231,23 @@ namespace neat_dnfs
 		{
 			if (connectionGene.isEnabled())
 			{
-				auto coupling = connectionGene.getKernel();
+				//auto coupling = connectionGene.getKernel();
+				auto coupling = connectionGene.getFieldCoupling();
 				const auto sourceId = connectionGene.getInFieldGeneId();
 				const auto targetId = connectionGene.getOutFieldGeneId();
 
 				phenotype.addElement(coupling);
-				phenotype.createInteraction("nf " + std::to_string(sourceId), "output", coupling->getUniqueName());
-				phenotype.createInteraction(coupling->getUniqueName(), "output", "nf " + std::to_string(targetId));
+				phenotype.createInteraction("nf " + std::to_string(sourceId),
+					"output", coupling->getUniqueName());
+				phenotype.createInteraction(coupling->getUniqueName(),
+					"output", "nf " + std::to_string(targetId));
 			}
 		}
-	}
-
-	void Solution::translatePhenotypeToGenome()
-	{
-		// Clear the current genome before rebuilding it
-		genome = Genome();
-
-		if (phenotype.getElements().empty())
-		{
-			//tools::logger::log(tools::logger::LogLevel::WARNING, "Phenotype is empty. Cannot translate to genome.");
-			return;
-		}
-
-		using namespace dnf_composer::element;
-
-		// Map to track the field gene IDs by neural field names
-		std::map<std::string, int> fieldNameToIdMap;
-		int nextFieldId = 1;
-
-		// First pass: identify all neural fields and create field genes
-		for (const auto& element : phenotype.getElements())
-		{
-			if (element->getLabel() == ElementLabel::NEURAL_FIELD)
-			{
-				const auto neuralField = std::dynamic_pointer_cast<NeuralField>(element);
-				const auto nfcp = neuralField->getElementCommonParameters();
-				const auto nfp = neuralField->getParameters();
-
-				// Determine field gene type based on naming convention
-				FieldGeneType fieldType;
-				if (nfcp.identifiers.uniqueName.find(NeuralFieldConstants::namePrefix) == 0)
-				{
-					const std::string idStr = nfcp.identifiers.uniqueName.substr(NeuralFieldConstants::namePrefix.length());
-					const int fieldId = std::stoi(idStr);
-
-					// Store mapping for later use with connections
-					fieldNameToIdMap[nfcp.identifiers.uniqueName] = fieldId;
-
-					// Determine if this is input, output, or hidden based on connections
-									// Logic based on connection patterns
-					const size_t numInputs = element->getInputs().size();
-					const size_t numOutputs = element->getOutputs().size();
-
-					if (numInputs == 2 && numOutputs >= 1)
-					{
-						fieldType = FieldGeneType::INPUT;
-					}
-					else if (numInputs >= 3 && numOutputs == 1)
-					{
-						fieldType = FieldGeneType::OUTPUT;
-					}
-					else if (numInputs >= 3 && numOutputs >= 2)
-					{
-						fieldType = FieldGeneType::HIDDEN;
-					}
-					else
-					{
-						// Default to HIDDEN if connection pattern doesn't match expected patterns
-						fieldType = FieldGeneType::HIDDEN;
-						tools::logger::log(tools::logger::LogLevel::WARNING,
-							"Unusual connection pattern for neural field: " + nfcp.identifiers.uniqueName +
-							" (inputs: " + std::to_string(numInputs) + ", outputs: " + std::to_string(numOutputs) + ")");
-					}
-
-					// Create field gene parameters
-					FieldGeneParameters params(fieldType, fieldId);
-
-					// Find associated kernel and noise for this neural field
-					KernelPtr associatedKernel = nullptr;
-					NormalNoisePtr associatedNoise = nullptr;
-
-					for (const auto& outputInteraction : element->getOutputs())
-					{
-						//const auto targetElement = outputInteraction->;
-						if (outputInteraction->getLabel() == ElementLabel::GAUSS_KERNEL ||
-							outputInteraction->getLabel() == ElementLabel::MEXICAN_HAT_KERNEL ||
-							outputInteraction->getLabel() == ElementLabel::OSCILLATORY_KERNEL)
-						{
-							if (outputInteraction->getInputs() ==  outputInteraction->getOutputs())
-							{
-								associatedKernel = std::dynamic_pointer_cast<Kernel>(outputInteraction);
-								//std::cout << "Kernel: " << associatedKernel->toString() << std::endl;
-								break;
-							}
-						}
-					}
-
-					for (const auto& inputInteraction : element->getInputs())
-					{
-						//const auto sourceElement = inputInteraction->getSource();
-						if (inputInteraction->getLabel() == ElementLabel::NORMAL_NOISE)
-						{
-							associatedNoise = std::dynamic_pointer_cast<NormalNoise>(inputInteraction);
-							break;
-						}
-					}
-
-					// If kernel and noise are found, add the field gene
-					if (associatedKernel && associatedNoise)
-					{
-						FieldGene fieldGene(params, neuralField, associatedKernel);
-						genome.addFieldGene(fieldGene);
-					}
-					else
-					{
-						tools::logger::log(tools::logger::LogLevel::WARNING,
-							"Could not find associated kernel or noise for neural field: " + nfcp.identifiers.uniqueName);
-					}
-
-					// Update nextFieldId if necessary
-					nextFieldId = std::max(nextFieldId, fieldId + 1);
-				}
-			}
-		}
-
-		int innovationCounter = 1;
-
-		// Second pass: identify all connections between neural fields and create connection genes
-		for (const auto& element : phenotype.getElements())
-		{
-			// Check if element is a kernel used for connection between neural fields
-			if (element->getLabel() == ElementLabel::GAUSS_KERNEL ||
-				element->getLabel() == ElementLabel::MEXICAN_HAT_KERNEL ||
-				element->getLabel() == ElementLabel::OSCILLATORY_KERNEL)
-			{
-				// Skip self-connection kernels (which are part of field genes)
-				bool isSelfConnection = false;
-				std::string sourceName, targetName;
-
-				// Find source and target of this connection
-				for (const auto& inputInteraction : element->getInputs())
-				{
-					//const auto sourceElement = inputInteraction->getSource();
-					if (inputInteraction->getLabel() == ElementLabel::NEURAL_FIELD)
-					{
-						sourceName = inputInteraction->getUniqueName();
-					}
-				}
-
-				for (const auto& outputInteraction : element->getOutputs())
-				{
-					//const auto targetElement = outputInteraction->getTarget();
-					if (outputInteraction->getLabel() == ElementLabel::NEURAL_FIELD)
-					{
-						targetName = outputInteraction->getUniqueName();
-					}
-				}
-
-				// Skip if this is a self-connection (part of a field gene)
-				if (sourceName == targetName)
-				{
-					continue;
-				}
-
-				// If we have valid source and target field names in our map
-				if (fieldNameToIdMap.find(sourceName) != fieldNameToIdMap.end() &&
-					fieldNameToIdMap.find(targetName) != fieldNameToIdMap.end())
-				{
-					int sourceId = fieldNameToIdMap[sourceName];
-					int targetId = fieldNameToIdMap[targetName];
-
-					// Create connection tuple
-					ConnectionTuple connectionTuple(sourceId, targetId);
-
-					// Create a connection gene with an appropriate innovation number
-					// For reconstructing, we'll use a simple incremental approach
-					//static int innovationCounter = 1;
-
-					// Get the kernel parameters based on type
-					switch (element->getLabel())
-					{
-					case ElementLabel::GAUSS_KERNEL:
-					{
-						auto gaussKernel = std::dynamic_pointer_cast<GaussKernel>(element);
-						ConnectionGene connectionGene(connectionTuple, innovationCounter++, gaussKernel->getParameters());
-						genome.addConnectionGene(connectionGene);
-						break;
-					}
-					case ElementLabel::MEXICAN_HAT_KERNEL:
-					{
-						auto mexicanHatKernel = std::dynamic_pointer_cast<MexicanHatKernel>(element);
-						ConnectionGene connectionGene(connectionTuple, innovationCounter++, mexicanHatKernel->getParameters());
-						genome.addConnectionGene(connectionGene);
-						break;
-					}
-					case ElementLabel::OSCILLATORY_KERNEL:
-					{
-						auto oscillatoryKernel = std::dynamic_pointer_cast<OscillatoryKernel>(element);
-						ConnectionGene connectionGene(connectionTuple, innovationCounter++, oscillatoryKernel->getParameters());
-						genome.addConnectionGene(connectionGene);
-						break;
-					}
-					default:
-						break;
-					}
-
-					//Genome::setNextInnovationNumber(innovationCounter); !!
-				}
-			}
-		}
-
-		// Ensure the genome is valid by adding any missing input or output genes from topology
-		for (const auto& geneTypeAndDimension : initialTopology.geneTopology)
-		{
-			if (geneTypeAndDimension.first == FieldGeneType::INPUT)
-			{
-				bool found = false;
-				for (const auto& fieldGene : genome.getFieldGenes())
-				{
-					if (fieldGene.getParameters().type == FieldGeneType::INPUT)
-					{
-						found = true;
-						break;
-					}
-				}
-
-				if (!found)
-				{
-					genome.addInputGene(geneTypeAndDimension.second);
-				}
-			}
-			else if (geneTypeAndDimension.first == FieldGeneType::OUTPUT)
-			{
-				bool found = false;
-				for (const auto& fieldGene : genome.getFieldGenes())
-				{
-					if (fieldGene.getParameters().type == FieldGeneType::OUTPUT)
-					{
-						found = true;
-						break;
-					}
-				}
-
-				if (!found)
-				{
-					genome.addOutputGene(geneTypeAndDimension.second);
-				}
-			}
-		}
-
-		// Final validation: check for duplicate connection genes
-		genome.checkForDuplicateConnectionGenes();
 	}
 
 	void Solution::clearGenome()
 	{
 		genome = Genome();
-	}
-
-	void Solution::resetMutationStatisticsPerGeneration()
-	{
-		Genome::resetMutationStatisticsPerGeneration();
 	}
 
 	void Solution::resetUniqueIdentifier()
@@ -524,10 +287,10 @@ namespace neat_dnfs
 
 	SolutionPtr Solution::crossover(const SolutionPtr& other)
 	{
-		// if you are getting bad_weak_ptr exception when calling this function
+		// if you are getting bad_weak_ptr exception, when calling this function,
 		// you are probably calling it with a stack allocated object
-		// use a heap allocated object instead
-		// e.g. auto solution = std::make_shared<Solution>(topology);
+		// use a heap allocated object instead,
+		// e.g., auto solution = std::make_shared<Solution>(topology);
 		// instead of Solution solution(topology);
 		// and then call solution->crossover(other);
 		const SolutionPtr self = shared_from_this();
@@ -571,7 +334,7 @@ namespace neat_dnfs
 			}
 		}
 
-		// If the fitness is the same we still have to randomly inherit the excess and disjoint genes
+		// If the fitness is the same, we still have to randomly inherit the excess and disjoint genes
 		// from the less fit parent
 		if (fitnessDifference < 1e-6)
 		{
@@ -613,9 +376,11 @@ namespace neat_dnfs
 					outFieldGeneId == otherGene.getOutFieldGeneId())
 				{
 					if (fitnessDifference < 1e-6)
-						tools::logger::log(tools::logger::LogLevel::ERROR, "Crossover produced offspring with duplicate connection genes.");
+						tools::logger::log(tools::logger::LogLevel::ERROR, "Crossover produced offspring"
+														 " with duplicate connection genes.");
 					else
-						tools::logger::log(tools::logger::LogLevel::WARNING, "Crossover produced offspring with duplicate connection genes.");
+						tools::logger::log(tools::logger::LogLevel::WARNING, "Crossover produced offspring"
+														   " with duplicate connection genes.");
 					break;
 				}
 			}
@@ -648,7 +413,7 @@ namespace neat_dnfs
 		result += " [" + parameters.toString() + ", ";
 		result += "parents (" + std::to_string(std::get<0>(parents)) + ", " + std::to_string(std::get<1>(parents)) + "), ";
 		result += genome.toString();
-		result += ", mutation(" + genome.getLastMutationType();
+		//result += ", mutation(" + genome.getLastMutationType();
 		result += ")]";
 		return result;
 	}
@@ -680,7 +445,8 @@ namespace neat_dnfs
 
 	bool Solution::runSimulationUntilFieldStable(const std::string& targetElement)
 	{
-		const auto neuralField = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(phenotype.getElement(targetElement));
+		const auto neuralField
+			= std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(phenotype.getElement(targetElement));
 		size_t counter = 0;
 		do
 		{
@@ -694,13 +460,15 @@ namespace neat_dnfs
 		return true;
 	}
 
-	void Solution::addGaussianStimulus(const std::string& targetElement, const dnf_composer::element::GaussStimulusParameters& stimulusParameters,
+	void Solution::addGaussianStimulus(const std::string& targetElement,
+		const dnf_composer::element::GaussStimulusParameters& stimulusParameters,
 		const dnf_composer::element::ElementDimensions& dimensions)
 	{
 		using namespace dnf_composer::element;
 
 		const std::string gsId = "gs " + targetElement + " " + std::to_string(stimulusParameters.position);
-		const auto gaussStimulus = std::make_shared<GaussStimulus>(GaussStimulus{ { gsId, dimensions }, stimulusParameters });
+		const auto gaussStimulus
+			= std::make_shared<GaussStimulus>(GaussStimulus{ { gsId, dimensions }, stimulusParameters });
 		phenotype.addElement(gaussStimulus);
 		phenotype.createInteraction(gsId, "output", targetElement);
 		gaussStimulus->init();
@@ -721,8 +489,8 @@ namespace neat_dnfs
 		}
 	}
 
-	double Solution::oneBumpAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position, const double&
-		amplitude, const double& width)
+	double Solution::oneBumpAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
+		const double& position, const double& amplitude, const double& width) const
 	{
 		// if the field name is not in the phenotype, throw exception
 		// ... .containsElement(name);
@@ -730,7 +498,7 @@ namespace neat_dnfs
 		static constexpr double weightPos = 0.40;
 		static constexpr double weightAmp = 0.10;
 		static constexpr double weightWidth = 0.05;
-		// if sum of weights is not 1.0, throw exception
+		// if the sum of weights is not 1.0, throw exception
 		if (std::abs(weightBumps + weightPos + weightAmp + weightWidth - 1.0) > 1e-6)
 			throw std::invalid_argument("Sum of weights must be 1.0");
 		static constexpr int targetNumberOfBumps = 1;
@@ -758,14 +526,16 @@ namespace neat_dnfs
 		return fitness;
 	}
 
-	double Solution::twoBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position1, const double& amplitude1, const double& width1, const double& position2, const double& amplitude2, const double& width2)
+	double Solution::twoBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
+		const double& position1, const double& amplitude1, const double& width1,
+		const double& position2, const double& amplitude2, const double& width2) const
 	{
 		static constexpr int targetNumberOfBumps = 2;
 		static constexpr double weightBumps = 0.40;
 		static constexpr double weightPos = 0.20 / targetNumberOfBumps;
 		static constexpr double weightAmp = 0.20 / targetNumberOfBumps;
 		static constexpr double weightWidth = 0.20 / targetNumberOfBumps;
-		// if sum of weights is not 1.0, throw exception
+		// if the sum of weights is not 1.0, throw exception
 		if (std::abs(weightBumps + (weightPos + weightAmp + weightWidth) * targetNumberOfBumps - 1.0) > 1e-6)
 			throw std::invalid_argument("Sum of weights must be 1.0");
 		double fitness = 0.0;
@@ -797,17 +567,19 @@ namespace neat_dnfs
 		fitness += weightWidth / (1.0 + std::abs(closestBump2.width - width2));
 
 		return fitness;
-
 	}
 
-	double Solution::threeBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position1, const double& amplitude1, const double& width1, const double& position2, const double& amplitude2, const double& width2, const double& position3, const double& amplitude3, const double& width3)
+	double Solution::threeBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
+		const double& position1, const double& amplitude1, const double& width1,
+		const double& position2, const double& amplitude2, const double& width2,
+		const double& position3, const double& amplitude3, const double& width3) const
 	{
 		static constexpr int targetNumberOfBumps = 3;
 		static constexpr double weightBumps = 0.40;
 		static constexpr double weightPos = 0.20 / targetNumberOfBumps;
 		static constexpr double weightAmp = 0.20 / targetNumberOfBumps;
 		static constexpr double weightWidth = 0.20 / targetNumberOfBumps;
-		// if sum of weights is not 1.0, throw exception
+		// if the sum of weights is not 1.0, throw exception
 		if (std::abs(weightBumps + (weightPos + weightAmp + weightWidth) * targetNumberOfBumps - 1.0) > 1e-6)
 		{
 			tools::logger::log(tools::logger::LogLevel::ERROR, "Sum of weights must be 1.0 in three bump fitness evaluation.");
@@ -854,9 +626,9 @@ namespace neat_dnfs
 		return fitness;
 	}
 
-	double Solution::closenessToRestingLevel(const std::string& fieldName)
+	double Solution::closenessToRestingLevel(const std::string& fieldName) const
 	{
-		// highest value of activation should be equal to the resting level
+		// highest value of activation should be equal to the resting level,
 		// the farther it is from the resting level, the lower the fitness (0.0)
 		// the closer it is to the resting level, the higher the fitness (1.0)
 		using namespace dnf_composer::element;
@@ -868,7 +640,7 @@ namespace neat_dnfs
 		return 1.0 / (1.0 + std::abs(highestActivationValue - restingLevel));
 	}
 
-	double Solution::preShapedness(const std::string& fieldName)
+	double Solution::preShapedness(const std::string& fieldName) const
 	{
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
@@ -883,7 +655,7 @@ namespace neat_dnfs
 		return tools::utils::normalizeWithGaussian(highestActivationValue, targetActivation, width);
 	}
 
-	double Solution::preShapedness(const std::string& fieldName, const std::vector<double>& positions)
+	double Solution::preShapedness(const std::string& fieldName, const std::vector<double>& positions) const
 	{
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
@@ -909,8 +681,7 @@ namespace neat_dnfs
 		return totalScore / positions.size();
 	}
 
-
-	double Solution::negativePreShapednessAtPosition(const std::string& fieldName, const double& position)
+	double Solution::negativePreShapednessAtPosition(const std::string& fieldName, const double& position) const
 	{
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
@@ -983,7 +754,8 @@ namespace neat_dnfs
 	//	return tools::utils::normalizeWithGaussian(std::abs(u_tar_pos), u_target, width);
 	//}
 
-	double Solution::justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName, const std::vector<double>& positions, const double& amplitude, const double& width)
+	double Solution::justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName,
+		const std::vector<double>& positions, const double& amplitude, const double& width) const
 	{
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
@@ -1035,7 +807,7 @@ namespace neat_dnfs
 			}
 	}
 
-	double Solution::noBumps(const std::string& fieldName)
+	double Solution::noBumps(const std::string& fieldName) const
 	{
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
@@ -1111,7 +883,7 @@ namespace neat_dnfs
 		} while (std::abs(newPosition - targetPosition) > epsilon);
 	}
 
-	double Solution::negativeBaseline(const std::string& fieldName)
+	double Solution::negativeBaseline(const std::string& fieldName) const
 	{
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
@@ -1122,5 +894,30 @@ namespace neat_dnfs
 		const double width = std::abs(maxActivation / 8);
 
 		return tools::utils::normalizeWithGaussian(maxActivation, targetBaseline, width);
+	}
+
+	bool Solution::isThereAFieldCoupling() const
+	{
+		// replace loop by std::ranges::any_of()
+		using namespace dnf_composer::element;
+		for (const auto& element : phenotype.getElements())
+			if (element->getLabel() == ElementLabel::FIELD_COUPLING)
+				return true;
+		return false;
+	}
+
+	void Solution::setLearningForFieldCouplings(bool learning)
+	{
+		using namespace dnf_composer::element;
+		for (const auto& coupling : phenotype.getElements())
+		{
+			if (coupling->getLabel() == ElementLabel::FIELD_COUPLING)
+			{
+				const auto fieldCoupling = std::dynamic_pointer_cast<FieldCoupling>(coupling);
+				auto fieldCouplingParameters = fieldCoupling->getParameters();
+				fieldCouplingParameters.isLearningActive = learning;
+				fieldCoupling->setParameters(fieldCouplingParameters);
+			}
+		}
 	}
 }

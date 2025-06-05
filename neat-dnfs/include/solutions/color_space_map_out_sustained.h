@@ -18,7 +18,6 @@ namespace neat_dnfs
 		ColorSpaceMapOutputSustainedSolution(const SolutionTopology& topology);
 		SolutionPtr clone() const override;
 	private:
-		void updateFitness() override;
 		void testPhenotype() override;
 		void learning();
 		void testing();

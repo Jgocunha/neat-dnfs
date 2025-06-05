@@ -15,12 +15,12 @@ namespace neat_dnfs
 			//{240.0, 25.0},
 		};
 	public:
-		ColorSpaceMapStabilizedSolution(const SolutionTopology& topology);
+		explicit ColorSpaceMapStabilizedSolution(const SolutionTopology& topology);
 		SolutionPtr clone() const override;
 	private:
-		void updateFitness() override;
 		void testPhenotype() override;
 		void learning();
 		void testing();
+		void createPhenotypeEnvironment() override;
 	};
 }

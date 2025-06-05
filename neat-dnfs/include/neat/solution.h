@@ -80,8 +80,10 @@ namespace neat_dnfs
 		Genome genome;
 		std::tuple <int, int> parents;
 	public:
+		virtual ~Solution() = default;
+
 		Solution(const SolutionTopology& initialTopology);
-		Solution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
+		//Solution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
 		virtual SolutionPtr clone() const = 0;
 		SolutionPtr crossover(const SolutionPtr& other);
 		void evaluate();
@@ -116,9 +118,7 @@ namespace neat_dnfs
 		std::string toString() const;
 		void print() const;
 		virtual void createPhenotypeEnvironment() = 0;
-		static void resetMutationStatisticsPerGeneration();
 		static void resetUniqueIdentifier();
-		void translatePhenotypeToGenome();
 		void clearGenome();
 	private:
 		void createInputGenes();
@@ -138,25 +138,27 @@ namespace neat_dnfs
 		);
 		void removeGaussianStimuli();
 		double oneBumpAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
-			const double& position, const double& amplitude, const double& width);
+			const double& position, const double& amplitude, const double& width) const;
 		double twoBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
 						const double& position1, const double& amplitude1, const double& width1,
-						const double& position2, const double& amplitude2, const double& width2);
+						const double& position2, const double& amplitude2, const double& width2) const;
 		double threeBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
 									const double& position1, const double& amplitude1, const double& width1,
 									const double& position2, const double& amplitude2, const double& width2,
-									const double& position3, const double& amplitude3, const double& width3);
-		double closenessToRestingLevel(const std::string& fieldName);
-		double preShapedness(const std::string& fieldName);
-		double preShapedness(const std::string& fieldName, const std::vector<double>& positions);
-		double negativePreShapednessAtPosition(const std::string& fieldName, const double& position);
+									const double& position3, const double& amplitude3, const double& width3) const;
+		double closenessToRestingLevel(const std::string& fieldName) const;
+		double preShapedness(const std::string& fieldName) const;
+		double preShapedness(const std::string& fieldName, const std::vector<double>& positions) const;
+		double negativePreShapednessAtPosition(const std::string& fieldName, const double& position) const;
 		double justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName,
-			const std::vector<double>& positions, const double& amplitude, const double& width);
+			const std::vector<double>& positions, const double& amplitude, const double& width) const;
 		void removeGaussianStimuliFromField(const std::string& fieldName);
-		double noBumps(const std::string& fieldName);
+		double noBumps(const std::string& fieldName) const;
 		double iterationsUntilBump(const std::string& fieldName, double targetIterations);
 		double iterationsUntilBumpWithAmplitude(const std::string& fieldName, double targetIterations, double targetAmplitude);
 		void moveGaussianStimulusContinously(const std::string& name, double targetPosition, double step);
-		double negativeBaseline(const std::string& fieldName);
+		double negativeBaseline(const std::string& fieldName) const;
+		bool isThereAFieldCoupling() const;
+		void setLearningForFieldCouplings(bool learning);
 	};
 }

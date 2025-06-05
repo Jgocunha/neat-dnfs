@@ -54,52 +54,38 @@ namespace neat_dnfs
 		tools::logger::log(tools::logger::INFO, toString());
 	}
 
-	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple,
-	                               const dnf_composer::element::ElementDimensions& inputFieldDimensions,
-	                               const dnf_composer::element::ElementDimensions& outputFieldDimensions)
-	: fc_id(fc_id_count++), parameters(connectionTuple)
-	{
-		using namespace dnf_composer::element;
-		using namespace neat_dnfs::tools::utils;
-
-		const double couplingStrength = generateRandomDouble(FieldCouplingConstants::couplingStrengthMinVal, FieldCouplingConstants::couplingStrengthMaxVal);
-		const FieldCouplingParameters fcp{ inputFieldDimensions, FieldCouplingConstants::learningRule, couplingStrength, FieldCouplingConstants::learningRate};
-
-		const std::string elementName = FieldCouplingConstants::namePrefixConnectionGene +
-			std::to_string(connectionTuple.inFieldGeneId) +
-			" - " + std::to_string(connectionTuple.outFieldGeneId) + " " +
-			std::to_string(parameters.innovationNumber) + " " + std::to_string(fc_id);
-		const ElementCommonParameters fccp{ elementName,
-			outputFieldDimensions };
-		coupling = std::make_unique<FieldCoupling>(fccp, fcp);
-	}
-
-	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple,
-		const dnf_composer::element::FieldCouplingParameters& fcp, 
-		const dnf_composer::element::ElementDimensions& outputFieldDimensions)
-		: fc_id(fc_id_count++), parameters(connectionTuple)
-	{
-		using namespace dnf_composer::element;
-
-		const std::string elementName = FieldCouplingConstants::namePrefixConnectionGene +
-			std::to_string(connectionTuple.inFieldGeneId) +
-			" - " + std::to_string(connectionTuple.outFieldGeneId) + " " +
-			std::to_string(parameters.innovationNumber) + " " + std::to_string(fc_id);
-		const ElementCommonParameters fccp{ elementName, outputFieldDimensions };
-		coupling = std::make_unique<FieldCoupling>(fccp, fcp);
-	}
-
 	ConnectionGene::ConnectionGene(const ConnectionGeneParameters& parameters,
 		const dnf_composer::element::FieldCouplingParameters& fcp,
 		const dnf_composer::element::ElementDimensions& outputFieldDimensions)
-		: fc_id(fc_id_count++), parameters(parameters)
+			: parameters(parameters)
 	{
 		using namespace dnf_composer::element;
 
 		const std::string elementName = FieldCouplingConstants::namePrefixConnectionGene +
 			std::to_string(parameters.connectionTuple.inFieldGeneId) +
 			" - " + std::to_string(parameters.connectionTuple.outFieldGeneId) + " " +
-			std::to_string(parameters.innovationNumber) + " " + std::to_string(fc_id);
+			std::to_string(parameters.innovationNumber) + " " + std::to_string(parameters.innovationNumber);
+		const ElementCommonParameters fccp{ elementName, outputFieldDimensions };
+		coupling = std::make_unique<FieldCoupling>(fccp, fcp);
+	}
+
+	ConnectionGene::ConnectionGene(ConnectionTuple connectionTuple, int innov,
+			const dnf_composer::element::ElementDimensions& inputFieldDimensions,
+			const dnf_composer::element::ElementDimensions& outputFieldDimensions)
+		: parameters(connectionTuple, innov)
+	{
+		using namespace dnf_composer::element;
+		using namespace neat_dnfs::tools::utils;
+
+		const double couplingStrength = generateRandomDouble(FieldCouplingConstants::couplingStrengthMinVal,
+			FieldCouplingConstants::couplingStrengthMaxVal);
+		const FieldCouplingParameters fcp{ inputFieldDimensions, FieldCouplingConstants::learningRule,
+			couplingStrength, FieldCouplingConstants::learningRate};
+
+		const std::string elementName = FieldCouplingConstants::namePrefixConnectionGene +
+			std::to_string(connectionTuple.inFieldGeneId) +
+			" - " + std::to_string(connectionTuple.outFieldGeneId) + " " +
+			std::to_string(parameters.innovationNumber) + " " + std::to_string(parameters.innovationNumber);
 		const ElementCommonParameters fccp{ elementName, outputFieldDimensions };
 		coupling = std::make_unique<FieldCoupling>(fccp, fcp);
 	}
@@ -144,7 +130,7 @@ namespace neat_dnfs
 		return parameters.enabled;
 	}
 
-	void ConnectionGene::setInnovationNumber(uint16_t innovationNumber)
+	void ConnectionGene::setInnovationNumber(int innovationNumber)
 	{
 		parameters.innovationNumber = innovationNumber;
 	}
@@ -159,17 +145,17 @@ namespace neat_dnfs
 		return coupling;
 	}
 
-	uint16_t ConnectionGene::getInnovationNumber() const
+	int ConnectionGene::getInnovationNumber() const
 	{
 		return parameters.innovationNumber;
 	}
 
-	uint16_t ConnectionGene::getInFieldGeneId() const
+	int ConnectionGene::getInFieldGeneId() const
 	{
 		return parameters.connectionTuple.inFieldGeneId;
 	}
 
-	uint16_t ConnectionGene::getOutFieldGeneId() const
+	int ConnectionGene::getOutFieldGeneId() const
 	{
 		return parameters.connectionTuple.outFieldGeneId;
 	}
@@ -215,8 +201,10 @@ namespace neat_dnfs
 
 	ConnectionGene ConnectionGene::clone() const
 	{
-		const auto fcp = std::dynamic_pointer_cast<dnf_composer::element::FieldCoupling>(coupling)->getParameters();
-		const auto outputFieldDimensions = std::dynamic_pointer_cast<dnf_composer::element::FieldCoupling>(coupling)->getElementCommonParameters().dimensionParameters;
+		const auto fcp
+			= std::dynamic_pointer_cast<dnf_composer::element::FieldCoupling>(coupling)->getParameters();
+		const auto outputFieldDimensions
+			= std::dynamic_pointer_cast<dnf_composer::element::FieldCoupling>(coupling)->getElementCommonParameters().dimensionParameters;
 
 		return ConnectionGene{ parameters,
 			std::dynamic_pointer_cast<dnf_composer::element::FieldCoupling>(coupling)->getParameters(), outputFieldDimensions};

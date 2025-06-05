@@ -12,8 +12,9 @@ namespace neat_dnfs
 	struct SimulationConstants
 	{
 		inline static std::string name = "solution ";
-		static constexpr double deltaT = 1.0;
+		static constexpr double deltaT = 25.0;
 		static constexpr size_t maxSimulationSteps = 100;
+		static constexpr size_t maxLearningSteps = 1000;
 	};
 
 	struct DimensionConstants
@@ -55,11 +56,11 @@ namespace neat_dnfs
 	{
 		inline static std::string namePrefixConnectionGene = "fc cg ";
 		static constexpr dnf_composer::LearningRule learningRule = dnf_composer::LearningRule::HEBB;
-		static constexpr double learningRate = 1.0;
+		static constexpr double learningRate = 10.0;
 		static constexpr double strength = 1.0;
-		static constexpr double couplingStrengthMinVal = 1.0;
-		static constexpr double couplingStrengthMaxVal = 1.0;
-		static constexpr double couplingStrengthStep = 0.0;
+		static constexpr double couplingStrengthMinVal = 2.5;
+		static constexpr double couplingStrengthMaxVal = 5.0;
+		static constexpr double couplingStrengthStep = 0.5;
 	};
 
 	struct KernelConstants
@@ -136,9 +137,9 @@ namespace neat_dnfs
 	{
 		// genome mutation probabilities (sum must be 1.0)
 		static constexpr double addFieldGeneProbability = 0.00;
-		static constexpr double mutateFieldGeneProbability = 0.95;
+		static constexpr double mutateFieldGeneProbability = 0.85;
 		static constexpr double addConnectionGeneProbability = 0.05;
-		static constexpr double mutateConnectionGeneProbability = 0.00;
+		static constexpr double mutateConnectionGeneProbability = 0.10;
 		static constexpr double toggleConnectionGeneProbability = 0.00;
 
 		static constexpr bool checkForDuplicateConnectionGenesInGenome = false;
@@ -209,34 +210,34 @@ namespace neat_dnfs
 
 	struct SolutionConstants
 	{
-		static constexpr uint8_t minInitialInputGenes = 1;
-		static constexpr uint8_t minInitialOutputGenes = 1;
+		static constexpr uint8_t minInitialInputGenes	= 1;
+		static constexpr uint8_t minInitialOutputGenes	= 1;
 	};
 
 	struct PopulationConstants
 	{
-		static constexpr bool parallelEvolution = true;
-		static constexpr double pruneRatio = 0.6;
+		static constexpr bool parallelEvolution									= false;
+		static constexpr double pruneRatio										= 0.2;
 		static constexpr int generationsWithoutImprovementThresholdInPopulation = 20;
-		static constexpr int generationsWithoutImprovementThresholdInSpecies = 10;
-		static constexpr bool elitism = true;
+		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 10;
+		static constexpr bool elitism											= true;
 
-		static constexpr bool validateUniqueSolutions = false;
-		static constexpr bool validatePopulationSize = false;
-		static constexpr bool validateElitism = false;
-		static constexpr bool validateUniqueGenesInGenomes = false;
-		static constexpr bool validateUniqueKernelAndNeuralFieldPtrs = false;
+		static constexpr bool validateUniqueSolutions					= false;
+		static constexpr bool validatePopulationSize					= false;
+		static constexpr bool validateElitism							= false;
+		static constexpr bool validateUniqueGenesInGenomes				= false;
+		static constexpr bool validateUniqueKernelAndNeuralFieldPtrs	= false;
 		static constexpr bool validateIfSpeciesHaveUniqueRepresentative = false;
-		static constexpr bool validateAssignmentIntoSpecies = false;
+		static constexpr bool validateAssignmentIntoSpecies				= false;
 
-		static constexpr bool logSolutions = false;
-		static constexpr bool logOverview = true;
-		static constexpr bool logSpecies = false;
-		static constexpr bool logMutationStatistics = false;
+		static constexpr bool logSolutions			= false;
+		static constexpr bool logOverview			= true;
+		static constexpr bool logSpecies			= false;
+		static constexpr bool logMutationStatistics	= false;
 
-		static constexpr bool saveChampions = true;
-		static constexpr bool saveStatistics = true;
-		static constexpr bool saveSolutionsPerGeneration = true;
+		static constexpr bool saveChampions					= true;
+		static constexpr bool saveStatistics				= true;
+		static constexpr bool saveSolutionsPerGeneration	= true;
 	};
 
 }
