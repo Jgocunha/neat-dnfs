@@ -42,19 +42,20 @@ namespace neat_dnfs
 		// nf 3 - input - hand position field (hpf)
 		// nf 4 - output - target action field (taf)
 
-		static constexpr double wf1		= 1 / 13.f; // multi bump sof
-		static constexpr double wf2		= 1 / 13.f; // sof creates a selective single bump in taf
-		static constexpr double wf3		= 1 / 13.f; // lof single bump
-		static constexpr double wf4		= 1 / 13.f; // lof pre-shapes taf
-		static constexpr double wf5		= 1 / 13.f; // sof + hpf create a selective single bump in taf (pos. 20)
-		static constexpr double wf6		= 1 / 13.f; // sof + hpf create a selective single bump in taf (pos. 80)
-		static constexpr double wf7		= 1 / 13.f; // hpf single bump
-		static constexpr double wf8		= 1 / 13.f; // taf should be close to resting level just with hpf
-		static constexpr double wf9		= 1 / 13.f; // lof + hpf create a single bump in taf
-		static constexpr double wf10	= 1 / 13.f; // lof + sof + hpf create a selective single bump in taf (pos. 50)
-		static constexpr double wf11	= 1 / 13.f; //
-		static constexpr double wf11_	= 1 / 13.f; //
-		static constexpr double wf12	= 1 / 13.f; //
+		static constexpr double wf1		= 1 / 14.f; // multi bump sof
+		static constexpr double wf2		= 1 / 14.f; // sof creates a selective single bump in taf
+		static constexpr double wf3		= 1 / 14.f; // lof single bump
+		static constexpr double wf4		= 1 / 14.f; // lof pre-shapes taf
+		static constexpr double wf5		= 1 / 14.f; // sof + hpf create a selective single bump in taf (pos. 20)
+		static constexpr double wf6		= 1 / 14.f; // sof + hpf create a selective single bump in taf (pos. 80)
+		static constexpr double wf7		= 1 / 14.f; // hpf single bump
+		static constexpr double wf8		= 1 / 14.f; // taf should be close to resting level just with hpf
+		static constexpr double wf9		= 1 / 14.f; // lof + hpf create a single bump in taf
+		static constexpr double wf10	= 1 / 14.f; // lof + sof + hpf create a selective single bump in taf (pos. 50)
+		static constexpr double wf11	= 1 / 14.f; //
+		static constexpr double wf11_	= 1 / 14.f; //
+		static constexpr double wf12	= 1 / 14.f; //
+		static constexpr double wf13	= 1 / 14.f;
 
 
 		initSimulation();
@@ -62,10 +63,13 @@ namespace neat_dnfs
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 40.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 2",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 60.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		addGaussianStimulus("nf 2",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 		const double f1 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1",
@@ -74,10 +78,12 @@ namespace neat_dnfs
 		parameters.fitness = wf1 * f1;
 		parameters.partialFitness.emplace_back(f1);
 
-		const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0, 80.0 }, out_amp, out_width);
+		const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0, 40.0 }, out_amp, out_width);
 		parameters.fitness += wf2 * f2;
 		parameters.partialFitness.emplace_back(f2);
-		const double f3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, in_amp, in_width);
+		const double f3 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 2",
+			60.0, in_amp, in_width,
+			80.0, in_amp, in_width);
 		parameters.fitness += wf3 * f3;
 		parameters.partialFitness.emplace_back(f3);
 
@@ -186,6 +192,19 @@ namespace neat_dnfs
 		const double f12 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0, 80.0 }, out_amp, out_width);
 		parameters.fitness += wf12 * f12;
 		parameters.partialFitness.emplace_back(f12);
+
+		removeGaussianStimuli();
+		initSimulation();
+		addGaussianStimulus("nf 1",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		addGaussianStimulus("nf 2",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		const double f13 = noBumps("nf 4");
+		parameters.fitness += wf13 * f13;
+		parameters.partialFitness.emplace_back(f13);
 
 		removeGaussianStimuli();
 	}
