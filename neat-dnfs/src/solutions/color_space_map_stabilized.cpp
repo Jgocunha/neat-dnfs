@@ -26,15 +26,6 @@ namespace neat_dnfs
 	{
 		if (isThereAFieldCoupling())
 		{
-			// for (const auto& element : phenotype.getElements())
-			// {
-			// 	if (element->getLabel() == dnf_composer::element::FIELD_COUPLING)
-			// 	{
-			// 		const auto coupling = std::dynamic_pointer_cast<dnf_composer::element::FieldCoupling>(element);
-			// 		coupling->writeWeights();
-			// 	}
-			// }
-
 			for (const auto& inputOutputBump : inputOutputBumps)
 			{
 				initSimulation();
@@ -50,6 +41,7 @@ namespace neat_dnfs
 					GaussStimulusConstants::circularity,
 					GaussStimulusConstants::normalization },
 					phenotype.getElement("nf 2")->getElementCommonParameters().dimensionParameters);
+				runSimulation(SimulationConstants::maxSimulationSteps);
 
 				setLearningForFieldCouplings(true);
 				runSimulation(SimulationConstants::maxLearningSteps);
@@ -59,20 +51,12 @@ namespace neat_dnfs
 				runSimulation(SimulationConstants::maxSimulationSteps);
 			}
 		}
-
-		// for (const auto& element : phenotype.getElements())
-		// {
-		// 	if (element->getLabel() == dnf_composer::element::FIELD_COUPLING)
-		// 	{
-		// 		const auto coupling = std::dynamic_pointer_cast<dnf_composer::element::FieldCoupling>(element);
-		// 		coupling->writeWeights();
-		// 	}
-		// }
 	}
 
 	void ColorSpaceMapStabilizedSolution::testing()
 	{
 		parameters.fitness = 0.0;
+		parameters.partialFitness.clear();
 		for (const auto& inputOutputBump : inputOutputBumps)
 		{
 			initSimulation();
@@ -101,12 +85,14 @@ namespace neat_dnfs
 			// f2 only one bump at the output field
 			// f3 closeness to resting level at the input field
 			// f4 closeness to resting level at the output field
-			static constexpr double wf1 = 1 / 4.f;
-			static constexpr double wf2 = 1 / 4.f;
-			static constexpr double wf3 = 1 / 4.f;
-			static constexpr double wf4 = 1 / 4.f;
+			static constexpr double wf1 = 0.2f;
+			static constexpr double wf2 = 0.4f;
+			static constexpr double wf3 = 0.2f;
+			static constexpr double wf4 = 0.2f;
 			//std::cout << " f1: " << f1 << " f2: " << f2 << " f3: " << f3 << " f4: " << f4 << '\n';
-			parameters.fitness += (1.0 / (inputOutputBumps.size())) * (wf1 * f1 + wf2 * f2 + wf3 * f3 + wf4 * f4);
+			const double behaviourFitness = (wf1 * f1 + wf2 * f2 + wf3 * f3 + wf4 * f4);
+			parameters.partialFitness.emplace_back(behaviourFitness);
+			parameters.fitness += (1.0 / (inputOutputBumps.size())) * behaviourFitness;
 			//std::cout << "Behaviour <" << expectedInput << ", " << expectedOutput << "> fitness: " << parameters.fitness << '\n';
 		}
 		//std::cout << "Total fitness: " << parameters.fitness << '\n';
@@ -114,6 +100,14 @@ namespace neat_dnfs
 
 	void ColorSpaceMapStabilizedSolution::createPhenotypeEnvironment()
 	{
-
+		for (const auto& inputOutputBump : inputOutputBumps)
+		{
+			addGaussianStimulus("nf 1", { GaussStimulusConstants::width,
+				GaussStimulusConstants::amplitude,
+				inputOutputBump.front(),
+				GaussStimulusConstants::circularity,
+				GaussStimulusConstants::normalization },
+				phenotype.getElement("nf 1")->getElementCommonParameters().dimensionParameters);
+		}
 	}
 }

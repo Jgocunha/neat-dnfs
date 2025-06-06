@@ -18,8 +18,6 @@ int main(int argc, char* argv[])
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::FATAL);
 		using namespace neat_dnfs;
 
-		//TestZeroSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {50, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
-		//TestOneSolution solution{ SolutionTopology{ {{FieldGeneType::INPUT, {360, 1.0}}, {FieldGeneType::OUTPUT, {100, 1.0}} } } };
 		ColorSpaceMapStabilizedSolution solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {360, 1.0}},
@@ -43,7 +41,7 @@ int main(int argc, char* argv[])
 
 		for (int run = 0; run < runs; ++run)
 		{
-			const PopulationParameters parameters{ 100, 100, 0.90 };
+			const PopulationParameters parameters{ 20, 20, 0.85 };
 			Population population{ parameters, std::make_shared<ColorSpaceMapStabilizedSolution>(solution) };
 
 			population.initialize();

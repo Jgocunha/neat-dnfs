@@ -184,13 +184,9 @@ namespace neat_dnfs
 
 	std::string ConnectionGene::toString() const
 	{
-		std::string result = "ConnectionGene: ";
+		std::string result = "cg (";
 		result += parameters.toString();
-
-		std::stringstream address;
-		address << coupling.get();
-		result += "Coupling address: " + address.str() + '\n';
-		result += coupling->toString();
+		result += ")";
 		return result;
 	}
 

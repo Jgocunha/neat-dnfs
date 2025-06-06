@@ -48,7 +48,7 @@ namespace neat_dnfs
 		std::vector<SolutionPtr> champions;
 		PopulationControl control;
 		PopulationStatistics statistics;
-		bool hasFitnessImproved;
+		bool hasFitnessImproved = true;
 		int generationsWithoutImprovement = 0;
 		std::string fileDirectory;
 	public:

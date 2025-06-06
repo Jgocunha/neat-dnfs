@@ -1,5 +1,8 @@
 #include "neat/population.h"
 
+#include <tools/logger.h>
+#include <tools/logger.h>
+
 namespace neat_dnfs
 {
 	PopulationParameters::PopulationParameters(int size, int numGenerations, double targetFitness)
@@ -12,7 +15,6 @@ namespace neat_dnfs
 
 	Population::Population(const PopulationParameters& parameters, const SolutionPtr& initialSolution)
 		: parameters(parameters)
-	//, bestSolution(initialSolution->clone())
 	{
 		createInitialEmptySolutions(initialSolution);
 	}
@@ -60,7 +62,7 @@ namespace neat_dnfs
 		statistics.end = std::chrono::high_resolution_clock::now();
 		statistics.duration = std::chrono::duration_cast<std::chrono::seconds>(statistics.end - statistics.start).count();
 
-		saveAllSolutionsWithFitnessAbove(bestSolution->getFitness() - 0.1);
+		saveAllSolutionsWithFitnessAbove(bestSolution->getFitness() - 0.01);
 		saveTimestampsAndDuration();
 		//if (PopulationConstants::saveStatistics)
 			//saveFinalStatistics();
@@ -787,7 +789,8 @@ namespace neat_dnfs
 					if (element->getLabel() == element::ElementLabel::FIELD_COUPLING)
 					{
 						const auto fieldCoupling = std::dynamic_pointer_cast<element::FieldCoupling>(element);
-						//fieldCoupling->writeWeights();
+						fieldCoupling->setWeightsDirectory(fileDirectory + "solutions/last_generation/");
+						fieldCoupling->writeWeights();
 					}
 				}
 				// save elements
@@ -809,7 +812,11 @@ namespace neat_dnfs
 		const std::string directoryPath = fileDirectory + "champions/last_generation/";
 		std::filesystem::create_directories(directoryPath); // Ensure directory exist
 
-		if (champions.empty()) log(tools::logger::LogLevel::ERROR, "No champions to save.");
+		if (champions.empty())
+		{
+			tools::logger::log(tools::logger::ERROR,"No champions to save.");
+			return;
+		}
 
 		for (const auto& champion : champions)
 		{
@@ -907,7 +914,8 @@ namespace neat_dnfs
 		}
 		else
 		{
-			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for field gene per generation statistics.");
+			tools::logger::log(tools::logger::LogLevel::ERROR,
+			                   "Failed to open log file for field gene per generation statistics.");
 		}
 	}
 
