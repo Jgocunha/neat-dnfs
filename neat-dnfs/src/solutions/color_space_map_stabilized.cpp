@@ -77,7 +77,7 @@ namespace neat_dnfs
 			removeGaussianStimuli();
 
 			runSimulation(SimulationConstants::maxSimulationSteps);
-
+s
 			const double f3 = closenessToRestingLevel("nf 1");
 			const double f4 = closenessToRestingLevel("nf 2");
 

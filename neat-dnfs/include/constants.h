@@ -14,7 +14,7 @@ namespace neat_dnfs
 		inline static std::string name = "solution ";
 		static constexpr double deltaT = 10.0;
 		static constexpr size_t maxSimulationSteps = 100;
-		static constexpr size_t maxLearningSteps = 1000;
+		static constexpr size_t maxLearningSteps = 500;
 	};
 
 	struct DimensionConstants
@@ -33,7 +33,7 @@ namespace neat_dnfs
 	{
 		inline static std::string namePrefix = "gs ";
 		static constexpr double width = 5.0;
-		static constexpr double amplitude = 15.0;
+		static constexpr double amplitude = 20.0;
 		static constexpr bool circularity = true;
 		static constexpr bool normalization = false;
 	};
@@ -56,7 +56,7 @@ namespace neat_dnfs
 	{
 		inline static std::string namePrefixConnectionGene = "fc cg ";
 		static constexpr dnf_composer::LearningRule learningRule = dnf_composer::LearningRule::HEBB;
-		static constexpr double learningRate = 0.05;
+		static constexpr double learningRate = 0.1;
 		static constexpr double strength = 1.0;
 		static constexpr double couplingStrengthMinVal = 1.0;
 		static constexpr double couplingStrengthMaxVal = 1.5;
@@ -137,9 +137,9 @@ namespace neat_dnfs
 	{
 		// genome mutation probabilities (sum must be 1.0)
 		static constexpr double addFieldGeneProbability = 0.00;
-		static constexpr double mutateFieldGeneProbability = 0.25;
-		static constexpr double addConnectionGeneProbability = 0.25;
-		static constexpr double mutateConnectionGeneProbability = 0.50;
+		static constexpr double mutateFieldGeneProbability = 0.65;
+		static constexpr double addConnectionGeneProbability = 0.35;
+		static constexpr double mutateConnectionGeneProbability = 0.00;
 		static constexpr double toggleConnectionGeneProbability = 0.00;
 
 		static constexpr bool checkForDuplicateConnectionGenesInGenome = false;

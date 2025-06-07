@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
 
 		for (int run = 0; run < runs; ++run)
 		{
-			const PopulationParameters parameters{ 20, 20, 0.85 };
+			const PopulationParameters parameters{ 100, 20, 0.90 };
 			Population population{ parameters, std::make_shared<ColorSpaceMapStabilizedSolution>(solution) };
 
 			population.initialize();
