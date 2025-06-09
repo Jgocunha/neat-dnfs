@@ -75,7 +75,7 @@ namespace neat_dnfs
 		static constexpr double ampMaxVal = 60.0; // 8.0 // 80
 		static constexpr double ampStep = 0.5; // 0.5 // 1
 
-		static constexpr double ampGlobalMinVal = -5.0; // -0.5 // -5
+		static constexpr double ampGlobalMinVal = -2.0; // -0.5 // -5
 		static constexpr double ampGlobalMaxVal = 0.0; // -0.01 // 0
 		static constexpr double ampGlobalStep = 0.05; // 0.01	 // 0.05
 	};
@@ -107,7 +107,7 @@ namespace neat_dnfs
 		static constexpr double ampInhMaxVal = 30.0; // 30.0 // 60
 		static constexpr double ampInhStep = 0.5; // 0.5
 
-		static constexpr double ampGlobMin = -5.0; // -0.5 // -5
+		static constexpr double ampGlobMin = -2.0; // -0.5 // -5
 		static constexpr double ampGlobMax = 0.0; // -0.01
 		static constexpr double ampGlobStep = 0.05; // 0.01
 	};
