@@ -367,7 +367,7 @@ def main():
 
 
     # Fitness threshold to consider a run successful
-    fitness_threshold = 0.75  # Adjust based on your specific requirements
+    fitness_threshold = 0.78  # Adjust based on your specific requirements
     
     # Output directory for plots
     output_dir = None  # Set to a path to save plots, or None to display
