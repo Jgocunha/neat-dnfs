@@ -95,8 +95,7 @@ namespace neat_dnfs
 	void Genome::addHiddenGene(const FieldGene& gene)
 	{
 		const auto index = fieldGenes.size() + 1;
-		fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN,
-					static_cast<int>(index) }, gene));
+		fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN, static_cast<int>(index) }, gene));
 	}
 
 	void Genome::mutate()

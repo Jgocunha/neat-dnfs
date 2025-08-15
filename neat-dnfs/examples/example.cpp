@@ -40,11 +40,11 @@
 		//sfm.loadElementsFromJson();
 		//const dnf_composer::Simulation template_solution = *previous_solution;
 
-		SelectTheObject solution{
+		XOR solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 			}
@@ -55,8 +55,8 @@
 
 		for (int i = 0; i < 100; i++)
 		{
-			const PopulationParameters parameters{ 500, 200, 0.95 };
-			Population population{ parameters, std::make_unique<SelectTheObject>(solution) };
+			const PopulationParameters parameters{ 100, 100, 0.95 };
+			Population population{ parameters, std::make_unique<XOR>(solution) };
 
 			population.initialize();
 			population.evolve();
