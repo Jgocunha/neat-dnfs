@@ -1,7 +1,7 @@
 
 # NEAT-DNFs: Dynamic Neural Field Evolution with NEAT for Robotics
 
-<img src="./neat-dnfs/resources/images/logo.png" alt="logo" width="500" height="500">
+<img src="./neat-dnfs/resources/images/logo.png" >
 
 A C++20 library that combines **NEAT** (NeuroEvolution of Augmenting Topologies) with **Dynamic Neural Fields** (DNFs) to automatically evolve interpretable, neurally inspired control architectures for robotics.
 
@@ -15,6 +15,8 @@ This integration enables fully **automated design and optimization** of DNF-base
 The system supports a range of robotics applications, from low-level perceptual processing to high-level decision-making in human–robot collaboration.
 
 ---
+
+## Key Features
 
 - **Automatic Evolution of DNF Architectures**  
   Evolve both topology and intra-field parameters—time constants, kernel shapes, and connectivity.
@@ -42,6 +44,8 @@ The system supports a range of robotics applications, from low-level perceptual 
 | **Solution** | Task-specific fitness function implementation. |
 | **Field Genes** | Represent neural fields (input, output, hidden) and DNF parameters such as kernel type, τ, and resting potential *h*. |
 | **Interaction Genes** | Represent spatially structured connections between fields. |
+
+<img src="./neat-dnfs/resources/images/genotype-phenotype-mapping.png">
 
 ---
 
