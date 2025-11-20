@@ -22,6 +22,8 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
+		parameters.partialFitness.clear();
+
 		static constexpr int iterations = SimulationConstants::maxSimulationSteps;
 
 		initSimulation();

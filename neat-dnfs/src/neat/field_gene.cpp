@@ -473,31 +473,31 @@ namespace neat_dnfs
 		const auto gaussKernel = std::dynamic_pointer_cast<GaussKernel>(kernel);
 		GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
 
-		constexpr double totalProbability = FieldGeneConstants::mutateFieldGeneGaussKernelWidthProbability +
-			FieldGeneConstants::mutateFieldGeneGaussKernelAmplitudeProbability +
-			FieldGeneConstants::mutateFieldGeneGaussKernelGlobalAmplitudeProbability;
+		// constexpr double totalProbability = FieldGeneConstants::mutateFieldGeneGaussKernelWidthProbability +
+		// 	FieldGeneConstants::mutateFieldGeneGaussKernelAmplitudeProbability +
+		// 	FieldGeneConstants::mutateFieldGeneGaussKernelGlobalAmplitudeProbability;
+		//
+		// constexpr double epsilon = 1e-6;
+		// if (std::abs(totalProbability - 1.0) > epsilon)
+		// 	throw std::runtime_error("Mutation probabilities in field gene gauss kernel mutation must sum up to 1.");
+		//
+		//const double mutationSelection = generateRandomDouble(0.0, 1.0);
 
-		constexpr double epsilon = 1e-6;
-		if (std::abs(totalProbability - 1.0) > epsilon)
-			throw std::runtime_error("Mutation probabilities in field gene gauss kernel mutation must sum up to 1.");
-
-
-		const double mutationSelection = generateRandomDouble(0.0, 1.0);
-
-		if (mutationSelection < FieldGeneConstants::mutateFieldGeneGaussKernelWidthProbability)
+		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneGaussKernelWidthProbability)
 		{
 			gkp.width = std::clamp(gkp.width + GaussKernelConstants::widthStep * signal,
 								GaussKernelConstants::widthMinVal,
 								GaussKernelConstants::widthMaxVal);
 		}
-		else if (mutationSelection < FieldGeneConstants::mutateFieldGeneGaussKernelWidthProbability +
-			FieldGeneConstants::mutateFieldGeneGaussKernelAmplitudeProbability)
+
+		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneGaussKernelAmplitudeProbability)
 		{
 			gkp.amplitude = std::clamp(gkp.amplitude + GaussKernelConstants::ampStep * signal,
 								GaussKernelConstants::ampMinVal,
 								GaussKernelConstants::ampMaxVal);
 		}
-		else
+
+		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneGaussKernelGlobalAmplitudeProbability)
 		{
 			gkp.amplitudeGlobal = std::clamp(gkp.amplitudeGlobal + GaussKernelConstants::ampStep * signal,
 								GaussKernelConstants::ampGlobalMinVal,
@@ -519,49 +519,46 @@ namespace neat_dnfs
 		const auto mexicanHatKernel = std::dynamic_pointer_cast<MexicanHatKernel>(kernel);
 		MexicanHatKernelParameters mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
 
-		constexpr double totalProbability = FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeExcProbability +
-			FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthExcProbability +
-			FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeInhProbability +
-			FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthInhProbability +
-			FieldGeneConstants::mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability;
+		// constexpr double totalProbability = FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeExcProbability +
+		// 	FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthExcProbability +
+		// 	FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeInhProbability +
+		// 	FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthInhProbability +
+		// 	FieldGeneConstants::mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability;
 
-		constexpr double epsilon = 1e-6;
-		if (std::abs(totalProbability - 1.0) > epsilon)
-			throw std::runtime_error("Mutation probabilities in field gene mexican-hat kernel mutation must sum up to 1.");
+		// constexpr double epsilon = 1e-6;
+		// if (std::abs(totalProbability - 1.0) > epsilon)
+		// 	throw std::runtime_error("Mutation probabilities in field gene mexican-hat kernel mutation must sum up to 1.");
 
-
-		const double mutationSelection = generateRandomDouble(0.0, 1.0);
-		if(mutationSelection < FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeExcProbability)
+		//const double mutationSelection = generateRandomDouble(0.0, 1.0);
+		if(generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeExcProbability)
 		{
 			mhkp.amplitudeExc = std::clamp(mhkp.amplitudeExc + MexicanHatKernelConstants::ampExcStep * signal,
 								MexicanHatKernelConstants::ampExcMinVal,
 								MexicanHatKernelConstants::ampExcMaxVal);
 		}
-		else if (mutationSelection < FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeExcProbability +
-			FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthExcProbability)
+
+		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthExcProbability)
 		{
 			mhkp.widthExc = std::clamp(mhkp.widthExc + MexicanHatKernelConstants::widthExcStep * signal,
 												MexicanHatKernelConstants::widthExcMinVal,
 												MexicanHatKernelConstants::widthExcMaxVal);
 		}
-		else if (mutationSelection < FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeExcProbability +
-			FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthExcProbability +
-			FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeInhProbability)
+
+		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeInhProbability)
 		{
 			mhkp.amplitudeInh = std::clamp(mhkp.amplitudeInh + MexicanHatKernelConstants::ampInhStep * signal,
 																MexicanHatKernelConstants::ampInhMinVal,
 																MexicanHatKernelConstants::ampInhMaxVal);
 		}
-		else if (mutationSelection < FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeExcProbability +
-						FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthExcProbability +
-						FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeInhProbability +
-						FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthInhProbability)
+
+		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthInhProbability)
 		{
 			mhkp.widthInh = std::clamp(mhkp.widthInh + MexicanHatKernelConstants::widthInhStep * signal,
 															MexicanHatKernelConstants::widthInhMinVal,
 															MexicanHatKernelConstants::widthInhMaxVal);
 		}
-		else
+
+		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability)
 		{
 			mhkp.amplitudeGlobal = std::clamp(mhkp.amplitudeGlobal + MexicanHatKernelConstants::ampGlobStep * signal,
 															MexicanHatKernelConstants::ampGlobMin,
@@ -660,11 +657,49 @@ namespace neat_dnfs
 		statistics.numKernelTypeMutationsTotal++;
 	}
 
+	// void FieldGene::mutateNeuralField()
+	// {
+	// 	static constexpr double totalProbability = FieldGeneConstants::mutateFieldGeneNeuralFieldTauProbability +
+	// 		FieldGeneConstants::mutateFieldGeneNeuralFieldRestingLevelProbability +
+	// 		FieldGeneConstants::mutateFieldGeneNeuralFieldRandomlyProbability;
+	//
+	// 	constexpr double epsilon = 1e-6;
+	// 	if (std::abs(totalProbability - 1.0) > epsilon)
+	// 		throw std::runtime_error("Mutation probabilities in field gene neural field mutation must sum up to 1.");
+	//
+	// 	const double signal = tools::utils::generateRandomSignal();
+	// 	dnf_composer::element::NeuralFieldParameters nfp = neuralField->getParameters();
+	//
+	// 	const double mutationSelection = tools::utils::generateRandomDouble(0.0, 1.0);
+	// 	if (mutationSelection < FieldGeneConstants::mutateFieldGeneNeuralFieldTauProbability)
+	// 	{
+	// 		const double tau = neuralField->getParameters().tau;
+	// 		nfp.tau = std::clamp(tau + NeuralFieldConstants::tauStep * signal,
+	// 											NeuralFieldConstants::tauMinVal,
+	// 											NeuralFieldConstants::tauMaxVal);
+	// 		neuralField->setParameters(nfp);
+	// 	}
+	// 	else if (mutationSelection < FieldGeneConstants::mutateFieldGeneNeuralFieldTauProbability +
+	// 		FieldGeneConstants::mutateFieldGeneNeuralFieldRestingLevelProbability)
+	// 	{
+	// 		const double restingLevel = neuralField->getParameters().startingRestingLevel;
+	// 		nfp.startingRestingLevel = std::clamp(restingLevel + NeuralFieldConstants::restingLevelStep * signal,
+	// 											NeuralFieldConstants::restingLevelMinVal,
+	// 											NeuralFieldConstants::restingLevelMaxVal);
+	// 		neuralField->setParameters(nfp);
+	// 	}
+	// 	else
+	// 	{
+	// 		dnf_composer::element::ElementCommonParameters nfcp = neuralField->getElementCommonParameters();
+	// 		initializeNeuralField(nfcp.dimensionParameters);
+	// 	}
+	// 	statistics.numNeuralFieldMutationsPerGeneration++;
+	// 	statistics.numNeuralFieldMutationsTotal++;
+	// }
 	void FieldGene::mutateNeuralField()
 	{
-		static constexpr double totalProbability = FieldGeneConstants::mutateFieldGeneNeuralFieldTauProbability +
-			FieldGeneConstants::mutateFieldGeneNeuralFieldRestingLevelProbability + 
-			FieldGeneConstants::mutateFieldGeneNeuralFieldRandomlyProbability;
+		static constexpr double totalProbability = FieldGeneConstants::mutateFieldGeneNeuralFieldParametersProbability +
+			FieldGeneConstants::mutateFieldGeneNeuralFieldGenerateRandomParametersProbability;
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(totalProbability - 1.0) > epsilon)
@@ -673,23 +708,46 @@ namespace neat_dnfs
 		const double signal = tools::utils::generateRandomSignal();
 		dnf_composer::element::NeuralFieldParameters nfp = neuralField->getParameters();
 
+		// const double mutationSelection = tools::utils::generateRandomDouble(0.0, 1.0);
+		// if (mutationSelection < FieldGeneConstants::mutateFieldGeneNeuralFieldTauProbability)
+		// {
+		// 	const double tau = neuralField->getParameters().tau;
+		// 	nfp.tau = std::clamp(tau + NeuralFieldConstants::tauStep * signal,
+		// 										NeuralFieldConstants::tauMinVal,
+		// 										NeuralFieldConstants::tauMaxVal);
+		// 	neuralField->setParameters(nfp);
+		// }
+		// else if (mutationSelection < FieldGeneConstants::mutateFieldGeneNeuralFieldTauProbability +
+		// 	FieldGeneConstants::mutateFieldGeneNeuralFieldRestingLevelProbability)
+		// {
+		// 	const double restingLevel = neuralField->getParameters().startingRestingLevel;
+		// 	nfp.startingRestingLevel = std::clamp(restingLevel + NeuralFieldConstants::restingLevelStep * signal,
+		// 										NeuralFieldConstants::restingLevelMinVal,
+		// 										NeuralFieldConstants::restingLevelMaxVal);
+		// 	neuralField->setParameters(nfp);
+		// }
 		const double mutationSelection = tools::utils::generateRandomDouble(0.0, 1.0);
-		if (mutationSelection < FieldGeneConstants::mutateFieldGeneNeuralFieldTauProbability)
+		if (mutationSelection < FieldGeneConstants::mutateFieldGeneNeuralFieldParametersProbability)
 		{
-			const double tau = neuralField->getParameters().tau;
-			nfp.tau = std::clamp(tau + NeuralFieldConstants::tauStep * signal,
-												NeuralFieldConstants::tauMinVal,
-												NeuralFieldConstants::tauMaxVal);
-			neuralField->setParameters(nfp);
-		}
-		else if (mutationSelection < FieldGeneConstants::mutateFieldGeneNeuralFieldTauProbability +
-			FieldGeneConstants::mutateFieldGeneNeuralFieldRestingLevelProbability)
-		{
-			const double restingLevel = neuralField->getParameters().startingRestingLevel;
-			nfp.startingRestingLevel = std::clamp(restingLevel + NeuralFieldConstants::restingLevelStep * signal,
-												NeuralFieldConstants::restingLevelMinVal,
-												NeuralFieldConstants::restingLevelMaxVal);
-			neuralField->setParameters(nfp);
+			if (tools::utils::generateRandomDouble(0.0, 1.0) <
+				FieldGeneConstants::mutateFieldGeneNeuralFieldParametersTauProbability)
+			{
+				const double tau = neuralField->getParameters().tau;
+				nfp.tau = std::clamp(tau + NeuralFieldConstants::tauStep * signal,
+													NeuralFieldConstants::tauMinVal,
+													NeuralFieldConstants::tauMaxVal);
+				neuralField->setParameters(nfp);
+			}
+
+			if (tools::utils::generateRandomDouble(0.0, 1.0) <
+				FieldGeneConstants::mutateFieldGeneNeuralFieldParametersRestingLevelProbability)
+			{
+				const double restingLevel = neuralField->getParameters().startingRestingLevel;
+				nfp.startingRestingLevel = std::clamp(restingLevel + NeuralFieldConstants::restingLevelStep * signal,
+													NeuralFieldConstants::restingLevelMinVal,
+													NeuralFieldConstants::restingLevelMaxVal);
+				neuralField->setParameters(nfp);
+			}
 		}
 		else
 		{

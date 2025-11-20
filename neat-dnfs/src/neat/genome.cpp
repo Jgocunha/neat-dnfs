@@ -99,41 +99,61 @@ namespace neat_dnfs
 					static_cast<int>(index) }, gene));
 	}
 
+	// void Genome::mutate()
+	// {
+	// 	constexpr double totalProbability = GenomeMutationConstants::addFieldGeneProbability +
+	// 		GenomeMutationConstants::mutateFieldGeneProbability +
+	// 		GenomeMutationConstants::addConnectionGeneProbability +
+	// 		GenomeMutationConstants::mutateConnectionGeneProbability +
+	// 		GenomeMutationConstants::toggleConnectionGeneProbability;
+	//
+	// 	constexpr double epsilon = 1e-6;
+	// 	if ( std::abs(totalProbability - 1.0) > epsilon )
+	// 		throw std::runtime_error("Mutation probabilities in genome mutation must sum up to 1.");
+	//
+	// 	const double randomValue = tools::utils::generateRandomDouble(0.0, 1.0);
+	//
+	// 	if (randomValue < GenomeMutationConstants::addFieldGeneProbability) {
+	// 		addGene();
+	// 	}
+	// 	else if (randomValue < GenomeMutationConstants::addFieldGeneProbability +
+	// 		GenomeMutationConstants::mutateFieldGeneProbability) {
+	// 		mutateGene();
+	// 	}
+	// 	else if (randomValue < GenomeMutationConstants::addFieldGeneProbability +
+	// 		GenomeMutationConstants::mutateFieldGeneProbability +
+	// 		GenomeMutationConstants::addConnectionGeneProbability) {
+	// 		addConnectionGene();
+	// 	}
+	// 	else if (randomValue < GenomeMutationConstants::addFieldGeneProbability +
+	// 		GenomeMutationConstants::mutateFieldGeneProbability +
+	// 		GenomeMutationConstants::addConnectionGeneProbability +
+	// 		GenomeMutationConstants::mutateConnectionGeneProbability) {
+	// 		mutateConnectionGene();
+	// 	}
+	// 	else {
+	// 		toggleConnectionGene();
+	// 	}
+	//
+	// 	checkForDuplicateConnectionGenes();
+	// }
+
 	void Genome::mutate()
 	{
-		constexpr double totalProbability = GenomeMutationConstants::addFieldGeneProbability +
-			GenomeMutationConstants::mutateFieldGeneProbability +
-			GenomeMutationConstants::addConnectionGeneProbability +
-			GenomeMutationConstants::mutateConnectionGeneProbability +
-			GenomeMutationConstants::toggleConnectionGeneProbability;
-
-		constexpr double epsilon = 1e-6;
-		if ( std::abs(totalProbability - 1.0) > epsilon )
-			throw std::runtime_error("Mutation probabilities in genome mutation must sum up to 1.");
-
-		const double randomValue = tools::utils::generateRandomDouble(0.0, 1.0);
-
-		if (randomValue < GenomeMutationConstants::addFieldGeneProbability) {
+		if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::addFieldGeneProbability)
 			addGene();
-		}
-		else if (randomValue < GenomeMutationConstants::addFieldGeneProbability +
-			GenomeMutationConstants::mutateFieldGeneProbability) {
+
+		if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::mutateFieldGeneProbability)
 			mutateGene();
-		}
-		else if (randomValue < GenomeMutationConstants::addFieldGeneProbability +
-			GenomeMutationConstants::mutateFieldGeneProbability +
-			GenomeMutationConstants::addConnectionGeneProbability) {
+
+		if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::addConnectionGeneProbability)
 			addConnectionGene();
-		}
-		else if (randomValue < GenomeMutationConstants::addFieldGeneProbability +
-			GenomeMutationConstants::mutateFieldGeneProbability +
-			GenomeMutationConstants::addConnectionGeneProbability +
-			GenomeMutationConstants::mutateConnectionGeneProbability) {
+
+		if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::mutateConnectionGeneProbability)
 			mutateConnectionGene();
-		}
-		else {
+
+		if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::toggleConnectionGeneProbability)
 			toggleConnectionGene();
-		}
 
 		checkForDuplicateConnectionGenes();
 	}
@@ -625,11 +645,14 @@ namespace neat_dnfs
 			lastMutationType = "no field genes to mutate.";
 			return;
 		}
-		auto gene = getFieldGeneById(static_cast<int>(geneId));
-		gene.mutate();
-		statistics.numMutateFieldGeneMutationsTotal++;
-		statistics.numMutateFieldGeneMutationsPerGeneration++;
-		lastMutationType = "mutate field gene " + std::to_string(geneId) + ".";
+		// auto gene = getFieldGeneById(static_cast<int>(geneId));
+		// gene.mutate();
+		// statistics.numMutateFieldGeneMutationsTotal++;
+		// statistics.numMutateFieldGeneMutationsPerGeneration++;
+		// lastMutationType = "mutate field gene " + std::to_string(geneId) + ".";
+		for (auto& gene : fieldGenes)
+			gene.mutate();
+		// now every gene has the chance of mutating
 	}
 
 	void Genome::addConnectionGene()
@@ -653,11 +676,14 @@ namespace neat_dnfs
 			return;
 		}
 
-		const auto connectionGeneId = tools::utils::generateRandomInt(0, static_cast<int>(connectionGenes.size()) - 1);
-		connectionGenes[connectionGeneId].mutate();
-		statistics.numMutateConnectionGeneMutationsPerGeneration++;
-		statistics.numMutateConnectionGeneMutationsTotal++;
-		lastMutationType = "mutate connection gene " + std::to_string(connectionGeneId) + ".";
+		// const auto connectionGeneId = tools::utils::generateRandomInt(0, static_cast<int>(connectionGenes.size()) - 1);
+		// connectionGenes[connectionGeneId].mutate();
+		// statistics.numMutateConnectionGeneMutationsPerGeneration++;
+		// statistics.numMutateConnectionGeneMutationsTotal++;
+		// lastMutationType = "mutate connection gene " + std::to_string(connectionGeneId) + ".";
+		for (auto& connectionGene : connectionGenes)
+			connectionGene.mutate();
+		// now every connection gene has the chance of mutating
 	}
 
 	void Genome::toggleConnectionGene()

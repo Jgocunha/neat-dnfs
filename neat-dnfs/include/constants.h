@@ -25,7 +25,7 @@ namespace neat_dnfs
 	struct NoiseConstants
 	{
 		inline static std::string namePrefix	= "nn ";
-		static constexpr double amplitude		= 0.2; 
+		static constexpr double amplitude		= 0.05;
 	};
 
 	struct GaussStimulusConstants
@@ -155,10 +155,10 @@ namespace neat_dnfs
 	struct GenomeMutationConstants
 	{
 		// genome mutation probabilities (sum must be 1.0)
-		static constexpr double addFieldGeneProbability			= 0.0005; // 0.0025
-		static constexpr double mutateFieldGeneProbability		= 0.3495; // 0.35
-		static constexpr double addConnectionGeneProbability	= 0.20; // 0.20
-		static constexpr double mutateConnectionGeneProbability = 0.445; // 0.44
+		static constexpr double addFieldGeneProbability			= 0.005; // 0.0025
+		static constexpr double mutateFieldGeneProbability		= 0.35; // 0.35
+		static constexpr double addConnectionGeneProbability	= 0.24; // 0.20
+		static constexpr double mutateConnectionGeneProbability = 0.40; // 0.44
 		static constexpr double toggleConnectionGeneProbability = 0.005; // 0.0075 // 0.05
 
 		static constexpr bool checkForDuplicateConnectionGenesInGenome = false;
@@ -168,6 +168,7 @@ namespace neat_dnfs
 	{
 		static constexpr bool variableParameters = true;
 
+		// (sum must be 1.0)
 		static constexpr double gaussKernelProbability			= 0.5;
 		static constexpr double mexicanHatKernelProbability		= 0.5;
 		static constexpr double oscillatoryKernelProbability	= 0.0;
@@ -176,25 +177,27 @@ namespace neat_dnfs
 		static constexpr double mutateFielGeneKernelProbability			= 0.50;
 		static constexpr double mutateFielGeneKernelTypeProbability		= 0.10;
 		static constexpr double mutateFieldGeneNeuralFieldProbability	= 0.40;
-		// field gene gauss kernel mutation probabilities (sum must be 1.0)
+		// field gene gauss kernel mutation probabilities (sum does not have to be 1.0)
 		static constexpr double mutateFieldGeneGaussKernelAmplitudeProbability			= 1.0f / 3.0f;
 		static constexpr double mutateFieldGeneGaussKernelWidthProbability				= 1.0f / 3.0f;
 		static constexpr double mutateFieldGeneGaussKernelGlobalAmplitudeProbability	= 1.0f / 3.0f;
-		// field gene mexican hat kernel mutation probabilities (sum must be 1.0)
+		// field gene mexican hat kernel mutation probabilities (sum does not have to be 1.0)
 		static constexpr double mutateFieldGeneMexicanHatKernelAmplitudeExcProbability		= 1.0f / 5.0f;
 		static constexpr double mutateFieldGeneMexicanHatKernelAmplitudeInhProbability		= 1.0f / 5.0f;
 		static constexpr double mutateFieldGeneMexicanHatKernelWidthExcProbability			= 1.0f / 5.0f;
 		static constexpr double mutateFieldGeneMexicanHatKernelWidthInhProbability			= 1.0f / 5.0f;
 		static constexpr double mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability	= 1.0f / 5.0f;
-		// field gene oscillatory kernel mutation probabilities (sum must be 1.0)
+		// field gene oscillatory kernel mutation probabilities (sum does not have to be 1.0)
 		static constexpr double mutateFieldGeneOscillatoryKernelAmplitudeProbability		= 1.0f / 4.0f;
 		static constexpr double mutateFieldGeneOscillatoryKernelDecayProbability			= 1.0f / 4.0f;
 		static constexpr double mutateFieldGeneOscillatoryKernelZeroCrossingsProbability	= 1.0f / 4.0f;
 		static constexpr double mutateFieldGeneOscillatoryKernelGlobalAmplitudeProbability	= 1.0f / 4.0f;
 		// field gene neural field mutation probabilities (sum must be 1.0)
-		static constexpr double mutateFieldGeneNeuralFieldTauProbability			= 0.45;
-		static constexpr double mutateFieldGeneNeuralFieldRestingLevelProbability	= 0.45;
-		static constexpr double mutateFieldGeneNeuralFieldRandomlyProbability		= 0.10;
+		static constexpr double mutateFieldGeneNeuralFieldParametersProbability	= 0.90;
+		static constexpr double mutateFieldGeneNeuralFieldGenerateRandomParametersProbability	= 0.10;
+		// field gene neural field parameters mutation probabilities (sum does not have to be 1.0)
+		static constexpr double mutateFieldGeneNeuralFieldParametersTauProbability			= 0.50;
+		static constexpr double mutateFieldGeneNeuralFieldParametersRestingLevelProbability	= 0.50;
 	};
 
 	struct ConnectionGeneConstants

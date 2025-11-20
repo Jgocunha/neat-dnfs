@@ -565,31 +565,31 @@ namespace neat_dnfs
 		GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
 		const int amp_sign = gkp.amplitude < 0 ? -1 : 1;
 
-		constexpr double totalProbability = ConnectionGeneConstants::mutateConnectionGeneGaussKernelWidthProbability +
-			ConnectionGeneConstants::mutateConnectionGeneGaussKernelAmplitudeProbability +
-			ConnectionGeneConstants::mutateConnectionGeneGaussKernelGlobalAmplitudeProbability;
+		// constexpr double totalProbability = ConnectionGeneConstants::mutateConnectionGeneGaussKernelWidthProbability +
+		// 	ConnectionGeneConstants::mutateConnectionGeneGaussKernelAmplitudeProbability +
+		// 	ConnectionGeneConstants::mutateConnectionGeneGaussKernelGlobalAmplitudeProbability;
+		//
+		// constexpr double epsilon = 1e-6;
+		// if (std::abs(totalProbability - 1.0) > epsilon)
+		// 	throw std::runtime_error("Mutation probabilities in field gene gauss kernel mutation must sum up to 1.");
+		//
+		//const double mutationSelection = generateRandomDouble(0.0, 1.0);
 
-		constexpr double epsilon = 1e-6;
-		if (std::abs(totalProbability - 1.0) > epsilon)
-			throw std::runtime_error("Mutation probabilities in field gene gauss kernel mutation must sum up to 1.");
-
-
-		const double mutationSelection = generateRandomDouble(0.0, 1.0);
-
-		if (mutationSelection < ConnectionGeneConstants::mutateConnectionGeneGaussKernelWidthProbability)
+		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneGaussKernelWidthProbability)
 		{
 			gkp.width = std::clamp(gkp.width + GaussKernelConstants::widthStep * signal,
 				GaussKernelConstants::widthMinVal,
 				GaussKernelConstants::widthMaxVal);
 		}
-		else if (mutationSelection < ConnectionGeneConstants::mutateConnectionGeneGaussKernelWidthProbability +
-			ConnectionGeneConstants::mutateConnectionGeneGaussKernelAmplitudeProbability)
+
+		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneGaussKernelAmplitudeProbability)
 		{
 			gkp.amplitude = amp_sign * std::clamp(gkp.amplitude + GaussKernelConstants::ampStep * signal,
 				GaussKernelConstants::ampMinVal,
 				GaussKernelConstants::ampMaxVal);
 		}
-		else
+
+		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneGaussKernelGlobalAmplitudeProbability)
 		{
 			gkp.amplitudeGlobal = std::clamp(gkp.amplitudeGlobal + GaussKernelConstants::ampStep * signal,
 				GaussKernelConstants::ampGlobalMinVal,
@@ -611,49 +611,47 @@ namespace neat_dnfs
 		MexicanHatKernelParameters mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
 		const int amp_sign = mhkp.amplitudeExc < 0 ? -1 : 1;
 
-		constexpr double totalProbability = ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability +
-			ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelWidthExcProbability +
-			ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeInhProbability +
-			ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelWidthInhProbability +
-			ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability;
+		// constexpr double totalProbability = ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability +
+		// 	ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelWidthExcProbability +
+		// 	ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeInhProbability +
+		// 	ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelWidthInhProbability +
+		// 	ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability;
+		//
+		// constexpr double epsilon = 1e-6;
+		// if (std::abs(totalProbability - 1.0) > epsilon)
+		// 	throw std::runtime_error("Mutation probabilities in field gene mexican-hat kernel mutation must sum up to 1.");
 
-		constexpr double epsilon = 1e-6;
-		if (std::abs(totalProbability - 1.0) > epsilon)
-			throw std::runtime_error("Mutation probabilities in field gene mexican-hat kernel mutation must sum up to 1.");
 
-
-		const double mutationSelection = generateRandomDouble(0.0, 1.0);
-		if (mutationSelection < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability)
+		//const double mutationSelection = generateRandomDouble(0.0, 1.0);
+		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability)
 		{
 			mhkp.amplitudeExc = amp_sign * std::clamp(mhkp.amplitudeExc + MexicanHatKernelConstants::ampExcStep * signal,
 				MexicanHatKernelConstants::ampExcMinVal,
 				MexicanHatKernelConstants::ampExcMaxVal);
 		}
-		else if (mutationSelection < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability +
-			ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelWidthExcProbability)
+
+		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelWidthExcProbability)
 		{
 			mhkp.widthExc = std::clamp(mhkp.widthExc + MexicanHatKernelConstants::widthExcStep * signal,
 				MexicanHatKernelConstants::widthExcMinVal,
 				MexicanHatKernelConstants::widthExcMaxVal);
 		}
-		else if (mutationSelection < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability +
-			ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelWidthExcProbability +
-			ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeInhProbability)
+
+		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeInhProbability)
 		{
 			mhkp.amplitudeInh = std::clamp(mhkp.amplitudeInh + MexicanHatKernelConstants::ampInhStep * signal,
 				MexicanHatKernelConstants::ampInhMinVal,
 				MexicanHatKernelConstants::ampInhMaxVal);
 		}
-		else if (mutationSelection < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability +
-			ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelWidthExcProbability +
-			ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeInhProbability +
-			ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelWidthInhProbability)
+
+		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelWidthInhProbability)
 		{
 			mhkp.widthInh = std::clamp(mhkp.widthInh + MexicanHatKernelConstants::widthInhStep * signal,
 				MexicanHatKernelConstants::widthInhMinVal,
 				MexicanHatKernelConstants::widthInhMaxVal);
 		}
-		else
+
+		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability)
 		{
 			mhkp.amplitudeGlobal = std::clamp(mhkp.amplitudeGlobal + MexicanHatKernelConstants::ampGlobStep * signal,
 				MexicanHatKernelConstants::ampGlobMin,

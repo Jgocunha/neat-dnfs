@@ -33,7 +33,7 @@
 		//sfm.loadElementsFromJson();
 		//const dnf_composer::Simulation template_solution = *previous_solution;
 
-		XOR solution{
+		AndSolution solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
@@ -49,7 +49,7 @@
 		for (int i = 0; i < 100; i++)
 		{
 			const PopulationParameters parameters{ 100, 150, 0.95 };
-			Population population{ parameters, std::make_unique<XOR>(solution) };
+			Population population{ parameters, std::make_unique<AndSolution>(solution) };
 
 			population.initialize();
 			population.evolve();
