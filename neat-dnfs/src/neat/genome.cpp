@@ -140,20 +140,20 @@ namespace neat_dnfs
 
 	void Genome::mutate()
 	{
+		if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::toggleConnectionGeneProbability)
+			toggleConnectionGene();
+
 		if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::addFieldGeneProbability)
 			addGene();
 
-		if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::mutateFieldGeneProbability)
+		if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::mutateFieldGenesProbability)
 			mutateGene();
 
 		if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::addConnectionGeneProbability)
 			addConnectionGene();
 
-		if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::mutateConnectionGeneProbability)
+		if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::mutateConnectionGenesProbability)
 			mutateConnectionGene();
-
-		if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::toggleConnectionGeneProbability)
-			toggleConnectionGene();
 
 		checkForDuplicateConnectionGenes();
 	}
@@ -651,7 +651,10 @@ namespace neat_dnfs
 		// statistics.numMutateFieldGeneMutationsPerGeneration++;
 		// lastMutationType = "mutate field gene " + std::to_string(geneId) + ".";
 		for (auto& gene : fieldGenes)
-			gene.mutate();
+		{
+			if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::mutateFieldGeneProbability)
+				gene.mutate();
+		}
 		// now every gene has the chance of mutating
 	}
 
@@ -682,7 +685,10 @@ namespace neat_dnfs
 		// statistics.numMutateConnectionGeneMutationsTotal++;
 		// lastMutationType = "mutate connection gene " + std::to_string(connectionGeneId) + ".";
 		for (auto& connectionGene : connectionGenes)
-			connectionGene.mutate();
+		{
+			if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::mutateConnectionGeneProbability)
+				connectionGene.mutate();
+		}
 		// now every connection gene has the chance of mutating
 	}
 

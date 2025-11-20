@@ -510,9 +510,6 @@ namespace neat_dnfs
 		case dnf_composer::element::ElementLabel::MEXICAN_HAT_KERNEL:
 			mutateMexicanHatKernel();
 			break;
-		case dnf_composer::element::ElementLabel::OSCILLATORY_KERNEL:
-			mutateOscillatoryKernel();
-			break;
 		default:
 			tools::logger::log(tools::logger::FATAL, "ConnectionGene::mutate() - Kernel type not recognized.");
 			throw std::runtime_error("ConnectionGene::mutate() - Kernel type not recognized.");
@@ -529,8 +526,7 @@ namespace neat_dnfs
 		const auto dimensions = kernel->getElementCommonParameters().dimensionParameters;
 
 		constexpr double totalProbability = FieldGeneConstants::gaussKernelProbability +
-			FieldGeneConstants::mexicanHatKernelProbability +
-			FieldGeneConstants::oscillatoryKernelProbability;
+			FieldGeneConstants::mexicanHatKernelProbability;
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(totalProbability - 1.0) > epsilon)
@@ -564,16 +560,6 @@ namespace neat_dnfs
 		const auto gaussKernel = std::dynamic_pointer_cast<GaussKernel>(kernel);
 		GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
 		const int amp_sign = gkp.amplitude < 0 ? -1 : 1;
-
-		// constexpr double totalProbability = ConnectionGeneConstants::mutateConnectionGeneGaussKernelWidthProbability +
-		// 	ConnectionGeneConstants::mutateConnectionGeneGaussKernelAmplitudeProbability +
-		// 	ConnectionGeneConstants::mutateConnectionGeneGaussKernelGlobalAmplitudeProbability;
-		//
-		// constexpr double epsilon = 1e-6;
-		// if (std::abs(totalProbability - 1.0) > epsilon)
-		// 	throw std::runtime_error("Mutation probabilities in field gene gauss kernel mutation must sum up to 1.");
-		//
-		//const double mutationSelection = generateRandomDouble(0.0, 1.0);
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneGaussKernelWidthProbability)
 		{
@@ -611,18 +597,6 @@ namespace neat_dnfs
 		MexicanHatKernelParameters mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
 		const int amp_sign = mhkp.amplitudeExc < 0 ? -1 : 1;
 
-		// constexpr double totalProbability = ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability +
-		// 	ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelWidthExcProbability +
-		// 	ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeInhProbability +
-		// 	ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelWidthInhProbability +
-		// 	ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability;
-		//
-		// constexpr double epsilon = 1e-6;
-		// if (std::abs(totalProbability - 1.0) > epsilon)
-		// 	throw std::runtime_error("Mutation probabilities in field gene mexican-hat kernel mutation must sum up to 1.");
-
-
-		//const double mutationSelection = generateRandomDouble(0.0, 1.0);
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability)
 		{
 			mhkp.amplitudeExc = amp_sign * std::clamp(mhkp.amplitudeExc + MexicanHatKernelConstants::ampExcStep * signal,
@@ -660,62 +634,6 @@ namespace neat_dnfs
 		std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->setParameters(mhkp);
 		statistics.numMexicanHatKernelMutationsPerGeneration++;
 		statistics.numMexicanHatKernelMutationsTotal++;
-	}
-
-	void ConnectionGene::mutateOscillatoryKernel() const
-	{
-		using namespace dnf_composer::element;
-		using namespace neat_dnfs::tools::utils;
-
-		const int signal = generateRandomSignal();  // +/- to add or sum a step
-
-		const auto oscillatoryKernel = std::dynamic_pointer_cast<OscillatoryKernel>(kernel);
-		OscillatoryKernelParameters okp = std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->getParameters();
-		const int amp_sign = okp.amplitude < 0 ? -1 : 1;
-
-		constexpr double totalProbability = ConnectionGeneConstants::mutateConnectionGeneOscillatoryKernelAmplitudeProbability +
-			ConnectionGeneConstants::mutateConnectionGeneOscillatoryKernelDecayProbability +
-			ConnectionGeneConstants::mutateConnectionGeneOscillatoryKernelZeroCrossingsProbability +
-			ConnectionGeneConstants::mutateConnectionGeneOscillatoryKernelGlobalAmplitudeProbability;
-
-		constexpr double epsilon = 1e-6;
-		if (std::abs(totalProbability - 1.0) > epsilon)
-			throw std::runtime_error("Mutation probabilities in field gene oscillatory kernel mutation must sum up to 1.");
-
-
-		const double mutationSelection = generateRandomDouble(0.0, 1.0);
-
-
-		if (mutationSelection < ConnectionGeneConstants::mutateConnectionGeneOscillatoryKernelAmplitudeProbability)
-		{
-			okp.amplitude = amp_sign * std::clamp(okp.amplitude + OscillatoryKernelConstants::amplitudeStep * signal,
-				OscillatoryKernelConstants::amplitudeMinVal,
-				OscillatoryKernelConstants::amplitudeMaxVal);
-		}
-		else if (mutationSelection < ConnectionGeneConstants::mutateConnectionGeneOscillatoryKernelAmplitudeProbability +
-			ConnectionGeneConstants::mutateConnectionGeneOscillatoryKernelDecayProbability)
-		{
-			okp.decay = std::clamp(okp.decay + OscillatoryKernelConstants::decayStep * signal,
-				OscillatoryKernelConstants::decayMinVal,
-				OscillatoryKernelConstants::decayMaxVal);
-		}
-		else if (mutationSelection < ConnectionGeneConstants::mutateConnectionGeneOscillatoryKernelAmplitudeProbability +
-			ConnectionGeneConstants::mutateConnectionGeneOscillatoryKernelDecayProbability +
-			ConnectionGeneConstants::mutateConnectionGeneOscillatoryKernelZeroCrossingsProbability)
-		{
-			okp.zeroCrossings = std::clamp(okp.zeroCrossings + OscillatoryKernelConstants::zeroCrossingsStep * signal,
-				OscillatoryKernelConstants::zeroCrossingsMinVal,
-				OscillatoryKernelConstants::zeroCrossingsMaxVal);
-		}
-		else
-		{
-			okp.amplitudeGlobal = std::clamp(okp.amplitudeGlobal + OscillatoryKernelConstants::ampGlobStep * signal,
-				OscillatoryKernelConstants::ampGlobMin,
-				OscillatoryKernelConstants::ampGlobMax);
-		}
-		std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->setParameters(okp);
-		statistics.numOscillatoryKernelMutationsPerGeneration++;
-		statistics.numOscillatoryKernelMutationsTotal++;
 	}
 
 	void ConnectionGene::mutateConnectionSignal() const

@@ -154,12 +154,17 @@ namespace neat_dnfs
 
 	struct GenomeMutationConstants
 	{
-		// genome mutation probabilities (sum must be 1.0)
-		static constexpr double addFieldGeneProbability			= 0.005; // 0.0025
-		static constexpr double mutateFieldGeneProbability		= 0.35; // 0.35
-		static constexpr double addConnectionGeneProbability	= 0.24; // 0.20
-		static constexpr double mutateConnectionGeneProbability = 0.40; // 0.44
-		static constexpr double toggleConnectionGeneProbability = 0.005; // 0.0075 // 0.05
+		// genome mutation probabilities (sum does not have to be 1.0)
+		// structural mutations
+		static constexpr double toggleConnectionGeneProbability = 0.01;
+		static constexpr double addFieldGeneProbability			= 0.005;
+		static constexpr double addConnectionGeneProbability	= 0.20;
+		// parametrical mutations
+		static constexpr double mutateFieldGenesProbability		= 0.50;
+		static constexpr double mutateConnectionGenesProbability = 0.50;
+		// per gene mutation probabilities
+		static constexpr double mutateFieldGeneProbability		= 0.20;
+		static constexpr double mutateConnectionGeneProbability = 0.20;
 
 		static constexpr bool checkForDuplicateConnectionGenesInGenome = false;
 	};
@@ -171,39 +176,35 @@ namespace neat_dnfs
 		// (sum must be 1.0)
 		static constexpr double gaussKernelProbability			= 0.5;
 		static constexpr double mexicanHatKernelProbability		= 0.5;
-		static constexpr double oscillatoryKernelProbability	= 0.0;
 
 		// field gene mutation probabilities (sum must be 1.0)
-		static constexpr double mutateFielGeneKernelProbability			= 0.50;
+		static constexpr double mutateFielGeneKernelProbability			= 0.70;
 		static constexpr double mutateFielGeneKernelTypeProbability		= 0.10;
-		static constexpr double mutateFieldGeneNeuralFieldProbability	= 0.40;
+		static constexpr double mutateFieldGeneNeuralFieldProbability	= 0.20;
 		// field gene gauss kernel mutation probabilities (sum does not have to be 1.0)
-		static constexpr double mutateFieldGeneGaussKernelAmplitudeProbability			= 1.0f / 3.0f;
-		static constexpr double mutateFieldGeneGaussKernelWidthProbability				= 1.0f / 3.0f;
-		static constexpr double mutateFieldGeneGaussKernelGlobalAmplitudeProbability	= 1.0f / 3.0f;
+		static constexpr double mutateFieldGeneGaussKernelAmplitudeProbability			= 0.80;
+		static constexpr double mutateFieldGeneGaussKernelWidthProbability				= 0.60;
+		static constexpr double mutateFieldGeneGaussKernelGlobalAmplitudeProbability	= 0.10;
 		// field gene mexican hat kernel mutation probabilities (sum does not have to be 1.0)
-		static constexpr double mutateFieldGeneMexicanHatKernelAmplitudeExcProbability		= 1.0f / 5.0f;
-		static constexpr double mutateFieldGeneMexicanHatKernelAmplitudeInhProbability		= 1.0f / 5.0f;
-		static constexpr double mutateFieldGeneMexicanHatKernelWidthExcProbability			= 1.0f / 5.0f;
-		static constexpr double mutateFieldGeneMexicanHatKernelWidthInhProbability			= 1.0f / 5.0f;
-		static constexpr double mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability	= 1.0f / 5.0f;
-		// field gene oscillatory kernel mutation probabilities (sum does not have to be 1.0)
-		static constexpr double mutateFieldGeneOscillatoryKernelAmplitudeProbability		= 1.0f / 4.0f;
-		static constexpr double mutateFieldGeneOscillatoryKernelDecayProbability			= 1.0f / 4.0f;
-		static constexpr double mutateFieldGeneOscillatoryKernelZeroCrossingsProbability	= 1.0f / 4.0f;
-		static constexpr double mutateFieldGeneOscillatoryKernelGlobalAmplitudeProbability	= 1.0f / 4.0f;
+		static constexpr double mutateFieldGeneMexicanHatKernelAmplitudeExcProbability		= 0.80;
+		static constexpr double mutateFieldGeneMexicanHatKernelAmplitudeInhProbability		= 0.80;
+		static constexpr double mutateFieldGeneMexicanHatKernelWidthExcProbability			= 0.60;
+		static constexpr double mutateFieldGeneMexicanHatKernelWidthInhProbability			= 0.60;
+		static constexpr double mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability	= 0.10;
+
 		// field gene neural field mutation probabilities (sum must be 1.0)
 		static constexpr double mutateFieldGeneNeuralFieldParametersProbability	= 0.90;
 		static constexpr double mutateFieldGeneNeuralFieldGenerateRandomParametersProbability	= 0.10;
 		// field gene neural field parameters mutation probabilities (sum does not have to be 1.0)
-		static constexpr double mutateFieldGeneNeuralFieldParametersTauProbability			= 0.50;
-		static constexpr double mutateFieldGeneNeuralFieldParametersRestingLevelProbability	= 0.50;
+		static constexpr double mutateFieldGeneNeuralFieldParametersTauProbability			= 0.20;
+		static constexpr double mutateFieldGeneNeuralFieldParametersRestingLevelProbability	= 0.80;
 	};
 
 	struct ConnectionGeneConstants
 	{
 		static constexpr int allowInhibitoryConnections = true;
 
+		// connection gene kernel type probability (sum must be 1.0)
 		static constexpr double gaussKernelProbability			= 0.5;
 		static constexpr double mexicanHatKernelProbability		= 0.5;
 		static constexpr double oscillatoryKernelProbability	= 0.0;
@@ -213,21 +214,16 @@ namespace neat_dnfs
 		static constexpr double mutateConnectionGeneKernelTypeProbability		= 0.10;
 		static constexpr double mutateConnectionGeneConnectionSignalProbability = 0.20;
 
-		// field gene gauss kernel mutation probabilities (sum must be 1.0)
-		static constexpr double mutateConnectionGeneGaussKernelAmplitudeProbability			= 1.0f / 3.0f;//1.0f / 2.0f;
-		static constexpr double mutateConnectionGeneGaussKernelWidthProbability				= 1.0f / 3.0f;//1.0f / 2.0f;
-		static constexpr double mutateConnectionGeneGaussKernelGlobalAmplitudeProbability	= 1.0f / 3.0f;//0.0f;
-		// field gene mexican hat kernel mutation probabilities (sum must be 1.0)
-		static constexpr double mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability		= 1.0f / 5.0f;//1.0f / 4.0f;
-		static constexpr double mutateConnectionGeneMexicanHatKernelAmplitudeInhProbability		= 1.0f / 5.0f;//1.0f / 4.0f;
-		static constexpr double mutateConnectionGeneMexicanHatKernelWidthExcProbability			= 1.0f / 5.0f;//1.0f / 4.0f;
-		static constexpr double mutateConnectionGeneMexicanHatKernelWidthInhProbability			= 1.0f / 5.0f;//1.0f / 4.0f;
-		static constexpr double mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability	= 1.0f / 5.0f;//0.0f;
-		// field gene oscillatory kernel mutation probabilities (sum must be 1.0)
-		static constexpr double mutateConnectionGeneOscillatoryKernelAmplitudeProbability		= 1.0f / 3.0f;
-		static constexpr double mutateConnectionGeneOscillatoryKernelDecayProbability			= 1.0f / 3.0f;
-		static constexpr double mutateConnectionGeneOscillatoryKernelZeroCrossingsProbability	= 1.0f / 3.0f;
-		static constexpr double mutateConnectionGeneOscillatoryKernelGlobalAmplitudeProbability = 0.0f;
+		// field gene gauss kernel mutation probabilities (sum does not have to be 1.0)
+		static constexpr double mutateConnectionGeneGaussKernelAmplitudeProbability			= 0.80;
+		static constexpr double mutateConnectionGeneGaussKernelWidthProbability				= 0.60;
+		static constexpr double mutateConnectionGeneGaussKernelGlobalAmplitudeProbability	= 0.01;
+		// field gene mexican hat kernel mutation probabilities (sum does not have to be 1.0)
+		static constexpr double mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability		= 0.80;
+		static constexpr double mutateConnectionGeneMexicanHatKernelAmplitudeInhProbability		= 0.80;
+		static constexpr double mutateConnectionGeneMexicanHatKernelWidthExcProbability			= 0.60;
+		static constexpr double mutateConnectionGeneMexicanHatKernelWidthInhProbability			= 0.60;
+		static constexpr double mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability	= 0.01;
 	};
 
 	struct SolutionConstants
@@ -244,13 +240,13 @@ namespace neat_dnfs
 		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 10;
 		static constexpr bool elitism											= true;
 
-		static constexpr bool validateUniqueSolutions					= false;
-		static constexpr bool validatePopulationSize					= false;
-		static constexpr bool validateElitism							= false;
-		static constexpr bool validateUniqueGenesInGenomes				= false;
-		static constexpr bool validateUniqueKernelAndNeuralFieldPtrs	= false;
-		static constexpr bool validateIfSpeciesHaveUniqueRepresentative = false;
-		static constexpr bool validateAssignmentIntoSpecies				= false;
+		static constexpr bool validateUniqueSolutions					= true;
+		static constexpr bool validatePopulationSize					= true;
+		static constexpr bool validateElitism							= true;
+		static constexpr bool validateUniqueGenesInGenomes				= true;
+		static constexpr bool validateUniqueKernelAndNeuralFieldPtrs	= true;
+		static constexpr bool validateIfSpeciesHaveUniqueRepresentative = true;
+		static constexpr bool validateAssignmentIntoSpecies				= true;
 
 		static constexpr bool logSolutions				= false;
 		static constexpr bool logOverview				= true;
