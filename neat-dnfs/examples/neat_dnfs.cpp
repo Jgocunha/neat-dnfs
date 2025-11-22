@@ -33,10 +33,10 @@
 		//sfm.loadElementsFromJson();
 		//const dnf_composer::Simulation template_solution = *previous_solution;
 
-		SelectiveOutputSolution solution{
+		ActionSimulationSolution solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
@@ -49,7 +49,7 @@
 		for (int i = 0; i < 100; i++)
 		{
 			const PopulationParameters parameters{ 200, 20, 0.90 };
-			Population population{ parameters, std::make_unique<SelectiveOutputSolution>(solution) };
+			Population population{ parameters, std::make_unique<ActionSimulationSolution>(solution) };
 
 			population.initialize();
 			population.evolve();

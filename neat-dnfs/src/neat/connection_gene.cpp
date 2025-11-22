@@ -409,8 +409,7 @@ namespace neat_dnfs
 		using namespace neat_dnfs::tools::utils;
 
 		static constexpr double totalProbability = ConnectionGeneConstants::gaussKernelProbability +
-			ConnectionGeneConstants::mexicanHatKernelProbability +
-			ConnectionGeneConstants::oscillatoryKernelProbability;
+			ConnectionGeneConstants::mexicanHatKernelProbability;
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(totalProbability - 1.0) > epsilon)
