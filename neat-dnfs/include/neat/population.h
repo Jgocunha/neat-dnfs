@@ -16,7 +16,7 @@ namespace neat_dnfs
 		int numGenerations;
 		double targetFitness;
 
-		PopulationParameters(int size = 100, int numGenerations = 1000, double targetFitness = 0.95);
+		explicit PopulationParameters(int size = 100, int numGenerations = 1000, double targetFitness = 0.95);
 	};
 
 	struct PopulationControl
@@ -24,19 +24,32 @@ namespace neat_dnfs
 		bool pause;
 		bool stop;
 
-		PopulationControl(bool pause = false, bool stop = false);
+		explicit PopulationControl(bool pause = false, bool stop = false);
 	};
 
 	struct PopulationStatistics
 	{
 		std::chrono::time_point<std::chrono::steady_clock> start;
 		std::chrono::time_point<std::chrono::steady_clock> end;
-		long long duration;
+		long long duration{};
 		
 		PopulationStatistics() = default;
-
 	};
 
+	struct PerGenerationStatistics
+	{
+		double averageFitness = 0.0f;
+		double bestFitness = 0.0f;
+		int numberOfSpecies = 0;
+		int numberOfActiveSpecies = 0;
+		// double averageCompatibilityDistance;
+		int innovationNumber = 0;
+		double averageGenomeSize = 0.0f;
+		double averageConnectionGenes = 0.0f;
+		double averageFieldGenes = 0.0f;
+
+		PerGenerationStatistics() = default;
+	};
 
 	class Population
 	{
@@ -48,7 +61,8 @@ namespace neat_dnfs
 		std::vector<SolutionPtr> champions;
 		PopulationControl control;
 		PopulationStatistics statistics;
-		bool hasFitnessImproved;
+		PerGenerationStatistics perGenStatistics;
+		bool hasFitnessImproved{};
 		int generationsWithoutImprovement = 0;
 		std::string fileDirectory;
 	public:
@@ -59,16 +73,16 @@ namespace neat_dnfs
 		void initialize() const;
 		void evolve();
 
-		SolutionPtr getBestSolution() const { return bestSolution; }
+		[[nodiscard]] SolutionPtr getBestSolution() const { return bestSolution; }
 		std::vector<std::shared_ptr<Species>> getSpeciesList() { return speciesList; }
-		std::vector<SolutionPtr> getSolutions() const { return solutions; }
-		int getSize() const { return parameters.size; }
-		int getCurrentGeneration() const { return parameters.currentGeneration; }
-		int getNumGenerations() const { return parameters.numGenerations; }
-		bool isInitialized() const { return !solutions.empty(); }
+		[[nodiscard]] std::vector<SolutionPtr> getSolutions() const { return solutions; }
+		[[nodiscard]] int getSize() const { return parameters.size; }
+		[[nodiscard]] int getCurrentGeneration() const { return parameters.currentGeneration; }
+		[[nodiscard]] int getNumGenerations() const { return parameters.numGenerations; }
+		[[nodiscard]] bool isInitialized() const { return !solutions.empty(); }
 
-		void setSize(int size) { parameters.size = size; }
-		void setNumGenerations(int numGenerations) { parameters.numGenerations = numGenerations; }
+		void setSize(const int size) { parameters.size = size; }
+		void setNumGenerations(const int numGenerations) { parameters.numGenerations = numGenerations; }
 
 		void pause() { control.pause = true; }
 		void resume() { control.pause = false; }
@@ -87,7 +101,7 @@ namespace neat_dnfs
 
 		void assignToSpecies(const SolutionPtr& solution);
 		std::shared_ptr<Species> findSpecies(const SolutionPtr& solution);
-		std::shared_ptr<Species> getBestActiveSpecies() const;
+		[[nodiscard]] std::shared_ptr<Species> getBestActiveSpecies() const;
 
 		void calculateAdjustedFitness();
 		void assignOffspringToSpecies();
@@ -104,6 +118,7 @@ namespace neat_dnfs
 
 		void upkeepBestSolution();
 		void upkeepChampions();
+		void upkeepPerGenerationStatistics();
 		void updateGenerationAndAges();
 		void validateElitism() const;
 		void validateUniqueSolutions() const;

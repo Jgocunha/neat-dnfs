@@ -119,6 +119,7 @@ namespace neat_dnfs
 	{
 		upkeepBestSolution();
 		upkeepChampions();
+		upkeepPerGenerationStatistics();
 
 		if (PopulationConstants::logSolutions)
 			logSolutions();
@@ -182,6 +183,61 @@ namespace neat_dnfs
 		for (const auto& species : speciesList)
 			champions.emplace_back(species->getChampion());
 	}
+
+	void Population::upkeepPerGenerationStatistics()
+	{
+		// average fitness
+		perGenStatistics.averageFitness = 0.0f;
+		for (const auto& solution : solutions)
+			perGenStatistics.averageFitness += solution->getFitness();
+		perGenStatistics.averageFitness /= solutions.size();
+
+		// best fitness
+		perGenStatistics.bestFitness = bestSolution->getFitness();
+
+		// number of species
+		perGenStatistics.numberOfSpecies = speciesList.size();
+
+		// number of active species
+		perGenStatistics.numberOfActiveSpecies = 0;
+		for (const auto& species : speciesList)
+		{
+			if (species->isExtinct())
+				continue;
+			perGenStatistics.numberOfActiveSpecies++;
+		}
+
+		// average compatibility distance
+		// to do
+
+		// innovation number
+		for (const auto& solution : solutions)
+		{
+			auto solutionInnovs = solution->getGenome().getInnovationNumbers();
+			for (const auto& solutionInnov : solutionInnovs)
+				if (solutionInnov > perGenStatistics.innovationNumber)
+					perGenStatistics.innovationNumber = solutionInnov;
+		}
+
+		// average genome size
+		perGenStatistics.averageGenomeSize = 0.0f;
+		for (const auto& solution : solutions)
+			perGenStatistics.averageGenomeSize += solution->getGenomeSize();
+		perGenStatistics.averageGenomeSize /= solutions.size();
+
+		// average connection genes
+		perGenStatistics.averageConnectionGenes = 0.0f;
+		for (const auto& solution : solutions)
+			perGenStatistics.averageConnectionGenes += solution->getNumConnectionGenes();
+		perGenStatistics.averageConnectionGenes /= solutions.size();
+
+		// average field genes
+		perGenStatistics.averageFieldGenes = 0.0f;
+		for (const auto& solution : solutions)
+			perGenStatistics.averageFieldGenes += solution->getNumFieldGenes();
+		perGenStatistics.averageFieldGenes /= solutions.size();
+	}
+
 
 	void Population::updateGenerationAndAges()
 	{
@@ -756,7 +812,7 @@ namespace neat_dnfs
 		log(tools::logger::LogLevel::INFO, result);
 	}
 
-	void Population::saveAllSolutionsWithFitnessAbove(double fitness) const
+	void Population::saveAllSolutionsWithFitnessAbove(const double fitness) const
 	{
 		using namespace dnf_composer;
 
@@ -874,27 +930,7 @@ namespace neat_dnfs
 		const std::string directoryPath = fileDirectory + "statistics/";
 		std::filesystem::create_directories(directoryPath); // Ensure directory exists
 
-		for (const auto& solution : solutions)
-		{
-			const Genome genome = solution->getGenome();
-			const GenomeStatistics gs = genome.getStatistics();
-			gs.saveTotal(directoryPath);
-			const auto fieldGenes = genome.getFieldGenes();
-			for (const auto& fieldGene : fieldGenes)
-			{
-				const auto fgs = fieldGene.getStatistics();
-				fgs.saveTotal(directoryPath);
-				break;
-			}
-			const auto connectionGenes = genome.getConnectionGenes();
-			for (const auto& connectionGene : connectionGenes)
-			{
-				const auto cgs = connectionGene.getStatistics();
-				cgs.saveTotal(directoryPath);
-				break;
-			}
-			break;
-		}
+		// look here
 	}
 
 	void Population::savePerGenerationStatistics() const
@@ -902,23 +938,21 @@ namespace neat_dnfs
 		const std::string directoryPath = fileDirectory + "statistics/";
 		std::filesystem::create_directories(directoryPath); // Ensure directory exists
 
-		// count active species
-		int numActiveSpecies = 0;
-		for (const auto& species : speciesList)
-		{
-			if (species->isExtinct())
-				continue;
-			numActiveSpecies++;
-		}
-
 		std::ofstream logFile(directoryPath + "per_generation_overview.txt", std::ios::app);
 		if (logFile.is_open())
 		{
 			logFile << "Current generation: " + std::to_string(parameters.currentGeneration);
 			logFile << " Number of solutions: " + std::to_string(solutions.size());
-			logFile << " Number of active species: " + std::to_string(numActiveSpecies);
+			logFile << " Number of species: " + std::to_string(perGenStatistics.numberOfSpecies);
+			logFile << " Number of active species: " + std::to_string(perGenStatistics.numberOfActiveSpecies);
 			logFile << " Has fitness improved: " << (hasFitnessImproved ? "yes" : "no");
 			logFile << " Number of generations without improvement: " + std::to_string(generationsWithoutImprovement);
+			logFile << " Average fitness: " + std::to_string(perGenStatistics.averageFitness);
+			logFile << " Best fitness: " + std::to_string(perGenStatistics.bestFitness);
+			logFile << " Innovation number: " + std::to_string(perGenStatistics.innovationNumber);
+			logFile << " Average genome size: " + std::to_string(perGenStatistics.averageGenomeSize);
+			logFile << " Average connection genes: " + std::to_string(perGenStatistics.averageConnectionGenes);
+			logFile << " Average field genes: " + std::to_string(perGenStatistics.averageFieldGenes);
 			logFile << " Best solution: [" + bestSolution->toString() + "]";
 			logFile << "\n";
 			logFile.close();
@@ -930,27 +964,7 @@ namespace neat_dnfs
 
 
 		// save genome and connection gene per generation statistics
-		for (const auto& solution : solutions)
-		{
-			const Genome genome = solution->getGenome();
-			const GenomeStatistics gs = genome.getStatistics();
-			gs.savePerGeneration(directoryPath);
-			const auto fieldGenes = genome.getFieldGenes();
-			for (const auto& fieldGene : fieldGenes)
-			{
-				const auto fgs = fieldGene.getStatistics();
-				fgs.savePerGeneration(directoryPath);
-				break;
-			}
-			const auto connectionGenes = genome.getConnectionGenes();
-			for (const auto& connectionGene : connectionGenes)
-			{
-				const auto cgs = connectionGene.getStatistics();
-				cgs.savePerGeneration(directoryPath);
-				break;
-			}
-			break;
-		}
+		// look here
 	}
 
 	void Population::saveBestSolutionOfEachGeneration() const
@@ -1048,47 +1062,25 @@ namespace neat_dnfs
 
 	void Population::logOverview() const
 	{
-		// count active species
-		int numActiveSpecies = 0;
-		for (const auto& species : speciesList)
-		{
-			if (species->isExtinct())
-				continue;
-			numActiveSpecies++;
-		}
-
 		tools::logger::log(tools::logger::INFO,
 			"Current generation: " + std::to_string(parameters.currentGeneration) +
 			" Number of solutions: " + std::to_string(solutions.size()) +
-			" Number of active species: " + std::to_string(numActiveSpecies) +
+			" Number of species: " + std::to_string(perGenStatistics.numberOfSpecies) +
+			" Number of active species: " + std::to_string(perGenStatistics.numberOfActiveSpecies) +
 			" Has fitness improved: " + (hasFitnessImproved ? "yes" : "no") +
 			" Number of generations without improvement: " + std::to_string(generationsWithoutImprovement) +
+			" Average fitness: " + std::to_string(perGenStatistics.averageFitness) +
+			" Best fitness: " + std::to_string(perGenStatistics.bestFitness) +
+			" Innovation number: " + std::to_string(perGenStatistics.innovationNumber) +
+			" Average genome size: " + std::to_string(perGenStatistics.averageGenomeSize) +
+			" Average connection genes: " + std::to_string(perGenStatistics.averageConnectionGenes) +
+			" Average field genes: " + std::to_string(perGenStatistics.averageFieldGenes) +
 			" Best solution: [" + bestSolution->toString() + "]");
 	}
 
 	void Population::logMutationStatistics() const
 	{
-		for (const auto& solution : solutions)
-		{
-			const Genome genome = solution->getGenome();
-			const GenomeStatistics gs = genome.getStatistics();
-			gs.print();
-			const auto fieldGenes = genome.getFieldGenes();
-			for (const auto& fieldGene : fieldGenes)
-			{
-				const auto fgs = fieldGene.getStatistics();
-				fgs.print();
-				break;
-			}
-			const auto connectionGenes = genome.getConnectionGenes();
-			for (const auto& connectionGene : connectionGenes)
-			{
-				const auto cgs = connectionGene.getStatistics();
-				cgs.print();
-				break;
-			}
-			break;
-		}
+		// look here
 	}
 
 	void Population::startKeyListenerForUserCommands()

@@ -99,6 +99,7 @@ namespace neat_dnfs
 		double getFitness() const;
 		size_t getGenomeSize() const;
 		size_t getNumFieldGenes() const { return genome.getFieldGenes().size(); }
+		size_t getNumConnectionGenes() const { return genome.getConnectionGenes().size(); }
 		std::vector<int> getInnovationNumbers() const;
 		int getId() const { return id; }
 		static void clearGenerationalInnovations();

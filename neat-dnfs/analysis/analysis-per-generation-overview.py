@@ -360,14 +360,14 @@ def main():
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Single bump (self-sustained)/"
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Logic AND/"
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Selective output/"
-    root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Action simulation/"
+    #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Action simulation/"
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Action execution/"   
-    #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/XOR/"
+    root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/XOR/"
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Select the object/"   
 
 
     # Fitness threshold to consider a run successful
-    fitness_threshold = 0.85  # Adjust based on your specific requirements
+    fitness_threshold = 0.82  # Adjust based on your specific requirements
     
     # Output directory for plots
     output_dir = None  # Set to a path to save plots, or None to display

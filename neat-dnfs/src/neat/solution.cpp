@@ -482,11 +482,6 @@ namespace neat_dnfs
 		genome = Genome();
 	}
 
-	void Solution::resetMutationStatisticsPerGeneration()
-	{
-		Genome::resetMutationStatisticsPerGeneration();
-	}
-
 	void Solution::resetUniqueIdentifier()
 	{
 		uniqueIdentifierCounter = 0;
@@ -642,14 +637,13 @@ namespace neat_dnfs
 
 	std::string Solution::toString() const
 	{
-		// solution id [ age, fit. spec., adj. fit., Parents, Genome, Mutation]
-
+		// solution id [ age, fit. spec., adj. fit., Parents, Genome, Mutations]
 		std::string result = "solution " + std::to_string(id);
 		result += " [" + parameters.toString() + ", ";
 		result += "parents (" + std::to_string(std::get<0>(parents)) + ", " + std::to_string(std::get<1>(parents)) + "), ";
 		result += genome.toString();
-		result += ", mutation(" + genome.getLastMutationType();
-		result += ")]";
+		result += ", last mutations{" + genome.getMutationsInLastGeneration();
+		result += "}]";
 		return result;
 	}
 

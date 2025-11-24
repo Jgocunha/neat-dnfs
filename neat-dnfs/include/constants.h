@@ -12,8 +12,8 @@ namespace neat_dnfs
 	struct SimulationConstants
 	{
 		inline static std::string name				= "solution ";
-		static constexpr double deltaT				= 25;
-		static constexpr size_t maxSimulationSteps	= 2500;
+		static constexpr double deltaT				= 10;
+		static constexpr size_t maxSimulationSteps	= 1000;
 	};
 
 	struct DimensionConstants
@@ -25,7 +25,7 @@ namespace neat_dnfs
 	struct NoiseConstants
 	{
 		inline static std::string namePrefix	= "nn ";
-		static constexpr double amplitude		= 0.15;
+		static constexpr double amplitude		= 0.05;
 	};
 
 	struct GaussStimulusConstants
@@ -41,12 +41,12 @@ namespace neat_dnfs
 	{
 		inline static std::string namePrefix		= "nf ";
 		static constexpr double stabilityThreshold	= 0.9;
-		static constexpr double tau					= 200;
+		static constexpr double tau					= 25;
 		static constexpr double restingLevel		= -5;
-		inline static dnf_composer::element::HeavisideFunction activationFunction{ 0.0 };
+		inline static dnf_composer::element::SigmoidFunction activationFunction{0.0f, 5.0f};
 
-		static constexpr double tauMinVal			= 220.0;
-		static constexpr double tauMaxVal			= 300.0;
+		static constexpr double tauMinVal			= 10.0;
+		static constexpr double tauMaxVal			= 100.0;
 		static constexpr double tauStep				= 5.0;
 
 		static constexpr double restingLevelMinVal	= -20.0;
@@ -65,8 +65,8 @@ namespace neat_dnfs
 		inline static std::string namePrefix				= "gk ";
 		inline static std::string namePrefixConnectionGene	= "gk cg ";
 
-		static constexpr double width			= 6;
-		static constexpr double amplitude		= 10;
+		static constexpr double width			= 5;
+		static constexpr double amplitude		= 6;
 		static constexpr double amplitudeGlobal = -0.01;
 
 		static constexpr double widthMinVal		= 1.0; //3 // 3 // 1
@@ -74,10 +74,10 @@ namespace neat_dnfs
 		static constexpr double widthStep		= 0.5; // 0.5 // 1
 
 		static constexpr double ampMinVal		= 3.0; // 0.5 // 1
-		static constexpr double ampMaxVal		= 30.0; // 10.0 // 8.0 // 80
+		static constexpr double ampMaxVal		= 20.0; // 10.0 // 8.0 // 80
 		static constexpr double ampStep			= 0.5; // 0.5 // 1
 
-		static constexpr double ampGlobalMinVal = -1.0; // -0.5 // -5
+		static constexpr double ampGlobalMinVal = -0.5; // -0.5 // -5
 		static constexpr double ampGlobalMaxVal = 0.0; // -0.01 // 0
 		static constexpr double ampGlobalStep	= 0.1; // 0.01	 // 0.05
 	};
@@ -109,7 +109,7 @@ namespace neat_dnfs
 		static constexpr double ampInhMaxVal	= 35.0; // 30.0 // 60
 		static constexpr double ampInhStep		= 0.5; // 0.5
 
-		static constexpr double ampGlobMin	= -1.0; // -0.5 // -5
+		static constexpr double ampGlobMin	= -0.5; // -0.5 // -5
 		static constexpr double ampGlobMax	= 0.0; // -0.01
 		static constexpr double ampGlobStep = 0.1; // 0.01
 	};
@@ -143,7 +143,7 @@ namespace neat_dnfs
 
 	struct CompatibilityCoefficients
 	{
-		static constexpr double compatibilityThreshold							= 5.0;
+		static constexpr double compatibilityThreshold							= 1.5;
 		static constexpr double excessGenesCompatibilityWeight					= 1.0;
 		static constexpr double disjointGenesCompatibilityWeight				= 0.5;
 		static constexpr double averageConnectionDifferenceCompatibilityWeight	= 1.0; //0.5
@@ -157,7 +157,7 @@ namespace neat_dnfs
 		// genome mutation probabilities (sum does not have to be 1.0)
 		// structural mutations
 		static constexpr double toggleConnectionGeneProbability = 0.01;
-		static constexpr double addFieldGeneProbability			= 0.0005;
+		static constexpr double addFieldGeneProbability			= 0.005;
 		static constexpr double addConnectionGeneProbability	= 0.25;
 		// parametrical mutations
 		static constexpr double mutateFieldGenesProbability		= 0.35;
@@ -174,8 +174,8 @@ namespace neat_dnfs
 		static constexpr bool variableParameters = true;
 
 		// (sum must be 1.0)
-		static constexpr double gaussKernelProbability			= 0.5;
-		static constexpr double mexicanHatKernelProbability		= 0.5;
+		static constexpr double gaussKernelProbability			= 0.8;
+		static constexpr double mexicanHatKernelProbability		= 0.2;
 
 		// field gene mutation probabilities (sum must be 1.0)
 		static constexpr double mutateFielGeneKernelProbability			= 0.70;
@@ -205,24 +205,24 @@ namespace neat_dnfs
 		static constexpr int allowInhibitoryConnections = true;
 
 		// connection gene kernel type probability (sum must be 1.0)
-		static constexpr double gaussKernelProbability			= 0.5;
-		static constexpr double mexicanHatKernelProbability		= 0.5;
+		static constexpr double gaussKernelProbability			= 0.9;
+		static constexpr double mexicanHatKernelProbability		= 0.1;
 
 		// connection gene mutation probabilities (sum must be 1.0)
 		static constexpr double mutateConnectionGeneKernelProbability			= 0.70;
-		static constexpr double mutateConnectionGeneKernelTypeProbability		= 0.10;
-		static constexpr double mutateConnectionGeneConnectionSignalProbability = 0.20;
+		static constexpr double mutateConnectionGeneKernelTypeProbability		= 0.05;
+		static constexpr double mutateConnectionGeneConnectionSignalProbability = 0.25;
 
 		// field gene gauss kernel mutation probabilities (sum does not have to be 1.0)
 		static constexpr double mutateConnectionGeneGaussKernelAmplitudeProbability			= 0.80;
 		static constexpr double mutateConnectionGeneGaussKernelWidthProbability				= 0.60;
-		static constexpr double mutateConnectionGeneGaussKernelGlobalAmplitudeProbability	= 0.01;
+		static constexpr double mutateConnectionGeneGaussKernelGlobalAmplitudeProbability	= 0.10;
 		// field gene mexican hat kernel mutation probabilities (sum does not have to be 1.0)
 		static constexpr double mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability		= 0.80;
 		static constexpr double mutateConnectionGeneMexicanHatKernelAmplitudeInhProbability		= 0.80;
 		static constexpr double mutateConnectionGeneMexicanHatKernelWidthExcProbability			= 0.60;
 		static constexpr double mutateConnectionGeneMexicanHatKernelWidthInhProbability			= 0.60;
-		static constexpr double mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability	= 0.01;
+		static constexpr double mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability	= 0.10;
 	};
 
 	struct SolutionConstants

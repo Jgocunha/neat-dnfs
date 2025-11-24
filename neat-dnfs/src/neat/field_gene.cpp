@@ -2,9 +2,7 @@
 
 namespace neat_dnfs
 {
-	FieldGeneStatistics FieldGene::statistics;
-
-	FieldGeneParameters::FieldGeneParameters(FieldGeneType type, int id)
+	FieldGeneParameters::FieldGeneParameters(const FieldGeneType type, const int id)
 		: type(type), id(id)
 	{}
 
@@ -34,79 +32,6 @@ namespace neat_dnfs
 	void FieldGeneParameters::print() const
 	{
 		tools::logger::log(tools::logger::INFO, toString());
-	}
-
-	void FieldGeneStatistics::resetPerGenerationStatistics()
-	{
-		numNeuralFieldMutationsPerGeneration = 0;
-		numKernelMutationsPerGeneration = 0;
-		numKernelTypeMutationsPerGeneration = 0;
-		numGaussKernelMutationsPerGeneration = 0;
-		numMexicanHatKernelMutationsPerGeneration = 0;
-		numOscillatoryKernelMutationsPerGeneration = 0;
-	}
-
-	std::string FieldGeneStatistics::toString() const
-	{
-		std::string result = "FieldGeneStatistics: {";
-		result += "Kernel mutations per generation: " + std::to_string(numKernelMutationsPerGeneration);
-		result += ", Kernel type mutations per generation: " + std::to_string(numKernelTypeMutationsPerGeneration);
-		result += ", Gauss kernel mutations per generation: " + std::to_string(numGaussKernelMutationsPerGeneration);
-		result += ", Mexican hat kernel mutations per generation: " + std::to_string(numMexicanHatKernelMutationsPerGeneration);
-		result += ", Oscillatory kernel mutations per generation: " + std::to_string(numOscillatoryKernelMutationsPerGeneration);
-		result += ", Neural field mutations per generation: " + std::to_string(numNeuralFieldMutationsPerGeneration);
-		result += ", Total kernel mutations: " + std::to_string(numKernelMutationsTotal);
-		result += ", Total kernel type mutations: " + std::to_string(numKernelTypeMutationsTotal);
-		result += ", Total Gauss kernel mutations: " + std::to_string(numGaussKernelMutationsTotal);
-		result += ", Total Mexican hat kernel mutations: " + std::to_string(numMexicanHatKernelMutationsTotal);
-		result += ", Total Oscillatory kernel mutations: " + std::to_string(numOscillatoryKernelMutationsTotal);
-		result += ", Total neural field mutations: " + std::to_string(numNeuralFieldMutationsTotal);
-		result += " }";
-		return result;
-	}
-
-	void FieldGeneStatistics::print() const
-	{
-		tools::logger::log(tools::logger::INFO, toString());
-	}
-
-	void FieldGeneStatistics::savePerGeneration(const std::string& directory) const
-	{
-		std::ofstream logFile(directory + "field_gene_statistics_per_generation.txt", std::ios::app);
-		if (logFile.is_open())
-		{
-			logFile << "Kernel mutations per generation: " + std::to_string(numKernelMutationsPerGeneration);
-			logFile << ", Kernel type mutations per generation: " + std::to_string(numKernelTypeMutationsPerGeneration);
-			logFile << ", Gauss kernel mutations per generation: " + std::to_string(numGaussKernelMutationsPerGeneration);
-			logFile << ", Mexican hat kernel mutations per generation: " + std::to_string(numMexicanHatKernelMutationsPerGeneration);
-			logFile << ", Oscillatory kernel mutations per generation: " + std::to_string(numOscillatoryKernelMutationsPerGeneration);
-			logFile << ", Neural field mutations per generation: " + std::to_string(numNeuralFieldMutationsPerGeneration);
-			logFile << "\n";
-			logFile.close();
-		}
-		else
-		{
-			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for field gene per generation statistics.");
-		}
-	}
-
-	void FieldGeneStatistics::saveTotal(const std::string& directory) const
-	{
-		std::ofstream logFile(directory + "field_gene_statistics_total.txt", std::ios::app);
-		if (logFile.is_open())
-		{
-			logFile << ", Total kernel mutations: " + std::to_string(numKernelMutationsTotal);
-			logFile << ", Total kernel type mutations: " + std::to_string(numKernelTypeMutationsTotal);
-			logFile << ", Total Gauss kernel mutations: " + std::to_string(numGaussKernelMutationsTotal);
-			logFile << ", Total Mexican hat kernel mutations: " + std::to_string(numMexicanHatKernelMutationsTotal);
-			logFile << ", Total Oscillatory kernel mutations: " + std::to_string(numOscillatoryKernelMutationsTotal);
-			logFile << ", Total neural field mutations: " + std::to_string(numNeuralFieldMutationsTotal);
-			logFile.close();
-		}
-		else
-		{
-			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for field gene total statistics.");
-		}
 	}
 
 	FieldGene::FieldGene(const FieldGeneParameters& parameters, const dnf_composer::element::ElementDimensions& dimensions)
@@ -232,6 +157,11 @@ namespace neat_dnfs
 		return parameters;
 	}
 
+	std::string FieldGene::getMutationsInLastGeneration() const
+	{
+		return mutationsInLastGeneration;
+	}
+
 	NeuralFieldPtr FieldGene::getNeuralField() const
 	{
 		return neuralField;
@@ -245,16 +175,6 @@ namespace neat_dnfs
 	std::shared_ptr<dnf_composer::element::NormalNoise> FieldGene::getNoise() const
 	{
 		return noise;
-	}
-
-	void FieldGene::resetMutationStatisticsPerGeneration()
-	{
-		statistics.resetPerGenerationStatistics();
-	}
-
-	FieldGeneStatistics FieldGene::getStatistics()
-	{
-		return statistics;
 	}
 
 	bool FieldGene::operator==(const FieldGene& other) const
@@ -276,14 +196,6 @@ namespace neat_dnfs
 		std::string result = "fg (";
 		result += parameters.toString();
 		result += ")";
-
-		//result += " nf: [";
-		//result += neuralField->toString();
-		//result += "] k: [";
-		//result += kernel->toString();
-		//result += "] n: [";
-		//result += noise->toString();
-		//result += "]";
 		return result;
 	}
 
@@ -420,7 +332,7 @@ namespace neat_dnfs
 		noise = std::make_shared<NormalNoise>(nncp, nnp);
 	}
 
-	void FieldGene::mutateKernel() const
+	void FieldGene::mutateKernel()
 	{
 		switch (kernel->getLabel())
 		{
@@ -434,11 +346,9 @@ namespace neat_dnfs
 			tools::logger::log(tools::logger::FATAL, "FieldGene::mutate() - Kernel type not recognized.");
 			throw std::runtime_error("FieldGene::mutate() - Kernel type not recognized.");
 		}
-		statistics.numKernelMutationsPerGeneration++;
-		statistics.numKernelMutationsTotal++;
 	}
 
-	void FieldGene::mutateGaussKernel() const
+	void FieldGene::mutateGaussKernel()
 	{
 		using namespace dnf_composer::element;
 		using namespace neat_dnfs::tools::utils;
@@ -453,6 +363,7 @@ namespace neat_dnfs
 			gkp.width = std::clamp(gkp.width + GaussKernelConstants::widthStep * signal,
 								GaussKernelConstants::widthMinVal,
 								GaussKernelConstants::widthMaxVal);
+			mutationsInLastGeneration += "(fg gk width)";
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneGaussKernelAmplitudeProbability)
@@ -460,6 +371,7 @@ namespace neat_dnfs
 			gkp.amplitude = std::clamp(gkp.amplitude + GaussKernelConstants::ampStep * signal,
 								GaussKernelConstants::ampMinVal,
 								GaussKernelConstants::ampMaxVal);
+			mutationsInLastGeneration += "(fg gk amp.)";
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneGaussKernelGlobalAmplitudeProbability)
@@ -467,14 +379,13 @@ namespace neat_dnfs
 			gkp.amplitudeGlobal = std::clamp(gkp.amplitudeGlobal + GaussKernelConstants::ampStep * signal,
 								GaussKernelConstants::ampGlobalMinVal,
 								GaussKernelConstants::ampGlobalMaxVal);
+			mutationsInLastGeneration += "(fg gk amp. glob.)";
 		}
 		std::dynamic_pointer_cast<GaussKernel>(kernel)->setParameters(gkp);
 
-		statistics.numGaussKernelMutationsPerGeneration++;
-		statistics.numGaussKernelMutationsTotal++;
 	}
 
-	void FieldGene::mutateMexicanHatKernel() const
+	void FieldGene::mutateMexicanHatKernel()
 	{
 		using namespace dnf_composer::element;
 		using namespace neat_dnfs::tools::utils;
@@ -489,6 +400,7 @@ namespace neat_dnfs
 			mhkp.amplitudeExc = std::clamp(mhkp.amplitudeExc + MexicanHatKernelConstants::ampExcStep * signal,
 								MexicanHatKernelConstants::ampExcMinVal,
 								MexicanHatKernelConstants::ampExcMaxVal);
+			mutationsInLastGeneration += "(fg mhk amp. exc.)";
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthExcProbability)
@@ -496,6 +408,7 @@ namespace neat_dnfs
 			mhkp.widthExc = std::clamp(mhkp.widthExc + MexicanHatKernelConstants::widthExcStep * signal,
 												MexicanHatKernelConstants::widthExcMinVal,
 												MexicanHatKernelConstants::widthExcMaxVal);
+			mutationsInLastGeneration += "(fg mhk width exc.)";
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeInhProbability)
@@ -503,6 +416,7 @@ namespace neat_dnfs
 			mhkp.amplitudeInh = std::clamp(mhkp.amplitudeInh + MexicanHatKernelConstants::ampInhStep * signal,
 																MexicanHatKernelConstants::ampInhMinVal,
 																MexicanHatKernelConstants::ampInhMaxVal);
+			mutationsInLastGeneration += "(fg mhk amp. inh.)";
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthInhProbability)
@@ -510,6 +424,7 @@ namespace neat_dnfs
 			mhkp.widthInh = std::clamp(mhkp.widthInh + MexicanHatKernelConstants::widthInhStep * signal,
 															MexicanHatKernelConstants::widthInhMinVal,
 															MexicanHatKernelConstants::widthInhMaxVal);
+			mutationsInLastGeneration += "(fg mhk width inh.)";
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability)
@@ -517,10 +432,9 @@ namespace neat_dnfs
 			mhkp.amplitudeGlobal = std::clamp(mhkp.amplitudeGlobal + MexicanHatKernelConstants::ampGlobStep * signal,
 															MexicanHatKernelConstants::ampGlobMin,
 															MexicanHatKernelConstants::ampGlobMax);
+			mutationsInLastGeneration += "(fg mhk amp. glob.)";
 		}
 		std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->setParameters(mhkp);
-		statistics.numMexicanHatKernelMutationsPerGeneration++;
-		statistics.numMexicanHatKernelMutationsTotal++;
 	}
 
 	void FieldGene::mutateKernelType()
@@ -542,13 +456,13 @@ namespace neat_dnfs
 		if (randomValue < FieldGeneConstants::gaussKernelProbability)
 		{
 			initializeGaussKernel(dimensions);
+			mutationsInLastGeneration += "(fg kernel mhk to gk)";
 		}
 		else if (randomValue < FieldGeneConstants::gaussKernelProbability + FieldGeneConstants::mexicanHatKernelProbability)
 		{
 			initializeMexicanHatKernel(dimensions);
+			mutationsInLastGeneration += "(fg kernel gk to mhk)";
 		}
-		statistics.numKernelTypeMutationsPerGeneration++;
-		statistics.numKernelTypeMutationsTotal++;
 	}
 
 	void FieldGene::mutateNeuralField()
@@ -574,6 +488,7 @@ namespace neat_dnfs
 													NeuralFieldConstants::tauMinVal,
 													NeuralFieldConstants::tauMaxVal);
 				neuralField->setParameters(nfp);
+				mutationsInLastGeneration += "(fg nf tau)";
 			}
 
 			if (tools::utils::generateRandomDouble(0.0, 1.0) <
@@ -584,14 +499,14 @@ namespace neat_dnfs
 													NeuralFieldConstants::restingLevelMinVal,
 													NeuralFieldConstants::restingLevelMaxVal);
 				neuralField->setParameters(nfp);
+				mutationsInLastGeneration += "(fg nf rest. lvl.)";
 			}
 		}
 		else
 		{
 			dnf_composer::element::ElementCommonParameters nfcp = neuralField->getElementCommonParameters();
 			initializeNeuralField(nfcp.dimensionParameters);
+			mutationsInLastGeneration += "(fg nf rand.)";
 		}
-		statistics.numNeuralFieldMutationsPerGeneration++;
-		statistics.numNeuralFieldMutationsTotal++;
 	}
 }

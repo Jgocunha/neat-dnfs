@@ -36,37 +36,12 @@ namespace neat_dnfs
 		void print() const;
 	};
 
-	struct ConnectionGeneStatistics
-	{
-		int numKernelMutationsPerGeneration = 0;
-		int numKernelTypeMutationsPerGeneration = 0;
-		int numGaussKernelMutationsPerGeneration = 0;
-		int numMexicanHatKernelMutationsPerGeneration = 0;
-		int numOscillatoryKernelMutationsPerGeneration = 0;
-		int numConnectionSignalMutationsPerGeneration = 0;
-
-		int numKernelMutationsTotal = 0;
-		int numKernelTypeMutationsTotal = 0;
-		int numGaussKernelMutationsTotal = 0;
-		int numMexicanHatKernelMutationsTotal = 0;
-		int numOscillatoryKernelMutationsTotal = 0;
-		int numConnectionSignalMutationsTotal = 0;
-
-		ConnectionGeneStatistics() = default;
-		void resetPerGenerationStatistics();
-		std::string toString() const;
-		void print() const;
-		void savePerGeneration(const std::string& directory) const;
-		void saveTotal(const std::string& directory) const;
-	};
-
-
 	class ConnectionGene
 	{
 	private:
 		ConnectionGeneParameters parameters;
-		static ConnectionGeneStatistics statistics;
 		KernelPtr kernel;
+		std::string mutationsInLastGeneration;
 	public:
 		ConnectionGene(ConnectionTuple connectionTuple, int innov);
 
@@ -95,32 +70,29 @@ namespace neat_dnfs
 		void setInnovationNumber(int innovationNumber);
 
 		ConnectionGeneParameters getParameters() const;
+		std::string getMutationsInLastGeneration() const;
 		KernelPtr getKernel() const;
 		int getInnovationNumber() const;
 		int getInFieldGeneId() const;
 		int getOutFieldGeneId() const;
 		double getKernelAmplitude() const;
 		double getKernelWidth() const;
-		static void resetMutationStatisticsPerGeneration();
-		static ConnectionGeneStatistics getStatistics();
 
 		bool operator==(const ConnectionGene&) const;
 		bool isCloneOf(const ConnectionGene&) const;
 		std::string toString() const;
 		void print() const;
 		ConnectionGene clone() const;
-
 	private:
 		void initializeKernel(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeGaussKernel(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeMexicanHatKernel(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeOscillatoryKernel(const dnf_composer::element::ElementDimensions& dimensions);
 
-		void mutateKernel() const;
+		void mutateKernel();
 		void mutateKernelType();
-		void mutateGaussKernel() const;
-		void mutateMexicanHatKernel() const;
-		void mutateOscillatoryKernel() const;
-		void mutateConnectionSignal() const;
+		void mutateGaussKernel() ;
+		void mutateMexicanHatKernel();
+		void mutateConnectionSignal();
 	};
 }
