@@ -28,6 +28,7 @@
 		using namespace neat_dnfs;
 
 
+		// load a previous solution
 		//const std::shared_ptr<dnf_composer::Simulation> previous_solution = std::make_shared<dnf_composer::Simulation>();
 		//const dnf_composer::SimulationFileManager sfm(previous_solution, std::string(PROJECT_DIR) + "/solution 36074 generation 182 species 300 fitness 0.924742.json");
 		//sfm.loadElementsFromJson();
@@ -42,13 +43,17 @@
 				//{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 			}
 			},
-			//template_solution
+			//template_solution // load a previous solution
 		};
 
+		constexpr size_t number_runs		= 100;
+		constexpr size_t population_size	= 100;
+		constexpr size_t number_generations = 100;
+		constexpr double target_fitness		= 0.99;
 
-		for (int i = 0; i < 100; i++)
+		for (int i = 0; i < number_runs; i++)
 		{
-			const PopulationParameters parameters{ 100, 100, 0.99 };
+			const PopulationParameters parameters{ population_size, number_generations, target_fitness };
 			Population population{ parameters, std::make_unique<SingleBumpSolution>(solution) };
 
 			population.initialize();
