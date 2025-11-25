@@ -45,6 +45,7 @@ namespace neat_dnfs
 		void setAsHidden(const dnf_composer::element::ElementDimensions& dimensions);
 
 		void mutate();
+		void clearLastMutations();
 
 		FieldGeneParameters getParameters() const;
 		std::string getMutationsInLastGeneration() const;

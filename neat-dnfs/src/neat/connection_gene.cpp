@@ -55,14 +55,14 @@ namespace neat_dnfs
 	}
 
 	ConnectionGene::ConnectionGene(const ConnectionTuple connectionTuple, const int innov)
-		: parameters(connectionTuple, innov), mutationsInLastGeneration("")
+		: parameters(connectionTuple, innov)
 	{
 		initializeKernel({ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 
 	ConnectionGene::ConnectionGene(const ConnectionTuple connectionTuple, const int innov,
 		const dnf_composer::element::GaussKernelParameters& gkp)
-		: parameters(connectionTuple, innov), mutationsInLastGeneration("")
+		: parameters(connectionTuple, innov)
 	{
 		using namespace dnf_composer::element;
 
@@ -77,7 +77,7 @@ namespace neat_dnfs
 
 	ConnectionGene::ConnectionGene(const ConnectionTuple connectionTuple, const int innov,
 		const dnf_composer::element::MexicanHatKernelParameters& mhkp)
-		: parameters(connectionTuple, innov), mutationsInLastGeneration("")
+		: parameters(connectionTuple, innov)
 	{
 		using namespace dnf_composer::element;
 
@@ -90,24 +90,9 @@ namespace neat_dnfs
 		kernel = std::make_unique<MexicanHatKernel>(mhkcp, mhkp);
 	}
 
-	ConnectionGene::ConnectionGene(const ConnectionTuple connectionTuple, const int innov,
-		const dnf_composer::element::OscillatoryKernelParameters& osckp)
-		: parameters(connectionTuple, innov), mutationsInLastGeneration("")
-	{
-		using namespace dnf_composer::element;
-
-		const std::string elementName = OscillatoryKernelConstants::namePrefixConnectionGene +
-			std::to_string(parameters.connectionTuple.inFieldGeneId) +
-			" - " + std::to_string(parameters.connectionTuple.outFieldGeneId) + " " +
-			std::to_string(parameters.innovationNumber);
-		const ElementCommonParameters osckcp{ elementName,
-			{DimensionConstants::xSize, DimensionConstants::dx} };
-		kernel = std::make_unique<OscillatoryKernel>(osckcp, osckp);
-	}
-
 	ConnectionGene::ConnectionGene(const ConnectionGeneParameters& parameters,
 		const dnf_composer::element::GaussKernelParameters& gkp)
-		: parameters(parameters), mutationsInLastGeneration("")
+		: parameters(parameters)
 	{
 		using namespace dnf_composer::element;
 
@@ -122,7 +107,7 @@ namespace neat_dnfs
 
 	ConnectionGene::ConnectionGene(const ConnectionGeneParameters& parameters,
 				const dnf_composer::element::MexicanHatKernelParameters& mhkp)
-		: parameters(parameters), mutationsInLastGeneration("")
+		: parameters(parameters)
 	{
 		using namespace dnf_composer::element;
 
@@ -135,23 +120,8 @@ namespace neat_dnfs
 		kernel = std::make_unique<MexicanHatKernel>(mhkcp, mhkp);
 	}
 
-	ConnectionGene::ConnectionGene(const ConnectionGeneParameters& parameters,
-						const dnf_composer::element::OscillatoryKernelParameters& osckp)
-		: parameters(parameters), mutationsInLastGeneration("")
-	{
-		using namespace dnf_composer::element;
-
-		const std::string elementName = OscillatoryKernelConstants::namePrefixConnectionGene +
-			std::to_string(parameters.connectionTuple.inFieldGeneId) +
-			" - " + std::to_string(parameters.connectionTuple.outFieldGeneId) + " " +
-			std::to_string(parameters.innovationNumber);
-		const ElementCommonParameters osckcp{ elementName,
-							{DimensionConstants::xSize, DimensionConstants::dx} };
-		kernel = std::make_unique<OscillatoryKernel>(osckcp, osckp);
-	}
-
 	ConnectionGene::ConnectionGene(const ConnectionTuple connectionTuple, const int innov, KernelPtr kernel)
-		: parameters(connectionTuple, innov), kernel(std::move(kernel)) , mutationsInLastGeneration("")
+		: parameters(connectionTuple, innov), kernel(std::move(kernel))
 	{
 		if (!kernel)
 			throw std::invalid_argument("Cannot create ConnectionGene with null kernel");
@@ -192,6 +162,11 @@ namespace neat_dnfs
 		{
 			mutateKernelType();
 		}
+	}
+
+	void ConnectionGene::clearLastMutations()
+	{
+		mutationsInLastGeneration = "";
 	}
 
 	void ConnectionGene::disable()
@@ -315,8 +290,6 @@ namespace neat_dnfs
 				return ConnectionGene{ parameters, std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters() };
 			case MEXICAN_HAT_KERNEL:
 				return ConnectionGene{ parameters, std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters() };
-			case OSCILLATORY_KERNEL:
-				return ConnectionGene{ parameters, std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->getParameters() };
 			default:
 				break;
 		}
@@ -340,13 +313,9 @@ namespace neat_dnfs
 		{
 			initializeGaussKernel(dimensions);
 		}
-		else if (randomValue < ConnectionGeneConstants::gaussKernelProbability + ConnectionGeneConstants::mexicanHatKernelProbability)
-		{
-			initializeMexicanHatKernel(dimensions);
-		}
 		else
 		{
-			initializeOscillatoryKernel(dimensions);
+			initializeMexicanHatKernel(dimensions);
 		}
 	}
 
@@ -396,27 +365,6 @@ namespace neat_dnfs
 			std::to_string(parameters.innovationNumber);
 		const ElementCommonParameters mhcp{ elementName, dimensions};
 		kernel = std::make_shared<MexicanHatKernel>(mhcp, mhkp);
-	}
-
-	void ConnectionGene::initializeOscillatoryKernel(const dnf_composer::element::ElementDimensions& dimensions)
-	{
-		using namespace dnf_composer::element;
-		using namespace neat_dnfs::tools::utils;
-
-		const int amplitude_sign = generateRandomSignal();
-		const double amplitude = amplitude_sign * generateRandomDouble(OscillatoryKernelConstants::amplitudeMinVal, OscillatoryKernelConstants::amplitudeMaxVal);
-		const double decay = generateRandomDouble(OscillatoryKernelConstants::decayMinVal, OscillatoryKernelConstants::decayMaxVal);
-		const double zeroCrossings = generateRandomDouble(OscillatoryKernelConstants::zeroCrossingsMinVal, OscillatoryKernelConstants::zeroCrossingsMaxVal);
-		constexpr double amplitudeGlobal = 0.0f;
-		const OscillatoryKernelParameters okp{ amplitude, decay, zeroCrossings, amplitudeGlobal,
-											KernelConstants::circularity,
-											KernelConstants::normalization
-		};
-		const std::string elementName = OscillatoryKernelConstants::namePrefixConnectionGene + std::to_string(parameters.connectionTuple.inFieldGeneId) +
-			" - " + std::to_string(parameters.connectionTuple.outFieldGeneId) + " " +
-			std::to_string(parameters.innovationNumber);
-		const ElementCommonParameters okcp{ elementName, dimensions};
-		kernel = std::make_shared<OscillatoryKernel>(okcp, okp);
 	}
 
 	void ConnectionGene::mutateKernel()
@@ -472,7 +420,7 @@ namespace neat_dnfs
 
 		const auto gaussKernel = std::dynamic_pointer_cast<GaussKernel>(kernel);
 		GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
-		const int amp_sign = gkp.amplitude < 0 ? -1 : 1; //look here
+		const int amp_sign = gkp.amplitude < 0 ? -1 : 1;
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneGaussKernelWidthProbability)
 		{
@@ -509,7 +457,7 @@ namespace neat_dnfs
 
 		const auto mexicanHatKernel = std::dynamic_pointer_cast<MexicanHatKernel>(kernel);
 		MexicanHatKernelParameters mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
-		const int amp_sign = mhkp.amplitudeExc < 0 ? -1 : 1; // look here
+		const int amp_sign = mhkp.amplitudeExc < 0 ? -1 : 1;
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability)
 		{
@@ -565,8 +513,8 @@ namespace neat_dnfs
 				GaussKernelParameters gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
 				gkp.amplitude = -gkp.amplitude;
 				gaussKernel->setParameters(gkp);
-				const bool amp_sign = gkp.amplitude < 0 ? 0 : 1; // look here
-				mutationsInLastGeneration += "(cg to" + (amp_sign ? "excitatory" : "inhibitory") + ")";
+				const bool amp_sign = gkp.amplitude >= 0;
+				mutationsInLastGeneration += std::string("(cg to ") + (amp_sign ? "excitatory" : "inhibitory") + ")";
 			}
 			break;
 		case MEXICAN_HAT_KERNEL:
@@ -575,8 +523,8 @@ namespace neat_dnfs
 				MexicanHatKernelParameters mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
 				mhkp.amplitudeExc = -mhkp.amplitudeExc;
 				mexicanHatKernel->setParameters(mhkp);
-				const bool amp_sign = mhkp.amplitudeExc < 0 ? 0 : 1; // look here
-				mutationsInLastGeneration += "(cg to" + (amp_sign ? "excitatory" : "inhibitory") + ")";
+				const bool amp_sign = mhkp.amplitudeExc >=0;
+				mutationsInLastGeneration += std::string("(cg to ") + (amp_sign ? "excitatory" : "inhibitory") + ")";
 			}
 			break;
 		default:

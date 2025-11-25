@@ -28,6 +28,7 @@ namespace neat_dnfs
 		void checkForDuplicateConnectionGenes() const;
 		static void clearGenerationalInnovations();
 		static void resetGlobalInnovationNumber();
+		void clearLastMutations();
 		void removeConnectionGene(int innov);
 
 		std::vector<FieldGene> getFieldGenes() const;

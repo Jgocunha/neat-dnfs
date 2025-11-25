@@ -39,6 +39,7 @@ namespace neat_dnfs
 	struct PerGenerationStatistics
 	{
 		double averageFitness = 0.0f;
+		// double stdDevFitness = 0.0f;
 		double bestFitness = 0.0f;
 		int numberOfSpecies = 0;
 		int numberOfActiveSpecies = 0;
@@ -95,7 +96,9 @@ namespace neat_dnfs
 
 		bool endConditionMet() const;
 
+		void startup();
 		void upkeep();
+		void cleanup();
 		void createInitialEmptySolutions(const SolutionPtr& initialSolution);
 		void buildInitialSolutionsGenome() const;
 
@@ -133,18 +136,19 @@ namespace neat_dnfs
 		void saveAllSolutionsWithFitnessAbove(double fitness) const;
 		void saveChampions() const;
 		void saveTimestampsAndDuration() const;
-		void saveFinalStatistics() const;
-		void savePerGenerationStatistics() const;
+		void saveAllSolutionsPerGeneration() const;
+		void savePerGenerationOverview() const;
 		void saveBestSolutionOfEachGeneration() const;
 		void saveChampionsOfEachGeneration() const;
+		void savePerGenerationStatistics() const;
+		void savePerGenerationSpecies() const;
 
 		void resetGenerationalInnovations() const;
-		void resetMutationStatisticsPerGeneration() const;
+		void clearLastMutations() const;
 
 		void logSolutions() const;
 		void logSpecies() const;
 		void logOverview() const;
-		void logMutationStatistics() const;
 
 		void startKeyListenerForUserCommands();
 	};

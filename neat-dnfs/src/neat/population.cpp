@@ -2,7 +2,7 @@
 
 namespace neat_dnfs
 {
-	PopulationParameters::PopulationParameters(int size, int numGenerations, double targetFitness)
+	PopulationParameters::PopulationParameters(const int size, const int numGenerations, const double targetFitness)
 		: size(size), currentGeneration(0), numGenerations(numGenerations), targetFitness(targetFitness)
 	{}
 
@@ -12,7 +12,6 @@ namespace neat_dnfs
 
 	Population::Population(const PopulationParameters& parameters, const SolutionPtr& initialSolution)
 		: parameters(parameters)
-	//, bestSolution(initialSolution->clone())
 	{
 		createInitialEmptySolutions(initialSolution);
 	}
@@ -34,38 +33,34 @@ namespace neat_dnfs
 		buildInitialSolutionsGenome();
 	}
 
-	void Population::evolve()
+	void Population::startup()
 	{
 		statistics.start = std::chrono::high_resolution_clock::now();
 		setFileDirectory();
 		startKeyListenerForUserCommands();
+	}
+
+	void Population::evolve()
+	{
+		startup();
 
 		do
 		{
 			evaluate();
 			speciate();
 			upkeep();
-			saveBestSolutionOfEachGeneration();
-			saveChampionsOfEachGeneration();
+
 			reproduceAndSelect();
 
 			while (control.pause)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				std::this_thread::sleep_for(std::chrono::milliseconds(300));
 				tools::logger::log(tools::logger::LogLevel::INFO, "Evolution paused.");
 			}
 
 		} while (!endConditionMet());
 
-		statistics.end = std::chrono::high_resolution_clock::now();
-		statistics.duration = std::chrono::duration_cast<std::chrono::seconds>(statistics.end - statistics.start).count();
-
-		saveAllSolutionsWithFitnessAbove(bestSolution->getFitness() - 0.1);
-		saveTimestampsAndDuration();
-		if (PopulationConstants::saveStatistics)
-			saveFinalStatistics();
-		if (PopulationConstants::saveChampions)
-			saveChampions();
+		cleanup();
 	}
 
 	void Population::evaluate() const
@@ -125,10 +120,8 @@ namespace neat_dnfs
 			logSolutions();
 		if (PopulationConstants::logOverview)
 			logOverview();
-		/*if (PopulationConstants::logSpecies)
-			logSpecies();*/
-		if (PopulationConstants::logMutationStatistics)
-			logMutationStatistics();
+		if (PopulationConstants::logSpecies)
+			logSpecies();
 
 		if (PopulationConstants::validatePopulationSize)
 			validatePopulationSize();
@@ -143,20 +136,43 @@ namespace neat_dnfs
 		if (PopulationConstants::validateIfSpeciesHaveUniqueRepresentative)
 			validateIfSpeciesHaveUniqueRepresentative();
 
-		if (PopulationConstants::saveStatistics)
-			savePerGenerationStatistics();
+		if (PopulationConstants::saveOverview)
+			savePerGenerationOverview();
 
 		resetGenerationalInnovations();
 		updateGenerationAndAges();
-		resetMutationStatisticsPerGeneration();
+
+		if (PopulationConstants::saveBestSolutions)
+			saveBestSolutionOfEachGeneration();
+		if (PopulationConstants::saveChampions)
+			saveChampionsOfEachGeneration();
+		if (PopulationConstants::saveSolutions)
+			saveAllSolutionsPerGeneration();
+		if (PopulationConstants::savePerGenerationOverview)
+			savePerGenerationStatistics();
+		if (PopulationConstants::saveSpecies)
+			savePerGenerationSpecies();
+
+		clearLastMutations();
 	}
+
+	void Population::cleanup()
+	{
+		statistics.end = std::chrono::high_resolution_clock::now();
+		statistics.duration = std::chrono::duration_cast<std::chrono::seconds>(statistics.end - statistics.start).count();
+
+		saveAllSolutionsWithFitnessAbove(bestSolution->getFitness() - 0.1);
+		saveTimestampsAndDuration();
+		if (PopulationConstants::saveChampions)
+			saveChampions();
+	}
+
 
 	void Population::createInitialEmptySolutions(const SolutionPtr& initialSolution)
 	{
 		initialSolution->buildPhenotype();
 		for (int i = 0; i < parameters.size; i++)
 		{
-			//initialSolution->clearPhenotype();
 			solutions.emplace_back(initialSolution->clone());
 		}
 	}
@@ -222,7 +238,7 @@ namespace neat_dnfs
 		// average genome size
 		perGenStatistics.averageGenomeSize = 0.0f;
 		for (const auto& solution : solutions)
-			perGenStatistics.averageGenomeSize += solution->getGenomeSize();
+			perGenStatistics.averageGenomeSize += solution->getNumConnectionGenes() + solution->getNumFieldGenes();
 		perGenStatistics.averageGenomeSize /= solutions.size();
 
 		// average connection genes
@@ -338,7 +354,8 @@ namespace neat_dnfs
 		// if fitness of population does not improve for Y generations
 		// only the top two species are allowed to reproduce
 		// (a species is "better than the other" based on its champion)
-		const int numActiveSpecies = std::ranges::count_if(speciesList.begin(), speciesList.end(), [](const auto& species)
+		const int numActiveSpecies =
+			std::ranges::count_if(speciesList.begin(), speciesList.end(), [](const auto& species)
 			{ return !species->isExtinct(); });
 		if (!hasFitnessImprovedOverTheLastGenerations())
 		{
@@ -441,7 +458,8 @@ namespace neat_dnfs
 		{
 			if (total_adjusted_fitness > 0)
 			{
-				species_ptr->setOffspringCount((species_ptr->totalAdjustedFitness() / total_adjusted_fitness) * total_offspring);
+				species_ptr->setOffspringCount(
+					(species_ptr->totalAdjustedFitness() / total_adjusted_fitness) * total_offspring);
 			}
 			else
 			{
@@ -491,7 +509,10 @@ namespace neat_dnfs
 			{
 				totalOffspringToReassign += species->getOffspringCount();
 				species->setOffspringCount(0);
-				log(tools::logger::LogLevel::WARNING, "Fitness of species " + std::to_string(species->getId()) + " has not improved for the last " + std::to_string(PopulationConstants::generationsWithoutImprovementThresholdInSpecies) + " generations.");
+				log(tools::logger::LogLevel::WARNING, "Fitness of species " +
+					std::to_string(species->getId()) + " has not improved for the last " +
+					std::to_string(PopulationConstants::generationsWithoutImprovementThresholdInSpecies) +
+					" generations.");
 			}
 		}
 		if (totalOffspringToReassign == 0)
@@ -499,7 +520,9 @@ namespace neat_dnfs
 		// give the offspring to the top species
 		const std::shared_ptr<Species> topSpecies = getBestActiveSpecies();
 		topSpecies->setOffspringCount(topSpecies->getOffspringCount() + totalOffspringToReassign);
-		log(tools::logger::LogLevel::WARNING, "Reassigned " + std::to_string(totalOffspringToReassign) + " offspring to species " + std::to_string(topSpecies->getId()) + ".");
+		log(tools::logger::LogLevel::WARNING, "Reassigned " +
+			std::to_string(totalOffspringToReassign) + " offspring to species " +
+			std::to_string(topSpecies->getId()) + ".");
 	}
 
 	void Population::pruneWorsePreformingSolutions() const
@@ -540,7 +563,8 @@ namespace neat_dnfs
 		upkeepChampions();
 		for (const auto& solution : solutions)
 			// if champion, do not mutate
-			if (solution != bestSolution && !std::ranges::any_of(champions, [&solution](const auto& champion) { return champion == solution; }))
+			if (solution != bestSolution && !std::ranges::any_of(champions,
+				[&solution](const auto& champion) { return champion == solution; }))
 				solution->mutate();
 	}
 
@@ -672,7 +696,8 @@ namespace neat_dnfs
 							const auto innovationNumber = connectionGene1.getInnovationNumber();
 							log(tools::logger::LogLevel::FATAL, "Connection genes are the same.");
 							log(tools::logger::LogLevel::FATAL, "InFieldGeneId: " + std::to_string(inFieldGeneId) +
-								" OutFieldGeneId: " + std::to_string(outFieldGeneId) + " InnovationNumber: " + std::to_string(innovationNumber));
+								" OutFieldGeneId: " + std::to_string(outFieldGeneId) + " InnovationNumber: " +
+								std::to_string(innovationNumber));
 						}
 					}
 				}
@@ -743,8 +768,12 @@ namespace neat_dnfs
 				if (representative_a == representative_b)
 				{
 					log(tools::logger::LogLevel::FATAL, "Species have the same representative.");
-					log(tools::logger::LogLevel::FATAL, "Species a id: " + std::to_string(species_a->getId()) + " Representative a id: " + representative_a);
-					log(tools::logger::LogLevel::FATAL, "Species b id: " + std::to_string(species_b->getId()) + " Representative b id: " + representative_b);
+					log(tools::logger::LogLevel::FATAL, "Species a id: " +
+						std::to_string(species_a->getId()) +
+						" Representative a id: " + representative_a);
+					log(tools::logger::LogLevel::FATAL, "Species b id: " +
+						std::to_string(species_b->getId()) +
+						" Representative b id: " + representative_b);
 				}
 			}
 		}
@@ -816,7 +845,7 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer;
 
-		const std::string directoryPath = fileDirectory + "solutions/last_generation/";
+		const std::string directoryPath = fileDirectory + "best_solutions/last_generation/";
 		std::filesystem::create_directories(directoryPath); // Ensure directory exist
 
 		for (const auto& solution : solutions)
@@ -889,7 +918,7 @@ namespace neat_dnfs
 
 	void Population::saveTimestampsAndDuration() const
 	{
-		const std::string directoryPath = fileDirectory + "statistics/";
+		const std::string directoryPath = fileDirectory + "/";
 		std::filesystem::create_directories(directoryPath); // Ensure directory exists
 
 		std::ofstream logFile(directoryPath + "evolution_timestamps.txt", std::ios::app);
@@ -911,8 +940,10 @@ namespace neat_dnfs
 			// Log number of generations
 			logFile << "Number of generations: " << parameters.currentGeneration << "\n";
 			// Format and write timestamps
-			logFile << "Evolution Start Time: " << std::put_time(std::localtime(&start_time_t), "%Y-%m-%d %H:%M:%S") << "\n";
-			logFile << "Evolution End Time: " << std::put_time(std::localtime(&end_time_t), "%Y-%m-%d %H:%M:%S") << "\n";
+			logFile << "Evolution Start Time: " << std::put_time(
+				std::localtime(&start_time_t), "%Y-%m-%d %H:%M:%S") << "\n";
+			logFile << "Evolution End Time: " << std::put_time(
+				std::localtime(&end_time_t), "%Y-%m-%d %H:%M:%S") << "\n";
 			logFile << "Duration (seconds): " << statistics.duration << "\n";
 			logFile << "Duration (minutes): " << statistics.duration / 60 << "\n";
 			logFile << "Duration (hours): " << statistics.duration / 3600 << "\n";
@@ -925,17 +956,33 @@ namespace neat_dnfs
 		}
 	}
 
-	void Population::saveFinalStatistics() const
+	void Population::saveAllSolutionsPerGeneration() const
 	{
-		const std::string directoryPath = fileDirectory + "statistics/";
-		std::filesystem::create_directories(directoryPath); // Ensure directory exists
+		using namespace dnf_composer;
 
-		// look here
+		for (const auto& solution : solutions)
+		{
+			const std::string directoryPath = fileDirectory + "solutions/gen " + std::to_string(parameters.currentGeneration) + "/";
+			std::filesystem::create_directories(directoryPath); // Ensure directory exists
+
+			solution->buildPhenotype();
+			solution->createPhenotypeEnvironment();
+			auto simulation = solution->getPhenotype();
+			solution->clearPhenotype();
+
+			const std::string uniqueIdentifier = "solution " + std::to_string(solution->getId())
+				+ " generation " + std::to_string(parameters.currentGeneration)
+				+ " species " + std::to_string(solution->getSpeciesId())
+				+ " fitness " + std::to_string(solution->getFitness());
+			simulation.setUniqueIdentifier(uniqueIdentifier);
+			SimulationFileManager sfm(std::make_shared<Simulation>(simulation), directoryPath);
+			sfm.saveElementsToJson();
+		}
 	}
 
-	void Population::savePerGenerationStatistics() const
+	void Population::savePerGenerationOverview() const
 	{
-		const std::string directoryPath = fileDirectory + "statistics/";
+		const std::string directoryPath = fileDirectory + "/";
 		std::filesystem::create_directories(directoryPath); // Ensure directory exists
 
 		std::ofstream logFile(directoryPath + "per_generation_overview.txt", std::ios::app);
@@ -959,19 +1006,16 @@ namespace neat_dnfs
 		}
 		else
 		{
-			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for field gene per generation statistics.");
+			tools::logger::log(tools::logger::LogLevel::ERROR,
+				"Failed to open log file for field gene per generation statistics.");
 		}
-
-
-		// save genome and connection gene per generation statistics
-		// look here
 	}
 
 	void Population::saveBestSolutionOfEachGeneration() const
 	{
 		using namespace dnf_composer;
 
-		const std::string directoryPath = fileDirectory + "solutions/prev_generations/";
+		const std::string directoryPath = fileDirectory + "best_solutions/prev_generations/";
 		std::filesystem::create_directories(directoryPath); // Ensure directory exist
 
 		bestSolution->buildPhenotype();
@@ -1034,18 +1078,59 @@ namespace neat_dnfs
 		}
 	}
 
+	void Population::savePerGenerationStatistics() const
+	{
+		const std::string directoryPath = fileDirectory + "statistics/";
+		std::filesystem::create_directories(directoryPath); // Ensure directory exists
+
+		std::ofstream logFile(directoryPath + "generation_" + std::to_string(parameters.currentGeneration) + ".txt",
+			std::ios::app);
+		if (logFile.is_open())
+		{
+			for (const auto& solution : solutions)
+			{
+				logFile << solution->toString() << '\n';
+			}
+			logFile.close();
+		}
+		else
+		{
+			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for statistics.");
+		}
+	}
+
+	void Population::savePerGenerationSpecies() const
+	{
+		const std::string directoryPath = fileDirectory + "species/";
+		std::filesystem::create_directories(directoryPath); // Ensure directory exists
+
+		std::ofstream logFile(directoryPath + "generation_" + std::to_string(parameters.currentGeneration) + ".txt",
+			std::ios::app);
+		if (logFile.is_open())
+		{
+			for (const auto& species : speciesList)
+			{
+				logFile << species->toString() << '\n';
+			}
+			logFile.close();
+		}
+		else
+		{
+			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for species.");
+		}
+	}
+
 	void Population::resetGenerationalInnovations() const
 	{
 		bestSolution->clearGenerationalInnovations();
 	}
 
-	void Population::resetMutationStatisticsPerGeneration() const
+	void Population::clearLastMutations() const
 	{
-			for (const auto& solution : solutions)
-			{
-				solution->resetMutationStatisticsPerGeneration();
-				break;
-			}
+		for (const auto& solution : solutions)
+		{
+			solution->clearLastMutations();
+		}
 	}
 
 	void Population::logSolutions() const
@@ -1078,20 +1163,45 @@ namespace neat_dnfs
 			" Best solution: [" + bestSolution->toString() + "]");
 	}
 
-	void Population::logMutationStatistics() const
-	{
-		// look here
-	}
-
 	void Population::startKeyListenerForUserCommands()
 	{
 		std::thread keyListener([this]() {
+			std::cout << R"(
+        _             _            _                 _                    _            _             _         _
+        /\ \     _    /\ \         / /\              /\ \                 /\ \         /\ \     _    /\ \      / /\
+       /  \ \   /\_\ /  \ \       / /  \             \_\ \               /  \ \____   /  \ \   /\_\ /  \ \    / /  \
+      / /\ \ \_/ / // /\ \ \     / / /\ \            /\__ \             / /\ \_____\ / /\ \ \_/ / // /\ \ \  / / /\ \__
+     / / /\ \___/ // / /\ \_\   / / /\ \ \          / /_ \ \   ____    / / /\/___  // / /\ \___/ // / /\ \_\/ / /\ \___\
+    / / /  \/____// /_/_ \/_/  / / /  \ \ \        / / /\ \ \/\____/\ / / /   / / // / /  \/____// /_/_ \/_/\ \ \ \/___/
+   / / /    / / // /____/\    / / /___/ /\ \      / / /  \/_/\/____\// / /   / / // / /    / / // /____/\    \ \ \
+  / / /    / / // /\____\/   / / /_____/ /\ \    / / /              / / /   / / // / /    / / // /\____\/_    \ \ \
+ / / /    / / // / /______  / /_________/\ \ \  / / /               \ \ \__/ / // / /    / / // / /     /_/\__/ / /
+/ / /    / / // / /_______\/ / /_       __\ \_\/_/ /                 \ \___\/ // / /    / / // / /      \ \/___/ /
+\/_/     \/_/ \/__________/\_\___\     /____/_/\_\/                   \/_____/ \/_/     \/_/ \/_/        \_____\/
+
+)"			<< std::endl;
+			std::cout << "Press 's' and 'Enter' to stop the current run." << std::endl;
+			std::cout << "Press 'p' and 'Enter' to pause the current run." << std::endl;
+			std::cout << "Press 'r' and 'Enter' to resume the current run." << std::endl << std::endl;
 			while (!control.stop)
 			{
 				if (std::cin.get() == 's')
 				{
 					control.stop = true;
-					tools::logger::log(tools::logger::LogLevel::INFO, "Stopping evolution after the current cycle...");
+					tools::logger::log(tools::logger::LogLevel::INFO,
+						"Stopping evolution after the current run...");
+				}
+				if (std::cin.get() == 'p')
+				{
+					control.pause = true;
+					tools::logger::log(tools::logger::LogLevel::INFO,
+						"Pausing evolution...");
+				}
+				if (std::cin.get() == 'r')
+				{
+					control.pause = false;
+					tools::logger::log(tools::logger::LogLevel::INFO,
+						"Resuming evolution...");
 				}
 			}
 			});

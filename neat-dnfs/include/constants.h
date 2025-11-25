@@ -130,14 +130,14 @@ namespace neat_dnfs
 		// genome mutation probabilities (sum does not have to be 1.0)
 		// structural mutations
 		static constexpr double toggleConnectionGeneProbability  = 0.010;
-		static constexpr double addFieldGeneProbability			 = 0.005;
+		static constexpr double addFieldGeneProbability			 = 0.0005;
 		static constexpr double addConnectionGeneProbability	 = 0.250;
 		// parametrical mutations
-		static constexpr double mutateFieldGenesProbability		 = 0.350;
-		static constexpr double mutateConnectionGenesProbability = 0.400;
+		static constexpr double mutateFieldGenesProbability		 = 0.600;
+		static constexpr double mutateConnectionGenesProbability = 0.800;
 		// per gene mutation probabilities
-		static constexpr double mutateFieldGeneProbability		 = 0.200;
-		static constexpr double mutateConnectionGeneProbability  = 0.200;
+		static constexpr double mutateFieldGeneProbability		 = 0.500;
+		static constexpr double mutateConnectionGeneProbability  = 0.500;
 
 		static constexpr bool checkForDuplicateConnectionGenesInGenome = false;
 	};
@@ -223,9 +223,12 @@ namespace neat_dnfs
 		static constexpr bool logSolutions				= false;
 		static constexpr bool logOverview				= true;
 		static constexpr bool logSpecies				= false;
-		static constexpr bool logMutationStatistics		= false;
 
-		static constexpr bool saveChampions		= true;
-		static constexpr bool saveStatistics	= true;
+		static constexpr bool saveOverview				= true;
+		static constexpr bool savePerGenerationOverview	= true;
+		static constexpr bool saveChampions				= true;
+		static constexpr bool saveBestSolutions			= true;
+		static constexpr bool saveSolutions				= true;
+		static constexpr bool saveSpecies				= true;
 	};
 }

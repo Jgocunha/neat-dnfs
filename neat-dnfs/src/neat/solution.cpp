@@ -418,13 +418,6 @@ namespace neat_dnfs
 						genome.addConnectionGene(connectionGene);
 						break;
 					}
-					case ElementLabel::OSCILLATORY_KERNEL:
-					{
-						auto oscillatoryKernel = std::dynamic_pointer_cast<OscillatoryKernel>(element);
-						ConnectionGene connectionGene(connectionTuple, innovationCounter++, oscillatoryKernel->getParameters());
-						genome.addConnectionGene(connectionGene);
-						break;
-					}
 					default:
 						break;
 					}
@@ -481,6 +474,12 @@ namespace neat_dnfs
 	{
 		genome = Genome();
 	}
+
+	void Solution::clearLastMutations()
+	{
+		genome.clearLastMutations();
+	}
+
 
 	void Solution::resetUniqueIdentifier()
 	{

@@ -117,10 +117,10 @@ namespace neat_dnfs
 		std::string toString() const;
 		void print() const;
 		virtual void createPhenotypeEnvironment() = 0;
-		static void resetMutationStatisticsPerGeneration();
 		static void resetUniqueIdentifier();
 		void translatePhenotypeToGenome();
 		void clearGenome();
+		void clearLastMutations();
 	private:
 		void createInputGenes();
 		void createOutputGenes();

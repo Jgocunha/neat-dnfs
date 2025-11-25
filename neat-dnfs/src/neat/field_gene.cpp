@@ -84,13 +84,6 @@ namespace neat_dnfs
 					kernel = std::make_shared<MexicanHatKernel>(mhcp, mhkp);
 				}
 				break;
-			case ElementLabel::OSCILLATORY_KERNEL:
-				{
-					const auto oskp = std::dynamic_pointer_cast<OscillatoryKernel>(k)->getParameters();
-					const ElementCommonParameters oskcp{ OscillatoryKernelConstants::namePrefix + std::to_string(parameters.id), dimensions };
-					kernel = std::make_shared<OscillatoryKernel>(oskcp, oskp);
-				}
-				break;
 			default:				
 				tools::logger::log(tools::logger::FATAL, "FieldGene::FieldGene() - Kernel type not recognized.");
 				throw std::runtime_error("FieldGene::FieldGene() - Kernel type not recognized.");
@@ -150,6 +143,11 @@ namespace neat_dnfs
 		{
 			mutateKernelType();
 		}
+	}
+
+	void FieldGene::clearLastMutations()
+	{
+		mutationsInLastGeneration = "";
 	}
 
 	FieldGeneParameters FieldGene::getParameters() const
@@ -363,7 +361,7 @@ namespace neat_dnfs
 			gkp.width = std::clamp(gkp.width + GaussKernelConstants::widthStep * signal,
 								GaussKernelConstants::widthMinVal,
 								GaussKernelConstants::widthMaxVal);
-			mutationsInLastGeneration += "(fg gk width)";
+			mutationsInLastGeneration += "(fg gk width " + std::to_string(GaussKernelConstants::widthStep * signal) + ")";
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneGaussKernelAmplitudeProbability)
@@ -371,15 +369,15 @@ namespace neat_dnfs
 			gkp.amplitude = std::clamp(gkp.amplitude + GaussKernelConstants::ampStep * signal,
 								GaussKernelConstants::ampMinVal,
 								GaussKernelConstants::ampMaxVal);
-			mutationsInLastGeneration += "(fg gk amp.)";
+			mutationsInLastGeneration += "(fg gk amp." + std::to_string(GaussKernelConstants::ampStep * signal) + ")";
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneGaussKernelGlobalAmplitudeProbability)
 		{
-			gkp.amplitudeGlobal = std::clamp(gkp.amplitudeGlobal + GaussKernelConstants::ampStep * signal,
+			gkp.amplitudeGlobal = std::clamp(gkp.amplitudeGlobal + GaussKernelConstants::ampGlobalStep * signal,
 								GaussKernelConstants::ampGlobalMinVal,
 								GaussKernelConstants::ampGlobalMaxVal);
-			mutationsInLastGeneration += "(fg gk amp. glob.)";
+			mutationsInLastGeneration += "(fg gk amp. glob."  + std::to_string(GaussKernelConstants::ampGlobalStep * signal) + ")";
 		}
 		std::dynamic_pointer_cast<GaussKernel>(kernel)->setParameters(gkp);
 
@@ -400,7 +398,7 @@ namespace neat_dnfs
 			mhkp.amplitudeExc = std::clamp(mhkp.amplitudeExc + MexicanHatKernelConstants::ampExcStep * signal,
 								MexicanHatKernelConstants::ampExcMinVal,
 								MexicanHatKernelConstants::ampExcMaxVal);
-			mutationsInLastGeneration += "(fg mhk amp. exc.)";
+			mutationsInLastGeneration += "(fg mhk amp. exc. " + std::to_string(MexicanHatKernelConstants::ampExcStep * signal) + ")";
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthExcProbability)
@@ -408,7 +406,7 @@ namespace neat_dnfs
 			mhkp.widthExc = std::clamp(mhkp.widthExc + MexicanHatKernelConstants::widthExcStep * signal,
 												MexicanHatKernelConstants::widthExcMinVal,
 												MexicanHatKernelConstants::widthExcMaxVal);
-			mutationsInLastGeneration += "(fg mhk width exc.)";
+			mutationsInLastGeneration += "(fg mhk width exc. " + std::to_string(MexicanHatKernelConstants::widthExcStep * signal) + ")";
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeInhProbability)
@@ -416,7 +414,7 @@ namespace neat_dnfs
 			mhkp.amplitudeInh = std::clamp(mhkp.amplitudeInh + MexicanHatKernelConstants::ampInhStep * signal,
 																MexicanHatKernelConstants::ampInhMinVal,
 																MexicanHatKernelConstants::ampInhMaxVal);
-			mutationsInLastGeneration += "(fg mhk amp. inh.)";
+			mutationsInLastGeneration += "(fg mhk amp. inh. " + std::to_string(MexicanHatKernelConstants::ampInhStep * signal) + ")";
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthInhProbability)
@@ -424,7 +422,7 @@ namespace neat_dnfs
 			mhkp.widthInh = std::clamp(mhkp.widthInh + MexicanHatKernelConstants::widthInhStep * signal,
 															MexicanHatKernelConstants::widthInhMinVal,
 															MexicanHatKernelConstants::widthInhMaxVal);
-			mutationsInLastGeneration += "(fg mhk width inh.)";
+			mutationsInLastGeneration += "(fg mhk width inh. " + std::to_string(MexicanHatKernelConstants::widthInhStep * signal) + ")";
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability)
@@ -432,7 +430,7 @@ namespace neat_dnfs
 			mhkp.amplitudeGlobal = std::clamp(mhkp.amplitudeGlobal + MexicanHatKernelConstants::ampGlobStep * signal,
 															MexicanHatKernelConstants::ampGlobMin,
 															MexicanHatKernelConstants::ampGlobMax);
-			mutationsInLastGeneration += "(fg mhk amp. glob.)";
+			mutationsInLastGeneration += "(fg mhk amp. glob. " + std::to_string(MexicanHatKernelConstants::ampGlobStep * signal) + ")";
 		}
 		std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->setParameters(mhkp);
 	}
@@ -456,12 +454,12 @@ namespace neat_dnfs
 		if (randomValue < FieldGeneConstants::gaussKernelProbability)
 		{
 			initializeGaussKernel(dimensions);
-			mutationsInLastGeneration += "(fg kernel mhk to gk)";
+			mutationsInLastGeneration += "(mhk to gk)";
 		}
 		else if (randomValue < FieldGeneConstants::gaussKernelProbability + FieldGeneConstants::mexicanHatKernelProbability)
 		{
 			initializeMexicanHatKernel(dimensions);
-			mutationsInLastGeneration += "(fg kernel gk to mhk)";
+			mutationsInLastGeneration += "(gk to mhk)";
 		}
 	}
 
@@ -488,7 +486,7 @@ namespace neat_dnfs
 													NeuralFieldConstants::tauMinVal,
 													NeuralFieldConstants::tauMaxVal);
 				neuralField->setParameters(nfp);
-				mutationsInLastGeneration += "(fg nf tau)";
+				mutationsInLastGeneration += "(fg nf tau " + std::to_string(NeuralFieldConstants::tauStep * signal) + ")";
 			}
 
 			if (tools::utils::generateRandomDouble(0.0, 1.0) <
@@ -499,7 +497,7 @@ namespace neat_dnfs
 													NeuralFieldConstants::restingLevelMinVal,
 													NeuralFieldConstants::restingLevelMaxVal);
 				neuralField->setParameters(nfp);
-				mutationsInLastGeneration += "(fg nf rest. lvl.)";
+				mutationsInLastGeneration += "(fg nf rest. lvl. " + std::to_string(NeuralFieldConstants::restingLevelStep * signal) + ")";
 			}
 		}
 		else

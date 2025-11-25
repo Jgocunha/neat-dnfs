@@ -32,19 +32,24 @@ namespace neat_dnfs
 
 	void Genome::mutate()
 	{
-		if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::toggleConnectionGeneProbability)
+		if (tools::utils::generateRandomDouble(0.0, 1.0) <
+			GenomeMutationConstants::toggleConnectionGeneProbability)
 			toggleConnectionGene();
 
-		if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::addFieldGeneProbability)
+		if (tools::utils::generateRandomDouble(0.0, 1.0) <
+			GenomeMutationConstants::addFieldGeneProbability)
 			addGene();
 
-		if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::mutateFieldGenesProbability)
+		if (tools::utils::generateRandomDouble(0.0, 1.0) <
+			GenomeMutationConstants::mutateFieldGenesProbability)
 			mutateGene();
 
-		if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::addConnectionGeneProbability)
+		if (tools::utils::generateRandomDouble(0.0, 1.0) <
+			GenomeMutationConstants::addConnectionGeneProbability)
 			addConnectionGene();
 
-		if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::mutateConnectionGenesProbability)
+		if (tools::utils::generateRandomDouble(0.0, 1.0) <
+			GenomeMutationConstants::mutateConnectionGenesProbability)
 			mutateConnectionGene();
 
 		checkForDuplicateConnectionGenes();
@@ -64,7 +69,8 @@ namespace neat_dnfs
 						inFieldGeneId == otherGene.getInFieldGeneId() &&
 						outFieldGeneId == otherGene.getOutFieldGeneId())
 					{
-						tools::logger::log(tools::logger::LogLevel::ERROR, "Mutation produced offspring with duplicate connection genes.");
+						tools::logger::log(tools::logger::LogLevel::ERROR,
+							"Mutation produced offspring with duplicate connection genes.");
 						break;
 					}
 				}
@@ -82,9 +88,19 @@ namespace neat_dnfs
 		globalInnovationNumber = 0;
 	}
 
+	void Genome::clearLastMutations()
+	{
+		mutationsInLastGeneration = "";
+		for (auto& gene : fieldGenes)
+			gene.clearLastMutations();
+		for (auto& gene : connectionGenes)
+			gene.clearLastMutations();
+	}
+
 	void Genome::removeConnectionGene(int innov)
 	{
-		const auto it = std::ranges::find_if(connectionGenes, [innov](const ConnectionGene& connectionGene)
+		const auto it = std::ranges::find_if(connectionGenes,
+			[innov](const ConnectionGene& connectionGene)
 		{
 				return connectionGene.getInnovationNumber() == innov;
 		});
@@ -141,12 +157,14 @@ namespace neat_dnfs
 		if (!otherInnovationNumbers.empty())
 			otherMaxInnovationNumber = *std::ranges::max_element(otherInnovationNumbers);
 
-		const int thisExcessCount = static_cast<int>(std::ranges::count_if(thisInnovationNumbers, [otherMaxInnovationNumber](const int innovationNumber)
+		const int thisExcessCount = static_cast<int>(std::ranges::count_if(thisInnovationNumbers,
+			[otherMaxInnovationNumber](const int innovationNumber)
 			{
 				return innovationNumber > otherMaxInnovationNumber;
 			}));
 
-		const int otherExcessCount = static_cast<int>(std::ranges::count_if(otherInnovationNumbers, [thisMaxInnovationNumber](const int innovationNumber)
+		const int otherExcessCount = static_cast<int>(std::ranges::count_if(otherInnovationNumbers,
+			[thisMaxInnovationNumber](const int innovationNumber)
 			{
 				return innovationNumber > thisMaxInnovationNumber;
 			}));
@@ -170,8 +188,10 @@ namespace neat_dnfs
 
 		std::vector<int> thisDisjointInnovationNumbers, otherDisjointInnovationNumbers;
 
-		std::ranges::set_difference(sortedThisInnovationNumbers, sortedOtherInnovationNumbers, std::back_inserter(thisDisjointInnovationNumbers));
-		std::ranges::set_difference(sortedOtherInnovationNumbers, sortedThisInnovationNumbers, std::back_inserter(otherDisjointInnovationNumbers));
+		std::ranges::set_difference(sortedThisInnovationNumbers,
+			sortedOtherInnovationNumbers, std::back_inserter(thisDisjointInnovationNumbers));
+		std::ranges::set_difference(sortedOtherInnovationNumbers,
+			sortedThisInnovationNumbers, std::back_inserter(otherDisjointInnovationNumbers));
 
 		const int thisMaxInnovationNumber = !thisInnovationNumbers.empty() ? *std::ranges::max_element(thisInnovationNumbers) : 0;
 		const int otherMaxInnovationNumber = !otherInnovationNumbers.empty() ? *std::ranges::max_element(otherInnovationNumbers) : 0;
@@ -258,7 +278,8 @@ namespace neat_dnfs
 
 	ConnectionGene Genome::getConnectionGeneByInnovationNumber(int innovationNumber) const
 	{
-		const auto it = std::ranges::find_if(connectionGenes, [innovationNumber](const ConnectionGene& connectionGene)
+		const auto it =
+			std::ranges::find_if(connectionGenes, [innovationNumber](const ConnectionGene& connectionGene)
 			{
 				return connectionGene.getInnovationNumber() == innovationNumber;
 			});
@@ -272,7 +293,8 @@ namespace neat_dnfs
 
 	FieldGene Genome::getFieldGeneById(int id) const
 	{
-		const auto it = std::ranges::find_if(fieldGenes, [id](const FieldGene& fieldGene)
+		const auto it =
+			std::ranges::find_if(fieldGenes, [id](const FieldGene& fieldGene)
 			{
 				return fieldGene.getParameters().id == id;
 			});
@@ -414,7 +436,8 @@ namespace neat_dnfs
 			// use the same innovation number
 		{
 			connectionGenes.emplace_back(connectionTuple, innov);
-			mutationsInLastGeneration += "(added cg " + connectionTuple.toString() + " innov." + std::to_string(innov) + ")";
+			mutationsInLastGeneration += "(added cg " + connectionTuple.toString()
+			+ " innov." + std::to_string(innov) + ")";
 		}
 		else
 			// does not exist in the current generation
@@ -422,7 +445,8 @@ namespace neat_dnfs
 		{
 			connectionGenes.emplace_back(connectionTuple, globalInnovationNumber);
 			connectionTupleAndInnovationNumberWithinGeneration[connectionTuple] = globalInnovationNumber;
-			mutationsInLastGeneration += "(added cg " + connectionTuple.toString() + " innov." + std::to_string(globalInnovationNumber) + ")";
+			mutationsInLastGeneration += "(added cg " + connectionTuple.toString()
+			+ " innov." + std::to_string(globalInnovationNumber) + ")";
 			globalInnovationNumber++;
 		}
 	}
@@ -465,15 +489,22 @@ namespace neat_dnfs
 			globalInnovationNumber++;
 		}
 
-		const auto in_kernel_p = GaussKernelParameters{ GaussKernelConstants::width, GaussKernelConstants::amplitude, GaussKernelConstants::amplitudeGlobal };
-		const ConnectionGene connectionGeneIn{ ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id}, static_cast<int>(innovIn), in_kernel_p };
+		const auto in_kernel_p = GaussKernelParameters{
+			GaussKernelConstants::width, GaussKernelConstants::amplitude, GaussKernelConstants::amplitudeGlobal };
+		const ConnectionGene connectionGeneIn{
+			ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id},
+			static_cast<int>(innovIn),
+			in_kernel_p };
 
 		switch (kernel->getLabel())
 		{
 		case GAUSS_KERNEL:
 			{
 				const auto gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
-				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, static_cast<int>(innovOut), gkp };
+				const ConnectionGene connectionGeneOut{
+					ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId},
+					static_cast<int>(innovOut),
+					gkp };
 				connectionGenes.emplace_back(connectionGeneIn);
 				connectionGenes.emplace_back(connectionGeneOut);
 			}
@@ -481,18 +512,13 @@ namespace neat_dnfs
 		case MEXICAN_HAT_KERNEL:
 			{
 				const auto mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
-				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, static_cast<int>(innovOut), mhkp };
+				const ConnectionGene connectionGeneOut{
+					ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId},
+						static_cast<int>(innovOut),
+						mhkp };
 				connectionGenes.emplace_back(connectionGeneIn);
 				connectionGenes.emplace_back(connectionGeneOut);
 
-			}
-			break;
-		case OSCILLATORY_KERNEL:
-			{
-				const auto osckp = std::dynamic_pointer_cast<OscillatoryKernel>(kernel)->getParameters();
-				const ConnectionGene connectionGeneOut{ ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId}, static_cast<int>(innovOut), osckp };
-				connectionGenes.emplace_back(connectionGeneIn);
-				connectionGenes.emplace_back(connectionGeneOut);
 			}
 			break;
 		default:
@@ -509,7 +535,8 @@ namespace neat_dnfs
 			if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::mutateFieldGeneProbability)
 			{
 				gene.mutate();
-				mutationsInLastGeneration +=  "[fg " + std::to_string(gene.getParameters().id) + " " + gene.getMutationsInLastGeneration() + "] ";
+				mutationsInLastGeneration +=  "[fg " + std::to_string(gene.getParameters().id) + " " +
+					gene.getMutationsInLastGeneration() + "] ";
 			}
 		}
 	}
@@ -533,7 +560,8 @@ namespace neat_dnfs
 
 		for (auto& connectionGene : connectionGenes)
 		{
-			if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::mutateConnectionGeneProbability)
+			if (tools::utils::generateRandomDouble(0.0, 1.0) <
+				GenomeMutationConstants::mutateConnectionGeneProbability)
 			{
 				connectionGene.mutate();
 				const std::string cg_id = connectionGene.getParameters().connectionTuple.toString();

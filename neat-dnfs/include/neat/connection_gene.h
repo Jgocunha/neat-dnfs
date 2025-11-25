@@ -49,19 +49,16 @@ namespace neat_dnfs
 			const dnf_composer::element::GaussKernelParameters& gkp);
 		ConnectionGene(ConnectionTuple connectionTuple, int innov,
 			const dnf_composer::element::MexicanHatKernelParameters& mhkp);
-		ConnectionGene(ConnectionTuple connectionTuple, int innov,
-			const dnf_composer::element::OscillatoryKernelParameters& osckp);
 
 		ConnectionGene(const ConnectionGeneParameters& parameters,
 			const dnf_composer::element::GaussKernelParameters& gkp);
 		ConnectionGene(const ConnectionGeneParameters& parameters,
 			const dnf_composer::element::MexicanHatKernelParameters& mhkp);
-		ConnectionGene(const ConnectionGeneParameters& parameters,
-			const dnf_composer::element::OscillatoryKernelParameters& osckp);
 
 		ConnectionGene(ConnectionTuple connectionTuple, int innov, KernelPtr kernel);
 
 		void mutate();
+		void clearLastMutations();
 		void disable();
 		void toggle();
 
@@ -87,7 +84,6 @@ namespace neat_dnfs
 		void initializeKernel(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeGaussKernel(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeMexicanHatKernel(const dnf_composer::element::ElementDimensions& dimensions);
-		void initializeOscillatoryKernel(const dnf_composer::element::ElementDimensions& dimensions);
 
 		void mutateKernel();
 		void mutateKernelType();

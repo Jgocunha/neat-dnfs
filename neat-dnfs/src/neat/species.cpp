@@ -244,8 +244,8 @@ namespace neat_dnfs
 		str += ", gens. since imp.: " + std::to_string(generationsSinceFitnessImproved);
 		str += "  offs.: " + std::to_string(offspringCount);
 		str += ", mem: " + std::to_string(members.size());
-		//str += " rep.: {" + (representative == nullptr ? "none}]" : representative->toString()) + "}";
-		//str += " champ.: {" + (champion == nullptr ? "none}]" : champion->toString()) + "}";
+		str += " rep.: {" + (representative == nullptr ? "none}]" : representative->toString()) + "}";
+		str += " champ.: {" + (champion == nullptr ? "none}]" : champion->toString()) + "}";
 		str += "]";
 		return str;
 	}
