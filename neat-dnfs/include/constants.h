@@ -116,10 +116,10 @@ namespace neat_dnfs
 
 	struct CompatibilityCoefficients
 	{
-		static constexpr double compatibilityThreshold							= 1.5;
+		static constexpr double compatibilityThreshold							= 2.5;
 		static constexpr double excessGenesCompatibilityWeight					= 1.0;
-		static constexpr double disjointGenesCompatibilityWeight				= 0.5;
-		static constexpr double averageConnectionDifferenceCompatibilityWeight	= 1.0;
+		static constexpr double disjointGenesCompatibilityWeight				= 1.0;
+		static constexpr double averageConnectionDifferenceCompatibilityWeight	= 0.5;
 
 		static constexpr double amplitudeDifferenceCoefficient	= 0.05;
 		static constexpr double widthDifferenceCoefficient		= 0.05;
@@ -207,9 +207,9 @@ namespace neat_dnfs
 	struct PopulationConstants
 	{
 		static constexpr bool parallelEvolution									= true;
-		static constexpr double pruneRatio										= 0.2;
-		static constexpr int generationsWithoutImprovementThresholdInPopulation = 5;
-		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 3;
+		static constexpr double pruneRatio										= 0.6;
+		static constexpr int generationsWithoutImprovementThresholdInPopulation = 20;
+		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 15;
 		static constexpr bool elitism											= true;
 
 		static constexpr bool validateUniqueSolutions					= false;

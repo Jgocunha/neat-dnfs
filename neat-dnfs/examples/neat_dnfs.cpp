@@ -34,7 +34,7 @@
 		//const dnf_composer::Simulation template_solution = *previous_solution;
 
 		// select the type of solution here and in the population init.
-		AndSolution solution{
+		XOR solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
@@ -46,16 +46,16 @@
 			//template_solution // load a previous solution
 		};
 
-		constexpr size_t number_runs		= 100;
+		constexpr size_t number_runs = 100;
 
 		for (int i = 0; i < number_runs; i++)
 		{
-			constexpr size_t population_size	= 100;
-			constexpr size_t number_generations = 100;
+			constexpr size_t population_size	= 200;
+			constexpr size_t number_generations = 250;
 			constexpr double target_fitness		= 0.95;
 
 			const PopulationParameters parameters{ population_size, number_generations, target_fitness };
-			Population population{ parameters, std::make_unique<AndSolution>(solution) };
+			Population population{ parameters, std::make_unique<XOR>(solution) };
 
 			population.initialize();
 			population.evolve();
