@@ -27,13 +27,13 @@
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
 
-
 		// load a previous solution
 		//const std::shared_ptr<dnf_composer::Simulation> previous_solution = std::make_shared<dnf_composer::Simulation>();
 		//const dnf_composer::SimulationFileManager sfm(previous_solution, std::string(PROJECT_DIR) + "/solution 36074 generation 182 species 300 fitness 0.924742.json");
 		//sfm.loadElementsFromJson();
 		//const dnf_composer::Simulation template_solution = *previous_solution;
 
+		// select the type of solution here and in the population init.
 		AndSolution solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
