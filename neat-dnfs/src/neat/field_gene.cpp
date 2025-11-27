@@ -236,7 +236,6 @@ namespace neat_dnfs
 			const ElementCommonParameters nfcp{ NeuralFieldConstants::namePrefix + std::to_string(parameters.id), dimensions };
 			neuralField = std::make_shared<NeuralField>(nfcp, nfp);
 		}
-		neuralField->setThresholdForStability(NeuralFieldConstants::stabilityThreshold);
 	}
 
 	void FieldGene::initializeKernel(const dnf_composer::element::ElementDimensions& dimensions)

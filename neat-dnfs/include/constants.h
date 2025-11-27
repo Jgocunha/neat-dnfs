@@ -13,7 +13,7 @@ namespace neat_dnfs
 	{
 		inline static std::string name				= "solution ";
 		static constexpr double deltaT				= 10;
-		static constexpr size_t maxSimulationSteps	= 1000;
+		static constexpr size_t maxSimulationSteps	= 2000;
 	};
 
 	struct DimensionConstants
@@ -25,7 +25,7 @@ namespace neat_dnfs
 	struct NoiseConstants
 	{
 		inline static std::string namePrefix	= "nn ";
-		static constexpr double amplitude		= 0.05;
+		static constexpr double amplitude		= 0.01;
 	};
 
 	struct GaussStimulusConstants
@@ -40,18 +40,17 @@ namespace neat_dnfs
 	struct NeuralFieldConstants
 	{
 		inline static std::string namePrefix		= "nf ";
-		static constexpr double stabilityThreshold	= 0.9;
-		static constexpr double tau					= 25;
-		static constexpr double restingLevel		= -5;
+		static constexpr double tau					= 35;
+		static constexpr double restingLevel		= -10;
 		inline static dnf_composer::element::SigmoidFunction activationFunction{0.0f, 5.0f};
 
 		static constexpr double tauMinVal			= 10.0;
-		static constexpr double tauMaxVal			= 100.0;
+		static constexpr double tauMaxVal			= 110.0;
 		static constexpr double tauStep				= 5.0;
 
-		static constexpr double restingLevelMinVal	= -20.0;
-		static constexpr double restingLevelMaxVal	= -1.0;
-		static constexpr double restingLevelStep	= 0.5;
+		static constexpr double restingLevelMinVal	= -15.0;
+		static constexpr double restingLevelMaxVal	= -2.0;
+		static constexpr double restingLevelStep	= 1.0;
 	};
 
 	struct KernelConstants
@@ -65,21 +64,21 @@ namespace neat_dnfs
 		inline static std::string namePrefix				= "gk ";
 		inline static std::string namePrefixConnectionGene	= "gk cg ";
 
-		static constexpr double width			= 05.00;
-		static constexpr double amplitude		= 06.00;
-		static constexpr double amplitudeGlobal = -0.01;
+		static constexpr double width			= 3.00;
+		static constexpr double amplitude		= 8.00;
+		static constexpr double amplitudeGlobal = 0.00;
 
 		static constexpr double widthMinVal		= 1.00;
 		static constexpr double widthMaxVal		= 10.0;
-		static constexpr double widthStep		= 0.50;
+		static constexpr double widthStep		= 1.00;
 
 		static constexpr double ampMinVal		= 3.00;
 		static constexpr double ampMaxVal		= 20.0;
-		static constexpr double ampStep			= 0.50;
+		static constexpr double ampStep			= 1.00;
 
-		static constexpr double ampGlobalMinVal = -0.5;
+		static constexpr double ampGlobalMinVal = -0.1;
 		static constexpr double ampGlobalMaxVal = 0.00;
-		static constexpr double ampGlobalStep	= 0.10;
+		static constexpr double ampGlobalStep	= 0.01;
 	};
 
 	struct MexicanHatKernelConstants
@@ -95,23 +94,23 @@ namespace neat_dnfs
 
 		static constexpr double widthExcMinVal	= 5.00;
 		static constexpr double widthExcMaxVal	= 30.0;
-		static constexpr double widthExcStep	= 0.50;
+		static constexpr double widthExcStep	= 1.00;
 
 		static constexpr double widthInhMinVal	= 5.00;
 		static constexpr double widthInhMaxVal	= 35.0;
-		static constexpr double widthInhStep	= 0.50;
+		static constexpr double widthInhStep	= 1.00;
 
 		static constexpr double ampExcMinVal	= 15.0;
 		static constexpr double ampExcMaxVal	= 25.0;
-		static constexpr double ampExcStep		= 0.50;
+		static constexpr double ampExcStep		= 1.00;
 
 		static constexpr double ampInhMinVal	= 1.00;
 		static constexpr double ampInhMaxVal	= 35.0;
-		static constexpr double ampInhStep		= 0.50;
+		static constexpr double ampInhStep		= 1.00;
 
-		static constexpr double ampGlobMin		= -0.50;
+		static constexpr double ampGlobMin		= -0.10;
 		static constexpr double ampGlobMax		= 0.000;
-		static constexpr double ampGlobStep 	= 0.100;
+		static constexpr double ampGlobStep 	= 0.01;
 	};
 
 	struct CompatibilityCoefficients
@@ -207,9 +206,9 @@ namespace neat_dnfs
 	struct PopulationConstants
 	{
 		static constexpr bool parallelEvolution									= true;
-		static constexpr double pruneRatio										= 0.6;
+		static constexpr double pruneRatio										= 0.5;
 		static constexpr int generationsWithoutImprovementThresholdInPopulation = 20;
-		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 15;
+		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 10;
 		static constexpr bool elitism											= true;
 
 		static constexpr bool validateUniqueSolutions					= false;

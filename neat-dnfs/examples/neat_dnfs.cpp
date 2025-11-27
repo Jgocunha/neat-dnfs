@@ -50,8 +50,8 @@
 
 		for (int i = 0; i < number_runs; i++)
 		{
-			constexpr size_t population_size	= 200;
-			constexpr size_t number_generations = 250;
+			constexpr size_t population_size	= 500;
+			constexpr size_t number_generations = 100;
 			constexpr double target_fitness		= 0.95;
 
 			const PopulationParameters parameters{ population_size, number_generations, target_fitness };
