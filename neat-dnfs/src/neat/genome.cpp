@@ -52,6 +52,7 @@ namespace neat_dnfs
 			GenomeMutationConstants::mutateConnectionGenesProbability)
 			mutateConnectionGene();
 
+		mutationsInLastGeneration += " (mutated)";
 		checkForDuplicateConnectionGenes();
 	}
 

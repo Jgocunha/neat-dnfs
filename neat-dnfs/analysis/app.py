@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 import networkx as nx  # for topology graphs
+from collections import Counter
+import json
+
 
 # =========================
 # Matplotlib global style
@@ -331,56 +334,152 @@ def load_best_solution_architecture(run_dir_str: str, generation: int):
 
 def build_topology_graph(elements):
     """
-    Simple version:
-      - show all elements (stimuli, noise, kernels, fields, etc.)
-      - use a generic graph with spring layout (no left/right classification)
+    Build a clean left-to-right interaction graph for the best solution:
+
+      - Nodes: neural fields + kernels that mediate interactions between
+        *different* fields (no self-loops).
+      - Excludes gauss stimulus and normal noise.
+      - Excludes kernels that only form self-loops (nf -> nf).
+      - Layout: Inputs on the left, Outputs on the right, Hidden in the middle.
+        Kernels are positioned between the fields they connect.
+
+    Returns:
+      g          : networkx.DiGraph
+      pos        : dict node -> (x, y)
+      field_nodes: list of field node names
+      kernel_nodes: list of kernel node names (that are in the graph)
     """
     g = nx.DiGraph()
     if elements is None:
-        return g, {}
+        return g, {}, [], []
 
-    # Add nodes
+    # --- prepare element lookup, skipping stimuli/noise ---
+    by_name = {}
     for el in elements:
         name = el.get("uniqueName")
         if not name:
             continue
-        label = el.get("label", ["", ""])
-        label_text = label[1] if isinstance(label, list) and len(label) > 1 else str(label)
-        node_label = f"{name}\n{label_text}"
-        g.add_node(name, label=node_label)
+        lab = el.get("label", ["", ""])
+        label_text = lab[1] if isinstance(lab, list) and len(lab) > 1 else str(lab)
+        if label_text in {"gauss stimulus", "normal noise"}:
+            continue  # drop stimuli/noise from this view entirely
+        by_name[name] = el
 
-    # Add edges from inputs
-    for el in elements:
-        target = el.get("uniqueName")
-        if not target:
-            continue
-        inputs = el.get("inputs") or []  # handle null -> []
-        for src, port in inputs:
-            if src in g.nodes:
-                g.add_edge(src, target)
+    if not by_name:
+        return g, {}, [], []
 
-    labels = {n: d.get("label", n) for n, d in g.nodes(data=True)}
-    return g, labels
+    def get_label(el):
+        lab = el.get("label", ["", ""])
+        return lab[1] if isinstance(lab, list) and len(lab) > 1 else str(lab)
 
+    field_nodes = [n for n, el in by_name.items() if get_label(el) == "neural field"]
+    kernel_nodes_all = [n for n, el in by_name.items() if "kernel" in get_label(el)]
 
+    inputs_by_target = {n: (el.get("inputs") or []) for n, el in by_name.items()}
 
-def plot_topology_graph(g, labels):
-    fig, ax = plt.subplots(figsize=(8, 4))
+    # --- determine which kernels actually mediate field-to-field interactions (no self-loops) ---
+    interactions = []  # list of (kernel, src_field, tgt_field) with src != tgt
+    used_kernels = set()
 
-    if len(g.nodes) == 0:
-        ax.text(0.5, 0.5, "No topology data available", ha="center", va="center")
-        ax.axis("off")
-        fig.tight_layout()
-        return fig
+    for k in kernel_nodes_all:
+        k_el = by_name[k]
+        src_fields = [src for src, _ in (k_el.get("inputs") or []) if src in field_nodes]
 
-    pos = nx.spring_layout(g, seed=42)
-    nx.draw_networkx(g, pos=pos, labels=labels, ax=ax, font_size=8)
-    ax.axis("off")
-    fig.tight_layout()
-    return fig
+        tgt_fields = []
+        for f in field_nodes:
+            for src, _ in inputs_by_target.get(f, []):
+                if src == k:
+                    tgt_fields.append(f)
+                    break
 
+        for s in src_fields:
+            for t in tgt_fields:
+                if s == t:
+                    # self-loop: we skip here; belongs to field dynamics, not interaction
+                    continue
+                interactions.append((k, s, t))
+                used_kernels.add(k)
 
+    kernel_nodes = sorted(used_kernels)
 
+    # --- field connectivity graph (ignoring self-loops) ---
+    field_graph = {f: set() for f in field_nodes}
+    for _, s, t in interactions:
+        field_graph[s].add(t)
+
+    indeg = {f: 0 for f in field_nodes}
+    outdeg = {f: 0 for f in field_nodes}
+    for s, outs in field_graph.items():
+        outdeg[s] += len(outs)
+        for t in outs:
+            indeg[t] += 1
+
+    # --- classify fields: Input / Hidden / Output ---
+    field_role = {}
+    inputs_set, hidden_set, outputs_set = [], [], []
+    for f in field_nodes:
+        if indeg[f] == 0 and outdeg[f] > 0:
+            role = "Input"
+            inputs_set.append(f)
+        elif indeg[f] > 0 and outdeg[f] == 0:
+            role = "Output"
+            outputs_set.append(f)
+        else:
+            role = "Hidden"
+            hidden_set.append(f)
+        field_role[f] = role
+
+    # --- add nodes to graph ---
+    for f in field_nodes:
+        g.add_node(f, kind="field", role=field_role.get(f, ""))
+
+    for k in kernel_nodes:
+        g.add_node(k, kind="kernel")
+
+    # --- add edges: field -> kernel -> field ---
+    for k, s, t in interactions:
+        if s in g.nodes and k in g.nodes and t in g.nodes:
+            g.add_edge(s, k)
+            g.add_edge(k, t)
+
+    # --- layout: left→right ---
+    pos = {}
+
+    def assign_layer(nodes, x):
+        nodes = list(nodes)
+        k = len(nodes)
+        for i, n in enumerate(sorted(nodes)):
+            y = 1.0 - (i + 1) / (k + 1) if k > 0 else 0.5
+            pos[n] = (x, y)
+
+    # Fields
+    assign_layer(inputs_set, 0.1)
+    assign_layer(hidden_set, 0.5)
+    assign_layer(outputs_set, 0.9)
+
+    # Kernels: between their fields (average x/y of connected fields)
+    kernel_y_fallback = 0.5
+    for idx, k in enumerate(kernel_nodes):
+        connected_fields = []
+        for u, v in g.in_edges(k):
+            if u in field_nodes and u in pos:
+                connected_fields.append(u)
+        for u, v in g.out_edges(k):
+            if v in field_nodes and v in pos:
+                connected_fields.append(v)
+
+        if connected_fields:
+            xs = [pos[f][0] for f in connected_fields]
+            ys = [pos[f][1] for f in connected_fields]
+            x_k = sum(xs) / len(xs)
+            y_k = sum(ys) / len(ys)
+        else:
+            x_k = 0.5
+            y_k = 1.0 - (idx + 1) / (len(kernel_nodes) + 1) if kernel_nodes else kernel_y_fallback
+
+        pos[k] = (x_k, y_k)
+
+    return g, pos, field_nodes, kernel_nodes
 
 
 # =========================
@@ -404,6 +503,35 @@ def plot_total_fitness(df: pd.DataFrame, target_fitness: float):
     ax.grid(True)
     fig.tight_layout()
     return fig
+
+def generations_all_partial_meet_targets(partial_df: pd.DataFrame, partial_targets: dict):
+    """
+    Return a list of generations for which *all* partial best fitnesses
+    are >= their respective targets.
+
+    partial_df has columns: generation, best_p1..N, avg_p1..N
+    partial_targets is {index -> target} where index starts at 1.
+    """
+    if partial_df is None or partial_df.empty or not partial_targets:
+        return []
+
+    gens_ok = []
+    for _, row in partial_df.iterrows():
+        g = int(row["generation"])
+        all_ok = True
+        for idx, target in partial_targets.items():
+            col = f"best_p{idx}"
+            # if we don't have this partial in the DF, treat as not OK
+            if col not in partial_df.columns:
+                all_ok = False
+                break
+            if float(row[col]) < float(target):
+                all_ok = False
+                break
+        if all_ok:
+            gens_ok.append(g)
+
+    return gens_ok
 
 
 def plot_partial_fitness_grid(partial_df: pd.DataFrame, partial_targets: dict):
@@ -488,6 +616,292 @@ def plot_innovation_growth(df: pd.DataFrame):
     fig.tight_layout()
     return fig
 
+def compute_kernel_usage_stats(elements):
+    """
+    For a given best-solution genome (elements list) compute:
+
+      - field_kernel_kinds: one entry per field that has a primary kernel
+      - interaction_kernel_kinds: one entry per kernel that mediates
+        a field-to-field interaction (no self-loops)
+
+    Returns (field_counts, field_percent, inter_counts, inter_percent)
+    where each *_counts is a dict(kind -> count)
+          each *_percent is a dict(kind -> % of total)
+    """
+    if elements is None:
+        return {}, {}, {}, {}
+
+    by_name = {el.get("uniqueName"): el for el in elements if el.get("uniqueName")}
+    if not by_name:
+        return {}, {}, {}, {}
+
+    def get_label(el):
+        lab = el.get("label", ["", ""])
+        return lab[1] if isinstance(lab, list) and len(lab) > 1 else str(lab)
+
+    field_nodes = [n for n, el in by_name.items() if get_label(el) == "neural field"]
+    kernel_nodes_all = [n for n, el in by_name.items() if "kernel" in get_label(el)]
+
+    inputs_by_target = {n: (el.get("inputs") or []) for n, el in by_name.items()}
+
+    # ---- interaction kernels (same logic as in build_topology_graph, but only to decide usage) ----
+    used_kernels = set()
+    for k in kernel_nodes_all:
+        k_el = by_name[k]
+        src_fields = [src for src, _ in (k_el.get("inputs") or []) if src in field_nodes]
+
+        tgt_fields = []
+        for f in field_nodes:
+            for src, _ in inputs_by_target.get(f, []):
+                if src == k:
+                    tgt_fields.append(f)
+                    break
+
+        for s in src_fields:
+            for t in tgt_fields:
+                if s == t:
+                    # self-loop: not considered an interaction kernel
+                    continue
+                used_kernels.add(k)
+
+    # ---- field-level kernels: primary kernel feeding each field ----
+    field_kinds = []
+    for f in field_nodes:
+        f_el = by_name[f]
+        k_name = None
+        for src, _ in f_el.get("inputs") or []:
+            if src in kernel_nodes_all:
+                k_name = src
+                break
+        if k_name:
+            kind = classify_kernel_kind(by_name[k_name])
+            field_kinds.append(kind)
+
+    # ---- interaction kernels usage ----
+    inter_kinds = [classify_kernel_kind(by_name[k]) for k in used_kernels]
+
+    def counts_and_perc(kinds):
+        c = Counter(kinds)
+        total = sum(c.values())
+        if total == 0:
+            return {}, {}
+        perc = {k: 100.0 * v / total for k, v in c.items()}
+        return dict(c), perc
+
+    field_counts, field_perc = counts_and_perc(field_kinds)
+    inter_counts, inter_perc = counts_and_perc(inter_kinds)
+    return field_counts, field_perc, inter_counts, inter_perc
+
+def kernel_kinds_for_solution(elements):
+    """
+    Helper used by compute_population_kernel_usage.
+
+    For a single solution (its JSON 'elements' list), return:
+      - field_kinds:  list with one entry per field's primary kernel
+      - inter_kinds:  list with one entry per field–field interaction kernel
+
+    We simply reuse compute_kernel_usage_stats and expand its counts
+    into repeated labels, so the population-level code only has to
+    aggregate simple lists.
+    """
+    field_counts, _, inter_counts, _ = compute_kernel_usage_stats(elements)
+
+    field_kinds = []
+    for kind, cnt in field_counts.items():
+        field_kinds.extend([kind] * cnt)
+
+    inter_kinds = []
+    for kind, cnt in inter_counts.items():
+        inter_kinds.extend([kind] * cnt)
+
+    return field_kinds, inter_kinds
+
+def classify_kernel_kind(el) -> str:
+    """Return 'Gaussian', 'Mexican-hat', or 'Other' based on the label."""
+    if el is None:
+        return "Other"
+    lab = el.get("label", ["", ""])
+    label_text = lab[1] if isinstance(lab, list) and len(lab) > 1 else str(lab)
+    low = label_text.lower()
+    if "mexican" in low:
+        return "Mexican-hat"
+    if "gauss" in low:
+        return "Gaussian"
+    return "Other"
+
+
+def summarize_best_solution_genome(elements):
+    """
+    Build two tables (as DataFrames) that describe the best solution's genome:
+
+      - Field genes: one row per neural field
+      - Interaction genes: one row per (kernel, from-field -> to-field) pair
+
+    Field roles (Input / Hidden / Output) are inferred from connectivity:
+      - Build a field->field graph via kernels, ignoring self-loops.
+      - Input:    no incoming edges from other fields.
+      - Output:   no outgoing edges to other fields.
+      - Hidden:   everything else.
+
+    Self-loop kernels (nf -> nf) are treated as part of that field's own
+    dynamics and are NOT listed as separate interaction genes.
+    """
+    if elements is None:
+        return None, None
+
+    by_name = {el.get("uniqueName"): el for el in elements if el.get("uniqueName")}
+    if not by_name:
+        return None, None
+
+    def get_label(el):
+        lab = el.get("label", ["", ""])
+        return lab[1] if isinstance(lab, list) and len(lab) > 1 else str(lab)
+
+    field_nodes = [n for n, el in by_name.items() if get_label(el) == "neural field"]
+    kernel_nodes = [n for n, el in by_name.items() if "kernel" in get_label(el)]
+
+    # ---------- connectivity via kernels ----------
+    inputs_by_target = {n: (el.get("inputs") or []) for n, el in by_name.items()}
+
+    # field -> set of downstream fields (ignoring self-loops)
+    field_graph = {f: set() for f in field_nodes}
+
+    for k in kernel_nodes:
+        k_el = by_name[k]
+        k_inputs = k_el.get("inputs") or []
+        src_fields = [src for src, _ in k_inputs if src in field_nodes]
+
+        tgt_fields = []
+        for f in field_nodes:
+            for src, _ in inputs_by_target.get(f, []):
+                if src == k:
+                    tgt_fields.append(f)
+                    break
+
+        for s in src_fields:
+            for t in tgt_fields:
+                if s == t:
+                    # self-loop: treat as part of field dynamics, not as interaction
+                    continue
+                field_graph[s].add(t)
+
+    indeg = {f: 0 for f in field_nodes}
+    outdeg = {f: 0 for f in field_nodes}
+    for s, outs in field_graph.items():
+        outdeg[s] += len(outs)
+        for t in outs:
+            indeg[t] += 1
+
+    # ---------- classify fields as Input / Hidden / Output ----------
+    field_role = {}
+    for f in field_nodes:
+        if indeg[f] == 0 and outdeg[f] > 0:
+            role = "Input"
+        elif indeg[f] > 0 and outdeg[f] == 0:
+            role = "Output"
+        else:
+            # no connections at all or both in & out
+            role = "Hidden"
+        field_role[f] = role
+
+    # ---------- parameter formatting helpers ----------
+    def kernel_param_str(k_el):
+        lab = get_label(k_el)
+        lab_lower = lab.lower()
+
+        # Mexican-hat kernel
+        if "mexican" in lab_lower:
+            Ae = k_el.get("amplitudeExc")
+            se = k_el.get("widthExc")
+            Ai = k_el.get("amplitudeInh")
+            si = k_el.get("widthInh")
+            Ag = k_el.get("amplitudeGlobal", 0.0)
+            return (
+                "Mexican-hat kernel: "
+                f"A_exc = {Ae:.2f}, σ_exc = {se:.2f}, "
+                f"A_inh = {Ai:.2f}, σ_inh = {si:.2f}, "
+                f"A_glob = {Ag:.2f}"
+            )
+
+        # Gaussian(-like) kernel
+        if "gauss" in lab_lower:
+            A = k_el.get("amplitude") or k_el.get("amplitudeExc")
+            s = k_el.get("width") or k_el.get("widthExc")
+            Ag = k_el.get("amplitudeGlobal", 0.0)
+            return f"Gaussian kernel: A = {A:.2f}, σ = {s:.2f}, A_glob = {Ag:.2f}"
+
+        # fallback: just label
+        return lab
+
+    # ---------- Field genes table ----------
+    field_rows = []
+    for f in sorted(field_nodes):
+        f_el = by_name[f]
+        # pick the first kernel feeding this field as its "primary" kernel
+        k_name = None
+        for src, _ in f_el.get("inputs") or []:
+            if src in kernel_nodes:
+                k_name = src
+                break
+        k_el = by_name.get(k_name) if k_name else None
+
+        role = field_role.get(f, "")
+        kernel_type = get_label(k_el) if k_el else ""
+
+        h = f_el.get("restingLevel")
+        tau = f_el.get("tau")
+        if h is not None and tau is not None:
+            field_params = f"h = {h:.2f}, τ = {tau:.2f}"
+        else:
+            field_params = ""
+
+        kernel_params = kernel_param_str(k_el) if k_el else ""
+
+        field_rows.append(
+            {
+                "Field": f,
+                "Role": role,
+                "Kernel type": kernel_type,
+                "Field parameters": field_params,
+                "Kernel parameters": kernel_params,
+            }
+        )
+
+    df_fields = pd.DataFrame(field_rows)
+
+    # ---------- Interaction genes table (exclude self-loops) ----------
+    inter_rows = []
+    for k in kernel_nodes:
+        k_el = by_name[k]
+        k_params = kernel_param_str(k_el)
+
+        src_fields = [src for src, _ in (k_el.get("inputs") or []) if src in field_nodes]
+
+        tgt_fields = []
+        for f in field_nodes:
+            for src, _ in inputs_by_target.get(f, []):
+                if src == k:
+                    tgt_fields.append(f)
+                    break
+
+        for s in src_fields:
+            for t in tgt_fields:
+                if s == t:
+                    # self-loop already represented as that field's kernel; skip
+                    continue
+                inter_rows.append(
+                    {
+                        "Interaction gene": k,
+                        "From → To": f"{s} → {t}",
+                        "Kernel parameters": k_params,
+                    }
+                )
+
+    df_inter = pd.DataFrame(inter_rows)
+    return df_fields, df_inter
+
+
+
 
 def plot_genome_topology_curves(df: pd.DataFrame):
     fig, ax = plt.subplots(figsize=(8, 3))
@@ -571,11 +985,19 @@ def render_species_stats(df: pd.DataFrame, species_meta: dict):
     final_species = int(last["num_species"])
     final_active = int(last["num_active_species"])
 
+    # Basic from overview
     avg_species = df["num_species"].mean()
     avg_active = df["num_active_species"].mean()
+
+    # This is usually monotonic in your setup, so it's less interesting
     max_species = df["num_species"].max()
     gen_max_species = int(df.loc[df["num_species"].idxmax(), "generation"])
 
+    # More informative: max ACTIVE species
+    max_active_species = df["num_active_species"].max()
+    gen_max_active = int(df.loc[df["num_active_species"].idxmax(), "generation"])
+
+    # From species_meta (unchanged)
     total_species = len(species_meta)
     lifespans = []
     max_members_list = []
@@ -595,7 +1017,8 @@ def render_species_stats(df: pd.DataFrame, species_meta: dict):
         avg_lifespan = sum(lifespans) / len(lifespans)
         max_lifespan = max(lifespans)
         max_life_sid = [
-            sid for sid, m in species_meta.items()
+            sid
+            for sid, m in species_meta.items()
             if m["last_gen"] - m["first_gen"] + 1 == max_lifespan
         ][0]
     else:
@@ -618,7 +1041,7 @@ def render_species_stats(df: pd.DataFrame, species_meta: dict):
         • Species that went extinct by final generation: **{extinct_species}**  
         • Average number of species per generation: **{avg_species:.2f}**  
         • Average number of active species per generation: **{avg_active:.2f}**  
-        • Max number of species in a generation: **{max_species}** (at generation {gen_max_species})  
+        • Max number of **active** species in a generation: **{max_active_species}** (at generation {gen_max_active})  
         """
     )
 
@@ -631,6 +1054,7 @@ def render_species_stats(df: pd.DataFrame, species_meta: dict):
         • Average total offspring assigned per species: **{avg_offspring:.2f}**  
         """
     )
+
 
 
 def render_topology_stats(df: pd.DataFrame):
@@ -707,8 +1131,130 @@ def categorize_mutation(mut_str: str) -> str:
 
     return "other / uncategorised"
 
-
 @st.cache_data
+def compute_population_kernel_usage(run_dir_str: str, generations: tuple):
+    """
+    For a given run (run_dir_str) and list of generations, compute:
+
+      - Per-generation percentages of Gaussian / Mexican-hat / Other for
+        field kernels and interaction kernels across the *entire population*.
+
+      - Overall counts and percentages across all generations.
+
+    Returns:
+      df_usage: DataFrame with columns
+        generation,
+        field_gaussian_pct, field_mexican_pct, field_other_pct,
+        inter_gaussian_pct, inter_mexican_pct, inter_other_pct
+
+      field_overall_counts: dict(kind -> count)
+      field_overall_perc:   dict(kind -> %)
+      inter_overall_counts: dict(kind -> count)
+      inter_overall_perc:   dict(kind -> %)
+    """
+    run_dir = Path(run_dir_str)
+    solutions_root = run_dir / "solutions"
+
+    field_overall_counts = Counter()
+    inter_overall_counts = Counter()
+    rows = []
+
+    for g in generations:
+        gen_dir = solutions_root / f"gen {g}"
+        if not gen_dir.exists():
+            continue
+
+        field_kinds_gen = []
+        inter_kinds_gen = []
+
+        for js in gen_dir.glob("*.json"):
+            try:
+                with js.open("r") as f:
+                    elements = json.load(f)
+            except Exception:
+                continue
+
+            fk, ik = kernel_kinds_for_solution(elements)
+            field_kinds_gen.extend(fk)
+            inter_kinds_gen.extend(ik)
+
+        if not field_kinds_gen and not inter_kinds_gen:
+            continue
+
+        c_field = Counter(field_kinds_gen)
+        c_inter = Counter(inter_kinds_gen)
+
+        field_overall_counts.update(c_field)
+        inter_overall_counts.update(c_inter)
+
+        def pct(counter, kind):
+            total = sum(counter.values())
+            return 100.0 * counter.get(kind, 0) / total if total > 0 else float("nan")
+
+        rows.append(
+            {
+                "generation": g,
+                "field_gaussian_pct": pct(c_field, "Gaussian"),
+                "field_mexican_pct": pct(c_field, "Mexican-hat"),
+                "field_other_pct": pct(c_field, "Other"),
+                "inter_gaussian_pct": pct(c_inter, "Gaussian"),
+                "inter_mexican_pct": pct(c_inter, "Mexican-hat"),
+                "inter_other_pct": pct(c_inter, "Other"),
+            }
+        )
+
+    if rows:
+        df_usage = pd.DataFrame(rows).sort_values("generation")
+    else:
+        df_usage = pd.DataFrame()
+
+    def perc(counter):
+        total = sum(counter.values())
+        if total == 0:
+            return {}
+        return {k: 100.0 * v / total for k, v in counter.items()}
+
+    field_overall_perc = perc(field_overall_counts)
+    inter_overall_perc = perc(inter_overall_counts)
+
+    return (
+        df_usage,
+        dict(field_overall_counts),
+        field_overall_perc,
+        dict(inter_overall_counts),
+        inter_overall_perc,
+    )
+
+def plot_kernel_usage_time(df_usage: pd.DataFrame, kind: str):
+    """
+    kind: 'field' or 'inter'
+    """
+    if df_usage is None or df_usage.empty:
+        return None
+
+    if kind == "field":
+        y1 = "field_gaussian_pct"
+        y2 = "field_mexican_pct"
+        title = "Field kernel usage across population"
+        ylabel = "% of field kernels"
+    else:
+        y1 = "inter_gaussian_pct"
+        y2 = "inter_mexican_pct"
+        title = "Interaction kernel usage across population"
+        ylabel = "% of interaction kernels"
+
+    fig, ax = plt.subplots(figsize=(8, 3))
+    ax.plot(df_usage["generation"], df_usage[y1], label="Gaussian")
+    ax.plot(df_usage["generation"], df_usage[y2], label="Mexican-hat")
+    ax.set_xlabel("generation")
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    ax.set_ylim(0, 100)
+    ax.grid(True)
+    ax.legend()
+    fig.tight_layout()
+    return fig
+
 @st.cache_data
 def compute_mutation_events(run_dir_str: str, generations: tuple):
     """
@@ -954,6 +1500,50 @@ def plot_mutation_categories(mut_events: pd.DataFrame):
     fig.tight_layout()
     return fig
 
+def plot_topology_graph(g, pos, field_nodes, kernel_nodes):
+    """
+    Draw the interaction graph with a clean left→right layout.
+
+    Fields and kernels are shown with different shapes.
+    """
+    fig, ax = plt.subplots(figsize=(8, 4))
+
+    if len(g.nodes) == 0:
+        ax.text(0.5, 0.5, "No interaction topology available", ha="center", va="center")
+        ax.axis("off")
+        fig.tight_layout()
+        return fig
+
+    if not pos:
+        pos = nx.spring_layout(g, seed=42)
+
+    # Edges
+    nx.draw_networkx_edges(g, pos, ax=ax, arrows=True, arrowstyle="->")
+
+    # Field nodes
+    nx.draw_networkx_nodes(
+        g,
+        pos,
+        nodelist=[n for n in field_nodes if n in g.nodes],
+        node_shape="o",
+        ax=ax,
+    )
+
+    # Kernel nodes
+    nx.draw_networkx_nodes(
+        g,
+        pos,
+        nodelist=[n for n in kernel_nodes if n in g.nodes],
+        node_shape="s",
+        ax=ax,
+    )
+
+    # Labels: just use node names (nf 1, gk 1-3, etc.)
+    nx.draw_networkx_labels(g, pos, font_size=8, ax=ax)
+
+    ax.axis("off")
+    fig.tight_layout()
+    return fig
 
 
 def compute_target_crossing_mutations(
@@ -1165,8 +1755,8 @@ def main():
             with partial_col:
                 partial_df = compute_partial_fitness(selected_run_path, gens_tuple)
                 partial_targets = st.session_state["partial_targets"]
-
                 if partial_df is not None and not partial_df.empty:
+                    # Determine number of partial components
                     num_partial = 0
                     for col in partial_df.columns:
                         if col.startswith("best_p"):
@@ -1214,7 +1804,23 @@ def main():
 
                         st.session_state["partial_targets"] = partial_targets
 
+                        # --- NEW: generations where all partial best fitnesses >= target ---
+                        gens_ok = generations_all_partial_meet_targets(partial_df, partial_targets)
+                        if gens_ok:
+                            first_ok = gens_ok[0]
+                            st.info(
+                                "Generations where **all partial best fitnesses** are "
+                                "≥ their targets: "
+                                f"{gens_ok} (first at generation {first_ok})."
+                            )
+                        else:
+                            st.info(
+                                "In this run, **no generation** reached all partial best "
+                                "fitness targets simultaneously."
+                            )
+
                 plot_partial_fitness_grid(partial_df, st.session_state["partial_targets"])
+
 
         # ---------------- SPECIES ----------------
         elif view == "Species":
@@ -1300,17 +1906,75 @@ def main():
 
             st.markdown("---")
 
-            # Bottom: best-solution topology over generations
-            st.markdown("#### Topology (phenotype) of best solution across generations")
+            # --- Population-level kernel usage across the whole population ---
+            gens_tuple = tuple(df["generation"].tolist())
+            (
+                df_kernel_usage,
+                field_overall_counts,
+                field_overall_perc,
+                inter_overall_counts,
+                inter_overall_perc,
+            ) = compute_population_kernel_usage(selected_run_path, gens_tuple)
 
+            if df_kernel_usage is not None and not df_kernel_usage.empty:
+                st.markdown("#### Population-level kernel usage")
+
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    fig_fu = plot_kernel_usage_time(df_kernel_usage, kind="field")
+                    if fig_fu is not None:
+                        st.pyplot(fig_fu)
+                with col_b:
+                    fig_iu = plot_kernel_usage_time(df_kernel_usage, kind="inter")
+                    if fig_iu is not None:
+                        st.pyplot(fig_iu)
+
+                # Overall summary across entire run
+                def fmt_counts(counts, perc):
+                    if not counts:
+                        return "none"
+                    parts = []
+                    for k in sorted(counts.keys()):
+                        p = perc.get(k, 0.0)
+                        parts.append(f"{k}: {counts[k]} ({p:.1f}%)")
+                    return ", ".join(parts)
+
+                st.caption(
+                    "Overall across all generations and individuals in this run:"
+                )
+                st.markdown(
+                    f"- **Field kernels:** {fmt_counts(field_overall_counts, field_overall_perc)}"
+                )
+                st.markdown(
+                    f"- **Interaction kernels:** {fmt_counts(inter_overall_counts, inter_overall_perc)}"
+                )
+
+                
+            else:
+                st.info(
+                    "No population-level kernel usage data found. "
+                    "This usually means there are no solution JSON files in "
+                    "`solutions/gen X` for this run."
+                )
+
+            st.markdown("---")
+            
+            # --- Best-solution genome for a selected generation ---
             min_gen = int(df["generation"].min())
             max_gen = int(df["generation"].max())
             gen_sel = st.slider(
-                "Generation to inspect (best solution topology)",
+                "Generation to inspect (best solution)",
                 min_value=min_gen,
                 max_value=max_gen,
                 value=max_gen,
             )
+
+            # best fitness for this generation (for the title)
+            row_sel = df[df["generation"] == gen_sel]
+            if not row_sel.empty:
+                best_f = float(row_sel["best_fitness"].iloc[0])
+            else:
+                best_f = float("nan")
 
             elements = load_best_solution_architecture(selected_run_path, gen_sel)
             if elements is None:
@@ -1319,9 +1983,59 @@ def main():
                     "`best_solutions/prev_generations` for this generation."
                 )
             else:
-                g, labels = build_topology_graph(elements)
-                fig_top = plot_topology_graph(g, labels)
-                st.pyplot(fig_top)
+                # Genome tables
+                df_fields, df_inter = summarize_best_solution_genome(elements)
+
+                st.markdown(
+                    f"#### Genome representation of the highest-performing solution "
+                    f"for generation {gen_sel} with f = {best_f:.4f}"
+                )
+
+                if df_fields is not None and not df_fields.empty:
+                    st.markdown("**Field genes**")
+                    st.table(df_fields)
+                else:
+                    st.info("No field genes found in this solution.")
+
+                if df_inter is not None and not df_inter.empty:
+                    st.markdown("**Interaction genes**")
+                    st.table(df_inter)
+                else:
+                    st.info("No interaction genes (field-to-field kernels) found in this solution.")
+
+                # --- NEW: kernel usage statistics for this genome ---
+                field_counts, field_perc, inter_counts, inter_perc = compute_kernel_usage_stats(elements)
+
+                st.markdown("#### Kernel usage in this genome")
+
+                if field_counts:
+                    parts = [
+                        f"{k}: {field_counts[k]} fields ({field_perc[k]:.1f}%)"
+                        for k in sorted(field_counts.keys())
+                    ]
+                    st.markdown(
+                        "**Field kernels:** " + ", ".join(parts)
+                    )
+                else:
+                    st.markdown("**Field kernels:** no kernels associated with fields.")
+
+                if inter_counts:
+                    parts = [
+                        f"{k}: {inter_counts[k]} interaction kernels ({inter_perc[k]:.1f}%)"
+                        for k in sorted(inter_counts.keys())
+                    ]
+                    st.markdown(
+                        "**Interaction kernels (field–field):** " + ", ".join(parts)
+                    )
+                else:
+                    st.markdown("**Interaction kernels (field–field):** none in this genome.")
+
+                # Optional: graph view
+                with st.expander("Graph view of field interactions", expanded=False):
+                    g, pos, field_nodes, kernel_nodes = build_topology_graph(elements)
+                    fig_top = plot_topology_graph(g, pos, field_nodes, kernel_nodes)
+                    st.pyplot(fig_top)
+
 
 
         # ---------------- MUTATIONS (placeholder) ----------------
