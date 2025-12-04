@@ -5,10 +5,11 @@
 
 namespace neat_dnfs
 {
-	class SelectiveOutputSolution : public Solution
+	class SelectiveOutputSolution final : public Solution
 	{
 	public:
-		SelectiveOutputSolution(const SolutionTopology& topology);
+		explicit SelectiveOutputSolution(const SolutionTopology& topology);
+		SelectiveOutputSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
 		SolutionPtr clone() const override;
 	private:
 		void testPhenotype() override;

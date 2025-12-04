@@ -5,10 +5,10 @@
 
 namespace neat_dnfs
 {
-	class AndSolution : public Solution
+	class AndSolution final : public Solution
 	{
 	public:
-		AndSolution(const SolutionTopology& topology);
+		explicit AndSolution(const SolutionTopology& topology);
 		AndSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
 		SolutionPtr clone() const override;
 	private:

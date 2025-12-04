@@ -9,6 +9,13 @@ namespace neat_dnfs
 		// target fitness is 0.85
 	}
 
+	SelectiveOutputSolution::SelectiveOutputSolution(const SolutionTopology& initialTopology,
+		const dnf_composer::Simulation& phenotype)
+		:Solution(initialTopology, phenotype)
+	{
+		name = "Selective output";
+	}
+
 	SolutionPtr SelectiveOutputSolution::clone() const
 	{
 		SelectiveOutputSolution solution(initialTopology);
@@ -31,18 +38,21 @@ namespace neat_dnfs
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0,
+				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+						GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+						{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 
 		const double f1_1_1 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1", 
 			20.0, in_amp, in_width, 
 			50.0, in_amp, in_width);
 		parameters.partialFitness.emplace_back(f1_1_1);
-		const double f1_4_1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 2", { 20.0, 50.0 }, out_amp, out_width);
+		const double f1_4_1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(
+			"nf 2", { 20.0, 50.0 }, out_amp, out_width);
 		parameters.partialFitness.emplace_back(f1_4_1);
 
 		removeGaussianStimuli();
@@ -64,15 +74,18 @@ namespace neat_dnfs
 	void SelectiveOutputSolution::createPhenotypeEnvironment()
 	{
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0,
+		GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude,50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude,50.0,
+GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0,
+	GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 }

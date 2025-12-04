@@ -754,10 +754,10 @@ namespace neat_dnfs
 	double Solution::twoBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position1, const double& amplitude1, const double& width1, const double& position2, const double& amplitude2, const double& width2)
 	{
 		static constexpr int targetNumberOfBumps = 2;
-		static constexpr double weightBumps = 0.40;
+		static constexpr double weightBumps = 0.70;
 		static constexpr double weightPos = 0.20 / targetNumberOfBumps;
-		static constexpr double weightAmp = 0.20 / targetNumberOfBumps;
-		static constexpr double weightWidth = 0.20 / targetNumberOfBumps;
+		static constexpr double weightAmp = 0.05 / targetNumberOfBumps;
+		static constexpr double weightWidth = 0.05 / targetNumberOfBumps;
 		// if sum of weights is not 1.0, throw exception
 		if (std::abs(weightBumps + (weightPos + weightAmp + weightWidth) * targetNumberOfBumps - 1.0) > 1e-6)
 			throw std::invalid_argument("Sum of weights must be 1.0");

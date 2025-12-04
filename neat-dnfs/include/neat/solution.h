@@ -80,6 +80,8 @@ namespace neat_dnfs
 		Genome genome;
 		std::tuple <int, int> parents;
 	public:
+		virtual ~Solution() = default;
+
 		Solution(const SolutionTopology& initialTopology);
 		Solution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
 		virtual SolutionPtr clone() const = 0;

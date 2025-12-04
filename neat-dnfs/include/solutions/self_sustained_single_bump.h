@@ -5,10 +5,11 @@
 
 namespace neat_dnfs
 {
-	class SelfSustainedSingleBumpSolution : public Solution
+	class SelfSustainedSingleBumpSolution final : public Solution
 	{
 	public:
-		SelfSustainedSingleBumpSolution(const SolutionTopology& topology);
+		explicit SelfSustainedSingleBumpSolution(const SolutionTopology& topology);
+		SelfSustainedSingleBumpSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
 		SolutionPtr clone() const override;
 	private:
 		void testPhenotype() override;

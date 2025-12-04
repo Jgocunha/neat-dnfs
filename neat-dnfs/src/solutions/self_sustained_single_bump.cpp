@@ -6,8 +6,13 @@ namespace neat_dnfs
 		: Solution(topology)
 	{
 		name = "Single bump (self-sustained)";
-		// target fitness is 0.85
-		// same parameters as single bump
+	}
+
+	SelfSustainedSingleBumpSolution::SelfSustainedSingleBumpSolution(const SolutionTopology& initialTopology,
+		const dnf_composer::Simulation& phenotype)
+			:Solution(initialTopology, phenotype)
+	{
+		name = "Single bump (self-sustained)";
 	}
 
 	SolutionPtr SelfSustainedSingleBumpSolution::clone() const
@@ -27,7 +32,8 @@ namespace neat_dnfs
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
-			{ 5.0, 15.0, 25.0, true, false },
+{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 25.0,
+	GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 
@@ -59,7 +65,8 @@ namespace neat_dnfs
 	void SelfSustainedSingleBumpSolution::createPhenotypeEnvironment()
 	{
 		addGaussianStimulus("nf 1",
-			{ 5.0, 15.0, 25.0, true, false },
+{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 25.0,
+					GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 }
