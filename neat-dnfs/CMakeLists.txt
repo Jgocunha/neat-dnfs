@@ -165,6 +165,17 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         ${CMAKE_PROJECT_NAME}
 )
 
+# Solution evaluation executable
+set(EXE_PROJECT_EXAMPLE solution_evaluation-exe)
+add_executable(${EXE_PROJECT_EXAMPLE} "examples/solution_evaluation.cpp")
+target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
+target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
+        imgui::imgui
+        imgui-platform-kit
+        dynamic-neural-field-composer
+        ${CMAKE_PROJECT_NAME}
+)
+
 # Setup Catch2
 enable_testing()
 find_package(Catch2 CONFIG REQUIRED)
