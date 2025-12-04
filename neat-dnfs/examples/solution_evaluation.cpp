@@ -30,12 +30,12 @@
 		// load a previous solution
 		const auto previous_solution = std::make_shared<dnf_composer::Simulation>();
 		const dnf_composer::SimulationFileManager sfm(previous_solution,
-			std::string(PROJECT_DIR) + "/data/Logic AND/and.json");
+			std::string(PROJECT_DIR) + "/data/XOR/xor.json");
 		sfm.loadElementsFromJson();
 		const dnf_composer::Simulation template_solution = *previous_solution;
 
-		// select the type of solution here and in the population init.
-		AndSolution solution{
+		// select the type of solution here
+		XOR solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
