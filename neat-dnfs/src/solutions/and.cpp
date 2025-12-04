@@ -10,6 +10,12 @@ namespace neat_dnfs
 		// same parameters as single bump
 	}
 
+	AndSolution::AndSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+		:Solution(initialTopology, phenotype)
+	{
+		name = "Logic AND";
+	}
+
 	SolutionPtr AndSolution::clone() const
 	{
 		AndSolution solution(initialTopology);

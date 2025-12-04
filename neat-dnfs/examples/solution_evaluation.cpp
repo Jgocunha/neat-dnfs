@@ -31,12 +31,12 @@
 		const std::shared_ptr<dnf_composer::Simulation> previous_solution =
 			std::make_shared<dnf_composer::Simulation>();
 		const dnf_composer::SimulationFileManager sfm(previous_solution,
-			std::string(PROJECT_DIR) + "/data/XOR/2025-11-27 15h50m38s/best_solutions/last_generation/solution 46495 generation 100 species 25 fitness 0.805476.json");
+			std::string(PROJECT_DIR) + "/data/Logic AND/template_AND.json");
 		sfm.loadElementsFromJson();
 		const dnf_composer::Simulation template_solution = *previous_solution;
 
 		// select the type of solution here and in the population init.
-		XOR solution{
+		AndSolution solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
