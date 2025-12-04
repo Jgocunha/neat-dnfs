@@ -28,10 +28,9 @@
 		using namespace neat_dnfs;
 
 		// load a previous solution
-		const std::shared_ptr<dnf_composer::Simulation> previous_solution =
-			std::make_shared<dnf_composer::Simulation>();
+		const auto previous_solution = std::make_shared<dnf_composer::Simulation>();
 		const dnf_composer::SimulationFileManager sfm(previous_solution,
-			std::string(PROJECT_DIR) + "/data/Logic AND/template_AND.json");
+			std::string(PROJECT_DIR) + "/data/Logic AND/and.json");
 		sfm.loadElementsFromJson();
 		const dnf_composer::Simulation template_solution = *previous_solution;
 
@@ -42,7 +41,6 @@
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 			}
 			},
 			template_solution // load a previous solution

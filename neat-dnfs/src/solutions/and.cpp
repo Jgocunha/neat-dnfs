@@ -34,7 +34,8 @@ namespace neat_dnfs
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
-			{ 5.0, 15.0, 50.0, true, false },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		runSimulation(iterations);
@@ -47,7 +48,8 @@ namespace neat_dnfs
 		removeGaussianStimuli();
 		//initSimulation();
 		addGaussianStimulus("nf 2",
-			{ 5.0, 15.0, 50.0, true, false },
+{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+	GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		runSimulation(iterations);
@@ -58,7 +60,8 @@ namespace neat_dnfs
 		parameters.partialFitness.emplace_back(f2_2);
 
 		addGaussianStimulus("nf 1",
-			{ 5.0, 15.0, 50.0, true, false },
+{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+	GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		runSimulation(iterations);

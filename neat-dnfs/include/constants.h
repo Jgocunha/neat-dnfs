@@ -13,7 +13,7 @@ namespace neat_dnfs
 	{
 		inline static std::string name				= "solution ";
 		static constexpr double deltaT				= 10;
-		static constexpr size_t maxSimulationSteps	= 2000;
+		static constexpr size_t maxSimulationSteps	= 500;
 	};
 
 	struct DimensionConstants
