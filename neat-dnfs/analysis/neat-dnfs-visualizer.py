@@ -9,6 +9,7 @@ import streamlit as st
 import networkx as nx  # for topology graphs
 from collections import Counter
 import json
+import numpy as np
 
 
 # =========================
@@ -1343,7 +1344,6 @@ def plot_kernel_usage_time(df_usage: pd.DataFrame, kind: str):
     return fig
 
 @st.cache_data
-@st.cache_data
 def compute_mutation_events(run_dir_str: str, generations: tuple):
     """
     Parse statistics/generation_X.txt files and extract mutation events.
@@ -1783,6 +1783,595 @@ def plot_best_mutation_timeline(per_gen_df: pd.DataFrame):
     fig.tight_layout()
     return fig
 
+# =========================
+# Experiment-level helpers (across many runs)
+# =========================
+
+# ---- runtime + total-mutation statistics (from evolution_timestamps.txt,
+#      field_gene_statistics_total.txt, genome_statistics_total.txt)
+#      adapted from analysis-other-statistics.py
+# --------------------------------------------------------------
+
+def _parse_evolution_timestamps(file_path: Path):
+    metrics = {}
+    if not file_path.exists():
+        return metrics
+
+    txt = file_path.read_text()
+
+    num_generations = re.search(r"Number of generations: (\d+)", txt)
+    start_time = re.search(r"Evolution Start Time: ([\d\-: ]+)", txt)
+    end_time = re.search(r"Evolution End Time: ([\d\-: ]+)", txt)
+    duration_seconds = re.search(r"Duration \(seconds\): (\d+)", txt)
+
+    if not (num_generations and start_time and end_time and duration_seconds):
+        return metrics
+
+    metrics["num_generations"] = int(num_generations.group(1))
+    metrics["start_time"] = start_time.group(1)
+    metrics["end_time"] = end_time.group(1)
+    metrics["duration_seconds"] = int(duration_seconds.group(1))
+
+    # derived
+    if metrics["num_generations"] > 0:
+        metrics["seconds_per_generation"] = (
+            metrics["duration_seconds"] / metrics["num_generations"]
+        )
+
+    import datetime as _dt
+    start_dt = _dt.datetime.strptime(metrics["start_time"], "%Y-%m-%d %H:%M:%S")
+    end_dt = _dt.datetime.strptime(metrics["end_time"], "%Y-%m-%d %H:%M:%S")
+    metrics["duration_hours"] = (end_dt - start_dt).total_seconds() / 3600.0
+    return metrics
+
+
+def _parse_field_gene_statistics(file_path: Path):
+    metrics = {}
+    if not file_path.exists():
+        return metrics
+
+    txt = file_path.read_text()
+    pattern = r"Total (\w+(?:\s\w+)*) mutations: (\d+)"
+    for mutation_type, count in re.findall(pattern, txt):
+        key = mutation_type.replace(" ", "_").lower()
+        metrics[key] = int(count)
+
+    # kernel mix & kernel/field ratio
+    g = metrics.get("gauss_kernel", 0)
+    m = metrics.get("mexican_hat_kernel", 0)
+    o = metrics.get("oscillatory_kernel", 0)
+    total_k_specific = g + m + o
+    if total_k_specific > 0:
+        metrics["gauss_kernel_pct"] = 100.0 * g / total_k_specific
+        metrics["mexican_hat_kernel_pct"] = 100.0 * m / total_k_specific
+        metrics["oscillatory_kernel_pct"] = 100.0 * o / total_k_specific
+
+    k = metrics.get("kernel", 0)
+    nf = metrics.get("neural_field", 0)
+    metrics["kernel_to_field_ratio"] = (k / nf) if nf > 0 else 0.0
+    return metrics
+
+
+def _parse_genome_statistics(file_path: Path):
+    metrics = {}
+    if not file_path.exists():
+        return metrics
+
+    txt = file_path.read_text()
+    pattern = r"(\w+(?:\s\w+)*) mutations total: (\d+)"
+    for mutation_type, count in re.findall(pattern, txt):
+        key = mutation_type.replace(" ", "_").lower()
+        metrics[key] = int(count)
+
+    total_mutations = sum(metrics.values())
+    metrics["total_mutations"] = total_mutations
+
+    # per-type percentages
+    if total_mutations > 0:
+        for key, val in list(metrics.items()):
+            if key == "total_mutations":
+                continue
+            metrics[f"{key}_pct"] = 100.0 * val / total_mutations
+
+    # structural vs parametric
+    structural = metrics.get("add_connection_gene", 0) + metrics.get(
+        "add_field_gene", 0
+    )
+    parametric = metrics.get("mutate_field_gene", 0) + metrics.get(
+        "mutate_connection_gene", 0
+    )
+    metrics["structural_mutations"] = structural
+    metrics["parametric_mutations"] = parametric
+    metrics["structural_to_parametric_ratio"] = (
+        structural / parametric if parametric > 0 else 0.0
+    )
+    return metrics
+
+
+def _analyze_single_run_totals(run_dir: Path):
+    """Collect 'global totals' for a single run directory."""
+
+    out = {"run_dir": run_dir.name}
+
+    # evolution_timestamps.txt is now in the RUN ROOT
+    out.update(_parse_evolution_timestamps(run_dir / "evolution_timestamps.txt"))
+
+    return out
+
+
+
+@st.cache_data
+def compute_experiment_totals(base_dir_str: str):
+    """
+    Aggregate runtime + mutation totals over all runs in base_dir.
+    Returns (agg_metrics, df) where df has one row per run.
+    """
+    base = Path(base_dir_str)
+
+    # USE THE SAME "RUN DETECTION" AS THE REST OF THE APP
+    run_dirs = [
+        d
+        for d in base.iterdir()
+        if d.is_dir() and (d / "per_generation_overview.txt").exists()
+    ]
+
+    rows = []
+    for rd in run_dirs:
+        m = _analyze_single_run_totals(rd)
+        if m:
+            rows.append(m)
+
+    if not rows:
+        return {}, pd.DataFrame()
+
+    df = pd.DataFrame(rows)
+
+    numeric_cols = df.select_dtypes(include=[np.number]).columns
+    agg = {}
+    for col in numeric_cols:
+        series = df[col].dropna()
+        if series.empty:
+            continue
+        agg[f"{col}_mean"] = float(series.mean())
+        agg[f"{col}_median"] = float(series.median())
+        agg[f"{col}_min"] = float(series.min())
+        agg[f"{col}_max"] = float(series.max())
+        agg[f"{col}_std"] = float(series.std(ddof=0))
+
+    return agg, df
+
+
+
+def render_experiment_totals(agg: dict, df: pd.DataFrame):
+    """Streamlit UI for the 'other-statistics' style aggregates."""
+    if df.empty:
+        st.info("No experiment-level statistics files found in this base directory.")
+        return
+
+    st.markdown("### Experiment-level runtime & mutation mix")
+
+    n_runs = len(df)
+    st.markdown(f"- Analysed **{n_runs}** runs in this experiment.")
+
+    cols = st.columns(2)
+    with cols[0]:
+        st.markdown("#### Time / performance")
+        dur_mean = agg.get("duration_hours_mean")
+        spg_mean = agg.get("seconds_per_generation_mean")
+        if dur_mean is not None:
+            st.markdown(f"- Average run duration: **{dur_mean:.2f} h**")
+        if spg_mean is not None:
+            st.markdown(f"- Avg. time per generation: **{spg_mean:.2f} s/gen**")
+
+        ratio = agg.get("structural_to_parametric_ratio_mean")
+        if ratio is not None:
+            st.markdown(
+                f"- Structural / parametric mutation ratio (mean): **{ratio:.3f}**"
+            )
+
+        kf = agg.get("kernel_to_field_ratio_mean")
+        if kf is not None:
+            st.markdown(
+                f"- Kernel / neural-field mutation ratio (mean): **{kf:.2f}**"
+            )
+
+    with cols[1]:
+        st.markdown("#### Kernel types (field gene totals)")
+        g = agg.get("gauss_kernel_pct_mean", 0.0)
+        m = agg.get("mexican_hat_kernel_pct_mean", 0.0)
+        o = agg.get("oscillatory_kernel_pct_mean", 0.0)
+        if g + m + o > 0:
+            st.markdown(
+                f"- Gaussian: **{g:.1f}%**  \n"
+                f"- Mexican-hat: **{m:.1f}%**  \n"
+                f"- Oscillatory: **{o:.1f}%**"
+            )
+        else:
+            st.write("No kernel-type information found in totals.")
+
+    # ---- a couple of simple histograms / pies ----
+    st.markdown("#### Distributions across runs")
+    plot_cols = st.columns(3)
+
+    # duration
+    if "duration_hours" in df.columns:
+        with plot_cols[0]:
+            fig, ax = plt.subplots(figsize=(4, 3))
+            ax.hist(df["duration_hours"].dropna(), bins=10)
+            ax.set_xlabel("duration (hours)")
+            ax.set_ylabel("runs")
+            ax.set_title("Run duration")
+            fig.tight_layout()
+            st.pyplot(fig)
+
+    # seconds per generation
+    if "seconds_per_generation" in df.columns:
+        with plot_cols[1]:
+            fig, ax = plt.subplots(figsize=(4, 3))
+            ax.hist(df["seconds_per_generation"].dropna(), bins=10)
+            ax.set_xlabel("sec / generation")
+            ax.set_ylabel("runs")
+            ax.set_title("Time per generation")
+            fig.tight_layout()
+            st.pyplot(fig)
+
+    # structural vs parametric
+    if (
+        "structural_mutations" in df.columns
+        and "parametric_mutations" in df.columns
+    ):
+        with plot_cols[2]:
+            vals = df[["structural_mutations", "parametric_mutations"]].mean()
+            fig, ax = plt.subplots(figsize=(4, 3))
+            ax.pie(
+                vals.values,
+                labels=["Structural", "Parametric"],
+                autopct="%1.1f%%",
+                startangle=90,
+            )
+            ax.set_title("Structural vs parametric (mean per run)")
+            fig.tight_layout()
+            st.pyplot(fig)
+
+
+# ---- convergence / architecture statistics over runs
+#      (from per_generation_overview.txt)
+#      adapted from analysis-per-generation-overview.py
+# --------------------------------------------------------------
+
+def _analyze_single_run_convergence(stats_file: Path, fitness_threshold: float):
+    txt = stats_file.read_text()
+
+    gen_pattern = (
+        r"Current generation: (\d+).*?"
+        r"Best solution: \[solution \d+ \[ fit\.: ([\d\.]+).*?"
+        r"genome \((.*?)\).*?"
+        r"field genes \{(.*?)\}.*?"
+        r"connection genes \{(.*?)\}"
+    )
+    generations_data = re.findall(gen_pattern, txt, re.DOTALL)
+    if not generations_data:
+        return None
+
+    generations = [int(g) for g, _, _, _, _ in generations_data]
+    fitness_values = [float(f) for _, f, _, _, _ in generations_data]
+
+    # last generation genome info
+    final_idx = generations.index(max(generations))
+    final_data = generations_data[final_idx]
+
+    # field genes: count HIDDEN
+    field_genes_str = final_data[3]
+    field_types = re.findall(
+        r"fg \(id: \d+, type: (INPUT|OUTPUT|HIDDEN)\)", field_genes_str
+    )
+    hidden_fields_count = field_types.count("HIDDEN")
+
+    # connection genes: count enabled
+    conn_str = final_data[4]
+    conn_states = re.findall(r"enabled: (true|false)", conn_str)
+    enabled_connections_count = conn_states.count("true")
+
+    # fitness improvements
+    fitness_improvements = []
+    for i in range(1, len(fitness_values)):
+        improvement = max(0.0, fitness_values[i] - fitness_values[i - 1])
+        fitness_improvements.append(improvement)
+
+    max_fitness = max(fitness_values)
+    min_fitness = min(fitness_values)
+    success = max_fitness >= fitness_threshold
+
+    generation_to_threshold = None
+    if success:
+        for g, fit in zip(generations, fitness_values):
+            if fit >= fitness_threshold:
+                generation_to_threshold = g
+                break
+
+    avg_improvement = (
+        sum(fitness_improvements) / len(fitness_improvements)
+        if fitness_improvements
+        else 0.0
+    )
+
+    return {
+        "success": success,
+        "max_fitness": max_fitness,
+        "min_fitness": min_fitness,
+        "total_generations": len(generations),
+        "generation_to_threshold": generation_to_threshold,
+        "avg_improvement_per_gen": avg_improvement,
+        "generations": generations,
+        "fitness_values": fitness_values,
+        "fitness_improvements": fitness_improvements,
+        "hidden_fields_count": hidden_fields_count,
+        "enabled_connections_count": enabled_connections_count,
+        # we fill run_dir higher up
+    }
+
+
+def _aggregate_convergence_metrics(all_metrics: list):
+    total_runs = len(all_metrics)
+    successful_runs = [m for m in all_metrics if m["success"]]
+    num_successful = len(successful_runs)
+
+    if num_successful > 0:
+        # gens to threshold
+        gens_to_thr = [
+            m["generation_to_threshold"] for m in successful_runs
+            if m["generation_to_threshold"] is not None
+        ]
+        if gens_to_thr:
+            mean_generations = float(np.mean(gens_to_thr))
+            median_generations = float(np.median(gens_to_thr))
+            std_generations = float(np.std(gens_to_thr))
+        else:
+            mean_generations = median_generations = std_generations = 0.0
+
+        # architecture
+        hidden_counts = [m["hidden_fields_count"] for m in successful_runs]
+        conn_counts = [m["enabled_connections_count"] for m in successful_runs]
+
+        mean_hidden = float(np.mean(hidden_counts))
+        median_hidden = float(np.median(hidden_counts))
+        std_hidden = float(np.std(hidden_counts))
+
+        mean_conn = float(np.mean(conn_counts))
+        median_conn = float(np.median(conn_counts))
+        std_conn = float(np.std(conn_counts))
+
+        # convergence rate & improvement
+        convergence_rates = []
+        for m in successful_runs:
+            first_fit = m["fitness_values"][0]
+            g_thr = m["generation_to_threshold"]
+            if g_thr is None or g_thr <= 0:
+                continue
+            idx = m["generations"].index(g_thr)
+            thr_fit = m["fitness_values"][idx]
+            convergence_rates.append((thr_fit - first_fit) / g_thr)
+
+        mean_conv_rate = float(np.mean(convergence_rates)) if convergence_rates else 0.0
+        mean_improvement = float(
+            np.mean([m["avg_improvement_per_gen"] for m in successful_runs])
+        )
+    else:
+        mean_generations = median_generations = std_generations = 0.0
+        mean_conv_rate = mean_improvement = 0.0
+        mean_hidden = median_hidden = std_hidden = 0.0
+        mean_conn = median_conn = std_conn = 0.0
+
+    # best/worst runs
+    max_fit_run = max(all_metrics, key=lambda m: m["max_fitness"])
+    min_fit_run = min(all_metrics, key=lambda m: m["max_fitness"])
+
+    fastest = None
+    slowest = None
+    most_hidden = None
+    most_conn = None
+    if num_successful > 0:
+        successful_runs = [m for m in all_metrics if m["success"]]
+        fastest = min(
+            successful_runs,
+            key=lambda m: m["generation_to_threshold"]
+            if m["generation_to_threshold"] is not None
+            else float("inf"),
+        )
+        slowest = max(
+            successful_runs,
+            key=lambda m: m["generation_to_threshold"]
+            if m["generation_to_threshold"] is not None
+            else -1,
+        )
+        most_hidden = max(successful_runs, key=lambda m: m["hidden_fields_count"])
+        most_conn = max(
+            successful_runs, key=lambda m: m["enabled_connections_count"]
+        )
+
+    return {
+        "total_runs": total_runs,
+        "successful_runs": num_successful,
+        "success_rate": num_successful / total_runs if total_runs > 0 else 0.0,
+        "mean_generations_to_threshold": mean_generations,
+        "median_generations_to_threshold": median_generations,
+        "std_generations_to_threshold": std_generations,
+        "mean_convergence_rate": mean_conv_rate,
+        "mean_improvement_per_gen": mean_improvement,
+        "mean_hidden_fields": mean_hidden,
+        "median_hidden_fields": median_hidden,
+        "std_hidden_fields": std_hidden,
+        "mean_enabled_connections": mean_conn,
+        "median_enabled_connections": median_conn,
+        "std_enabled_connections": std_conn,
+        "all_run_metrics": all_metrics,
+        "max_fit_run": max_fit_run,
+        "min_fit_run": min_fit_run,
+        "fastest_run": fastest,
+        "slowest_run": slowest,
+        "most_hidden_run": most_hidden,
+        "most_connections_run": most_conn,
+    }
+
+
+@st.cache_data
+def compute_experiment_convergence(base_dir_str: str, fitness_threshold: float):
+    """
+    Go through all run folders (subdirs with per_generation_overview.txt)
+    and compute convergence/architecture statistics.
+    """
+    base = Path(base_dir_str)
+    all_metrics = []
+
+    for rd in base.iterdir():
+        if not rd.is_dir():
+            continue
+        stats_file = rd / "per_generation_overview.txt"
+        if not stats_file.exists():
+            continue
+
+        m = _analyze_single_run_convergence(stats_file, fitness_threshold)
+        if m is None:
+            continue
+        m["run_dir"] = rd.name
+        all_metrics.append(m)
+
+    if not all_metrics:
+        return {}
+
+    return _aggregate_convergence_metrics(all_metrics)
+
+
+def render_experiment_convergence(conv: dict, fitness_threshold: float):
+    """Streamlit UI for multi-run convergence statistics."""
+    if not conv:
+        st.info("No per_generation_overview.txt files found for this base directory.")
+        return
+
+    st.markdown("### Convergence & architecture across runs")
+
+    total = conv["total_runs"]
+    succ = conv["successful_runs"]
+    rate = conv["success_rate"] * 100.0
+
+    st.markdown(
+        f"- Analysed **{total}** runs; "
+        f"**{succ}** reached the fitness threshold "
+        f"(**{rate:.1f}%** success; threshold = {fitness_threshold:.3f})."
+    )
+
+    cols = st.columns(3)
+    with cols[0]:
+        st.markdown("#### Generations to threshold (successful runs)")
+        st.markdown(
+            f"- Mean: **{conv['mean_generations_to_threshold']:.2f}**  \n"
+            f"- Median: **{conv['median_generations_to_threshold']:.2f}**  \n"
+            f"- Std: **{conv['std_generations_to_threshold']:.2f}**"
+        )
+
+    with cols[1]:
+        st.markdown("#### Convergence speed")
+        st.markdown(
+            f"- Mean convergence rate (fitness gain/gen): "
+            f"**{conv['mean_convergence_rate']:.4f}**  \n"
+            f"- Mean fitness improvement/gen: "
+            f"**{conv['mean_improvement_per_gen']:.4f}**"
+        )
+
+    with cols[2]:
+        st.markdown("#### Architecture (successful solutions)")
+        st.markdown(
+            f"- Hidden fields (mean ± std): "
+            f"**{conv['mean_hidden_fields']:.2f} ± {conv['std_hidden_fields']:.2f}**  \n"
+            f"- Enabled connections (mean ± std): "
+            f"**{conv['mean_enabled_connections']:.2f} ± {conv['std_enabled_connections']:.2f}**"
+        )
+
+    # A couple of small histograms
+    successful = [
+        m for m in conv["all_run_metrics"] if m["success"] and m["generation_to_threshold"] is not None
+    ]
+    if successful:
+        col1, col2 = st.columns(2)
+
+        with col1:
+            gens = [m["generation_to_threshold"] for m in successful]
+            fig, ax = plt.subplots(figsize=(4, 3))
+            ax.hist(gens, bins=min(20, len(gens)))
+            ax.set_xlabel("generations to threshold")
+            ax.set_ylabel("runs")
+            ax.set_title("Convergence generations (successful)")
+            fig.tight_layout()
+            st.pyplot(fig)
+
+        with col2:
+            hidden = [m["hidden_fields_count"] for m in successful]
+            conns = [m["enabled_connections_count"] for m in successful]
+            fig, ax = plt.subplots(figsize=(4, 3))
+            ax.scatter(hidden, conns)
+            ax.set_xlabel("hidden fields")
+            ax.set_ylabel("enabled connections")
+            ax.set_title("Architecture complexity (successful)")
+            fig.tight_layout()
+            st.pyplot(fig)
+
+    # Small “notable runs” table
+    st.markdown("#### Notable runs")
+
+    rows = []
+    if conv["max_fit_run"] is not None:
+        rows.append(
+            {
+                "label": "Highest max fitness",
+                "run": conv["max_fit_run"]["run_dir"],
+                "value": conv["max_fit_run"]["max_fitness"],
+            }
+        )
+    if conv["min_fit_run"] is not None:
+        rows.append(
+            {
+                "label": "Lowest max fitness",
+                "run": conv["min_fit_run"]["run_dir"],
+                "value": conv["min_fit_run"]["max_fitness"],
+            }
+        )
+    if conv["fastest_run"] is not None:
+        rows.append(
+            {
+                "label": "Fastest to threshold",
+                "run": conv["fastest_run"]["run_dir"],
+                "value": conv["fastest_run"]["generation_to_threshold"],
+            }
+        )
+    if conv["slowest_run"] is not None:
+        rows.append(
+            {
+                "label": "Slowest to threshold",
+                "run": conv["slowest_run"]["run_dir"],
+                "value": conv["slowest_run"]["generation_to_threshold"],
+            }
+        )
+    if conv["most_hidden_run"] is not None:
+        rows.append(
+            {
+                "label": "Most hidden fields",
+                "run": conv["most_hidden_run"]["run_dir"],
+                "value": conv["most_hidden_run"]["hidden_fields_count"],
+            }
+        )
+    if conv["most_connections_run"] is not None:
+        rows.append(
+            {
+                "label": "Most enabled connections",
+                "run": conv["most_connections_run"]["run_dir"],
+                "value": conv["most_connections_run"]["enabled_connections_count"],
+            }
+        )
+
+    if rows:
+        st.table(pd.DataFrame(rows))
+
+
 
 # =========================
 # Main app
@@ -1839,7 +2428,7 @@ def main():
         with h1_col:
             st.markdown("## neat-dnfs evolution overview dashboard")
         with h2_col:
-            bcols = st.columns(4)
+            bcols = st.columns(5)
             with bcols[0]:
                 if st.button("Fitness", width="stretch"):
                     st.session_state["view"] = "Fitness"
@@ -1850,8 +2439,11 @@ def main():
                 if st.button("Topology", width="stretch"):
                     st.session_state["view"] = "Topology"
             with bcols[3]:
-                if st.button("Mutations",width="stretch"):
+                if st.button("Mutations", width="stretch"):
                     st.session_state["view"] = "Mutations"
+            with bcols[4]:
+                if st.button("Experiment", width="stretch"):
+                    st.session_state["view"] = "Experiment"
 
         view = st.session_state["view"]
         df = load_overview(selected_run_path)
@@ -2180,7 +2772,6 @@ def main():
                     st.pyplot(fig_top)
 
 
-
         # ---------------- MUTATIONS (placeholder) ----------------
                # ---------------- MUTATIONS ----------------
         elif view == "Mutations":
@@ -2277,6 +2868,43 @@ def main():
                         ),
                         width="stretch",
                     )
+        
+        # ---------------- EXPERIMENT (multi-run stats) ----------------
+        elif view == "Experiment":
+            st.markdown("---")
+
+            # reuse the same base_dir_str that you typed on the left
+            base_dir_str_for_runs = base_dir_str
+
+            # fitness threshold: reuse your global target_fitness slider if you like
+            st.markdown("### Experiment-level statistics across runs")
+
+            c1, c2 = st.columns([3, 1])
+            with c1:
+                thr = st.slider(
+                    "Fitness threshold for considering a run successful",
+                    min_value=float(0.0),
+                    max_value=float(1.5),
+                    value=float(st.session_state.get("target_fitness", 0.9)),
+                    step=0.01,
+                )
+            with c2:
+                thr = st.number_input(
+                    "Threshold (manual)", value=float(thr), min_value=0.0, max_value=10.0
+                )
+
+            st.session_state["target_fitness"] = float(thr)
+
+            # convergence / architecture (per_generation_overview.txt)
+            conv = compute_experiment_convergence(base_dir_str_for_runs, float(thr))
+            render_experiment_convergence(conv, float(thr))
+
+            st.markdown("---")
+
+            # runtime + total mutation statistics (statistics/*_total.txt etc.)
+            agg_totals, df_totals = compute_experiment_totals(base_dir_str_for_runs)
+            render_experiment_totals(agg_totals, df_totals)
+
 
 if __name__ == "__main__":
     main()

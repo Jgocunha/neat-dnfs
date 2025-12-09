@@ -335,11 +335,11 @@ def main():
     # Root directory containing all run folders
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Single bump (self-stabilized)/"
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Single bump (self-sustained)/"
-    #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Logic AND/"
+    root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Logic AND/"
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Selective output/"
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Action simulation/"   
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Action execution/"   
-    root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/XOR/"   
+    #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/XOR/"   
     #root_dir = "C:/dev-files/neat-dnfs/neat-dnfs/data/Select the object/"
 
     # Output directory for plots
