@@ -1094,42 +1094,129 @@ def render_topology_stats(df: pd.DataFrame):
 # Mutation helpers
 # =========================
 
-def categorize_mutation(mut_str: str) -> str:
+def categorize_mutation(mut_str: str, gene_type: str = "") -> str:
     """
-    Heuristic categorisation of a mutation description string.
-    Adjust these rules as you refine your logging format.
+    Classify a mutation according to the taxonomy:
+
+    Structural
+        - toggle cg to enabled/disabled
+        - added fg
+        - added cg
+
+    Parametrical mutations
+      Field gene mutations
+        Kernel mutations
+            fg gk width
+            fg gk amp
+            fg gk amp glob
+            fg mhk amp exc
+            fg mhk width exc
+            fg mhk amp inh
+            fg mhk width inh
+            fg mhk amp glob
+            Type mutations: mhk to gk / gk to mhk
+        Neural field mutations
+            fg nf tau
+            fg nf resting level
+            fg nf rand
+
+      Connection gene mutations
+        Kernel mutations
+            cg gk width
+            cg gk amp
+            cg gk amp glob
+            cg mhk amp exc
+            cg mhk width exc
+            cg mhk amp inh
+            cg mhk width inh
+            cg mhk amp glob
+            Type mutations: cg to gk / cg to mhk
+        Signal mutations
+            cg to excitatory / cg to inhibitory
     """
-    s = mut_str.lower()
+    s = (mut_str or "").lower().strip()
 
-    # ---- structural: field / connection changes ----
-    if "add fg" in s or "added fg" in s or "new fg" in s or "add field" in s:
-        return "structural – add field"
-    if "add cg" in s or "added cg" in s or "new cg" in s or "add conn" in s:
-        return "structural – add connection"
-    if "del. fg" in s or "del. cg" in s or "remove fg" in s or "remove cg" in s:
-        return "structural – delete"
-    if "enabled" in s or "disabled" in s:
-        return "structural – enable/disable connection"
+    # ---------- structural mutations ----------
+    if s.startswith("toggle cg"):
+        return "Structural – toggle connection enabled/disabled"
+    if s.startswith("added fg"):
+        return "Structural – add field gene"
+    if s.startswith("added cg"):
+        return "Structural – add connection gene"
 
-    # ---- type / sign changes ----
-    if "to inhibitory" in s or "to excitatory" in s:
-        return "type / sign change – field"
-    if "to gk" in s or "to mhk" in s or "to kernel" in s:
-        return "type / sign change – kernel"
+    # ---------- field gene mutations ----------
+    if gene_type == "fg":
+        # neural-field parameters
+        if "fg nf tau" in s:
+            return "Field – neural field τ"
+        if "fg nf rest. lvl" in s or "fg nf resting" in s:
+            return "Field – neural field resting level"
+        if "fg nf rand" in s:
+            return "Field – neural field random reset"
 
-    # ---- field parameters ----
-    if "rest. lvl" in s or "rest level" in s:
-        return "field parameter – resting level"
-    if "tau" in s or "time const" in s:
-        return "field parameter – dynamics"
+        # type changes
+        if "mhk to gk" in s:
+            return "Field kernel – type mhk→gk"
+        if "gk to mhk" in s:
+            return "Field kernel – type gk→mhk"
 
-    # ---- kernel parameters ----
-    if "gk width" in s or "width" in s:
-        return "kernel parameter – width"
-    if "gk amp" in s or "amp." in s or "ampl." in s:
-        return "kernel parameter – amplitude"
+        # Gaussian kernel params
+        if "fg gk width" in s:
+            return "Field kernel – gk width"
+        if "fg gk amp. glob" in s:
+            return "Field kernel – gk global amplitude"
+        if "fg gk amp" in s:      # keep after "amp. glob" check
+            return "Field kernel – gk amplitude"
 
-    return "other / uncategorised"
+        # Mexican-hat kernel params
+        if "fg mhk amp. exc" in s:
+            return "Field kernel – mhk exc amplitude"
+        if "fg mhk width exc" in s:
+            return "Field kernel – mhk exc width"
+        if "fg mhk amp. inh" in s:
+            return "Field kernel – mhk inh amplitude"
+        if "fg mhk width inh" in s:
+            return "Field kernel – mhk inh width"
+        if "fg mhk amp. glob" in s:
+            return "Field kernel – mhk global amplitude"
+
+    # ---------- connection gene mutations ----------
+    if gene_type == "cg":
+        # signal type
+        if "cg to excitatory" in s:
+            return "Connection signal – to excitatory"
+        if "cg to inhibitory" in s:
+            return "Connection signal – to inhibitory"
+
+        # type changes (kernel type)
+        if "cg to gk" in s:
+            return "Connection kernel – type →gk"
+        if "cg to mhk" in s:
+            return "Connection kernel – type →mhk"
+
+        # Gaussian kernel params
+        if "cg gk width" in s:
+            return "Connection kernel – gk width"
+        if "cg gk amp. glob" in s:
+            return "Connection kernel – gk global amplitude"
+        if "cg gk amp" in s:      # keep after "amp. glob" check
+            return "Connection kernel – gk amplitude"
+
+        # Mexican-hat kernel params
+        if "cg mhk amp. exc" in s:
+            return "Connection kernel – mhk exc amplitude"
+        if "cg mhk width exc" in s:
+            return "Connection kernel – mhk exc width"
+        if "cg mhk amp. inh" in s:
+            return "Connection kernel – mhk inh amplitude"
+        if "cg mhk width inh" in s:
+            return "Connection kernel – mhk inh width"
+        if "cg mhk amp. glob" in s:
+            return "Connection kernel – mhk global amplitude"
+    
+    # fallback
+    return "Other / uncategorised"
+
 
 @st.cache_data
 def compute_population_kernel_usage(run_dir_str: str, generations: tuple):
@@ -1256,21 +1343,29 @@ def plot_kernel_usage_time(df_usage: pd.DataFrame, kind: str):
     return fig
 
 @st.cache_data
+@st.cache_data
 def compute_mutation_events(run_dir_str: str, generations: tuple):
     """
     Parse statistics/generation_X.txt files and extract mutation events.
 
-    Now we treat entries like:
-      fg 2 (fg gk width -1.000000)(fg gk amp.-1.000000)
-    as TWO distinct mutations on the same field gene.
+    We now:
+      * split multi-mutations like
+          fg 2 (fg gk width -1.0)(fg gk amp.-1.0)
+        into TWO separate events;
+      * record the gene_type ('fg' or 'cg') so we can
+        distinguish field vs connection mutations;
+      * also record structural events:
+          - toggle cg ... to enabled/disabled.
+          - (added fg ...)
+          - (added cg ...)
 
     Returns a DataFrame with columns:
       generation, solution_id, fitness,
-      gene_type ('fg' or 'cg'), gene_ref ('2', '1-3', ...),
-      mutation_inner (text inside a single (...) ),
-      mutation_raw  (gene + inner, e.g. 'fg 2: fg gk width -1.000000'),
-      category      (from mutation_inner).
-    One row per (solution, sub-mutation) pair.
+      gene_type ('fg' or 'cg' or 'struct'),
+      gene_ref  (e.g. '2', '1-3', ...),
+      mutation_inner (text inside a single (...) or the structural phrase),
+      mutation_raw   (gene + inner, e.g. 'fg 2: fg gk width -1.0'),
+      category       (fine-grained category from categorize_mutation).
     """
     run_dir = Path(run_dir_str)
     stats_dir = run_dir / "statistics"
@@ -1303,19 +1398,59 @@ def compute_mutation_events(run_dir_str: str, generations: tuple):
                 if not muts_block:
                     continue
 
+                # ---------- structural: toggle cg / added fg / added cg ----------
+                # toggle cg ... to enabled/disabled.
+                for s in re.findall(r"(toggle cg[^.\}]+\.)", muts_block):
+                    mut_inner = s.strip()
+                    category = categorize_mutation(mut_inner, gene_type="cg")
+                    records.append(
+                        {
+                            "generation": g,
+                            "solution_id": sol_id,
+                            "fitness": fit,
+                            "gene_type": "cg",
+                            "gene_ref": "",
+                            "mutation_inner": mut_inner,
+                            "mutation_raw": mut_inner,
+                            "category": category,
+                        }
+                    )
+
+                # (added fg ...), (added cg ...)
+                for inner, gtype in [
+                    *[(x, "fg") for x in re.findall(r"\((added fg [^)]*)\)", muts_block)],
+                    *[(x, "cg") for x in re.findall(r"\((added cg [^)]*)\)", muts_block)],
+                ]:
+                    mut_inner = inner.strip()
+                    category = categorize_mutation(mut_inner, gene_type=gtype)
+                    records.append(
+                        {
+                            "generation": g,
+                            "solution_id": sol_id,
+                            "fitness": fit,
+                            "gene_type": gtype,
+                            "gene_ref": "",
+                            "mutation_inner": mut_inner,
+                            "mutation_raw": mut_inner,
+                            "category": category,
+                        }
+                    )
+
+                # ---------- parameter / type mutations inside [...] ----------
                 # first split into [ ... ] blocks -> one per gene mutation
                 gene_mutations = re.findall(r"\[([^\]]+)\]", muts_block)
+
                 for gm in gene_mutations:
                     gm = gm.strip()
                     if not gm:
                         continue
 
-                    # gm looks like: "fg 2 (fg gk width -1.000000)(fg gk amp.-1.000000)"
+                    # gm looks like: "fg 2 (fg gk width -0.5)(fg gk amp.-0.5)"
                     m_head = re.match(
                         r"(?P<gene_type>[fc]g)\s+(?P<ref>[^\s(]+)\s*(?P<rest>.*)", gm
                     )
                     if m_head:
-                        gene_type = m_head.group("gene_type")
+                        gene_type = m_head.group("gene_type")  # 'fg' or 'cg'
                         gene_ref = m_head.group("ref")
                         rest = m_head.group("rest") or ""
                     else:
@@ -1326,10 +1461,16 @@ def compute_mutation_events(run_dir_str: str, generations: tuple):
                     # extract each (...) as one sub-mutation
                     inners = re.findall(r"\(([^)]+)\)", rest)
                     if not inners:
-                        # fallback: treat the whole string as one mutation
-                        mut_inner = rest.strip() or gm
+                        # fallback: treat the whole string as one mutation *only if*
+                        # it isn't just "fg 2" / "cg 1-3" etc. (no-op selection)
+                        mut_inner = (rest.strip() or gm).strip()
+
+                        # pattern: just "fg <id>" or "cg <id>" -> ignore, no actual mutation
+                        if re.fullmatch(r"(fg|cg)\s+\S+$", mut_inner):
+                            continue
+
                         mut_full = gm
-                        category = categorize_mutation(mut_inner)
+                        category = categorize_mutation(mut_inner, gene_type=gene_type)
                         records.append(
                             {
                                 "generation": g,
@@ -1346,7 +1487,7 @@ def compute_mutation_events(run_dir_str: str, generations: tuple):
                         for inner in inners:
                             mut_inner = inner.strip()
                             mut_full = f"{gene_type} {gene_ref}: {mut_inner}".strip()
-                            category = categorize_mutation(mut_inner)
+                            category = categorize_mutation(mut_inner, gene_type=gene_type)
                             records.append(
                                 {
                                     "generation": g,
@@ -1367,6 +1508,7 @@ def compute_mutation_events(run_dir_str: str, generations: tuple):
     df_mut.sort_values(["generation", "solution_id"], inplace=True)
     df_mut.reset_index(drop=True, inplace=True)
     return df_mut
+
 
 
 def plot_mutations_per_generation(mut_events: pd.DataFrame):
@@ -1454,7 +1596,7 @@ def render_mutation_tables(mut_events: pd.DataFrame):
                 "delta_vs_global": "Δ vs global mean fitness",
             }
         ),
-        use_container_width=True,
+        width="stretch",
     )
 
     # Most beneficial (positive delta)
@@ -1476,7 +1618,7 @@ def render_mutation_tables(mut_events: pd.DataFrame):
             }
         )
     )
-    st.dataframe(top_good, use_container_width=True)
+    st.dataframe(top_good, width="stretch")
 
 
 def plot_mutation_categories(mut_events: pd.DataFrame):
@@ -1662,16 +1804,17 @@ def main():
     with left_col:
         logo_candidate = Path("../resources/images/logo.png")
         if logo_candidate.exists():
-            st.image(str(logo_candidate.resolve()), use_container_width=True)
+            st.image(str(logo_candidate.resolve()), width="stretch")
         else:
             st.markdown("### neat-dnfs")
 
         st.markdown("**Base experiment directory**")
         default_base = Path("../data").resolve()
         base_dir_str = st.text_input(
-            label="",
+            label="Base experiment directory path",
             value=str(default_base),
             help="Directory containing your run folders (each with per_generation_overview.txt).",
+            label_visibility="collapsed",  # hides the label visually but keeps it non-empty
         )
         base_dir = Path(base_dir_str).expanduser()
 
@@ -1698,16 +1841,16 @@ def main():
         with h2_col:
             bcols = st.columns(4)
             with bcols[0]:
-                if st.button("Fitness", use_container_width=True):
+                if st.button("Fitness", width="stretch"):
                     st.session_state["view"] = "Fitness"
             with bcols[1]:
-                if st.button("Species", use_container_width=True):
+                if st.button("Species", width="stretch"):
                     st.session_state["view"] = "Species"
             with bcols[2]:
-                if st.button("Topology", use_container_width=True):
+                if st.button("Topology", width="stretch"):
                     st.session_state["view"] = "Topology"
             with bcols[3]:
-                if st.button("Mutations", use_container_width=True):
+                if st.button("Mutations",width="stretch"):
                     st.session_state["view"] = "Mutations"
 
         view = st.session_state["view"]
@@ -2103,7 +2246,7 @@ def main():
                     show_cols = show_cols.sort_values(
                         ["generation", "mean_fitness_in_gen"], ascending=[True, False]
                     )
-                    st.dataframe(show_cols.head(20), use_container_width=True)
+                    st.dataframe(show_cols.head(20), width="stretch")
 
                 # --- Per-generation most impactful mutation timeline ---
                 per_gen_best = compute_per_generation_best_mutation(mut_events)
@@ -2132,7 +2275,7 @@ def main():
                                 "delta_vs_gen": "Δ vs generation mean fitness",
                             }
                         ),
-                        use_container_width=True,
+                        width="stretch",
                     )
 
 if __name__ == "__main__":
