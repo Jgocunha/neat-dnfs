@@ -1953,43 +1953,28 @@ def render_experiment_totals(agg: dict, df: pd.DataFrame):
     n_runs = len(df)
     st.markdown(f"- Analysed **{n_runs}** runs in this experiment.")
 
-    cols = st.columns(2)
-    with cols[0]:
-        st.markdown("#### Time / performance")
-        dur_mean = agg.get("duration_hours_mean")
-        spg_mean = agg.get("seconds_per_generation_mean")
-        if dur_mean is not None:
-            st.markdown(f"- Average run duration: **{dur_mean:.2f} h**")
-        if spg_mean is not None:
-            st.markdown(f"- Avg. time per generation: **{spg_mean:.2f} s/gen**")
+    # --- Time / performance summary ---
+    st.markdown("#### Time / performance")
+    dur_mean = agg.get("duration_hours_mean")
+    spg_mean = agg.get("seconds_per_generation_mean")
+    if dur_mean is not None:
+        st.markdown(f"- Average run duration: **{dur_mean:.2f} h**")
+    if spg_mean is not None:
+        st.markdown(f"- Avg. time per generation: **{spg_mean:.2f} s/gen**")
 
-        ratio = agg.get("structural_to_parametric_ratio_mean")
-        if ratio is not None:
-            st.markdown(
-                f"- Structural / parametric mutation ratio (mean): **{ratio:.3f}**"
-            )
+    ratio = agg.get("structural_to_parametric_ratio_mean")
+    if ratio is not None:
+        st.markdown(
+            f"- Structural / parametric mutation ratio (mean): **{ratio:.3f}**"
+        )
 
-        kf = agg.get("kernel_to_field_ratio_mean")
-        if kf is not None:
-            st.markdown(
-                f"- Kernel / neural-field mutation ratio (mean): **{kf:.2f}**"
-            )
+    kf = agg.get("kernel_to_field_ratio_mean")
+    if kf is not None:
+        st.markdown(
+            f"- Kernel / neural-field mutation ratio (mean): **{kf:.2f}**"
+        )
 
-    with cols[1]:
-        st.markdown("#### Kernel types (field gene totals)")
-        g = agg.get("gauss_kernel_pct_mean", 0.0)
-        m = agg.get("mexican_hat_kernel_pct_mean", 0.0)
-        o = agg.get("oscillatory_kernel_pct_mean", 0.0)
-        if g + m + o > 0:
-            st.markdown(
-                f"- Gaussian: **{g:.1f}%**  \n"
-                f"- Mexican-hat: **{m:.1f}%**  \n"
-                f"- Oscillatory: **{o:.1f}%**"
-            )
-        else:
-            st.write("No kernel-type information found in totals.")
-
-    # ---- a couple of simple histograms / pies ----
+        # ---- a couple of simple histograms ----
     st.markdown("#### Distributions across runs")
     plot_cols = st.columns(3)
 
@@ -2003,6 +1988,10 @@ def render_experiment_totals(agg: dict, df: pd.DataFrame):
             ax.set_title("Run duration")
             fig.tight_layout()
             st.pyplot(fig)
+            st.caption(
+                "How long each run took from start to end. This shows whether some runs "
+                "are much slower or faster than others."
+            )
 
     # seconds per generation
     if "seconds_per_generation" in df.columns:
@@ -2014,6 +2003,10 @@ def render_experiment_totals(agg: dict, df: pd.DataFrame):
             ax.set_title("Time per generation")
             fig.tight_layout()
             st.pyplot(fig)
+            st.caption(
+                "Average wall-clock time needed to compute one generation in each run. "
+                "Useful for spotting performance regressions."
+            )
 
     # structural vs parametric
     if (
@@ -2032,6 +2025,11 @@ def render_experiment_totals(agg: dict, df: pd.DataFrame):
             ax.set_title("Structural vs parametric (mean per run)")
             fig.tight_layout()
             st.pyplot(fig)
+            st.caption(
+                "Average mix of structural vs parameter mutations per run. "
+                "This summarises how much the algorithm changes topology versus fine-tunes parameters."
+            )
+
 
 
 # ---- convergence / architecture statistics over runs
@@ -2287,35 +2285,60 @@ def render_experiment_convergence(conv: dict, fitness_threshold: float):
             f"**{conv['mean_enabled_connections']:.2f} ± {conv['std_enabled_connections']:.2f}**"
         )
 
-    # A couple of small histograms
+    # A couple of small histograms / scatter plots
     successful = [
-        m for m in conv["all_run_metrics"] if m["success"] and m["generation_to_threshold"] is not None
+        m for m in conv["all_run_metrics"]
+        if m["success"] and m["generation_to_threshold"] is not None
     ]
     if successful:
         col1, col2 = st.columns(2)
 
+        # --- Convergence generations histogram ---
         with col1:
             gens = [m["generation_to_threshold"] for m in successful]
             fig, ax = plt.subplots(figsize=(4, 3))
-            ax.hist(gens, bins=min(20, len(gens)))
+            ax.hist(gens, bins=min(10, len(gens)))
             ax.set_xlabel("generations to threshold")
             ax.set_ylabel("runs")
-            ax.set_title("Convergence generations (successful)")
+            ax.set_title("How many generations runs need\n to hit the threshold")
             fig.tight_layout()
             st.pyplot(fig)
+            st.caption(
+                "Each bar shows how many runs first reached the fitness "
+                "threshold in a given generation range. Left = faster convergence."
+            )
 
+        # --- Architecture complexity scatter ---
         with col2:
             hidden = [m["hidden_fields_count"] for m in successful]
             conns = [m["enabled_connections_count"] for m in successful]
+            labels = [m["run_dir"] for m in successful]
+
             fig, ax = plt.subplots(figsize=(4, 3))
             ax.scatter(hidden, conns)
+
+            # label each point with the run folder name
+            for h, c, label in zip(hidden, conns, labels):
+                ax.annotate(
+                    label,
+                    (h, c),
+                    textcoords="offset points",
+                    xytext=(3, 3),
+                    fontsize=7,
+                )
+
             ax.set_xlabel("hidden fields")
             ax.set_ylabel("enabled connections")
-            ax.set_title("Architecture complexity (successful)")
+            ax.set_title("Architecture complexity (successful runs)")
             fig.tight_layout()
             st.pyplot(fig)
+            st.caption(
+                "Each dot is one successful run. The x-axis is the number of hidden "
+                "fields in the final best solution, the y-axis is the number of "
+                "enabled connections. Labels show the run directory."
+            )
 
-    # Small “notable runs” table
+    # Small “notable runs” table (unchanged except formatting)
     st.markdown("#### Notable runs")
 
     rows = []
@@ -2370,6 +2393,36 @@ def render_experiment_convergence(conv: dict, fitness_threshold: float):
 
     if rows:
         st.table(pd.DataFrame(rows))
+
+        # --- Best performer in each run ---
+    if conv.get("all_run_metrics"):
+        st.markdown("#### Best fitness per run")
+
+        rows = []
+        for m in conv["all_run_metrics"]:
+            max_fit = m["max_fitness"]
+            rows.append(
+                {
+                    "run": m["run_dir"],
+                    "best_fitness": max_fit,
+                    # highlight using a clear symbol; threshold is the same one
+                    # you chose for the experiment (e.g. 0.9 by default)
+                    "above_threshold": "✅ yes" if max_fit >= fitness_threshold else "✖ no",
+                }
+            )
+
+        df_runs = (
+            pd.DataFrame(rows)
+            .sort_values("best_fitness", ascending=False)
+            .reset_index(drop=True)
+        )
+
+        st.dataframe(df_runs, width="stretch")
+        st.caption(
+            "One row per run. `best_fitness` is the highest fitness reached in that run. "
+            "Runs marked ✅ have best_fitness ≥ the chosen threshold."
+        )
+
 
 
 
