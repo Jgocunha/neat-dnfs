@@ -720,8 +720,8 @@ namespace neat_dnfs
 		// if the field name is not in the phenotype, throw exception
 		// ... .containsElement(name);
 		static constexpr double weightBumps = 0.45;
-		static constexpr double weightPos = 0.40;
-		static constexpr double weightAmp = 0.10;
+		static constexpr double weightPos = 0.45;
+		static constexpr double weightAmp = 0.05;
 		static constexpr double weightWidth = 0.05;
 		// if sum of weights is not 1.0, throw exception
 		if (std::abs(weightBumps + weightPos + weightAmp + weightWidth - 1.0) > 1e-6)
@@ -847,9 +847,9 @@ namespace neat_dnfs
 		return fitness;
 	}
 
-	double Solution::closenessToRestingLevel(const std::string& fieldName)
+	double Solution::closenessToRestingLevel(const std::string& fieldName) const
 	{
-		// highest value of activation should be equal to the resting level
+		// the highest value of activation should be equal to the resting level
 		// the farther it is from the resting level, the lower the fitness (0.0)
 		// the closer it is to the resting level, the higher the fitness (1.0)
 		using namespace dnf_composer::element;
@@ -861,7 +861,7 @@ namespace neat_dnfs
 		return 1.0 / (1.0 + std::abs(highestActivationValue - restingLevel));
 	}
 
-	double Solution::preShapedness(const std::string& fieldName)
+	double Solution::preShapedness(const std::string& fieldName) const
 	{
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
@@ -871,8 +871,9 @@ namespace neat_dnfs
 
 		// target activation is between the resting level and 0.0 (supra-threshold)
 		const double targetActivation = restingLevel / 2.0;
-		const double width = std::abs(restingLevel / 6.0);  // Makes both points 3 standard deviations away
+		const double width = std::abs(restingLevel / 2.0);
 
+		//
 		return tools::utils::normalizeWithGaussian(highestActivationValue, targetActivation, width);
 	}
 

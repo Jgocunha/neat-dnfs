@@ -30,15 +30,15 @@
 		// load a previous solution
 		const auto previous_solution = std::make_shared<dnf_composer::Simulation>();
 		const dnf_composer::SimulationFileManager sfm(previous_solution,
-			std::string(PROJECT_DIR) + "/data/self_sustained.json");
+			std::string(PROJECT_DIR) + "/templates/xor.json");
 		sfm.loadElementsFromJson();
-		const dnf_composer::Simulation template_solution = *previous_solution;
+		const dnf_composer::Simulation& template_solution = *previous_solution;
 
 		// select the type of solution here
-		SelfSustainedSingleBumpSolution solution{
+		XOR solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 			}

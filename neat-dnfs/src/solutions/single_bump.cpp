@@ -6,7 +6,13 @@ namespace neat_dnfs
 		: Solution(topology)
 	{
 		name = "Single bump (self-stabilized)";
-		// target fitness is 0.85
+	}
+
+	SingleBumpSolution::SingleBumpSolution(const SolutionTopology& initialTopology,
+		const dnf_composer::Simulation& phenotype)
+		: Solution(initialTopology, phenotype)
+	{
+		name = "Single bump (self-stabilized)";
 	}
 
 	SolutionPtr SingleBumpSolution::clone() const
@@ -26,19 +32,24 @@ namespace neat_dnfs
 
 
 		addGaussianStimulus("nf 1", 
-			{ 5.0, 15.0, 50.0, true, false }, 
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		initSimulation();
 		runSimulation(iterations);
 
 		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 20, 10);
+		parameters.partialFitness.emplace_back(f1_1);
 		const double f1_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 15, 5);
+		parameters.partialFitness.emplace_back(f1_2);
 
 		removeGaussianStimuli();
 		runSimulation(iterations);
 
 		const double f2_1 = closenessToRestingLevel("nf 1");
+		parameters.partialFitness.emplace_back(f2_1);
 		const double f2_2 = closenessToRestingLevel("nf 2");
+		parameters.partialFitness.emplace_back(f2_2);
 
 		// f1_1 only one bump at the input field
 		// f1_2 only one bump at the output field
@@ -55,7 +66,8 @@ namespace neat_dnfs
 	void SingleBumpSolution::createPhenotypeEnvironment()
 	{
 		addGaussianStimulus("nf 1",
-			{ 5.0, 0.0, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+	GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 }
