@@ -1,29 +1,29 @@
-#include "solutions/self_sustained_single_bump.h"
+#include "solutions/memory.h"
 
 namespace neat_dnfs
 {
-	SelfSustainedSingleBumpSolution::SelfSustainedSingleBumpSolution(const SolutionTopology& topology)
+	Memory::Memory(const SolutionTopology& topology)
 		: Solution(topology)
 	{
-		name = "Single bump (self-sustained)";
+		name = "Memory";
 	}
 
-	SelfSustainedSingleBumpSolution::SelfSustainedSingleBumpSolution(const SolutionTopology& initialTopology,
+	Memory::Memory(const SolutionTopology& initialTopology,
 		const dnf_composer::Simulation& phenotype)
 			:Solution(initialTopology, phenotype)
 	{
-		name = "Single bump (self-sustained)";
+		name = "Memory";
 	}
 
-	SolutionPtr SelfSustainedSingleBumpSolution::clone() const
+	SolutionPtr Memory::clone() const
 	{
-		SelfSustainedSingleBumpSolution solution(initialTopology);
-		auto clonedSolution = std::make_shared<SelfSustainedSingleBumpSolution>(solution);
+		Memory solution(initialTopology);
+		auto clonedSolution = std::make_shared<Memory>(solution);
 
 		return clonedSolution;
 	}
 
-	void SelfSustainedSingleBumpSolution::testPhenotype()
+	void Memory::testPhenotype()
 	{
 		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
@@ -62,10 +62,9 @@ namespace neat_dnfs
 		parameters.fitness = wf1_1 * f1_1_1 + wf1_2 * f1_2_1 + wf2_1 * f2_1_1 + wf2_2 * f2_2_1;
 	}
 
-	void SelfSustainedSingleBumpSolution::createPhenotypeEnvironment()
+	void Memory::createPhenotypeEnvironment()
 	{
-		addGaussianStimulus("nf 1",
-{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 25.0,
+		addGaussianStimulus("nf 1",{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 25.0,
 					GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 	}

@@ -5,14 +5,16 @@
 
 namespace neat_dnfs
 {
-	class SingleBumpSolution : public Solution
+	class Timing final : public Solution
 	{
 	public:
-		explicit SingleBumpSolution(const SolutionTopology& topology);
-		SingleBumpSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
+		explicit Timing(const SolutionTopology& topology);
+		Timing(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
 		SolutionPtr clone() const override;
 	private:
 		void testPhenotype() override;
 		void createPhenotypeEnvironment() override;
 	};
 }
+
+

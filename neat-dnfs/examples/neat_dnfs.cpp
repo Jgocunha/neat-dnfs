@@ -9,13 +9,13 @@
 
 #include "neat/population.h"
 #include "tools/logger.h"
-#include "solutions/single_bump.h"
-#include "solutions/self_sustained_single_bump.h"
+#include "solutions/propagation.h"
+#include "solutions/memory.h"
 #include "solutions/and.h"
 #include "solutions/action_simulation_layer.h"
 #include "solutions/action_execution_layer.h"
-#include "solutions/selective_output_field.h"
-#include "solutions/timing_response.h"
+#include "solutions/selection.h"
+#include "solutions/timing.h"
 #include "solutions/select_the_object.h"
 #include "solutions/two_robot_team.h"
 #include "solutions/xor.h"
@@ -34,10 +34,10 @@
 		//const dnf_composer::Simulation template_solution = *previous_solution;
 
 		// select the type of solution here and in the population init.
-		AndSolution solution{
+		Timing solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
@@ -52,10 +52,10 @@
 		{
 			constexpr size_t population_size	= 100;
 			constexpr size_t number_generations = 50;
-			constexpr double target_fitness		= 0.85;
+			constexpr double target_fitness		= 0.95;
 
 			const PopulationParameters parameters{ population_size, number_generations, target_fitness };
-			Population population{ parameters, std::make_unique<AndSolution>(solution) };
+			Population population{ parameters, std::make_unique<Timing>(solution) };
 
 			population.initialize();
 			population.evolve();

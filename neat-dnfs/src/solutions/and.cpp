@@ -2,29 +2,27 @@
 
 namespace neat_dnfs
 {
-	AndSolution::AndSolution(const SolutionTopology& topology)
+	AND::AND(const SolutionTopology& topology)
 		: Solution(topology)
 	{
-		name = "Logic AND";
-		// target fitness is 0.90
-		// same parameters as single bump
+		name = "AND";
 	}
 
-	AndSolution::AndSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+	AND::AND(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
 		:Solution(initialTopology, phenotype)
 	{
-		name = "Logic AND";
+		name = "AND";
 	}
 
-	SolutionPtr AndSolution::clone() const
+	SolutionPtr AND::clone() const
 	{
-		AndSolution solution(initialTopology);
-		auto clonedSolution = std::make_shared<AndSolution>(solution);
+		AND solution(initialTopology);
+		auto clonedSolution = std::make_shared<AND>(solution);
 
 		return clonedSolution;
 	}
 
-	void AndSolution::testPhenotype()
+	void AND::testPhenotype()
 	{
 		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
@@ -98,7 +96,7 @@ namespace neat_dnfs
 			wf4_1 * f4_1 + wf4_2 * f4_2 + wf4_3 * f4_3;
 	}
 
-	void AndSolution::createPhenotypeEnvironment()
+	void AND::createPhenotypeEnvironment()
 	{
 		addGaussianStimulus("nf 1",
 			{ 5.0, 15.0, 50.0, true, false },

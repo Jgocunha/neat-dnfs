@@ -5,15 +5,13 @@ namespace neat_dnfs
 	XOR::XOR(const SolutionTopology& topology)
 		: Solution(topology)
 	{
-		name = "Two robot team";
-		// target fitness is 0.95
+		name = "XOR";
 	}
 
 	XOR::XOR(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
 		: Solution(initialTopology, phenotype)
 	{
 		name = "XOR";
-		// target fitness is 0.95
 	}
 
 	SolutionPtr XOR::clone() const

@@ -1,30 +1,29 @@
-#include "solutions/selective_output_field.h"
+#include "solutions/selection.h"
 
 namespace neat_dnfs
 {
-	SelectiveOutputSolution::SelectiveOutputSolution(const SolutionTopology& topology)
+	Selection::Selection(const SolutionTopology& topology)
 		: Solution(topology)
 	{
-		name = "Selective output";
-		// target fitness is 0.85
+		name = "Selection";
 	}
 
-	SelectiveOutputSolution::SelectiveOutputSolution(const SolutionTopology& initialTopology,
+	Selection::Selection(const SolutionTopology& initialTopology,
 		const dnf_composer::Simulation& phenotype)
 		:Solution(initialTopology, phenotype)
 	{
-		name = "Selective output";
+		name = "Selection";
 	}
 
-	SolutionPtr SelectiveOutputSolution::clone() const
+	SolutionPtr Selection::clone() const
 	{
-		SelectiveOutputSolution solution(initialTopology);
-		auto clonedSolution = std::make_shared<SelectiveOutputSolution>(solution);
+		Selection solution(initialTopology);
+		auto clonedSolution = std::make_shared<Selection>(solution);
 
 		return clonedSolution;
 	}
 
-	void SelectiveOutputSolution::testPhenotype()
+	void Selection::testPhenotype()
 	{
 		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
@@ -71,12 +70,12 @@ namespace neat_dnfs
 		parameters.fitness = wf1_1_1 * f1_1_1 + wf1_4_1 * f1_4_1 + wf2_1_1 * f2_1_1 + wf2_2_1 * f2_2_1;
 	}
 
-	void SelectiveOutputSolution::createPhenotypeEnvironment()
+	void Selection::createPhenotypeEnvironment()
 	{
 		addGaussianStimulus("nf 1",
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0,
 		GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-{ DimensionConstants::xSize, DimensionConstants::dx });
+		{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		addGaussianStimulus("nf 1",
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude,50.0,

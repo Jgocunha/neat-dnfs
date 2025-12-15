@@ -1,29 +1,29 @@
-#include "solutions/single_bump.h"
+#include "solutions/propagation.h"
 
 namespace neat_dnfs
 {
-	SingleBumpSolution::SingleBumpSolution(const SolutionTopology& topology)
+	Propagation::Propagation(const SolutionTopology& topology)
 		: Solution(topology)
 	{
-		name = "Single bump (self-stabilized)";
+		name = "Propagation";
 	}
 
-	SingleBumpSolution::SingleBumpSolution(const SolutionTopology& initialTopology,
+	Propagation::Propagation(const SolutionTopology& initialTopology,
 		const dnf_composer::Simulation& phenotype)
 		: Solution(initialTopology, phenotype)
 	{
-		name = "Single bump (self-stabilized)";
+		name = "Propagation";
 	}
 
-	SolutionPtr SingleBumpSolution::clone() const
+	SolutionPtr Propagation::clone() const
 	{
-		SingleBumpSolution solution(initialTopology);
-		auto clonedSolution = std::make_shared<SingleBumpSolution>(solution);
+		Propagation solution(initialTopology);
+		auto clonedSolution = std::make_shared<Propagation>(solution);
 
 		return clonedSolution;
 	}
 
-	void SingleBumpSolution::testPhenotype()
+	void Propagation::testPhenotype()
 	{
 		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
@@ -63,7 +63,7 @@ namespace neat_dnfs
 		parameters.fitness = wf1_1 * f1_1 + wf1_2 * f1_2 + wf2_1 * f2_1 + wf2_2 * f2_2;
 	}
 
-	void SingleBumpSolution::createPhenotypeEnvironment()
+	void Propagation::createPhenotypeEnvironment()
 	{
 		addGaussianStimulus("nf 1",
 { GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,

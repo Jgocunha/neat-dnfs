@@ -5,16 +5,14 @@
 
 namespace neat_dnfs
 {
-	class TimingResponse : public Solution
+	class Memory final : public Solution
 	{
 	public:
-		TimingResponse(const SolutionTopology& topology);
-		TimingResponse(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
+		explicit Memory(const SolutionTopology& topology);
+		Memory(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
 		SolutionPtr clone() const override;
 	private:
 		void testPhenotype() override;
 		void createPhenotypeEnvironment() override;
 	};
 }
-
-
