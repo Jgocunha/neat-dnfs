@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "neat/solution.h"
 
 namespace neat_dnfs
@@ -25,12 +27,12 @@ namespace neat_dnfs
 		throw std::invalid_argument("Number of input and output genes must be greater than 0");
 	}
 
-	Solution::Solution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+	Solution::Solution(SolutionTopology initialTopology, dnf_composer::Simulation  phenotype)
 		: id(uniqueIdentifierCounter++),
 		name("undefined"),
-		initialTopology(initialTopology),
+		initialTopology(std::move(initialTopology)),
 		parameters(),
-		phenotype(phenotype),
+		phenotype(std::move(phenotype)),
 		genome(),
 		parents(0, 0)
 	{
@@ -261,7 +263,7 @@ namespace neat_dnfs
 				const auto nfcp = neuralField->getElementCommonParameters();
 				const auto nfp = neuralField->getParameters();
 
-				// Determine field gene type based on naming convention
+				// Determine a field gene type based on naming convention
 				FieldGeneType fieldType;
 				if (nfcp.identifiers.uniqueName.find(NeuralFieldConstants::namePrefix) == 0)
 				{
@@ -290,7 +292,7 @@ namespace neat_dnfs
 					}
 					else
 					{
-						// Default to HIDDEN if connection pattern doesn't match expected patterns
+						// Default to HIDDEN if the connection pattern doesn't match expected patterns
 						fieldType = FieldGeneType::HIDDEN;
 						tools::logger::log(tools::logger::LogLevel::WARNING,
 							"Unusual connection pattern for neural field: " + nfcp.identifiers.uniqueName +
@@ -480,7 +482,6 @@ namespace neat_dnfs
 		genome.clearLastMutations();
 	}
 
-
 	void Solution::resetUniqueIdentifier()
 	{
 		uniqueIdentifierCounter = 0;
@@ -577,7 +578,8 @@ namespace neat_dnfs
 				{
 					if (!moreFitParent->containsConnectionGeneWithTheSameInputOutputPair(gene))
 					{
-						if (tools::utils::generateRandomSignal())
+						const bool randomTrueOrFalse = tools::utils::generateRandomInt(0, 1);
+						if (randomTrueOrFalse)
 						{
 							offspring->addConnectionGene(gene.clone());
 							// make sure the field genes are also added
@@ -671,22 +673,6 @@ namespace neat_dnfs
 			phenotype.step();
 	}
 
-	bool Solution::runSimulationUntilFieldStable(const std::string& targetElement)
-	{
-		const auto neuralField = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(phenotype.getElement(targetElement));
-		size_t counter = 0;
-		do
-		{
-			counter++;
-			phenotype.step();
-			if (counter > SimulationConstants::maxSimulationSteps)
-			{
-				return false;
-			}
-		} while (!neuralField->isStable());
-		return true;
-	}
-
 	void Solution::addGaussianStimulus(const std::string& targetElement, const dnf_composer::element::GaussStimulusParameters& stimulusParameters, 
 		const dnf_composer::element::ElementDimensions& dimensions)
 	{
@@ -712,6 +698,58 @@ namespace neat_dnfs
 				phenotype.removeElement(element->getUniqueName());
 			}
 		}
+	}
+
+	void Solution::removeGaussianStimuliFromField(const std::string& fieldName)
+	{
+		using namespace dnf_composer::element;
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+
+		for (const auto& input : neuralField->getInputs())
+			if (input->getLabel() == GAUSS_STIMULUS)
+			{
+				input->removeInputs();
+				input->removeOutputs();
+				phenotype.removeElement(input->getUniqueName());
+			}
+	}
+
+	void Solution::setGaussianStimulusParameters(const std::string& stimulusName, const dnf_composer::element::GaussStimulusParameters& parameters) const
+	{
+		using namespace dnf_composer::element;
+		const auto gaussStimulus = std::dynamic_pointer_cast<GaussStimulus>(phenotype.getElement(stimulusName));
+		gaussStimulus->setParameters(parameters);
+	}
+
+	double Solution::closenessToRestingLevel(const std::string& fieldName) const
+	{
+		// the highest value of activation should be equal to the resting level
+		// the farther it is from the resting level, the lower the fitness (0.0)
+		// the closer it is to the resting level, the higher the fitness (1.0)
+		using namespace dnf_composer::element;
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+
+		const double highestActivationValue = neuralField->getHighestActivation();
+		const double restingLevel = neuralField->getParameters().startingRestingLevel;
+
+		return 1.0 / (1.0 + std::abs(highestActivationValue - restingLevel));
+	}
+
+	double Solution::noBumps(const std::string& fieldName) const
+	{
+		using namespace dnf_composer::element;
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const double highestActivation = neuralField->getHighestActivation();
+
+		// If activation is below 0, return maximum fitness of 1.0
+		if (highestActivation < 0.0)
+			return 1.0;
+
+		// For positive activations, apply exponential decay
+		// The decay rate can be adjusted with the constant (5.0 here)
+		// A larger value will make it decline more steeply
+		static constexpr double decayRate = 10.0;
+		return exp(-decayRate * highestActivation);
 	}
 
 	double Solution::oneBumpAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position, const double& 
@@ -847,19 +885,7 @@ namespace neat_dnfs
 		return fitness;
 	}
 
-	double Solution::closenessToRestingLevel(const std::string& fieldName) const
-	{
-		// the highest value of activation should be equal to the resting level
-		// the farther it is from the resting level, the lower the fitness (0.0)
-		// the closer it is to the resting level, the higher the fitness (1.0)
-		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
 
-		const double highestActivationValue = neuralField->getHighestActivation();
-		const double restingLevel = neuralField->getParameters().startingRestingLevel;
-
-		return 1.0 / (1.0 + std::abs(highestActivationValue - restingLevel));
-	}
 
 	double Solution::preShapedness(const std::string& fieldName) const
 	{
@@ -990,38 +1016,34 @@ namespace neat_dnfs
 		return fitness;
 	}
 
-	void Solution::removeGaussianStimuliFromField(const std::string& fieldName)
+
+
+	double Solution::iterationsUntilBump(const std::string& fieldName, const double targetIterations, const double maxIterations, const double tolerance)
 	{
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-
-		for (const auto& input : neuralField->getInputs())
-			if (input->getLabel() == GAUSS_STIMULUS)
+		int it = 0;
+		do
+		{
+			phenotype.step();
+			it++;
+			if (!neuralField->getBumps().empty())
 			{
-				input->removeInputs();
-				input->removeOutputs();
-				phenotype.removeElement(input->getUniqueName());
+				const double sigma = 6.0 * tolerance; // smoother shoulders; the higher the constant the smoother
+				return tools::utils::normalizeWithFlatheadGaussian(
+					it,
+					targetIterations - tolerance,
+					targetIterations + tolerance,
+					sigma
+				);
 			}
+
+		} while (it < maxIterations);
+
+		return 0.0f;
 	}
 
-	double Solution::noBumps(const std::string& fieldName)
-	{
-		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-		const double highestActivation = neuralField->getHighestActivation();
-
-		// If activation is below 0, return maximum fitness of 1.0
-		if (highestActivation < 0.0)
-			return 1.0;
-
-		// For positive activations, apply exponential decay
-		// The decay rate can be adjusted with the constant (5.0 here)
-		// A larger value will make it decline more steeply
-		static constexpr double decayRate = 10.0;
-		return exp(-decayRate * highestActivation);
-	}
-
-	double Solution::iterationsUntilBump(const std::string& fieldName, double targetIterations)
+	double Solution::iterationsUntilNoBump(const std::string& fieldName, const double targetIterations, const double maxIterations, const double tolerance)
 	{
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
@@ -1031,40 +1053,27 @@ namespace neat_dnfs
 		{
 			phenotype.step();
 			it++;
-			if (!neuralField->getBumps().empty())
-				return 1.0 / (1.0 + std::abs(targetIterations - it));
-
-		} while (it < targetIterations);
-
-		return 0.0f;
-	}
-
-	double Solution::iterationsUntilBumpWithAmplitude(const std::string& fieldName, double targetIterations, double targetAmplitude)
-	{
-		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-
-		int it = 0;
-		do
-		{
-			phenotype.step();
-			it++;
-			if (!neuralField->getBumps().empty())
+			if (neuralField->getBumps().empty())
 			{
-				if(neuralField->getBumps()[0].amplitude > targetAmplitude)
-					return 1.0 / (1.0 + std::abs(targetIterations - it));
+				const double sigma = 6.0 * tolerance; // smoother shoulders; the higher the constant the smoother
+				return tools::utils::normalizeWithFlatheadGaussian(
+					it,
+					targetIterations - tolerance,
+					targetIterations + tolerance,
+					sigma
+				);
 			}
 
-		} while (it < targetIterations);
+		} while (it < maxIterations);
 
 		return 0.0f;
 	}
 
-	void Solution::moveGaussianStimulusContinously(const std::string& stimulusName, double targetPosition, double step)
+	void Solution::moveGaussianStimulusContinuously(const std::string& name, const double targetPosition, const double step)
 	{
 		constexpr double epsilon = 1e-6;
 		double newPosition = 0.0;
-		const auto gaussStimulus = std::dynamic_pointer_cast<dnf_composer::element::GaussStimulus>(phenotype.getElement(stimulusName));
+		const auto gaussStimulus = std::dynamic_pointer_cast<dnf_composer::element::GaussStimulus>(phenotype.getElement(name));
 		const double diff_x = std::abs(targetPosition - gaussStimulus->getParameters().position);
 		const double steps_x = diff_x / step;
 		const int steps_t = static_cast<int>(SimulationConstants::maxSimulationSteps / steps_x);
@@ -1073,14 +1082,14 @@ namespace neat_dnfs
 		{
 			const auto position = gaussStimulus->getParameters().position;
 			newPosition = position + step;
-			gaussStimulus->setParameters({ gaussStimulus->getParameters().amplitude, gaussStimulus->getParameters().width, newPosition });
+			gaussStimulus->setParameters({ gaussStimulus->getParameters().width, gaussStimulus->getParameters().amplitude, newPosition });
 
 			for (int i = 0; i < steps_t; i++)
 				phenotype.step();
 		} while (std::abs(newPosition - targetPosition) > epsilon);
 	}
 
-	double Solution::negativeBaseline(const std::string& fieldName)
+	double Solution::negativeBaseline(const std::string& fieldName) const
 	{
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));

@@ -83,7 +83,7 @@ namespace neat_dnfs
 		parameters.fitness += wf5 * f5;
 		parameters.partialFitness.emplace_back(f5);
 
-		moveGaussianStimulusContinously("gs nf 2 " + std::to_string(20.0), 50.0, +0.5);
+		moveGaussianStimulusContinuously("gs nf 2 " + std::to_string(20.0), 50.0, +0.5);
 		const double f6 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 20.0, 10, 10);
 		parameters.fitness += wf6 * f6;
 		parameters.partialFitness.emplace_back(f6);
