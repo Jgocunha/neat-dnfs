@@ -752,6 +752,57 @@ namespace neat_dnfs
 		return exp(-decayRate * highestActivation);
 	}
 
+	double Solution::iterationsUntilBump(const std::string& fieldName, const double targetIterations, const double maxIterations, const double tolerance)
+	{
+		using namespace dnf_composer::element;
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		int it = 0;
+		do
+		{
+			phenotype.step();
+			it++;
+			if (!neuralField->getBumps().empty())
+			{
+				const double sigma = 6.0 * tolerance; // smoother shoulders; the higher the constant the smoother
+				return tools::utils::normalizeWithFlatheadGaussian(
+					it,
+					targetIterations - tolerance,
+					targetIterations + tolerance,
+					sigma
+				);
+			}
+
+		} while (it < maxIterations);
+
+		return 0.0f;
+	}
+
+	double Solution::iterationsUntilNoBump(const std::string& fieldName, const double targetIterations, const double maxIterations, const double tolerance)
+	{
+		using namespace dnf_composer::element;
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+
+		int it = 0;
+		do
+		{
+			phenotype.step();
+			it++;
+			if (neuralField->getBumps().empty())
+			{
+				const double sigma = 6.0 * tolerance; // smoother shoulders; the higher the constant the smoother
+				return tools::utils::normalizeWithFlatheadGaussian(
+					it,
+					targetIterations - tolerance,
+					targetIterations + tolerance,
+					sigma
+				);
+			}
+
+		} while (it < maxIterations);
+
+		return 0.0f;
+	}
+
 	double Solution::oneBumpAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position, const double& 
 		amplitude, const double& width)
 	{
@@ -1018,56 +1069,7 @@ namespace neat_dnfs
 
 
 
-	double Solution::iterationsUntilBump(const std::string& fieldName, const double targetIterations, const double maxIterations, const double tolerance)
-	{
-		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-		int it = 0;
-		do
-		{
-			phenotype.step();
-			it++;
-			if (!neuralField->getBumps().empty())
-			{
-				const double sigma = 6.0 * tolerance; // smoother shoulders; the higher the constant the smoother
-				return tools::utils::normalizeWithFlatheadGaussian(
-					it,
-					targetIterations - tolerance,
-					targetIterations + tolerance,
-					sigma
-				);
-			}
 
-		} while (it < maxIterations);
-
-		return 0.0f;
-	}
-
-	double Solution::iterationsUntilNoBump(const std::string& fieldName, const double targetIterations, const double maxIterations, const double tolerance)
-	{
-		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-
-		int it = 0;
-		do
-		{
-			phenotype.step();
-			it++;
-			if (neuralField->getBumps().empty())
-			{
-				const double sigma = 6.0 * tolerance; // smoother shoulders; the higher the constant the smoother
-				return tools::utils::normalizeWithFlatheadGaussian(
-					it,
-					targetIterations - tolerance,
-					targetIterations + tolerance,
-					sigma
-				);
-			}
-
-		} while (it < maxIterations);
-
-		return 0.0f;
-	}
 
 	void Solution::moveGaussianStimulusContinuously(const std::string& name, const double targetPosition, const double step)
 	{

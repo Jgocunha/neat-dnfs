@@ -33,6 +33,8 @@ namespace neat_dnfs
 		static constexpr double wf2 = 1 / 4.f;
 		static constexpr double wf3 = 1 / 4.f;
 		static constexpr double wf4 = 1 / 4.f;
+		// static constexpr double wf5 = 1 / 6.f;
+		// static constexpr double wf6 = 1 / 6.f;
 
 		static int count  = 0;
 		count++;
@@ -43,11 +45,13 @@ namespace neat_dnfs
 				true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		const double f1 = iterationsUntilBump("nf 1", 100, 150, 10);
-		const double f2 = iterationsUntilBump("nf 2", 2000, 2500, 200);
-		runSimulation(2000);
+		const double f2 = iterationsUntilBump("nf 2", 200, 250, 20);
+		//const double f3 = iterationsUntilBump("nf 3", 2000, 2500, 200);
+		runSimulation(1000);
 		removeGaussianStimuli();
 		const double f3 = iterationsUntilNoBump("nf 1", 100, 150, 10);
-		const double f4 = iterationsUntilNoBump("nf 2", 2500, 3000, 100);
+		const double f4 = iterationsUntilNoBump("nf 2", 1000, 1500, 100);
+		//const double f6 = iterationsUntilNoBump("nf 3", 2500, 3000, 100);
 		removeGaussianStimuli();
 
 		parameters.partialFitness.push_back(f1);

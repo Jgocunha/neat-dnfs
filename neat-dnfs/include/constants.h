@@ -177,8 +177,8 @@ namespace neat_dnfs
 		static constexpr int allowInhibitoryConnections = true;
 
 		// connection gene kernel type probability (sum must be 1.0)
-		static constexpr double gaussKernelProbability			= 0.9;
-		static constexpr double mexicanHatKernelProbability		= 0.1;
+		static constexpr double gaussKernelProbability			= 0.7;
+		static constexpr double mexicanHatKernelProbability		= 0.3;
 
 		// connection gene mutation probabilities (sum must be 1.0)
 		static constexpr double mutateConnectionGeneKernelProbability			= 0.70;
