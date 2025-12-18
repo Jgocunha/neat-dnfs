@@ -5,11 +5,11 @@
 
 namespace neat_dnfs
 {
-	class Timing final : public Solution
+	class MemoryTrace final : public Solution
 	{
 	public:
-		explicit Timing(const SolutionTopology& topology);
-		Timing(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
+		explicit MemoryTrace(const SolutionTopology& topology);
+		MemoryTrace(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
 		SolutionPtr clone() const override;
 	private:
 		void testPhenotype() override;

@@ -40,13 +40,13 @@ namespace neat_dnfs
 	struct NeuralFieldConstants
 	{
 		inline static std::string namePrefix		= "nf ";
-		static constexpr double tau					= 100; // 35
+		static constexpr double tau					= 35; // 100
 		static constexpr double restingLevel		= -10;
 		inline static dnf_composer::element::SigmoidFunction activationFunction{0.0f, 5.0f};
 
 		static constexpr double tauMinVal			= 10.0;
-		static constexpr double tauMaxVal			= 2500.0; // 110
-		static constexpr double tauStep				= 200.0; //5
+		static constexpr double tauMaxVal			= 110.0; // 110
+		static constexpr double tauStep				= 5.0; //5
 
 		static constexpr double restingLevelMinVal	= -15.0;
 		static constexpr double restingLevelMaxVal	= -2.0;

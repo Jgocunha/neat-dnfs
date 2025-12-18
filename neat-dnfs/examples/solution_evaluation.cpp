@@ -9,15 +9,11 @@
 
 #include "neat/population.h"
 #include "tools/logger.h"
-#include "solutions/propagation.h"
-#include "solutions/memory.h"
+#include "solutions/detection_instability.h"
+#include "solutions/memory_instability.h"
 #include "solutions/and.h"
-#include "solutions/action_simulation_layer.h"
-#include "solutions/action_execution_layer.h"
-#include "solutions/selection.h"
-#include "solutions/timing.h"
-#include "solutions/select_the_object.h"
-#include "solutions/two_robot_team.h"
+#include "solutions/selection_instability.h"
+#include "solutions/memory_trace.h"
 #include "solutions/xor.h"
 
  int main(int argc, char* argv[])
@@ -30,12 +26,12 @@
 		// load a previous solution
 		const auto previous_solution = std::make_shared<dnf_composer::Simulation>();
 		const dnf_composer::SimulationFileManager sfm(previous_solution,
-			std::string(PROJECT_DIR) + "/templates/timing.json");
+			std::string(PROJECT_DIR) + "/templates/single-bump-propagation.json");
 		sfm.loadElementsFromJson();
 		const dnf_composer::Simulation& template_solution = *previous_solution;
 
 		// select the type of solution here
-		Timing solution{
+		DetectionInstability solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},

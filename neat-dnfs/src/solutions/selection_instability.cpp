@@ -1,29 +1,29 @@
-#include "solutions/selection.h"
+#include "solutions/selection_instability.h"
 
 namespace neat_dnfs
 {
-	Selection::Selection(const SolutionTopology& topology)
+	SelectionInstability::SelectionInstability(const SolutionTopology& topology)
 		: Solution(topology)
 	{
-		name = "Selection";
+		name = "Selection Instability";
 	}
 
-	Selection::Selection(const SolutionTopology& initialTopology,
+	SelectionInstability::SelectionInstability(const SolutionTopology& initialTopology,
 		const dnf_composer::Simulation& phenotype)
 		:Solution(initialTopology, phenotype)
 	{
-		name = "Selection";
+		name = "Selection Instability";
 	}
 
-	SolutionPtr Selection::clone() const
+	SolutionPtr SelectionInstability::clone() const
 	{
-		Selection solution(initialTopology);
-		auto clonedSolution = std::make_shared<Selection>(solution);
+		SelectionInstability solution(initialTopology);
+		auto clonedSolution = std::make_shared<SelectionInstability>(solution);
 
 		return clonedSolution;
 	}
 
-	void Selection::testPhenotype()
+	void SelectionInstability::testPhenotype()
 	{
 		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
@@ -70,7 +70,7 @@ namespace neat_dnfs
 		parameters.fitness = wf1_1_1 * f1_1_1 + wf1_4_1 * f1_4_1 + wf2_1_1 * f2_1_1 + wf2_2_1 * f2_2_1;
 	}
 
-	void Selection::createPhenotypeEnvironment()
+	void SelectionInstability::createPhenotypeEnvironment()
 	{
 		addGaussianStimulus("nf 1",
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0,

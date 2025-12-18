@@ -5,10 +5,11 @@
 
 namespace neat_dnfs
 {
-	class ActionSimulationSolution : public Solution
+	class MemoryInstability final : public Solution
 	{
 	public:
-		ActionSimulationSolution(const SolutionTopology& topology);
+		explicit MemoryInstability(const SolutionTopology& topology);
+		MemoryInstability(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
 		SolutionPtr clone() const override;
 	private:
 		void testPhenotype() override;

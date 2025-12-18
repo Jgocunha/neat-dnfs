@@ -5,11 +5,11 @@
 
 namespace neat_dnfs
 {
-	class Propagation final : public Solution
+	class DelayedMatchToSample final : public Solution
 	{
 	public:
-		explicit Propagation(const SolutionTopology& topology);
-		Propagation(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
+		explicit DelayedMatchToSample(const SolutionTopology& topology);
+		DelayedMatchToSample(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
 		SolutionPtr clone() const override;
 	private:
 		void testPhenotype() override;

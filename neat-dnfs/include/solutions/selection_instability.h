@@ -5,10 +5,11 @@
 
 namespace neat_dnfs
 {
-	class EmptySolution : public Solution
+	class SelectionInstability final : public Solution
 	{
 	public:
-		EmptySolution(const SolutionTopology& topology);
+		explicit SelectionInstability(const SolutionTopology& topology);
+		SelectionInstability(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
 		SolutionPtr clone() const override;
 	private:
 		void testPhenotype() override;

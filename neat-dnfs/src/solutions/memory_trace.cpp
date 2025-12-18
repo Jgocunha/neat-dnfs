@@ -1,29 +1,29 @@
-#include "solutions/timing.h"
+#include "solutions/memory_trace.h"
 
 
 namespace neat_dnfs
 {
-	Timing::Timing(const SolutionTopology& topology)
+	MemoryTrace::MemoryTrace(const SolutionTopology& topology)
 		: Solution(topology)
 	{
-		name = "Timing";
+		name = "Memory Trace";
 	}
 
-	Timing::Timing(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+	MemoryTrace::MemoryTrace(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
 		: Solution(initialTopology, phenotype)
 	{
-		name = "Timing";
+		name = "Memory Trace";
 	}
 
-	SolutionPtr Timing::clone() const
+	SolutionPtr MemoryTrace::clone() const
 	{
-		Timing solution(initialTopology);
-		auto clonedSolution = std::make_shared<Timing>(solution);
+		MemoryTrace solution(initialTopology);
+		auto clonedSolution = std::make_shared<MemoryTrace>(solution);
 
 		return clonedSolution;
 	}
 
-	void Timing::testPhenotype()
+	void MemoryTrace::testPhenotype()
 	{
 		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
@@ -62,7 +62,7 @@ namespace neat_dnfs
 		parameters.fitness = wf1 * f1 + wf2 * f2 + wf3 * f3 + wf4 * f4;
 	}
 
-	void Timing::createPhenotypeEnvironment()
+	void MemoryTrace::createPhenotypeEnvironment()
 	{
 		addGaussianStimulus("nf 1",
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
