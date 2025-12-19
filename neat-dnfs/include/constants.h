@@ -12,7 +12,7 @@ namespace neat_dnfs
 	struct SimulationConstants
 	{
 		inline static std::string name				= "solution ";
-		static constexpr double deltaT				= 1;
+		static constexpr double deltaT				= 10;
 		static constexpr size_t maxSimulationSteps	= 500;
 	};
 
@@ -25,7 +25,7 @@ namespace neat_dnfs
 	struct NoiseConstants
 	{
 		inline static std::string namePrefix	= "nn ";
-		static constexpr double amplitude		= 0.01;
+		static constexpr double amplitude		= 0.015;
 	};
 
 	struct GaussStimulusConstants
@@ -45,8 +45,8 @@ namespace neat_dnfs
 		inline static dnf_composer::element::SigmoidFunction activationFunction{0.0f, 5.0f};
 
 		static constexpr double tauMinVal			= 10.0;
-		static constexpr double tauMaxVal			= 110.0; // 110
-		static constexpr double tauStep				= 5.0; //5
+		static constexpr double tauMaxVal			= 1000.0; // 110
+		static constexpr double tauStep				= 50.0; //5
 
 		static constexpr double restingLevelMinVal	= -15.0;
 		static constexpr double restingLevelMaxVal	= -2.0;
@@ -70,11 +70,11 @@ namespace neat_dnfs
 
 		static constexpr double widthMinVal		= 1.00;
 		static constexpr double widthMaxVal		= 10.0;
-		static constexpr double widthStep		= 1.00;
+		static constexpr double widthStep		= 0.50;
 
 		static constexpr double ampMinVal		= 3.00;
 		static constexpr double ampMaxVal		= 20.0;
-		static constexpr double ampStep			= 1.00;
+		static constexpr double ampStep			= 0.50;
 
 		static constexpr double ampGlobalMinVal = -0.1;
 		static constexpr double ampGlobalMaxVal = 0.00;
@@ -94,19 +94,19 @@ namespace neat_dnfs
 
 		static constexpr double widthExcMinVal	= 5.00;
 		static constexpr double widthExcMaxVal	= 30.0;
-		static constexpr double widthExcStep	= 1.00;
+		static constexpr double widthExcStep	= 0.50;
 
 		static constexpr double widthInhMinVal	= 5.00;
 		static constexpr double widthInhMaxVal	= 35.0;
-		static constexpr double widthInhStep	= 1.00;
+		static constexpr double widthInhStep	= 0.50;
 
 		static constexpr double ampExcMinVal	= 15.0;
 		static constexpr double ampExcMaxVal	= 25.0;
-		static constexpr double ampExcStep		= 1.00;
+		static constexpr double ampExcStep		= 0.50;
 
 		static constexpr double ampInhMinVal	= 1.00;
 		static constexpr double ampInhMaxVal	= 35.0;
-		static constexpr double ampInhStep		= 1.00;
+		static constexpr double ampInhStep		= 0.50;
 
 		static constexpr double ampGlobMin		= -0.10;
 		static constexpr double ampGlobMax		= 0.000;
@@ -146,8 +146,8 @@ namespace neat_dnfs
 		static constexpr bool variableParameters = true;
 
 		// (sum must be 1.0)
-		static constexpr double gaussKernelProbability			= 0.8;
-		static constexpr double mexicanHatKernelProbability		= 0.2;
+		static constexpr double gaussKernelProbability			= 0.7;
+		static constexpr double mexicanHatKernelProbability		= 0.3;
 
 		// field gene mutation probabilities (sum must be 1.0)
 		static constexpr double mutateFielGeneKernelProbability			= 0.70;
@@ -156,19 +156,19 @@ namespace neat_dnfs
 		// field gene gauss kernel mutation probabilities (sum does not have to be 1.0)
 		static constexpr double mutateFieldGeneGaussKernelAmplitudeProbability			= 0.80;
 		static constexpr double mutateFieldGeneGaussKernelWidthProbability				= 0.60;
-		static constexpr double mutateFieldGeneGaussKernelGlobalAmplitudeProbability	= 0.10;
+		static constexpr double mutateFieldGeneGaussKernelGlobalAmplitudeProbability	= 0.20;
 		// field gene mexican hat kernel mutation probabilities (sum does not have to be 1.0)
 		static constexpr double mutateFieldGeneMexicanHatKernelAmplitudeExcProbability		= 0.80;
 		static constexpr double mutateFieldGeneMexicanHatKernelAmplitudeInhProbability		= 0.80;
 		static constexpr double mutateFieldGeneMexicanHatKernelWidthExcProbability			= 0.60;
 		static constexpr double mutateFieldGeneMexicanHatKernelWidthInhProbability			= 0.60;
-		static constexpr double mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability	= 0.10;
+		static constexpr double mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability	= 0.20;
 
 		// field gene neural field mutation probabilities (sum must be 1.0)
 		static constexpr double mutateFieldGeneNeuralFieldParametersProbability					= 0.90;
 		static constexpr double mutateFieldGeneNeuralFieldGenerateRandomParametersProbability	= 0.10;
 		// field gene neural field parameters mutation probabilities (sum does not have to be 1.0)
-		static constexpr double mutateFieldGeneNeuralFieldParametersTauProbability			= 0.20;
+		static constexpr double mutateFieldGeneNeuralFieldParametersTauProbability			= 0.30;
 		static constexpr double mutateFieldGeneNeuralFieldParametersRestingLevelProbability	= 0.80;
 	};
 

@@ -149,20 +149,20 @@ namespace neat_dnfs
 
 		// validated but could be improved
 		double oneBumpAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
-			const double& position, const double& amplitude, const double& width);
+			const double& position, const double& amplitude, const double& width) const;
 		double twoBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
 						const double& position1, const double& amplitude1, const double& width1,
-						const double& position2, const double& amplitude2, const double& width2);
+						const double& position2, const double& amplitude2, const double& width2) const;
 		double threeBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
 									const double& position1, const double& amplitude1, const double& width1,
 									const double& position2, const double& amplitude2, const double& width2,
-									const double& position3, const double& amplitude3, const double& width3);
+									const double& position3, const double& amplitude3, const double& width3) const;
 		// not validated
 		double preShapedness(const std::string& fieldName) const;
 		double preShapedness(const std::string& fieldName, const std::vector<double>& positions);
 		double negativePreShapednessAtPosition(const std::string& fieldName, const double& position);
 		double justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName,
-			const std::vector<double>& positions, const double& amplitude, const double& width);
+			const std::vector<double>& positions, const double& amplitude, const double& width) const;
 
 
 		void moveGaussianStimulusContinuously(const std::string& name, double targetPosition, double step);

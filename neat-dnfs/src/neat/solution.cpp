@@ -653,9 +653,7 @@ namespace neat_dnfs
 		log(tools::logger::LogLevel::INFO, toString());
 	}
 
-
-
-
+	// Solution evaluation specific functions
 
 	void Solution::initSimulation()
 	{
@@ -803,8 +801,48 @@ namespace neat_dnfs
 		return 0.0f;
 	}
 
+	double Solution::justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName, const std::vector<double>& positions, const double& amplitude, const double& width) const
+	{
+		using namespace dnf_composer::element;
+		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+
+		static constexpr double wBumps  = 0.55;
+		static constexpr double wPos    = 0.35;
+		static constexpr double wAmp    = 0.05;
+		static constexpr double wWidth  = 0.05;
+
+		const int n = static_cast<int>(neuralField->getBumps().size());
+		if (n == 0) return 0.0;
+		if (n != 1) return 0.2 * (wBumps / (1.0 + std::abs(1 - n)));
+
+
+		const NeuralFieldBump bump = neuralField->getBumps().front();
+
+		// find distance to the closest valid position
+		double minDistance = std::numeric_limits<double>::max();
+		for (double p : positions) minDistance = std::min(minDistance, std::abs(bump.centroid - p));
+
+		constexpr double epsilon = DimensionConstants::xSize / 20;
+
+		// If the bump is not near any allowed position, do NOT give the big reward.
+		if (minDistance >= epsilon) {
+			// Return a small score that still prefers one bump vs. zero/two,
+			// but is nowhere near "success".
+			return 0.40 * (wBumps / (1.0 + std::abs(1 - n)));
+		}
+
+		// Otherwise, compute the full score.
+		double fitness = 0.0;
+		fitness += wBumps; // full credit for the correct bump count (since it's 1)
+		fitness += wPos / (1.0 + minDistance);
+		fitness += wAmp / (1.0 + std::abs(bump.amplitude - amplitude));
+		fitness += wWidth / (1.0 + std::abs(bump.width - width));
+
+		return fitness;
+	}
+
 	double Solution::oneBumpAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position, const double& 
-		amplitude, const double& width)
+		amplitude, const double& width) const
 	{
 		// if the field name is not in the phenotype, throw exception
 		// ... .containsElement(name);
@@ -812,36 +850,38 @@ namespace neat_dnfs
 		static constexpr double weightPos = 0.45;
 		static constexpr double weightAmp = 0.05;
 		static constexpr double weightWidth = 0.05;
-		// if sum of weights is not 1.0, throw exception
+		// if the sum of weights is not 1.0, throw exception
 		if (std::abs(weightBumps + weightPos + weightAmp + weightWidth - 1.0) > 1e-6)
 			throw std::invalid_argument("Sum of weights must be 1.0");
+
 		static constexpr int targetNumberOfBumps = 1;
 		double fitness = 0.0;
 
 		using namespace dnf_composer::element;
-
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-		// evaluate the number of bumps
+		const auto& bumps = neuralField->getBumps();
 		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
+		if (numberOfBumps == 0) return fitness;
+
 		fitness += weightBumps / ( 1.0 + std::abs(targetNumberOfBumps - numberOfBumps));
-		// evaluate the position of the bump(s)
-		NeuralFieldBump closestBump;
+
+		NeuralFieldBump closestBump = bumps.front();
 		for (const auto& bump : neuralField->getBumps())
-		{
 			if (std::abs(bump.centroid - position) < std::abs(closestBump.centroid - position))
 				closestBump = bump;
-		}
+
 		fitness += weightPos / (1.0 + std::abs(closestBump.centroid - position));
-		// evaluate the amplitude of the bump(s)
 		fitness += weightAmp / (1.0 + std::abs(closestBump.amplitude - amplitude));
-		// evaluate the width of the bump(s)
 		fitness += weightWidth / (1.0 + std::abs(closestBump.width - width));
 
 		return fitness;
 	}
 
-	double Solution::twoBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position1, const double& amplitude1, const double& width1, const double& position2, const double& amplitude2, const double& width2)
+	double Solution::twoBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position1, const double& amplitude1, const double& width1, const double& position2, const double& amplitude2, const double& width2) const
 	{
+		// can select the same bump twice (closest to position1 and closest to position2 might be
+		// the same bump). That can inflate fitness even with only one real bump.
+
 		static constexpr int targetNumberOfBumps = 2;
 		static constexpr double weightBumps = 0.70;
 		static constexpr double weightPos = 0.20 / targetNumberOfBumps;
@@ -882,7 +922,7 @@ namespace neat_dnfs
 
 	}
 
-	double Solution::threeBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position1, const double& amplitude1, const double& width1, const double& position2, const double& amplitude2, const double& width2, const double& position3, const double& amplitude3, const double& width3)
+	double Solution::threeBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position1, const double& amplitude1, const double& width1, const double& position2, const double& amplitude2, const double& width2, const double& position3, const double& amplitude3, const double& width3) const
 	{
 		static constexpr int targetNumberOfBumps = 3;
 		static constexpr double weightBumps = 0.40;
@@ -1027,44 +1067,6 @@ namespace neat_dnfs
 		const double width = u_baseline / 2;
 
 		return tools::utils::normalizeWithGaussian(std::abs(u_tar_pos), u_target, width);
-	}
-
-	double Solution::justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName, const std::vector<double>& positions, const double& amplitude, const double& width)
-	{
-		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-
-		static constexpr double weightBumps = 0.50;
-		static constexpr double weightPos = 0.35;
-		static constexpr double weightAmp = 0.10;
-		static constexpr double weightWidth = 0.05;
-
-		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
-		double fitness = weightBumps / (1.0 + std::abs(1 - numberOfBumps));
-
-		// Only proceed to check position if there's exactly one bump
-		if (numberOfBumps == 1)
-		{
-			const NeuralFieldBump bump = neuralField->getBumps().front();
-
-			// Find the minimum distance to any of the allowed positions
-			double minDistance = std::numeric_limits<double>::max();
-			for (const auto& position : positions) {
-				minDistance = std::min(minDistance, std::abs(bump.centroid - position));
-			}
-
-			// Use a more lenient epsilon based on the scale of your system
-			static constexpr double epsilon = 2.0;  // Adjust based on your position scale
-
-			// Only add position, amplitude, and width fitness if close enough to a target position
-			if (minDistance < epsilon) {
-				fitness += weightPos / (1.0 + minDistance);
-				fitness += weightAmp / (1.0 + std::abs(bump.amplitude - amplitude));
-				fitness += weightWidth / (1.0 + std::abs(bump.width - width));
-			}
-		}
-
-		return fitness;
 	}
 
 
