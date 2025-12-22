@@ -26,12 +26,12 @@
 		// load a previous solution
 		const auto previous_solution = std::make_shared<dnf_composer::Simulation>();
 		const dnf_composer::SimulationFileManager sfm(previous_solution,
-			std::string(PROJECT_DIR) + "/templates/single-bump-propagation.json");
+			std::string(PROJECT_DIR) + "/templates/selection-instability.json");
 		sfm.loadElementsFromJson();
 		const dnf_composer::Simulation& template_solution = *previous_solution;
 
 		// select the type of solution here
-		DetectionInstability solution{
+		SelectionInstability solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},

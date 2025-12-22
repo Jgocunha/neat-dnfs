@@ -29,114 +29,110 @@ namespace neat_dnfs
 	    parameters.fitness = 0.0;
 	    parameters.partialFitness.clear();
 
-	    // Positions
-	    static constexpr double A = 50.0;   // primed position
-	    static constexpr double C = 80.0;   // novel position (far enough to avoid overlap)
+	           // Positions
+        static constexpr double posA = 30.0;
+        static constexpr double posB = 70.0;
 
-	    // Stimulus amplitudes
-		constexpr double strongAmp = GaussStimulusConstants::amplitude;
-		constexpr double weakAmp   = 0.35 * GaussStimulusConstants::amplitude;
+        // Timing (tune to your deltaT / bump detector)
+        static constexpr int t_encode = SimulationConstants::maxSimulationSteps / 3;   // strong stimulus
+        static constexpr int t_clear  = SimulationConstants::maxSimulationSteps / 6;   // relax after removal
+        static constexpr int t_delay  = SimulationConstants::maxSimulationSteps / 3;   // latent period
+        static constexpr int t_probe  = SimulationConstants::maxSimulationSteps / 3;   // probe window
 
-	    // Timing targets (tune once based on your dt / dynamics)
-	    static constexpr double primeTarget   = 220;  // when nf2 should detect under strong input
-	    static constexpr double primeMax      = 500;
-	    static constexpr double primeTol      = 40;
+        // Strong vs. weak stimulus
+        static constexpr double strongAmp = GaussStimulusConstants::amplitude; // your default (e.g., 20)
+        static constexpr double strongWid = GaussStimulusConstants::width;
 
-	    static constexpr double decayTarget   = 500;  // when nf2 should lose bump after input removed
-	    static constexpr double decayMax      = 1200;
-	    static constexpr double decayTol      = 120;
+        // Weak should be below “easy win” threshold so trace matters
+        static constexpr double weakAmp = GaussStimulusConstants::amplitude * 0.40;
+        static constexpr double weakWid = GaussStimulusConstants::width;
 
-	    static constexpr double primedTarget  = 120;  // a weak probe at A should be detected relatively fast
-	    static constexpr double primedMax     = 350;
-	    static constexpr double primedTol     = 35;
+        // Output bump targets (rough; your bump detector already tolerates)
+        static constexpr double outAmpEncode  = 18.0;
+        static constexpr double outWidEncode  = 10.0;
 
-	    static constexpr double novelEarlyWindow = 120; // for first 120 steps, novel should NOT bump (early)
-	    static constexpr int    settleBetweenProbes = 150;
+        static constexpr double outAmpProbe   = 12.0;
+        static constexpr double outWidProbe   = 12.0;
 
-	    static constexpr double novelTarget   = 260;  // novel weak probe should be detected later (if at all)
-	    static constexpr double novelMax      = 350;
-	    static constexpr double novelTol      = 30;
+        // -------------------------
+        // Phase A: Encode (strong input at A)
+        // -------------------------
+        initSimulation();
 
-	    // Weights (trace signature should dominate)
-	    static constexpr double w_prime = 0.15;
-	    static constexpr double w_decay = 0.20;
-	    static constexpr double w_primed = 0.35;
-	    static constexpr double w_novel = 0.30;
+        addGaussianStimulus("nf 1",
+            { strongWid, strongAmp, posA,
+              GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+            { DimensionConstants::xSize, DimensionConstants::dx });
 
-	    initSimulation();
+        runSimulation(t_encode);
 
-	    // --------------------------
-	    // Phase 1: PRIME at A (strong)
-	    // --------------------------
-	    addGaussianStimulus("nf 1",
-	        { GaussStimulusConstants::width, strongAmp, A,
-	          GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-	        { DimensionConstants::xSize, DimensionConstants::dx });
+        const double f_encode = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", posA, outAmpEncode, outWidEncode);
+        parameters.partialFitness.emplace_back(f_encode);
 
-	    // Encourage nf2 to form bump under strong input
-	    const double f_prime = iterationsUntilBump("nf 2", primeTarget, primeMax, primeTol);
-	    parameters.partialFitness.emplace_back(f_prime);
+        // -------------------------
+        // Phase B: Clear (remove input; nf2 should NOT keep a bump)
+        // -------------------------
+        removeGaussianStimuli();
+        runSimulation(t_clear);
 
-	    // --------------------------
-	    // Phase 2: REMOVE input and enforce "no working memory"
-	    // --------------------------
-	    removeGaussianStimuli();
+        const double f_noWM_1 = noBumps("nf 2");                 // punish working memory in output
+        const double f_in_relax = closenessToRestingLevel("nf 1"); // optional sanity: perception relaxes
+        parameters.partialFitness.emplace_back(f_noWM_1);
+        parameters.partialFitness.emplace_back(f_in_relax);
 
-	    // Encourage bump in nf2 to disappear (trace must be subthreshold, not a maintained bump)
-	    const double f_decay = iterationsUntilNoBump("nf 2", decayTarget, decayMax, decayTol);
-	    parameters.partialFitness.emplace_back(f_decay);
+        // -------------------------
+        // Phase C: Delay (still no bump in nf2)
+        // -------------------------
+        runSimulation(t_delay);
+        const double f_noWM_2 = noBumps("nf 2");
+        parameters.partialFitness.emplace_back(f_noWM_2);
 
-	    // --------------------------
-	    // Phase 3: PROBE primed location A (weak) -> should detect early
-	    // --------------------------
-	    addGaussianStimulus("nf 1",
-	        { GaussStimulusConstants::width, weakAmp, A,
-	          GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-	        { DimensionConstants::xSize, DimensionConstants::dx });
+        // -------------------------
+        // Phase D: Probe (two equal weak inputs A and B)
+        // Expect bias toward A due to latent trace (hidden field).
+        // -------------------------
+        addGaussianStimulus("nf 1",
+            { weakWid, weakAmp, posA,
+              GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+            { DimensionConstants::xSize, DimensionConstants::dx });
 
-	    const double f_primed = iterationsUntilBump("nf 2", primedTarget, primedMax, primedTol);
-	    parameters.partialFitness.emplace_back(f_primed);
+        addGaussianStimulus("nf 1",
+            { weakWid, weakAmp, posB,
+              GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+            { DimensionConstants::xSize, DimensionConstants::dx });
 
-	    // --------------------------
-	    // Phase 4: reset, PROBE novel location C (weak)
-	    //   - early window: should NOT bump
-	    //   - later: if it bumps, it should be late
-	    // --------------------------
-	    removeGaussianStimuli();
-	    runSimulation(settleBetweenProbes);
+        // Reward fast decision AND correct location
+        const double f_fast = iterationsUntilBump("nf 2",
+            /*targetIterations=*/ t_probe * 0.25,
+            /*maxIterations=*/    t_probe,
+            /*tolerance=*/        t_probe * 0.15);
 
-	    addGaussianStimulus("nf 1",
-	        { GaussStimulusConstants::width, weakAmp, C,
-	          GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-	        { DimensionConstants::xSize, DimensionConstants::dx });
+        // After probe window, enforce that the bump is at A (history-biased choice)
+        runSimulation(t_probe);
+        const double f_choice = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", posA, outAmpProbe, outWidProbe);
 
-	    // Early suppression requirement: in the first window, should remain no-bump
-	    // We implement this by stepping manually for a short window and checking bumps stay empty.
-	    // (This avoids rewarding early bump on the novel location.)
-	    double f_novelEarly = 1.0;
-	    {
-	        const auto nf2 = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement("nf 2"));
-	        for (int i = 0; i < static_cast<int>(novelEarlyWindow); ++i) {
-	            phenotype.step();
-	            if (!nf2->getBumps().empty()) { f_novelEarly = 0.0; break; }
-	        }
-	    }
+        parameters.partialFitness.emplace_back(f_fast);
+        parameters.partialFitness.emplace_back(f_choice);
 
-	    // Then reward (if it happens) being late rather than early
-	    const double f_novelLate = iterationsUntilBump("nf 2", novelTarget, novelMax, novelTol);
+        // -------------------------
+        // Fitness weights
+        // -------------------------
+        // Dominant term: history-dependent biased choice under symmetric input.
+        // Strong penalties for output holding working memory.
+        static constexpr double w_encode   = 0.15;
+        static constexpr double w_noWM     = 0.35; // average of noWM checkpoints
+        static constexpr double w_fast     = 0.10;
+        static constexpr double w_choice   = 0.35;
+        static constexpr double w_relax    = 0.05;
 
-	    // Combine: must pass early no-bump AND have late/weak responsiveness
-	    const double f_novel = 0.6 * f_novelEarly + 0.4 * f_novelLate;
-	    parameters.partialFitness.emplace_back(f_novel);
+        const double f_noWM = 0.5 * (f_noWM_1 + f_noWM_2);
 
-	    // --------------------------
-	    // Final fitness
-	    // --------------------------
-	    parameters.fitness =
-	        w_prime  * f_prime +
-	        w_decay  * f_decay +
-	        w_primed * f_primed +
-	        w_novel  * f_novel;
+        parameters.fitness =
+            w_encode * f_encode +
+            w_noWM   * f_noWM +
+            w_fast   * f_fast +
+            w_choice * f_choice +
+            w_relax  * f_in_relax;
 	}
 
 	void MemoryTrace::createPhenotypeEnvironment()

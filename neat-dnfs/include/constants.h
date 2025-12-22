@@ -12,7 +12,7 @@ namespace neat_dnfs
 	struct SimulationConstants
 	{
 		inline static std::string name				= "solution ";
-		static constexpr double deltaT				= 10;
+		static constexpr double deltaT				= 1;
 		static constexpr size_t maxSimulationSteps	= 500;
 	};
 
