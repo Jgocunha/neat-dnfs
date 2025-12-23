@@ -976,49 +976,71 @@ namespace neat_dnfs
 		return fitness;
 	}
 
+	// double Solution::preShapedness(const std::string& fieldName) const
+	// {
+	// 	using namespace dnf_composer::element;
+	// 	const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+	//
+	// 	const double highestActivationValue = neuralField->getHighestActivation();
+	// 	const double restingLevel = neuralField->getParameters().startingRestingLevel;
+	//
+	// 	// target activation is between the resting level and 0.0 (supra-threshold)
+	// 	const double targetActivation = restingLevel / 2.0;
+	// 	const double width = std::abs(restingLevel / 1.05);
+	//
+	// 	return tools::utils::normalizeWithGaussian(highestActivationValue, targetActivation, width);
+	// }
+	//
+	// double Solution::preShapedness(const std::string& fieldName, const std::vector<double>& positions)
+	// {
+	// 	using namespace dnf_composer::element;
+	// 	const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+	// 	const double restingLevel = neuralField->getParameters().startingRestingLevel;
+	// 	// target activation is between the resting level and 0.0 (sub-threshold)
+	// 	const double targetActivation = restingLevel / 2.0;
+	// 	const double width = std::abs(restingLevel / 6.0);  // Makes both points 3 standard deviations away
+	//
+	// 	// If no positions specified, return 0.0
+	// 	if (positions.empty()) {
+	// 		return 0.0;
+	// 	}
+	//
+	// 	// Calculate the score for each position
+	// 	double totalScore = 0.0;
+	// 	for (const auto& position : positions) {
+	// 		const double activationAtPosition = neuralField->getComponent("activation")[position];
+	// 		double positionScore = tools::utils::normalizeWithGaussian(activationAtPosition, targetActivation, width);
+	// 		totalScore += positionScore;
+	// 	}
+	//
+	// 	// Return average score (will be 1.0 if all positions have perfect sub-threshold peaks)
+	// 	return totalScore / positions.size();
+	// }
 
-
-	double Solution::preShapedness(const std::string& fieldName) const
+	double Solution::preShapednessAtPosition(const std::string& fieldName, double position) const
 	{
 		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const auto nf = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
 
-		const double highestActivationValue = neuralField->getHighestActivation();
-		const double restingLevel = neuralField->getParameters().startingRestingLevel;
+		const int idx = static_cast<int>(position / nf->getElementCommonParameters().dimensionParameters.d_x);
+		const double u = nf->getComponent("activation")[idx];
+		const double h = nf->getParameters().startingRestingLevel;
+		const double u_tar =  h / 4.0;
+		constexpr double sigma = 0.8;
 
-		// target activation is between the resting level and 0.0 (supra-threshold)
-		const double targetActivation = restingLevel / 2.0;
-		const double width = std::abs(restingLevel / 2.0);
+		// 1) enforce subthreshold
+		if (u >= 0.0) return 0.0;
 
-		//
-		return tools::utils::normalizeWithGaussian(highestActivationValue, targetActivation, width);
+		// 2) enforce higher than resting level
+		static constexpr double epsilon = 0.01;
+		if (u <= h + epsilon) return 0.0;
+
+		// 3) reward closeness to target subthreshold height
+		const double score_height = tools::utils::normalizeWithGaussian(u, u_tar, sigma);
+
+		return score_height;
 	}
 
-	double Solution::preShapedness(const std::string& fieldName, const std::vector<double>& positions)
-	{
-		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-		const double restingLevel = neuralField->getParameters().startingRestingLevel;
-		// target activation is between the resting level and 0.0 (sub-threshold)
-		const double targetActivation = restingLevel / 2.0;
-		const double width = std::abs(restingLevel / 6.0);  // Makes both points 3 standard deviations away
-
-		// If no positions specified, return 0.0
-		if (positions.empty()) {
-			return 0.0;
-		}
-
-		// Calculate the score for each position
-		double totalScore = 0.0;
-		for (const auto& position : positions) {
-			const double activationAtPosition = neuralField->getComponent("activation")[position];
-			double positionScore = tools::utils::normalizeWithGaussian(activationAtPosition, targetActivation, width);
-			totalScore += positionScore;
-		}
-
-		// Return average score (will be 1.0 if all positions have perfect sub-threshold peaks)
-		return totalScore / positions.size();
-	}
 
 	double Solution::negativePreShapednessAtPosition(const std::string& fieldName, const double& position)
 	{

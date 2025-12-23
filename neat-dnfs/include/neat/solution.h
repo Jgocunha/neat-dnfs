@@ -144,8 +144,8 @@ namespace neat_dnfs
 		void setGaussianStimulusParameters(const std::string& stimulusName, const dnf_composer::element::GaussStimulusParameters& parameters) const;
 		double closenessToRestingLevel(const std::string& fieldName) const;
 		double noBumps(const std::string& fieldName) const;
-		double iterationsUntilBump(const std::string& fieldName, const double targetIterations, const double maxIterations, double tolerance);
-		double iterationsUntilNoBump(const std::string& fieldName, const double targetIterations, const double maxIterations, double tolerance);
+		double iterationsUntilBump(const std::string& fieldName, double targetIterations, double maxIterations, double tolerance);
+		double iterationsUntilNoBump(const std::string& fieldName, double targetIterations, double maxIterations, double tolerance);
 
 		// validated but could be improved
 		double oneBumpAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
@@ -158,11 +158,12 @@ namespace neat_dnfs
 									const double& position2, const double& amplitude2, const double& width2,
 									const double& position3, const double& amplitude3, const double& width3) const;
 		// not validated
-		double preShapedness(const std::string& fieldName) const;
-		double preShapedness(const std::string& fieldName, const std::vector<double>& positions);
+		//double preShapedness(const std::string& fieldName) const;
+		//double preShapedness(const std::string& fieldName, const std::vector<double>& positions);
+		double preShapednessAtPosition(const std::string& fieldName, double position ) const;
 		double negativePreShapednessAtPosition(const std::string& fieldName, const double& position);
 		double justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName,
-			const std::vector<double>& positions, const double& amplitude, const double& width) const;
+		                                                                    const std::vector<double>& positions, const double& amplitude, const double& width) const;
 
 
 		void moveGaussianStimulusContinuously(const std::string& name, double targetPosition, double step);

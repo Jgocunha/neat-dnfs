@@ -28,121 +28,93 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 	    parameters.fitness = 0.0;
 	    parameters.partialFitness.clear();
+		static constexpr int iterations = SimulationConstants::maxSimulationSteps;
 
-	           // Positions
-        static constexpr double posA = 30.0;
-        static constexpr double posB = 70.0;
+		static constexpr double posA = 20.0f;
+		static constexpr double posB = 80.0f;
 
-        // Timing (tune to your deltaT / bump detector)
-        static constexpr int t_encode = SimulationConstants::maxSimulationSteps / 3;   // strong stimulus
-        static constexpr int t_clear  = SimulationConstants::maxSimulationSteps / 6;   // relax after removal
-        static constexpr int t_delay  = SimulationConstants::maxSimulationSteps / 3;   // latent period
-        static constexpr int t_probe  = SimulationConstants::maxSimulationSteps / 3;   // probe window
+		// =========================
+		// Phase A: No encoding, no output bump
+		// =========================
+		initSimulation();
+		addGaussianStimulus("nf 1",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, posA,
+				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		const double f1 = preShapednessAtPosition("nf 3", posA);
+		parameters.partialFitness.push_back(f1);
+		removeGaussianStimuli();
+		runSimulation(iterations);
+		const double f2 = closenessToRestingLevel("nf 1");
+		//const double f3 = closenessToRestingLevel("nf 3");
+		parameters.partialFitness.push_back(f2);
+		//parameters.partialFitness.push_back(f3);
 
-        // Strong vs. weak stimulus
-        static constexpr double strongAmp = GaussStimulusConstants::amplitude; // your default (e.g., 20)
-        static constexpr double strongWid = GaussStimulusConstants::width;
+		// =========================
+		// Phase B: Encoding
+		// =========================
+		addGaussianStimulus("nf 2",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, posB,
+				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		//runSimulation(iterations);
+		//const double f4 = closenessToRestingLevel("nf 3");
+		//parameters.partialFitness.push_back(f4);
+		runSimulation(iterations*5);
+		const double f5 = preShapednessAtPosition("nf 3", posB);
+		parameters.partialFitness.push_back(f5);
 
-        // Weak should be below “easy win” threshold so trace matters
-        static constexpr double weakAmp = GaussStimulusConstants::amplitude * 0.40;
-        static constexpr double weakWid = GaussStimulusConstants::width;
+		// =========================
+		// Phase C: Probing
+		// =========================
+		removeGaussianStimuli();
+		addGaussianStimulus("nf 1",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, posA,
+				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		addGaussianStimulus("nf 1",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, posB,
+				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations);
+		const double f6 = closenessToRestingLevel("nf 2");
+		parameters.partialFitness.push_back(f6);
+		const double f7 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1", posA, 10.0, 10.0, posB, 10.0, 10.0);
+		parameters.partialFitness.push_back(f7);
+		const double f8 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", posB, 10.0, 10.0);
+		parameters.partialFitness.push_back(f8);
+		runSimulation(iterations);
+		const double f9 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", posB, 10.0, 10.0);
+		parameters.partialFitness.push_back(f9);
 
-        // Output bump targets (rough; your bump detector already tolerates)
-        static constexpr double outAmpEncode  = 18.0;
-        static constexpr double outWidEncode  = 10.0;
+		runSimulation(iterations*2);
+		const double f10 = noBumps("nf 3");
+		parameters.partialFitness.push_back(f10);
 
-        static constexpr double outAmpProbe   = 12.0;
-        static constexpr double outWidProbe   = 12.0;
+		static constexpr double wf1 = 1 / 7.f;
+		static constexpr double wf2 = 1 / 7.f;
+		static constexpr double wf5 = 1 / 7.f;
+		static constexpr double wf6 = 1 / 7.f;
+		static constexpr double wf7 = 1 / 7.f;
+		static constexpr double wf8 = 1 / 7.f;
+		static constexpr double wf9 = 1 / 7.f;
 
-        // -------------------------
-        // Phase A: Encode (strong input at A)
-        // -------------------------
-        initSimulation();
-
-        addGaussianStimulus("nf 1",
-            { strongWid, strongAmp, posA,
-              GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-            { DimensionConstants::xSize, DimensionConstants::dx });
-
-        runSimulation(t_encode);
-
-        const double f_encode = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", posA, outAmpEncode, outWidEncode);
-        parameters.partialFitness.emplace_back(f_encode);
-
-        // -------------------------
-        // Phase B: Clear (remove input; nf2 should NOT keep a bump)
-        // -------------------------
-        removeGaussianStimuli();
-        runSimulation(t_clear);
-
-        const double f_noWM_1 = noBumps("nf 2");                 // punish working memory in output
-        const double f_in_relax = closenessToRestingLevel("nf 1"); // optional sanity: perception relaxes
-        parameters.partialFitness.emplace_back(f_noWM_1);
-        parameters.partialFitness.emplace_back(f_in_relax);
-
-        // -------------------------
-        // Phase C: Delay (still no bump in nf2)
-        // -------------------------
-        runSimulation(t_delay);
-        const double f_noWM_2 = noBumps("nf 2");
-        parameters.partialFitness.emplace_back(f_noWM_2);
-
-        // -------------------------
-        // Phase D: Probe (two equal weak inputs A and B)
-        // Expect bias toward A due to latent trace (hidden field).
-        // -------------------------
-        addGaussianStimulus("nf 1",
-            { weakWid, weakAmp, posA,
-              GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-            { DimensionConstants::xSize, DimensionConstants::dx });
-
-        addGaussianStimulus("nf 1",
-            { weakWid, weakAmp, posB,
-              GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-            { DimensionConstants::xSize, DimensionConstants::dx });
-
-        // Reward fast decision AND correct location
-        const double f_fast = iterationsUntilBump("nf 2",
-            /*targetIterations=*/ t_probe * 0.25,
-            /*maxIterations=*/    t_probe,
-            /*tolerance=*/        t_probe * 0.15);
-
-        // After probe window, enforce that the bump is at A (history-biased choice)
-        runSimulation(t_probe);
-        const double f_choice = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", posA, outAmpProbe, outWidProbe);
-
-        parameters.partialFitness.emplace_back(f_fast);
-        parameters.partialFitness.emplace_back(f_choice);
-
-        // -------------------------
-        // Fitness weights
-        // -------------------------
-        // Dominant term: history-dependent biased choice under symmetric input.
-        // Strong penalties for output holding working memory.
-        static constexpr double w_encode   = 0.15;
-        static constexpr double w_noWM     = 0.35; // average of noWM checkpoints
-        static constexpr double w_fast     = 0.10;
-        static constexpr double w_choice   = 0.35;
-        static constexpr double w_relax    = 0.05;
-
-        const double f_noWM = 0.5 * (f_noWM_1 + f_noWM_2);
-
-        parameters.fitness =
-            w_encode * f_encode +
-            w_noWM   * f_noWM +
-            w_fast   * f_fast +
-            w_choice * f_choice +
-            w_relax  * f_in_relax;
+		parameters.fitness = wf1 * f1 + wf2 * f2 + wf5 * f5 + wf6 * f6 + wf7 * f7 + wf8 * f8 + wf9 * f9;
 	}
 
 	void MemoryTrace::createPhenotypeEnvironment()
 	{
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
-				true, false },
+			{ GaussStimulusConstants::width, 0.0, 20.0,
+				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 1",
-		   { GaussStimulusConstants::width, GaussStimulusConstants::amplitude*0.35, 80.0,
+			{ GaussStimulusConstants::width, 0.0, 80.0,
+				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		addGaussianStimulus("nf 2",
+		   { GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0,
 			 GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 		   { DimensionConstants::xSize, DimensionConstants::dx });
 	}
