@@ -47,9 +47,7 @@ namespace neat_dnfs
 		removeGaussianStimuli();
 		runSimulation(iterations);
 		const double f2 = closenessToRestingLevel("nf 1");
-		//const double f3 = closenessToRestingLevel("nf 3");
 		parameters.partialFitness.push_back(f2);
-		//parameters.partialFitness.push_back(f3);
 
 		// =========================
 		// Phase B: Encoding
@@ -58,9 +56,6 @@ namespace neat_dnfs
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, posB,
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
-		//runSimulation(iterations);
-		//const double f4 = closenessToRestingLevel("nf 3");
-		//parameters.partialFitness.push_back(f4);
 		runSimulation(iterations*5);
 		const double f5 = preShapednessAtPosition("nf 3", posB);
 		parameters.partialFitness.push_back(f5);
@@ -92,15 +87,16 @@ namespace neat_dnfs
 		const double f10 = noBumps("nf 3");
 		parameters.partialFitness.push_back(f10);
 
-		static constexpr double wf1 = 1 / 7.f;
-		static constexpr double wf2 = 1 / 7.f;
-		static constexpr double wf5 = 1 / 7.f;
-		static constexpr double wf6 = 1 / 7.f;
-		static constexpr double wf7 = 1 / 7.f;
-		static constexpr double wf8 = 1 / 7.f;
-		static constexpr double wf9 = 1 / 7.f;
+		static constexpr double wf1 =  1 / 8.f;
+		static constexpr double wf2 =  1 / 8.f;
+		static constexpr double wf5 =  1 / 8.f;
+		static constexpr double wf6 =  1 / 8.f;
+		static constexpr double wf7 =  1 / 8.f;
+		static constexpr double wf8 =  1 / 8.f;
+		static constexpr double wf9 =  1 / 8.f;
+		static constexpr double wf10 = 1 / 8.f;
 
-		parameters.fitness = wf1 * f1 + wf2 * f2 + wf5 * f5 + wf6 * f6 + wf7 * f7 + wf8 * f8 + wf9 * f9;
+		parameters.fitness = wf1 * f1 + wf2 * f2 + wf5 * f5 + wf6 * f6 + wf7 * f7 + wf8 * f8 + wf9 * f9 + wf10 * f10;
 	}
 
 	void MemoryTrace::createPhenotypeEnvironment()

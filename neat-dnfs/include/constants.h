@@ -40,13 +40,13 @@ namespace neat_dnfs
 	struct NeuralFieldConstants
 	{
 		inline static std::string namePrefix		= "nf ";
-		static constexpr double tau					= 35; // 100
+		static constexpr double tau					= 100;
 		static constexpr double restingLevel		= -10;
 		inline static dnf_composer::element::SigmoidFunction activationFunction{0.0f, 5.0f};
 
 		static constexpr double tauMinVal			= 10.0;
-		static constexpr double tauMaxVal			= 1000.0; // 110
-		static constexpr double tauStep				= 50.0; //5
+		static constexpr double tauMaxVal			= 1000.0;
+		static constexpr double tauStep				= 50.0;
 
 		static constexpr double restingLevelMinVal	= -15.0;
 		static constexpr double restingLevelMaxVal	= -2.0;
@@ -64,8 +64,8 @@ namespace neat_dnfs
 		inline static std::string namePrefix				= "gk ";
 		inline static std::string namePrefixConnectionGene	= "gk cg ";
 
-		static constexpr double width			= 3.00;
-		static constexpr double amplitude		= 8.00;
+		static constexpr double width			= 5.00;
+		static constexpr double amplitude		= 6.00;
 		static constexpr double amplitudeGlobal = 0.00;
 
 		static constexpr double widthMinVal		= 1.00;
@@ -73,7 +73,7 @@ namespace neat_dnfs
 		static constexpr double widthStep		= 0.50;
 
 		static constexpr double ampMinVal		= 3.00;
-		static constexpr double ampMaxVal		= 20.0;
+		static constexpr double ampMaxVal		= 10.0;
 		static constexpr double ampStep			= 0.50;
 
 		static constexpr double ampGlobalMinVal = -0.1;
@@ -150,8 +150,8 @@ namespace neat_dnfs
 		static constexpr double mexicanHatKernelProbability		= 0.3;
 
 		// field gene mutation probabilities (sum must be 1.0)
-		static constexpr double mutateFielGeneKernelProbability			= 0.70;
-		static constexpr double mutateFielGeneKernelTypeProbability		= 0.10;
+		static constexpr double mutateFieldGeneKernelProbability			= 0.70;
+		static constexpr double mutateFieldGeneKernelTypeProbability		= 0.10;
 		static constexpr double mutateFieldGeneNeuralFieldProbability	= 0.20;
 		// field gene gauss kernel mutation probabilities (sum does not have to be 1.0)
 		static constexpr double mutateFieldGeneGaussKernelAmplitudeProbability			= 0.80;
@@ -208,7 +208,7 @@ namespace neat_dnfs
 		static constexpr bool parallelEvolution									= true;
 		static constexpr double pruneRatio										= 0.5;
 		static constexpr int generationsWithoutImprovementThresholdInPopulation = 20;
-		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 10;
+		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 15;
 		static constexpr bool elitism											= true;
 
 		static constexpr bool validateUniqueSolutions					= false;

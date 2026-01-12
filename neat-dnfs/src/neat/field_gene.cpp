@@ -121,20 +121,20 @@ namespace neat_dnfs
 
 	void FieldGene::mutate()
 	{
-		static constexpr double totalProbability = FieldGeneConstants::mutateFielGeneKernelProbability +
+		static constexpr double totalProbability = FieldGeneConstants::mutateFieldGeneKernelProbability +
 			FieldGeneConstants::mutateFieldGeneNeuralFieldProbability +
-			FieldGeneConstants::mutateFielGeneKernelTypeProbability;
+			FieldGeneConstants::mutateFieldGeneKernelTypeProbability;
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(totalProbability - 1.0) > epsilon)
 			throw std::runtime_error("Mutation probabilities in field gene mutation must sum up to 1.");
 
 		const double randomValue = tools::utils::generateRandomDouble(0.0, 1.0);
-		if (randomValue < FieldGeneConstants::mutateFielGeneKernelProbability)
+		if (randomValue < FieldGeneConstants::mutateFieldGeneKernelProbability)
 		{
 			mutateKernel();
 		}
-		else if (randomValue < FieldGeneConstants::mutateFielGeneKernelProbability +
+		else if (randomValue < FieldGeneConstants::mutateFieldGeneKernelProbability +
 			FieldGeneConstants::mutateFieldGeneNeuralFieldProbability)
 		{
 			mutateNeuralField();
