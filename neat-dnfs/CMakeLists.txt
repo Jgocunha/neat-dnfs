@@ -151,8 +151,19 @@ install(EXPORT ${CMAKE_PROJECT_NAME}Targets DESTINATION ${NEAT_DNFS_CMAKE_CONFIG
 )
 
 # Main executable
-set(EXE_PROJECT_EXAMPLE ${CMAKE_PROJECT_NAME}-app)
-add_executable(${EXE_PROJECT_EXAMPLE} "examples/neat_dnfs.cpp")
+set(EXE_PROJECT_EXAMPLE neat-dnfs-evol)
+add_executable(${EXE_PROJECT_EXAMPLE} "examples/tabula_rasa_evolution.cpp")
+target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
+target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
+        imgui::imgui
+        imgui-platform-kit
+        dynamic-neural-field-composer
+        ${CMAKE_PROJECT_NAME}
+)
+
+# Incremental evolution executable
+set(EXE_PROJECT_EXAMPLE neat-dnfs-inc-evol)
+add_executable(${EXE_PROJECT_EXAMPLE} "examples/incremental_evolution.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
 target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         imgui::imgui
@@ -162,7 +173,7 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
 )
 
 # Solution evaluation executable
-set(EXE_PROJECT_EXAMPLE neat-dnfs-solution-eval)
+set(EXE_PROJECT_EXAMPLE neat-dnfs-sol-eval)
 add_executable(${EXE_PROJECT_EXAMPLE} "examples/solution_evaluation.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
 target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE

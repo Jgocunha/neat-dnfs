@@ -11,6 +11,7 @@ namespace neat_dnfs
 		explicit MemoryInstability(const SolutionTopology& topology);
 		MemoryInstability(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
 		SolutionPtr clone() const override;
+		SolutionPtr copy() const override;
 	private:
 		void testPhenotype() override;
 		void createPhenotypeEnvironment() override;

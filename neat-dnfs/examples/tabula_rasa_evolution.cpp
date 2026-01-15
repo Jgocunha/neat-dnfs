@@ -12,6 +12,7 @@
 #include "solutions/detection_instability.h"
 #include "solutions/memory_instability.h"
 #include "solutions/and.h"
+#include "solutions/delayed_match_to_sample.h"
 #include "solutions/selection_instability.h"
 #include "solutions/memory_trace.h"
 #include "solutions/xor.h"
@@ -23,35 +24,28 @@
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
 
-		// load a previous solution
-		//const std::shared_ptr<dnf_composer::Simulation> previous_solution = std::make_shared<dnf_composer::Simulation>();
-		//const dnf_composer::SimulationFileManager sfm(previous_solution, std::string(PROJECT_DIR) + "/solution 36074 generation 182 species 300 fitness 0.924742.json");
-		//sfm.loadElementsFromJson();
-		//const dnf_composer::Simulation template_solution = *previous_solution;
-
 		// select the type of solution here and in the population init.
-		MemoryTrace solution{
+		DelayedMatchToSample solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 			}
 			},
-			//template_solution // load a previous solution
 		};
 
 		constexpr size_t number_runs = 100;
 
 		for (int i = 0; i < number_runs; i++)
 		{
-			constexpr size_t population_size	= 200;
+			constexpr size_t population_size	= 500;
 			constexpr size_t number_generations = 100;
-			constexpr double target_fitness		= 0.98;
+			constexpr double target_fitness		= 0.95;
 
 			const PopulationParameters parameters{ population_size, number_generations, target_fitness };
-			Population population{ parameters, std::make_unique<MemoryTrace>(solution) };
+			Population population{ parameters, std::make_unique<DelayedMatchToSample>(solution) };
 
 			population.initialize();
 			population.evolve();

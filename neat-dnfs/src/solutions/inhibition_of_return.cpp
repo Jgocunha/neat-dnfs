@@ -23,6 +23,14 @@ namespace neat_dnfs
 		return clonedSolution;
 	}
 
+	SolutionPtr InhibitionOfReturn::copy() const
+	{
+		InhibitionOfReturn solution(initialTopology, phenotype);
+		auto copy = std::make_shared<InhibitionOfReturn>(solution);
+
+		return copy;
+	}
+
 	void InhibitionOfReturn::testPhenotype()
 	{
 		using namespace dnf_composer::element;

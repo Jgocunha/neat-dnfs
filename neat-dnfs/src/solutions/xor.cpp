@@ -22,6 +22,14 @@ namespace neat_dnfs
 		return clonedSolution;
 	}
 
+	SolutionPtr XOR::copy() const
+	{
+		XOR solution(initialTopology, phenotype);
+		auto copy = std::make_shared<XOR>(solution);
+
+		return copy;
+	}
+
 	void XOR::testPhenotype()
 	{
 		using namespace dnf_composer::element;

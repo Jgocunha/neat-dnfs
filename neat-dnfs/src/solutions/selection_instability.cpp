@@ -23,6 +23,14 @@ namespace neat_dnfs
 		return clonedSolution;
 	}
 
+	SolutionPtr SelectionInstability::copy() const
+	{
+		SelectionInstability solution(initialTopology, phenotype);
+		auto copy = std::make_shared<SelectionInstability>(solution);
+
+		return copy;
+	}
+
 	void SelectionInstability::testPhenotype()
 	{
 		using namespace dnf_composer::element;

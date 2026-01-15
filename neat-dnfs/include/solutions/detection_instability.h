@@ -11,6 +11,7 @@ namespace neat_dnfs
 		explicit DetectionInstability(const SolutionTopology& topology);
 		DetectionInstability(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
 		SolutionPtr clone() const override;
+		SolutionPtr copy() const override;
 	private:
 		void testPhenotype() override;
 		void createPhenotypeEnvironment() override;

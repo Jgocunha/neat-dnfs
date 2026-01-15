@@ -22,6 +22,14 @@ namespace neat_dnfs
 		return clonedSolution;
 	}
 
+	SolutionPtr AND::copy() const
+	{
+		AND solution(initialTopology, phenotype);
+		auto copy = std::make_shared<AND>(solution);
+
+		return copy;
+	}
+
 	void AND::testPhenotype()
 	{
 		using namespace dnf_composer::element;

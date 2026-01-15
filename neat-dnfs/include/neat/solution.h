@@ -85,6 +85,7 @@ namespace neat_dnfs
 		explicit Solution(const SolutionTopology& initialTopology);
 		Solution(SolutionTopology  initialTopology, dnf_composer::Simulation  phenotype);
 		virtual SolutionPtr clone() const = 0;
+		virtual SolutionPtr copy() const = 0;
 		SolutionPtr crossover(const SolutionPtr& other);
 		void evaluate();
 		void initialize();

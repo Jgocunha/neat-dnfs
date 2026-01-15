@@ -99,7 +99,7 @@ namespace neat_dnfs
 		void startup();
 		void upkeep();
 		void cleanup();
-		void createInitialEmptySolutions(const SolutionPtr& initialSolution);
+		void createInitialSolutions(const SolutionPtr& initialSolution);
 		void buildInitialSolutionsGenome() const;
 
 		void assignToSpecies(const SolutionPtr& solution);

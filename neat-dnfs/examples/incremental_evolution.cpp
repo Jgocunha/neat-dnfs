@@ -12,10 +12,10 @@
 #include "solutions/detection_instability.h"
 #include "solutions/memory_instability.h"
 #include "solutions/and.h"
+#include "solutions/delayed_match_to_sample.h"
 #include "solutions/selection_instability.h"
 #include "solutions/memory_trace.h"
 #include "solutions/xor.h"
-#include "solutions/delayed_match_to_sample.h"
 
  int main(int argc, char* argv[])
 {
@@ -27,28 +27,36 @@
 		// load a previous solution
 		const auto previous_solution = std::make_shared<dnf_composer::Simulation>();
 		const dnf_composer::SimulationFileManager sfm(previous_solution,
-			std::string(PROJECT_DIR) + "/templates/delayed-match-to-sample.json");
-			//std::string(PROJECT_DIR) + "/data/Delayed Match to Sample/2026-01-13 21h39m07s/best_solutions/last_generation/solution 16039 generation 81 species 140 fitness 0.964459.json");
+			std::string(PROJECT_DIR) + "/templates/test-dmts.json");
 		sfm.loadElementsFromJson();
 		const dnf_composer::Simulation& template_solution = *previous_solution;
 
-		// select the type of solution here
+		// select the type of solution here and in the population init.
 		DelayedMatchToSample solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				//{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 			}
 			},
 			template_solution // load a previous solution
 		};
 
-		constexpr size_t number_evaluations = 20;
-		for (size_t i = 0; i < number_evaluations; i++)
+		constexpr size_t number_runs = 100;
+
+		for (int i = 0; i < number_runs; i++)
 		{
-			solution.evaluate();
-			solution.print();
+			constexpr size_t population_size	= 200;
+			constexpr size_t number_generations = 100;
+			constexpr double target_fitness		= 0.95;
+
+			const PopulationParameters parameters{ population_size, number_generations, target_fitness };
+			Population population{ parameters, std::make_unique<DelayedMatchToSample>(solution) };
+
+			population.initialize();
+			population.evolve();
 		}
 
 		return 0;

@@ -13,7 +13,7 @@ namespace neat_dnfs
 	Population::Population(const PopulationParameters& parameters, const SolutionPtr& initialSolution)
 		: parameters(parameters)
 	{
-		createInitialEmptySolutions(initialSolution);
+		createInitialSolutions(initialSolution);
 	}
 
 	Population::~Population()
@@ -168,12 +168,24 @@ namespace neat_dnfs
 	}
 
 
-	void Population::createInitialEmptySolutions(const SolutionPtr& initialSolution)
+	void Population::createInitialSolutions(const SolutionPtr& initialSolution)
 	{
 		initialSolution->buildPhenotype();
-		for (int i = 0; i < parameters.size; i++)
+		const size_t numElements = initialSolution->getPhenotype().getNumberOfElements();
+
+		if (numElements > 0) // incremental evolution, non-empty initial solution
 		{
-			solutions.emplace_back(initialSolution->clone());
+			for (int i = 0; i < parameters.size; i++)
+			{
+				solutions.emplace_back(initialSolution->copy());
+			}
+		}
+		else // empty initial/base solution
+		{
+			for (int i = 0; i < parameters.size; i++)
+			{
+				solutions.emplace_back(initialSolution->clone());
+			}
 		}
 	}
 
@@ -392,7 +404,10 @@ namespace neat_dnfs
 		hasFitnessImproved = false;
 		generationsWithoutImprovement++;
 		if (generationsWithoutImprovement >= PopulationConstants::generationsWithoutImprovementThresholdInPopulation)
+		{
+			generationsWithoutImprovement = 0;
 			return false;
+		}
 
 		return true;
 	}

@@ -23,6 +23,14 @@ namespace neat_dnfs
 		return clonedSolution;
 	}
 
+	SolutionPtr MemoryTrace::copy() const
+	{
+		MemoryTrace solution(initialTopology, phenotype);
+		auto copy = std::make_shared<MemoryTrace>(solution);
+
+		return copy;
+	}
+
 	void MemoryTrace::testPhenotype()
 	{
 		using namespace dnf_composer::element;

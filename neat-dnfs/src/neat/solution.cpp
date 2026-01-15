@@ -1025,8 +1025,8 @@ namespace neat_dnfs
 		const int idx = static_cast<int>(position / nf->getElementCommonParameters().dimensionParameters.d_x);
 		const double u = nf->getComponent("activation")[idx];
 		const double h = nf->getParameters().startingRestingLevel;
-		const double u_tar =  h / 4.0;
-		constexpr double sigma = 0.8;
+		const double u_tar =  h / 2.0;
+		constexpr double sigma = 2.0;
 
 		// 1) enforce subthreshold
 		if (u >= 0.0) return 0.0;
@@ -1040,7 +1040,6 @@ namespace neat_dnfs
 
 		return score_height;
 	}
-
 
 	double Solution::negativePreShapednessAtPosition(const std::string& fieldName, const double& position)
 	{
