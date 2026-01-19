@@ -65,18 +65,18 @@ namespace neat_dnfs
 		inline static std::string namePrefixConnectionGene	= "gk cg ";
 
 		static constexpr double width			= 2.00;
-		static constexpr double amplitude		= 10.00;
+		static constexpr double amplitude		= 8.00;
 		static constexpr double amplitudeGlobal = -0.01;
 
-		static constexpr double widthMinVal		= 2.00;
+		static constexpr double widthMinVal		= 1.00;
 		static constexpr double widthMaxVal		= 10.0;
 		static constexpr double widthStep		= 0.50;
 
-		static constexpr double ampMinVal		= 2.00;
-		static constexpr double ampMaxVal		= 20.0;
+		static constexpr double ampMinVal		= 3.00;
+		static constexpr double ampMaxVal		= 30.0;
 		static constexpr double ampStep			= 0.50;
 
-		static constexpr double ampGlobalMinVal = -0.3;
+		static constexpr double ampGlobalMinVal = -0.2;
 		static constexpr double ampGlobalMaxVal = 0.00;
 		static constexpr double ampGlobalStep	= 0.05;
 	};
@@ -108,17 +108,17 @@ namespace neat_dnfs
 		static constexpr double ampInhMaxVal	= 35.0;
 		static constexpr double ampInhStep		= 0.50;
 
-		static constexpr double ampGlobMin		= -0.30;
+		static constexpr double ampGlobMin		= -0.20;
 		static constexpr double ampGlobMax		= 0.000;
 		static constexpr double ampGlobStep 	= 0.05;
 	};
 
 	struct CompatibilityCoefficients
 	{
-		static constexpr double compatibilityThreshold							= 2.5;
+		static constexpr double compatibilityThreshold							= 3.5;
 		static constexpr double excessGenesCompatibilityWeight					= 1.0;
-		static constexpr double disjointGenesCompatibilityWeight				= 1.0;
-		static constexpr double averageConnectionDifferenceCompatibilityWeight	= 0.35;
+		static constexpr double disjointGenesCompatibilityWeight				= 0.5;
+		static constexpr double averageConnectionDifferenceCompatibilityWeight	= 1.5;
 
 		static constexpr double amplitudeDifferenceCoefficient	= 0.05;
 		static constexpr double widthDifferenceCoefficient		= 0.05;
@@ -128,9 +128,9 @@ namespace neat_dnfs
 	{
 		// genome mutation probabilities (the sum does not have to be 1.0)
 		// structural mutations
-		static constexpr double toggleConnectionGeneProbability  = 0.01;//0.010;
+		static constexpr double toggleConnectionGeneProbability  = 0.05;//0.010;
 		static constexpr double addFieldGeneProbability			 = 0.0005;//0.0005;
-		static constexpr double addConnectionGeneProbability	 = 0.25;//0.250;
+		static constexpr double addConnectionGeneProbability	 = 0.15;//0.250;
 		// parametrical mutations
 		static constexpr double mutateFieldGenesProbability		 = 0.800;
 		static constexpr double mutateConnectionGenesProbability = 0.800;

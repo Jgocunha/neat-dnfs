@@ -49,7 +49,7 @@ namespace neat_dnfs
 				{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(200);
 		const double f1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", left, 15.0, 12.0);
-		const double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", left, 6.0, 12.0);
+		const double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", left, 3.0, 10.0);
 		parameters.partialFitness.push_back(f1);
 		parameters.partialFitness.push_back(f2);
 
@@ -59,7 +59,7 @@ namespace neat_dnfs
 		const double f3 = closenessToRestingLevel("nf 1");
 		const double f4_1 = noBumps("nf 2");
 		const double f4_2 = preShapednessAtPosition("nf 2", left);
-		const double f4 = (f4_1 + f4_2) / 2.0;
+		const double f4 =  0.2f * f4_1 + 0.8f * f4_2;
 		parameters.partialFitness.push_back(f3);
 		parameters.partialFitness.push_back(f4);
 
@@ -69,12 +69,12 @@ namespace neat_dnfs
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 				{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(100);
-		const double f5 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", left, 15.0, 12.0);
+		const double f5 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", left, 1.0, 4.0);
 		parameters.partialFitness.push_back(f5);
 
 		// the same cue is given within a long delay (inhibition)
 		removeGaussianStimuli();
-		runSimulation(1000);
+		runSimulation(500);
 		const double f6 = negativePreShapednessAtPosition("nf 2", left);
 		parameters.partialFitness.push_back(f6);
 		addGaussianStimulus("nf 1",
@@ -82,29 +82,32 @@ namespace neat_dnfs
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 				{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(200);
-		const double f7 = preShapednessAtPosition("nf 2", left);
+		const double f7_1 = noBumps("nf 2");
+		const double f7_2 =	preShapednessAtPosition("nf 2", left);
+		const double f7 = 0.2f * f7_1 + 0.8f * f7_2;
 		parameters.partialFitness.push_back(f7);
 
 		// another cue is given for the same amount of time
 		removeGaussianStimuli();
-		runSimulation(1000);
+		runSimulation(500);
 		parameters.partialFitness.push_back(f6);
 		addGaussianStimulus("nf 1",
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, right,
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 				{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(200);
-		const double f8 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 2", {right}, 15, 12);
+		const double f8 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 2", {right}, 5, 12);
 		parameters.partialFitness.push_back(f8);
 
-		static constexpr double wf1 = 1/8.f;
-		static constexpr double wf2 = 1/8.f;
-		static constexpr double wf3 = 1/8.f;
-		static constexpr double wf4 = 1/8.f;
-		static constexpr double wf5 = 1/8.f;
-		static constexpr double wf6 = 1/8.f;
-		static constexpr double wf7 = 1/8.f;
-		static constexpr double wf8 = 1/8.f;
+		// 1/8.f = 0.125f
+		static constexpr double wf1 = 0.1;//1/8.f;
+		static constexpr double wf2 = 0.125;//1/8.f;
+		static constexpr double wf3 = 0.05;//1/8.f;
+		static constexpr double wf4 = 0.2;//1/8.f;
+		static constexpr double wf5 = 0.125;//1/8.f;
+		static constexpr double wf6 = 0.15;//1/8.f;
+		static constexpr double wf7 = 0.15;//1/8.f;
+		static constexpr double wf8 = 0.1;//1/8.f;
 
 		parameters.fitness = wf1 * f1 + wf2 * f2 + wf3 * f3 + wf4 * f4 + wf5 * f5 + wf6 * f6 + wf7 * f7 + wf8 * f8;
 	}

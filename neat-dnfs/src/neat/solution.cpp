@@ -1025,8 +1025,8 @@ namespace neat_dnfs
 		const int idx = static_cast<int>(position / nf->getElementCommonParameters().dimensionParameters.d_x);
 		const double u = nf->getComponent("activation")[idx];
 		const double h = nf->getParameters().startingRestingLevel;
-		const double u_tar =  h / 4.0;
-		constexpr double sigma = 5.0;
+		const double u_tar =  h / 2.0;
+		constexpr double sigma = 10.0;
 
 		// 1) enforce subthreshold
 		if (u >= 0.0) return 0.0;
