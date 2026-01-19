@@ -13,6 +13,7 @@
 #include "solutions/memory_instability.h"
 #include "solutions/and.h"
 #include "solutions/delayed_match_to_sample.h"
+#include "solutions/inhibition_of_return.h"
 #include "solutions/selection_instability.h"
 #include "solutions/memory_trace.h"
 #include "solutions/xor.h"
@@ -27,12 +28,12 @@
 		// load a previous solution
 		const auto previous_solution = std::make_shared<dnf_composer::Simulation>();
 		const dnf_composer::SimulationFileManager sfm(previous_solution,
-			std::string(PROJECT_DIR) + "/templates/test-dmts.json");
+			std::string(PROJECT_DIR) + "/templates/test-ior.json");
 		sfm.loadElementsFromJson();
 		const dnf_composer::Simulation& template_solution = *previous_solution;
 
 		// select the type of solution here and in the population init.
-		DelayedMatchToSample solution{
+		InhibitionOfReturn solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
@@ -48,12 +49,12 @@
 
 		for (int i = 0; i < number_runs; i++)
 		{
-			constexpr size_t population_size	= 200;
+			constexpr size_t population_size	= 500;
 			constexpr size_t number_generations = 100;
 			constexpr double target_fitness		= 0.95;
 
 			const PopulationParameters parameters{ population_size, number_generations, target_fitness };
-			Population population{ parameters, std::make_unique<DelayedMatchToSample>(solution) };
+			Population population{ parameters, std::make_unique<InhibitionOfReturn>(solution) };
 
 			population.initialize();
 			population.evolve();

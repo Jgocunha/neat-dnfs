@@ -1025,8 +1025,8 @@ namespace neat_dnfs
 		const int idx = static_cast<int>(position / nf->getElementCommonParameters().dimensionParameters.d_x);
 		const double u = nf->getComponent("activation")[idx];
 		const double h = nf->getParameters().startingRestingLevel;
-		const double u_tar =  h / 2.0;
-		constexpr double sigma = 2.0;
+		const double u_tar =  h / 4.0;
+		constexpr double sigma = 5.0;
 
 		// 1) enforce subthreshold
 		if (u >= 0.0) return 0.0;
@@ -1041,53 +1041,60 @@ namespace neat_dnfs
 		return score_height;
 	}
 
-	double Solution::negativePreShapednessAtPosition(const std::string& fieldName, const double& position)
+	double Solution::negativePreShapednessAtPosition(const std::string& fieldName, const double& position) const
 	{
-		//using namespace dnf_composer::element;
-		//const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-
-		//const int pos = static_cast<int>(position/neuralField->getElementCommonParameters().dimensionParameters.d_x);
-		//const double u_tar_pos = neuralField->getComponent("activation")[pos];
-
-		////static constexpr double epsilon = 0.015;
-		//// activation of field at position should be lower than the rest of the neighboring positions
-		//// I thought this was necessary because of mhk shapes, but apparently it can self-correct
-		////for(const auto& u_pos : neuralField->getComponent("activation"))
-		////{
-		////	if (u_tar_pos >= u_pos/* + epsilon*/)
-		////		return 0.0;
-		////}
-
-		//const double u_baseline = neuralField->getHighestActivation();
-		//const double u_target = u_baseline + u_baseline;// / 2.0;
-		//const double width = std::abs(u_baseline / 8.0);
-
-		//return tools::utils::normalizeWithGaussian(u_tar_pos, u_target, width);
-
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
 
-		const int pos = static_cast<int>(position / neuralField->getElementCommonParameters().dimensionParameters.d_x);
-		const double u_tar_pos = neuralField->getComponent("activation")[pos];
+		const int pos = static_cast<int>(position/neuralField->getElementCommonParameters().dimensionParameters.d_x);
+		const double u_pos = neuralField->getComponent("activation")[pos];
 
 		// activation of field at position should be lower than the resting level
-		if (u_tar_pos >= neuralField->getParameters().startingRestingLevel)
+		// we need to be careful here because if the field is in the resting level this still produces above 0.5 fitness
+		if (u_pos >= neuralField->getParameters().startingRestingLevel)
 			return 0.0;
 
-		static constexpr double epsilon = 0.015;
-		// activation of field at position should be lower than the rest of the neighboring positions
-		for (const auto& u_pos : neuralField->getComponent("activation"))
-		{
-			if (u_tar_pos >= u_pos + epsilon)
-				return 0.0;
-		}
+		// static constexpr double epsilon = 0.015;
+		// // activation of field at position should be lower than the rest of the neighboring positions
+		// // I thought this was necessary because of mhk shapes, but apparently it can self-correct
+		// for(const auto& u : neuralField->getComponent("activation"))
+		// {
+		// 	if (u_pos >= u+ epsilon)
+		// 		return 0.0;
+		// }
 
+		const double u_baseline = neuralField->getHighestActivation();
 		// this should not be like this - I am hardcoding the position of the baseline activation
-		const double u_baseline = std::abs(neuralField->getComponent("activation")[0]);
-		const double u_target = u_baseline + u_baseline / 2;
-		const double width = u_baseline / 2;
+		//const double u_baseline = std::abs(neuralField->getComponent("activation")[0]);
+		const double u_target = u_baseline + u_baseline / 2.0;
+		constexpr double width = 5.5;// std::abs(u_baseline / 8.0);
 
-		return tools::utils::normalizeWithGaussian(std::abs(u_tar_pos), u_target, width);
+		return tools::utils::normalizeWithGaussian(u_pos, u_target, width);
+
+		// using namespace dnf_composer::element;
+		// const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		//
+		// const int pos = static_cast<int>(position / neuralField->getElementCommonParameters().dimensionParameters.d_x);
+		// const double u_tar_pos = neuralField->getComponent("activation")[pos];
+		//
+		// // activation of field at position should be lower than the resting level
+		// if (u_tar_pos >= neuralField->getParameters().startingRestingLevel)
+		// 	return 0.0;
+		//
+		// static constexpr double epsilon = 0.015;
+		// // activation of field at position should be lower than the rest of the neighboring positions
+		// for (const auto& u_pos : neuralField->getComponent("activation"))
+		// {
+		// 	if (u_tar_pos >= u_pos + epsilon)
+		// 		return 0.0;
+		// }
+		//
+		// // this should not be like this - I am hardcoding the position of the baseline activation
+		// const double u_baseline = std::abs(neuralField->getComponent("activation")[0]);
+		// const double u_target = u_baseline + u_baseline / 2;
+		// const double width = u_baseline / 2;
+		//
+		// return tools::utils::normalizeWithGaussian(std::abs(u_tar_pos), u_target, width);
 	}
 
 

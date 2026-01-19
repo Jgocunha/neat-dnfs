@@ -16,6 +16,7 @@
 #include "solutions/memory_trace.h"
 #include "solutions/xor.h"
 #include "solutions/delayed_match_to_sample.h"
+#include "solutions/inhibition_of_return.h"
 
  int main(int argc, char* argv[])
 {
@@ -27,16 +28,16 @@
 		// load a previous solution
 		const auto previous_solution = std::make_shared<dnf_composer::Simulation>();
 		const dnf_composer::SimulationFileManager sfm(previous_solution,
-			std::string(PROJECT_DIR) + "/templates/delayed-match-to-sample.json");
+			std::string(PROJECT_DIR) + "/templates/inhibition-of-return.json");
 			//std::string(PROJECT_DIR) + "/data/Delayed Match to Sample/2026-01-13 21h39m07s/best_solutions/last_generation/solution 16039 generation 81 species 140 fitness 0.964459.json");
 		sfm.loadElementsFromJson();
 		const dnf_composer::Simulation& template_solution = *previous_solution;
 
 		// select the type of solution here
-		DelayedMatchToSample solution{
+		InhibitionOfReturn solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				//	{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 			}

@@ -18,7 +18,7 @@ namespace neat_dnfs
 
 	struct DimensionConstants
 	{
-		static constexpr int xSize = 360;
+		static constexpr int xSize = 100;
 		static constexpr double dx = 1.0;
 	};
 
@@ -40,17 +40,17 @@ namespace neat_dnfs
 	struct NeuralFieldConstants
 	{
 		inline static std::string namePrefix		= "nf ";
-		static constexpr double tau					= 25;
+		static constexpr double tau					= 100;
 		static constexpr double restingLevel		= -10;
 		inline static dnf_composer::element::SigmoidFunction activationFunction{0.0f, 5.0f};
 
-		static constexpr double tauMinVal			= 5.0;
-		static constexpr double tauMaxVal			= 50.0;
-		static constexpr double tauStep				= 5.0;
+		static constexpr double tauMinVal			= 1.0;
+		static constexpr double tauMaxVal			= 200.0;
+		static constexpr double tauStep				= 15.0;
 
-		static constexpr double restingLevelMinVal	= -20.0;
+		static constexpr double restingLevelMinVal	= -15.0;
 		static constexpr double restingLevelMaxVal	= -1.0;
-		static constexpr double restingLevelStep	= 1.0;
+		static constexpr double restingLevelStep	= 0.5;
 	};
 
 	struct KernelConstants
@@ -65,18 +65,18 @@ namespace neat_dnfs
 		inline static std::string namePrefixConnectionGene	= "gk cg ";
 
 		static constexpr double width			= 2.00;
-		static constexpr double amplitude		= 5.00;
+		static constexpr double amplitude		= 10.00;
 		static constexpr double amplitudeGlobal = -0.01;
 
-		static constexpr double widthMinVal		= 1.00;
-		static constexpr double widthMaxVal		= 15.0;
-		static constexpr double widthStep		= 1.00;
+		static constexpr double widthMinVal		= 2.00;
+		static constexpr double widthMaxVal		= 10.0;
+		static constexpr double widthStep		= 0.50;
 
-		static constexpr double ampMinVal		= 3.00;
-		static constexpr double ampMaxVal		= 35.0;
-		static constexpr double ampStep			= 1.00;
+		static constexpr double ampMinVal		= 2.00;
+		static constexpr double ampMaxVal		= 20.0;
+		static constexpr double ampStep			= 0.50;
 
-		static constexpr double ampGlobalMinVal = -0.5;
+		static constexpr double ampGlobalMinVal = -0.3;
 		static constexpr double ampGlobalMaxVal = 0.00;
 		static constexpr double ampGlobalStep	= 0.05;
 	};
@@ -90,25 +90,25 @@ namespace neat_dnfs
 		static constexpr double widthInh		= 5.00;
 		static constexpr double amplitudeExc	= 11.0;
 		static constexpr double amplitudeInh	= 15.0;
-		static constexpr double amplitudeGlobal = 0.00;
+		static constexpr double amplitudeGlobal = -0.01;
 
 		static constexpr double widthExcMinVal	= 5.00;
 		static constexpr double widthExcMaxVal	= 30.0;
-		static constexpr double widthExcStep	= 1.00;
+		static constexpr double widthExcStep	= 0.50;
 
 		static constexpr double widthInhMinVal	= 5.00;
 		static constexpr double widthInhMaxVal	= 35.0;
-		static constexpr double widthInhStep	= 1.00;
+		static constexpr double widthInhStep	= 0.50;
 
 		static constexpr double ampExcMinVal	= 15.0;
 		static constexpr double ampExcMaxVal	= 25.0;
-		static constexpr double ampExcStep		= 2.00;
+		static constexpr double ampExcStep		= 0.50;
 
 		static constexpr double ampInhMinVal	= 1.00;
 		static constexpr double ampInhMaxVal	= 35.0;
-		static constexpr double ampInhStep		= 1.00;
+		static constexpr double ampInhStep		= 0.50;
 
-		static constexpr double ampGlobMin		= -0.50;
+		static constexpr double ampGlobMin		= -0.30;
 		static constexpr double ampGlobMax		= 0.000;
 		static constexpr double ampGlobStep 	= 0.05;
 	};
@@ -128,7 +128,7 @@ namespace neat_dnfs
 	{
 		// genome mutation probabilities (the sum does not have to be 1.0)
 		// structural mutations
-		static constexpr double toggleConnectionGeneProbability  = 0.1;//0.010;
+		static constexpr double toggleConnectionGeneProbability  = 0.01;//0.010;
 		static constexpr double addFieldGeneProbability			 = 0.0005;//0.0005;
 		static constexpr double addConnectionGeneProbability	 = 0.25;//0.250;
 		// parametrical mutations
@@ -206,7 +206,7 @@ namespace neat_dnfs
 	struct PopulationConstants
 	{
 		static constexpr bool parallelEvolution									= true;
-		static constexpr double pruneRatio										= 0.2;
+		static constexpr double pruneRatio										= 0.8;
 		static constexpr int generationsWithoutImprovementThresholdInPopulation = 10;
 		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 7;
 		static constexpr bool elitism											= true;
