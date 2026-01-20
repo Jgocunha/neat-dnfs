@@ -128,7 +128,7 @@ namespace neat_dnfs
 	{
 		// genome mutation probabilities (the sum does not have to be 1.0)
 		// structural mutations
-		static constexpr double toggleConnectionGeneProbability  = 0.05;//0.010;
+		static constexpr double toggleConnectionGeneProbability  = 0.01;//0.010;
 		static constexpr double addFieldGeneProbability			 = 0.0005;//0.0005;
 		static constexpr double addConnectionGeneProbability	 = 0.15;//0.250;
 		// parametrical mutations

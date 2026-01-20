@@ -1050,8 +1050,9 @@ namespace neat_dnfs
 		const double u_pos = neuralField->getComponent("activation")[pos];
 
 		// activation of field at position should be lower than the resting level
-		// we need to be careful here because if the field is in the resting level this still produces above 0.5 fitness
-		if (u_pos >= neuralField->getParameters().startingRestingLevel)
+		// we need to be careful here because if the field is in the resting level, this still produces above 0.5 fitness
+		static constexpr double epsilon = 0.15;
+		if (u_pos >= neuralField->getParameters().startingRestingLevel - epsilon)
 			return 0.0;
 
 		// static constexpr double epsilon = 0.015;
@@ -1067,7 +1068,7 @@ namespace neat_dnfs
 		// this should not be like this - I am hardcoding the position of the baseline activation
 		//const double u_baseline = std::abs(neuralField->getComponent("activation")[0]);
 		const double u_target = u_baseline + u_baseline / 2.0;
-		constexpr double width = 5.5;// std::abs(u_baseline / 8.0);
+		constexpr double width = 10.0;// std::abs(u_baseline / 8.0);
 
 		return tools::utils::normalizeWithGaussian(u_pos, u_target, width);
 

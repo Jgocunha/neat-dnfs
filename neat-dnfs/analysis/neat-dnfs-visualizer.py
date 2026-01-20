@@ -330,7 +330,7 @@ def load_best_solution_architecture(run_dir_str: str, generation: int):
     if not bs_dir.exists():
         return None
 
-    pattern = f"solution * generation {generation} *.json"
+    pattern = f"solution * generation {generation + 1} *.json"
     candidates = list(bs_dir.glob(pattern))
     if not candidates:
         return None
