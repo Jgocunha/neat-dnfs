@@ -801,7 +801,10 @@ namespace neat_dnfs
 		return 0.0f;
 	}
 
-	double Solution::justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName, const std::vector<double>& positions, const double& amplitude, const double& width) const
+	double Solution::justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName,
+		const std::vector<double>& positions,
+		const double& amplitude,
+		const double& width) const
 	{
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
@@ -1026,7 +1029,7 @@ namespace neat_dnfs
 		const double u = nf->getComponent("activation")[idx];
 		const double h = nf->getParameters().startingRestingLevel;
 		const double u_tar =  h / 2.0;
-		constexpr double sigma = 2.0;
+		constexpr double sigma = 10.0;
 
 		// 1) enforce subthreshold
 		if (u >= 0.0) return 0.0;

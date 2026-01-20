@@ -27,8 +27,8 @@
 		// load a previous solution
 		const auto previous_solution = std::make_shared<dnf_composer::Simulation>();
 		const dnf_composer::SimulationFileManager sfm(previous_solution,
-			std::string(PROJECT_DIR) + "/templates/delayed-match-to-sample.json");
-			//std::string(PROJECT_DIR) + "/data/Delayed Match to Sample/2026-01-13 21h39m07s/best_solutions/last_generation/solution 16039 generation 81 species 140 fitness 0.964459.json");
+			//std::string(PROJECT_DIR) + "/templates/delayed-match-to-sample.json");
+			std::string(PROJECT_DIR) + "/data/Delayed Match to Sample/2026-01-18 16h02m17s/best_solutions/last_generation/solution 24017 generation 25 species 0 fitness 0.971856.json");
 		sfm.loadElementsFromJson();
 		const dnf_composer::Simulation& template_solution = *previous_solution;
 
