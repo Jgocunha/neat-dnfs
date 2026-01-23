@@ -38,86 +38,36 @@ namespace neat_dnfs
 		static constexpr int iterations = SimulationConstants::maxSimulationSteps;
 		parameters.partialFitness.clear();
 
-
-		// -------------------------
-		// DFT Detection Instability
-		// -------------------------
-		// Phase A: weak (subthreshold) stimulus -> no bump in output field
-		// Phase B: strong (suprathreshold) stimulus -> fast bump formation in output field
-		// Phase C: stimulus removed -> return to resting level (avoid memory solutions)
-
-		static constexpr double pos = 50.0;
-
-		// Use a weak stimulus relative to the default amplitude to test subthreshold stability
-		static constexpr double weakAmpFactor = 0.15;
-		constexpr double weakAmp = GaussStimulusConstants::amplitude * weakAmpFactor;
-		constexpr double strongAmp = GaussStimulusConstants::amplitude;
-
-		// Targets for bump shape (keep modestly strict; adjust if your bump detector differs)
-		static constexpr double outAmpTarget = 35.0;
-		static constexpr double outWidthTarget = 8.0;
-
-		// Target for detection speed (iterations until first bump)
-		static constexpr double targetIt = 50.0;
-
-		// =========================
-		// Phase A: subthreshold
-		// =========================
 		initSimulation();
-
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, weakAmp, pos,
-				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
-
+					{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude,
+						50.0, true, false },
+					{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 
-		const double fA_outNoBump = noBumps("nf 2");
-		parameters.partialFitness.emplace_back(fA_outNoBump);
+		const double f1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 20, 10);
+		const double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 15, 5);
+		parameters.partialFitness.emplace_back(f1);
+		parameters.partialFitness.emplace_back(f2);
 
-		// =========================
-		// Phase B: suprathreshold detection
-		// =========================
 		removeGaussianStimuli();
-		runSimulation(iterations); // Reset the simulation to resting level
+		runSimulation(iterations*2);
 
-		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, strongAmp, pos,
-				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+		const double f3 = closenessToRestingLevel("nf 1");
+		const double f4 = closenessToRestingLevel("nf 2");
+		parameters.partialFitness.emplace_back(f3);
+		parameters.partialFitness.emplace_back(f4);
 
-		// Reward fast bump onset in the output field
-		const double fB_speed = iterationsUntilBump("nf 2", targetIt, targetIt*1.25f, targetIt/10.0f);
-		parameters.partialFitness.emplace_back(fB_speed);
+		// f1 only one bump at the input field
+		// f2 only one bump at the output field
+		// f3 closeness to resting level after removing the stimulus
+		// f4 closeness to resting level after removing the stimulus
+		static constexpr double wf1 = 1 / 4.f;
+		static constexpr double wf2 = 1 / 4.f;
+		static constexpr double wf3 = 1 / 4.f;
+		static constexpr double wf4 = 1 / 4.f;
 
-		// Let the field settle a bit after detection
-		runSimulation(iterations);
-
-		const double fB_shape = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", pos, outAmpTarget, outWidthTarget);
-		parameters.partialFitness.emplace_back(fB_shape);
-
-		// =========================
-		// Phase C: remove stimulus and relax (avoid memory instability)
-		// =========================
-		removeGaussianStimuli();
-		runSimulation(iterations);
-
-		const double fC_relax = closenessToRestingLevel("nf 2");
-		parameters.partialFitness.emplace_back(fC_relax);
-
-		// -------------------------
-		// Fitness weights
-		// -------------------------
-		static constexpr double w_noBump = 1 / 4.f;
-		static constexpr double w_speed  = 1 / 4.f;
-		static constexpr double w_shape  = 1 / 4.f;
-		static constexpr double w_relax  = 1 / 4.f;
-
-		parameters.fitness =
-			w_noBump * fA_outNoBump +
-			w_speed  * fB_speed +
-			w_shape  * fB_shape +
-			w_relax  * fC_relax;
+		parameters.fitness = wf1*f1 + wf2*f2 + wf3*f3 + wf4*f4;
 	}
 
 	void DetectionInstability::createPhenotypeEnvironment()

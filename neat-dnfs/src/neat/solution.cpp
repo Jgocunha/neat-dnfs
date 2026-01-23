@@ -1100,8 +1100,6 @@ namespace neat_dnfs
 
 
 
-
-
 	void Solution::moveGaussianStimulusContinuously(const std::string& name, const double targetPosition, const double step)
 	{
 		constexpr double epsilon = 1e-6;

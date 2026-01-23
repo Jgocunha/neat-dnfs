@@ -38,83 +38,36 @@ namespace neat_dnfs
 		parameters.partialFitness.clear();
 		static constexpr int iterations = SimulationConstants::maxSimulationSteps;
 
-		// ---------------------------
-		// DFT Memory Instability Task
-		// ---------------------------
-		// Phase A (encode): strong input -> bump forms in memory field (nf 2)
-		// Phase B (delay): input removed -> bump persists in nf 2 across time
-		// Additionally: input field (nf 1) should relax back to resting level
-
-		// Targets for memory bump in nf2 (tune if your bump detector differs)
-		static constexpr double pos = 50.0;
-		static constexpr double memAmpTargetEncode = 20.0;
-		static constexpr double memWidthTargetEncode = 10.0;
-		static constexpr double memAmpTargetDelay = 15.0;
-		static constexpr double memWidthTargetDelay = 12.0;
-
-		// Split delay into checkpoints to discourage "slow decay" solutions
-		constexpr int chunk = (iterations >= 3) ? (iterations / 3) : 1;
-		constexpr int rem = iterations - 2 * chunk;
-
-		// =========================
-		// Phase A: Encode
-		// =========================
 		initSimulation();
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, pos,
-				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude,
+				50.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
-
 		runSimulation(iterations);
 
-		// Core encoding requirement: memory bump should exist in nf2
-		const double f_encode = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", pos,
-			memAmpTargetEncode, memWidthTargetEncode);
-		parameters.partialFitness.emplace_back(f_encode);
+		const double f1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 20, 10);
+		const double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 20, 10);
+		parameters.partialFitness.emplace_back(f1);
+		parameters.partialFitness.emplace_back(f2);
 
-		// =========================
-		// Phase B: Delay (input removed)
-		// =========================
 		removeGaussianStimuli();
+		runSimulation(iterations);
 
-		// Checkpoint 1
-		runSimulation(chunk);
-		const double f_mem_t1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", pos,
-			memAmpTargetDelay, memWidthTargetDelay);
-		parameters.partialFitness.emplace_back(f_mem_t1);
+		const double f3 = closenessToRestingLevel("nf 1");
+		const double f4 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 15,12);
+		parameters.partialFitness.emplace_back(f3);
+		parameters.partialFitness.emplace_back(f4);
 
-		// Checkpoint 2
-		runSimulation(chunk);
-		const double f_mem_t2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", pos,
-			memAmpTargetDelay, memWidthTargetDelay);
-		parameters.partialFitness.emplace_back(f_mem_t2);
+		// f1_1 only one bump at the input field
+		// f1_2 only one bump at the output field
+		// f2_1 closeness to resting level after removing the stimulus
+		// f2_2 only one bump at the output field after removing the stimulus
+		static constexpr double wf1 = 1 / 4.f;
+		static constexpr double wf2 = 1 / 4.f;
+		static constexpr double wf3 = 1 / 4.f;
+		static constexpr double wf4 = 1 / 4.f;
 
-		// Checkpoint 3 (end of delay)
-		runSimulation(rem);
-		const double f_mem_t3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", pos,
-			memAmpTargetDelay, memWidthTargetDelay);
-		parameters.partialFitness.emplace_back(f_mem_t3);
-
-		// Average persistence score
-		const double f_memory = (f_mem_t1 + f_mem_t2 + f_mem_t3) / 3.0;
-		parameters.partialFitness.emplace_back(f_memory);
-
-		// Input field should relax back to baseline (helps prevent "sticky perception")
-		const double f_input_relax = closenessToRestingLevel("nf 1");
-		parameters.partialFitness.emplace_back(f_input_relax);
-
-		// -------------------------
-		// Fitness weights
-		// -------------------------
-		// Make persistence dominant: this is the defining signature of memory instability.
-		static constexpr double w_encode = 0.25;
-		static constexpr double w_memory = 0.65;
-		static constexpr double w_relax  = 0.10;
-
-		parameters.fitness =
-			w_encode * f_encode +
-			w_memory * f_memory +
-			w_relax  * f_input_relax;
+		parameters.fitness = wf1*f1 + wf2*f2 + wf3*f3 + wf4*f4;
 	}
 
 	void MemoryInstability::createPhenotypeEnvironment()

@@ -26,7 +26,7 @@
 		using namespace neat_dnfs;
 
 		// select the type of solution here and in the population init.
-		InhibitionOfReturn solution{
+		SelectionInstability solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
@@ -41,12 +41,12 @@
 
 		for (int i = 0; i < number_runs; i++)
 		{
-			constexpr size_t population_size	= 1000;
+			constexpr size_t population_size	= 100;
 			constexpr size_t number_generations = 200;
 			constexpr double target_fitness		= 0.95;
 
 			const PopulationParameters parameters{ population_size, number_generations, target_fitness };
-			Population population{ parameters, std::make_unique<InhibitionOfReturn>(solution) };
+			Population population{ parameters, std::make_unique<SelectionInstability>(solution) };
 
 			population.initialize();
 			population.evolve();
