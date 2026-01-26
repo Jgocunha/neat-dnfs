@@ -48,16 +48,16 @@ namespace neat_dnfs
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 
 		const double f1 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1",
 			20.0, in_amp, in_width,
-			50.0, in_amp, in_width);
+			80.0, in_amp, in_width);
 		parameters.partialFitness.emplace_back(f1);
 		const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 2",
-			{ 20.0, 50.0 }, out_amp, out_width);
+			{ 20.0, 80.0 }, out_amp, out_width);
 		parameters.partialFitness.emplace_back(f2);
 
 		removeGaussianStimuli();

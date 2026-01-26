@@ -25,7 +25,7 @@ namespace neat_dnfs
 	struct NoiseConstants
 	{
 		inline static std::string namePrefix	= "nn ";
-		static constexpr double amplitude		= 0.015;
+		static constexpr double amplitude		= 0.010;
 	};
 
 	struct GaussStimulusConstants

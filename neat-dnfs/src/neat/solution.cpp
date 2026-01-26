@@ -1058,7 +1058,7 @@ namespace neat_dnfs
 		// static constexpr double epsilon = 0.015;
 		// // activation of field at position should be lower than the rest of the neighboring positions
 		// // I thought this was necessary because of mhk shapes, but apparently it can self-correct
-		// for(const auto& u : neuralField->getComponent("activation"))
+		// for(const auto& u: neuralField->getComponent("activation"))
 		// {
 		// 	if (u_pos >= u+ epsilon)
 		// 		return 0.0;
