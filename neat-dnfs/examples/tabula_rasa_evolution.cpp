@@ -25,10 +25,10 @@
 		using namespace neat_dnfs;
 
 		// select the type of solution here and in the population init.
-		DelayedMatchToSample solution{
+		AND solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
@@ -45,7 +45,7 @@
 			constexpr double target_fitness		= 0.95;
 
 			const PopulationParameters parameters{ population_size, number_generations, target_fitness };
-			Population population{ parameters, std::make_unique<DelayedMatchToSample>(solution) };
+			Population population{ parameters, std::make_unique<AND>(solution) };
 
 			population.initialize();
 			population.evolve();

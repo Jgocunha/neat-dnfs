@@ -18,7 +18,7 @@ namespace neat_dnfs
 
 	struct DimensionConstants
 	{
-		static constexpr int xSize = 360;
+		static constexpr int xSize = 100;
 		static constexpr double dx = 1.0;
 	};
 
@@ -118,7 +118,7 @@ namespace neat_dnfs
 		static constexpr double compatibilityThreshold							= 3.5; //2.5
 		static constexpr double excessGenesCompatibilityWeight					= 1.0; //1.0
 		static constexpr double disjointGenesCompatibilityWeight				= 0.5; //1.0
-		static constexpr double averageConnectionDifferenceCompatibilityWeight	= 1.5; //1.0
+		static constexpr double averageConnectionDifferenceCompatibilityWeight	= 0.5; //1.0
 
 		static constexpr double amplitudeDifferenceCoefficient	= 0.05;
 		static constexpr double widthDifferenceCoefficient		= 0.05;
@@ -174,16 +174,16 @@ namespace neat_dnfs
 
 	struct ConnectionGeneConstants
 	{
-		static constexpr int allowInhibitoryConnections = false; // true
+		static constexpr int allowInhibitoryConnections = true; // true
 
 		// connection gene kernel type probability (sum must be 1.0)
 		static constexpr double gaussKernelProbability			= 0.8;
 		static constexpr double mexicanHatKernelProbability		= 0.2;
 
 		// connection gene mutation probabilities (sum must be 1.0)
-		static constexpr double mutateConnectionGeneKernelProbability			= 0.90;
+		static constexpr double mutateConnectionGeneKernelProbability			= 0.70;
 		static constexpr double mutateConnectionGeneKernelTypeProbability		= 0.10; //0.05
-		static constexpr double mutateConnectionGeneConnectionSignalProbability = 0.00; // 0.25
+		static constexpr double mutateConnectionGeneConnectionSignalProbability = 0.20; // 0.25
 
 		// field gene gauss kernel mutation probabilities (sum does not have to be 1.0)
 		static constexpr double mutateConnectionGeneGaussKernelAmplitudeProbability			= 0.80;
@@ -213,10 +213,10 @@ namespace neat_dnfs
 
 		static constexpr bool validateUniqueSolutions					= false;
 		static constexpr bool validatePopulationSize					= false;
-		static constexpr bool validateElitism							= false;
+		static constexpr bool validateElitism							= false; // true //WARNING  Fitness decreased and previous best solution is not in the population.
 		static constexpr bool validateUniqueGenesInGenomes				= false;
 		static constexpr bool validateUniqueKernelAndNeuralFieldPtrs	= false;
-		static constexpr bool validateIfSpeciesHaveUniqueRepresentative = false;
+		static constexpr bool validateIfSpeciesHaveUniqueRepresentative = false; // true //FATAL Species have the same representative
 		static constexpr bool validateAssignmentIntoSpecies				= false;
 
 		static constexpr bool logSolutions				= false;

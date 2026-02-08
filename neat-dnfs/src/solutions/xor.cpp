@@ -35,58 +35,76 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
 		parameters.partialFitness.clear();
-
 		static constexpr int iterations = SimulationConstants::maxSimulationSteps;
 
-		static constexpr double in_amp = 10.0;
-		static constexpr double in_width = 12.0;
-		static constexpr double out_amp = 5.0;
-		static constexpr double out_width = 9.0;
-
+		// 1 | 0 = 1
 		initSimulation();
 		addGaussianStimulus("nf 1",
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
-			GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-{ DimensionConstants::xSize, DimensionConstants::dx });
+				true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3", { 50.0 }, out_amp, out_width);
+		const double f1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3",
+			{ 50.0 }, 5.0f, 10.0f);
 		parameters.partialFitness.push_back(f1);
 		removeGaussianStimuli();
+		runSimulation(iterations/2);
 
-		removeGaussianStimuli();
-		initSimulation();
+		// 0 | 1 = 1
 		addGaussianStimulus("nf 2",
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
-			GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+				true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3", { 50.0 }, out_amp, out_width);
+		const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3",
+			{ 50.0 }, 5.0f, 10.0f);
 		parameters.partialFitness.push_back(f2);
-
 		removeGaussianStimuli();
-		initSimulation();
+		runSimulation(iterations/2);
+
+		// 1 | 1 = 0 (A)
 		addGaussianStimulus("nf 1",
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
-			GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+				true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations/2);
 		addGaussianStimulus("nf 2",
 			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
-				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+				true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
-		runSimulation(iterations);
-		const double f3 = noBumps("nf 3");
+		runSimulation(iterations/2);
+		const double f3_1 = preShapednessAtPosition("nf 3", 50);
+		removeGaussianStimuli();
+		runSimulation(iterations/2);
+
+		// 1 | 1 = 0 (B)
+		addGaussianStimulus("nf 2",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+				true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations/2);
+		addGaussianStimulus("nf 1",
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+				true, false },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+		runSimulation(iterations/2);
+		const double f3_2 = preShapednessAtPosition("nf 3", 50);
+		const double f3 = 1 / 2.f * f3_1 + 1 / 2.f * f3_2;
 		parameters.partialFitness.push_back(f3);
 
+		// 0 | 0 = 0
 		removeGaussianStimuli();
-		runSimulation(iterations);
-		const double f4 = closenessToRestingLevel("nf 3");
+		runSimulation(iterations/2);
+		const double f4_1 = closenessToRestingLevel("nf 1");
+		const double f4_2 = closenessToRestingLevel("nf 2");
+		const double f4_3 = closenessToRestingLevel("nf 3");
+		const double f4 = 1 / 3.f * f4_1 + 1 / 3.f * f4_2 + 1 / 3.f * f4_3;
 		parameters.partialFitness.push_back(f4);
 
-		static constexpr double wf1 = 1 / 4.f;
-		static constexpr double wf2 = 1 / 4.f;
-		static constexpr double wf3 = 1 / 4.f;
-		static constexpr double wf4 = 1 / 4.f;
-
+		static constexpr double wf1 = 0.30f;
+		static constexpr double wf2 = 0.30f;
+		static constexpr double wf3 = 0.30f;
+		static constexpr double wf4 = 0.10f;
 
 		parameters.fitness = wf1 * f1 + wf2 * f2 + wf3 * f3 + wf4 * f4;
 	}
@@ -94,11 +112,13 @@ namespace neat_dnfs
 	void XOR::createPhenotypeEnvironment()
 	{
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+				true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		addGaussianStimulus("nf 2",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+				true, false },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 }
