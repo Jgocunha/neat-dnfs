@@ -101,10 +101,10 @@ namespace neat_dnfs
 		const double f4 = 1 / 3.f * f4_1 + 1 / 3.f * f4_2 + 1 / 3.f * f4_3;
 		parameters.partialFitness.push_back(f4);
 
-		static constexpr double wf1 = 0.30f;
-		static constexpr double wf2 = 0.30f;
+		static constexpr double wf1 = 0.25f;
+		static constexpr double wf2 = 0.25f;
 		static constexpr double wf3 = 0.30f;
-		static constexpr double wf4 = 0.10f;
+		static constexpr double wf4 = 0.20f;
 
 		parameters.fitness = wf1 * f1 + wf2 * f2 + wf3 * f3 + wf4 * f4;
 	}
