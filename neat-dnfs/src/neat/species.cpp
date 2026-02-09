@@ -169,6 +169,7 @@ namespace neat_dnfs
 			members.pop_back();
 	}
 
+
 	void Species::crossover()
 	{
 		offspring.clear();

@@ -107,6 +107,7 @@ namespace neat_dnfs
 		[[nodiscard]] std::shared_ptr<Species> getBestActiveSpecies() const;
 
 		void calculateAdjustedFitness();
+		void setSpeciesAsExtinct() const;
 		void assignOffspringToSpecies();
 		void clearSpeciesOffspring() const;
 		bool hasFitnessImprovedOverTheLastGenerations();
@@ -143,7 +144,7 @@ namespace neat_dnfs
 		void savePerGenerationStatistics() const;
 		void savePerGenerationSpecies() const;
 
-		void resetGenerationalInnovations() const;
+		static void resetGenerationalInnovations();
 		void clearLastMutations() const;
 
 		void logSolutions() const;

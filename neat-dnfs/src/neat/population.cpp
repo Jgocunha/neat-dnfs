@@ -167,7 +167,6 @@ namespace neat_dnfs
 			saveChampions();
 	}
 
-
 	void Population::createInitialSolutions(const SolutionPtr& initialSolution)
 	{
 		initialSolution->buildPhenotype();
@@ -218,13 +217,13 @@ namespace neat_dnfs
 		perGenStatistics.averageFitness = 0.0f;
 		for (const auto& solution : solutions)
 			perGenStatistics.averageFitness += solution->getFitness();
-		perGenStatistics.averageFitness /= solutions.size();
+		perGenStatistics.averageFitness /= static_cast<double>(solutions.size());
 
 		// best fitness
 		perGenStatistics.bestFitness = bestSolution->getFitness();
 
 		// number of species
-		perGenStatistics.numberOfSpecies = speciesList.size();
+		perGenStatistics.numberOfSpecies = static_cast<double>(speciesList.size());
 
 		// number of active species
 		perGenStatistics.numberOfActiveSpecies = 0;
@@ -250,22 +249,22 @@ namespace neat_dnfs
 		// average genome size
 		perGenStatistics.averageGenomeSize = 0.0f;
 		for (const auto& solution : solutions)
-			perGenStatistics.averageGenomeSize += solution->getNumConnectionGenes() + solution->getNumFieldGenes();
-		perGenStatistics.averageGenomeSize /= solutions.size();
+			perGenStatistics.averageGenomeSize += static_cast<double>(solution->getNumConnectionGenes()) +
+													static_cast<double>(solution->getNumFieldGenes());
+		perGenStatistics.averageGenomeSize /= static_cast<double>(solutions.size());
 
 		// average connection genes
 		perGenStatistics.averageConnectionGenes = 0.0f;
 		for (const auto& solution : solutions)
-			perGenStatistics.averageConnectionGenes += solution->getNumConnectionGenes();
-		perGenStatistics.averageConnectionGenes /= solutions.size();
+			perGenStatistics.averageConnectionGenes += static_cast<double>(solution->getNumConnectionGenes());
+		perGenStatistics.averageConnectionGenes /= static_cast<double>(solutions.size());
 
 		// average field genes
 		perGenStatistics.averageFieldGenes = 0.0f;
 		for (const auto& solution : solutions)
-			perGenStatistics.averageFieldGenes += solution->getNumFieldGenes();
-		perGenStatistics.averageFieldGenes /= solutions.size();
+			perGenStatistics.averageFieldGenes += static_cast<double>(solution->getNumFieldGenes());
+		perGenStatistics.averageFieldGenes /= static_cast<double>(solutions.size());
 	}
-
 
 	void Population::updateGenerationAndAges()
 	{
@@ -353,16 +352,34 @@ namespace neat_dnfs
 			if (std::isnan (adjustedFitness))
 			{
 				log(tools::logger::LogLevel::FATAL, "Adjusted fitness is NaN.");
-				log(tools::logger::LogLevel::FATAL, "Fitness: " + std::to_string(solution->getFitness()) + " Species size: " + std::to_string(speciesSize));
+				log(tools::logger::LogLevel::FATAL, "Fitness: " + std::to_string(solution->getFitness())
+					+ " Species size: " + std::to_string(speciesSize));
 				throw std::runtime_error("Adjusted fitness is NaN.");
 			}
 			solution->setAdjustedFitness(adjustedFitness);
 		}
 	}
 
+	void Population::setSpeciesAsExtinct() const
+	{
+		for (auto& species : speciesList)
+		{
+			if (!species->isExtinct())
+			{
+				if (species->getMembers().empty())
+				{
+					log(tools::logger::LogLevel::WARNING, "Species " + std::to_string(species->getId()) +
+						" that was not extinct, had no members. Is now set as extinct.");
+					species->extinguish();
+				}
+			}
+		}
+	}
+
 	void Population::assignOffspringToSpecies()
 	{
 		clearSpeciesOffspring();
+		setSpeciesAsExtinct();
 		// if fitness of population does not improve for Y generations
 		// only the top two species are allowed to reproduce
 		// (a species is "better than the other" based on its champion)
@@ -428,7 +445,8 @@ namespace neat_dnfs
 			}
 		}
 		log(tools::logger::LogLevel::WARNING, "Fitness of entire population has not improved for the last " 
-			+ std::to_string(PopulationConstants::generationsWithoutImprovementThresholdInPopulation) + " generations. Assigned offspring to top two species.");
+			+ std::to_string(PopulationConstants::generationsWithoutImprovementThresholdInPopulation) +
+			" generations. Assigned offspring to top two species.");
 	}
 
 	void Population::sortSpeciesListByChampionFitness()
@@ -1135,9 +1153,9 @@ namespace neat_dnfs
 		}
 	}
 
-	void Population::resetGenerationalInnovations() const
+	void Population::resetGenerationalInnovations()
 	{
-		bestSolution->clearGenerationalInnovations();
+		neat_dnfs::Solution::clearGenerationalInnovations();
 	}
 
 	void Population::clearLastMutations() const
