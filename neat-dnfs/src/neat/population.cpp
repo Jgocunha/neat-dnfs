@@ -368,8 +368,8 @@ namespace neat_dnfs
 			{
 				if (species->getMembers().empty())
 				{
-					log(tools::logger::LogLevel::WARNING, "Species " + std::to_string(species->getId()) +
-						" that was not extinct, had no members. Is now set as extinct.");
+					//log(tools::logger::LogLevel::WARNING, "Species " + std::to_string(species->getId()) +
+					//	" that was not extinct, had no members. Is now set as extinct.");
 					species->extinguish();
 				}
 			}
