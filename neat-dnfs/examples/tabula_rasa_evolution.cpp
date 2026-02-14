@@ -16,6 +16,7 @@
 #include "solutions/selection_instability.h"
 #include "solutions/memory_trace.h"
 #include "solutions/xor.h"
+#include "solutions/hri_packaging_task.h"
 
  int main(int argc, char* argv[])
 {
@@ -25,11 +26,11 @@
 		using namespace neat_dnfs;
 
 		// select the type of solution here and in the population init.
-		XOR solution{
+		HRIPackagingTask solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 				//{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
 			}
@@ -45,7 +46,7 @@
 			constexpr double target_fitness		= 0.95;
 
 			const PopulationParameters parameters{ population_size, number_generations, target_fitness };
-			Population population{ parameters, std::make_unique<XOR>(solution) };
+			Population population{ parameters, std::make_unique<HRIPackagingTask>(solution) };
 
 			population.initialize();
 			population.evolve();

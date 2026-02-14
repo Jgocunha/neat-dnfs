@@ -59,6 +59,7 @@ set(header
         "include/solutions/inhibition_of_return.h"
         "include/solutions/and.h"
         "include/solutions/xor.h"
+        "include/solutions/hri_packaging_task.h"
 
         "include/tools/logger.h"
         "include/tools/utils.h"
@@ -81,6 +82,7 @@ set(src
         "src/solutions/inhibition_of_return.cpp"
         "src/solutions/and.cpp"
         "src/solutions/xor.cpp"
+        "src/solutions/hri_packaging_task.cpp"
 
         "src/tools/logger.cpp"
 )
