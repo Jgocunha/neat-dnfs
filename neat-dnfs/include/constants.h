@@ -12,13 +12,13 @@ namespace neat_dnfs
 	struct SimulationConstants
 	{
 		inline static std::string name				= "solution ";
-		static constexpr double deltaT				= 1;
-		static constexpr size_t maxSimulationSteps	= 500;
+		static constexpr double deltaT				= 2;
+		static constexpr size_t maxSimulationSteps	= 1000;
 	};
 
 	struct DimensionConstants
 	{
-		static constexpr int xSize = 100;
+		static constexpr int xSize = 60;
 		static constexpr double dx = 1.0;
 	};
 
@@ -31,8 +31,8 @@ namespace neat_dnfs
 	struct GaussStimulusConstants
 	{
 		inline static std::string namePrefix	= "gs ";
-		static constexpr double width			= 5.0;
-		static constexpr double amplitude		= 20.0;
+		static constexpr double width			= 2.0;
+		static constexpr double amplitude		= 5.0;
 		static constexpr bool circularity		= true;
 		static constexpr bool normalization		= false;
 	};
@@ -40,16 +40,16 @@ namespace neat_dnfs
 	struct NeuralFieldConstants
 	{
 		inline static std::string namePrefix		= "nf ";
-		static constexpr double tau					= 25;
-		static constexpr double restingLevel		= -10;
+		static constexpr double tau					= 25.0;
+		static constexpr double restingLevel		= -5.0;
 		inline static dnf_composer::element::SigmoidFunction activationFunction{0.0f, 5.0f};
 
 		static constexpr double tauMinVal			= 5.0;
-		static constexpr double tauMaxVal			= 40.0; // 50
+		static constexpr double tauMaxVal			= 50.0;
 		static constexpr double tauStep				= 5.0;
 
-		static constexpr double restingLevelMinVal	= -15.0;
-		static constexpr double restingLevelMaxVal	= -5.0;
+		static constexpr double restingLevelMinVal	= -10.0;
+		static constexpr double restingLevelMaxVal	= -1.0;
 		static constexpr double restingLevelStep	= 0.5;
 	};
 
@@ -65,18 +65,18 @@ namespace neat_dnfs
 		inline static std::string namePrefixConnectionGene	= "gk cg ";
 
 		static constexpr double width			= 2.00;
-		static constexpr double amplitude		= 8.00;
+		static constexpr double amplitude		= 5.00;
 		static constexpr double amplitudeGlobal = -0.01;
 
 		static constexpr double widthMinVal		= 1.00;
 		static constexpr double widthMaxVal		= 10.0;
 		static constexpr double widthStep		= 0.50;
 
-		static constexpr double ampMinVal		= 3.00;
-		static constexpr double ampMaxVal		= 30.0;
+		static constexpr double ampMinVal		= 1.00;
+		static constexpr double ampMaxVal		= 15.0;
 		static constexpr double ampStep			= 0.50;
 
-		static constexpr double ampGlobalMinVal = -0.2;
+		static constexpr double ampGlobalMinVal = -0.3;
 		static constexpr double ampGlobalMaxVal = 0.00;
 		static constexpr double ampGlobalStep	= 0.05;
 	};
@@ -86,30 +86,30 @@ namespace neat_dnfs
 		inline static std::string namePrefix				= "mhk ";
 		inline static std::string namePrefixConnectionGene	= "mhk cg ";
 
-		static constexpr double widthExc		= 2.50;
-		static constexpr double widthInh		= 5.00;
-		static constexpr double amplitudeExc	= 11.0;
+		static constexpr double widthExc		= 5.00;
+		static constexpr double widthInh		= 8.00;
+		static constexpr double amplitudeExc	= 15.0;
 		static constexpr double amplitudeInh	= 15.0;
 		static constexpr double amplitudeGlobal = -0.01;
 
-		static constexpr double widthExcMinVal	= 5.00;
-		static constexpr double widthExcMaxVal	= 30.0;
+		static constexpr double widthExcMinVal	= 2.00;
+		static constexpr double widthExcMaxVal	= 15.0;
 		static constexpr double widthExcStep	= 0.50;
 
-		static constexpr double widthInhMinVal	= 5.00;
-		static constexpr double widthInhMaxVal	= 35.0;
+		static constexpr double widthInhMinVal	= 3.00;
+		static constexpr double widthInhMaxVal	= 15.0;
 		static constexpr double widthInhStep	= 0.50;
 
-		static constexpr double ampExcMinVal	= 15.0;
+		static constexpr double ampExcMinVal	= 10.0;
 		static constexpr double ampExcMaxVal	= 25.0;
 		static constexpr double ampExcStep		= 0.50;
 
-		static constexpr double ampInhMinVal	= 1.00;
-		static constexpr double ampInhMaxVal	= 35.0;
+		static constexpr double ampInhMinVal	= 5.00;
+		static constexpr double ampInhMaxVal	= 25.0;
 		static constexpr double ampInhStep		= 0.50;
 
-		static constexpr double ampGlobMin		= -0.20;
-		static constexpr double ampGlobMax		= 0.000;
+		static constexpr double ampGlobMin		= -0.30;
+		static constexpr double ampGlobMax		= 0.00;
 		static constexpr double ampGlobStep 	= 0.05;
 	};
 

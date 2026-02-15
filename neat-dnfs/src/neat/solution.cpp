@@ -1077,7 +1077,7 @@ namespace neat_dnfs
 		if (u_tar_pos >= neuralField->getParameters().startingRestingLevel)
 			return 0.0;
 
-		static constexpr double epsilon = 0.015;
+		static constexpr double epsilon = 0.15;
 		// activation of field at position should be lower than the rest of the neighboring positions
 		for (const auto& u_pos : neuralField->getComponent("activation"))
 		{
@@ -1087,7 +1087,7 @@ namespace neat_dnfs
 
 		// this should not be like this - I am hardcoding the position of the baseline activation
 		const double u_baseline = std::abs(neuralField->getComponent("activation")[0]);
-		const double u_target = u_baseline + u_baseline / 2;
+		const double u_target = u_baseline + u_baseline / 3;
 		const double width = u_baseline / 2;
 
 		return tools::utils::normalizeWithGaussian(std::abs(u_tar_pos), u_target, width);
@@ -1103,8 +1103,11 @@ namespace neat_dnfs
 		double newPosition = 0.0;
 		const auto gaussStimulus = std::dynamic_pointer_cast<dnf_composer::element::GaussStimulus>(phenotype.getElement(name));
 		const double diff_x = std::abs(targetPosition - gaussStimulus->getParameters().position);
-		const double steps_x = diff_x / step;
+		const double steps_x = diff_x /  std::abs(step);
 		const int steps_t = static_cast<int>(SimulationConstants::maxSimulationSteps / steps_x);
+		//std::cout << "steps_x = " << steps_x << std::endl;
+		//std::cout << "Moving Gaussian stimulus from " << gaussStimulus->getParameters().position << " to " << targetPosition << " in " << steps_t << " steps." << std::endl;
+
 
 		do
 		{
@@ -1114,6 +1117,8 @@ namespace neat_dnfs
 
 			for (int i = 0; i < steps_t; i++)
 				phenotype.step();
+			//std::cout << "position: " << position;
+			//std::cout << ", newPosition: " << newPosition << std::endl;
 		} while (std::abs(newPosition - targetPosition) > epsilon);
 	}
 
