@@ -12,8 +12,8 @@ namespace neat_dnfs
 	struct SimulationConstants
 	{
 		inline static std::string name				= "solution ";
-		static constexpr double deltaT				= 2;
-		static constexpr size_t maxSimulationSteps	= 1000;
+		static constexpr double deltaT				= 5;
+		static constexpr size_t maxSimulationSteps	= 500;
 	};
 
 	struct DimensionConstants
@@ -25,14 +25,14 @@ namespace neat_dnfs
 	struct NoiseConstants
 	{
 		inline static std::string namePrefix	= "nn ";
-		static constexpr double amplitude		= 0.010;
+		static constexpr double amplitude		= 0.015;
 	};
 
 	struct GaussStimulusConstants
 	{
 		inline static std::string namePrefix	= "gs ";
-		static constexpr double width			= 2.0;
-		static constexpr double amplitude		= 5.0;
+		static constexpr double width			= 3.0;
+		static constexpr double amplitude		= 6.0; // 6.0?
 		static constexpr bool circularity		= true;
 		static constexpr bool normalization		= false;
 	};
@@ -46,7 +46,7 @@ namespace neat_dnfs
 
 		static constexpr double tauMinVal			= 5.0;
 		static constexpr double tauMaxVal			= 50.0;
-		static constexpr double tauStep				= 5.0;
+		static constexpr double tauStep				= 1.0;
 
 		static constexpr double restingLevelMinVal	= -10.0;
 		static constexpr double restingLevelMaxVal	= -1.0;
@@ -76,7 +76,7 @@ namespace neat_dnfs
 		static constexpr double ampMaxVal		= 15.0;
 		static constexpr double ampStep			= 0.50;
 
-		static constexpr double ampGlobalMinVal = -0.3;
+		static constexpr double ampGlobalMinVal = -0.50;
 		static constexpr double ampGlobalMaxVal = 0.00;
 		static constexpr double ampGlobalStep	= 0.05;
 	};
@@ -86,21 +86,21 @@ namespace neat_dnfs
 		inline static std::string namePrefix				= "mhk ";
 		inline static std::string namePrefixConnectionGene	= "mhk cg ";
 
-		static constexpr double widthExc		= 5.00;
-		static constexpr double widthInh		= 8.00;
+		static constexpr double widthExc		= 2.50;
+		static constexpr double widthInh		= 10.00;
 		static constexpr double amplitudeExc	= 15.0;
-		static constexpr double amplitudeInh	= 15.0;
+		static constexpr double amplitudeInh	= 11.0;
 		static constexpr double amplitudeGlobal = -0.01;
 
-		static constexpr double widthExcMinVal	= 2.00;
-		static constexpr double widthExcMaxVal	= 15.0;
+		static constexpr double widthExcMinVal	= 1.00;
+		static constexpr double widthExcMaxVal	= 10.0;
 		static constexpr double widthExcStep	= 0.50;
 
 		static constexpr double widthInhMinVal	= 3.00;
-		static constexpr double widthInhMaxVal	= 15.0;
+		static constexpr double widthInhMaxVal	= 20.0;
 		static constexpr double widthInhStep	= 0.50;
 
-		static constexpr double ampExcMinVal	= 10.0;
+		static constexpr double ampExcMinVal	= 5.0;
 		static constexpr double ampExcMaxVal	= 25.0;
 		static constexpr double ampExcStep		= 0.50;
 
@@ -108,17 +108,17 @@ namespace neat_dnfs
 		static constexpr double ampInhMaxVal	= 25.0;
 		static constexpr double ampInhStep		= 0.50;
 
-		static constexpr double ampGlobMin		= -0.30;
+		static constexpr double ampGlobMin		= -0.50;
 		static constexpr double ampGlobMax		= 0.00;
 		static constexpr double ampGlobStep 	= 0.05;
 	};
 
 	struct CompatibilityCoefficients
 	{
-		static constexpr double compatibilityThreshold							= 3.5; //2.5
-		static constexpr double excessGenesCompatibilityWeight					= 1.0; //1.0
-		static constexpr double disjointGenesCompatibilityWeight				= 0.5; //1.0
-		static constexpr double averageConnectionDifferenceCompatibilityWeight	= 0.5; //1.0
+		static constexpr double compatibilityThreshold							= 5.0;
+		static constexpr double excessGenesCompatibilityWeight					= 1.0;
+		static constexpr double disjointGenesCompatibilityWeight				= 0.5;
+		static constexpr double averageConnectionDifferenceCompatibilityWeight	= 0.5;
 
 		static constexpr double amplitudeDifferenceCoefficient	= 0.05;
 		static constexpr double widthDifferenceCoefficient		= 0.05;
@@ -128,9 +128,9 @@ namespace neat_dnfs
 	{
 		// genome mutation probabilities (the sum does not have to be 1.0)
 		// structural mutations
-		static constexpr double toggleConnectionGeneProbability  = 0.05;
-		static constexpr double addFieldGeneProbability			 = 0.0005;
-		static constexpr double addConnectionGeneProbability	 = 0.15;
+		static constexpr double toggleConnectionGeneProbability  = 0.0075;
+		static constexpr double addFieldGeneProbability			 = 0.0025;
+		static constexpr double addConnectionGeneProbability	 = 0.25;
 		// parametrical mutations
 		static constexpr double mutateFieldGenesProbability		 = 0.800;
 		static constexpr double mutateConnectionGenesProbability = 0.800;
@@ -146,13 +146,13 @@ namespace neat_dnfs
 		static constexpr bool variableParameters = true;
 
 		// (sum must be 1.0)
-		static constexpr double gaussKernelProbability			= 0.8;
-		static constexpr double mexicanHatKernelProbability		= 0.2;
+		static constexpr double gaussKernelProbability			= 0.7;
+		static constexpr double mexicanHatKernelProbability		= 0.3;
 
 		// field gene mutation probabilities (sum must be 1.0)
-		static constexpr double mutateFieldGeneKernelProbability			= 0.70;
+		static constexpr double mutateFieldGeneKernelProbability			= 0.50;
 		static constexpr double mutateFieldGeneKernelTypeProbability		= 0.10;
-		static constexpr double mutateFieldGeneNeuralFieldProbability		= 0.20;
+		static constexpr double mutateFieldGeneNeuralFieldProbability		= 0.40;
 		// field gene gauss kernel mutation probabilities (sum does not have to be 1.0)
 		static constexpr double mutateFieldGeneGaussKernelAmplitudeProbability			= 0.80;
 		static constexpr double mutateFieldGeneGaussKernelWidthProbability				= 0.60;
@@ -177,8 +177,8 @@ namespace neat_dnfs
 		static constexpr int allowInhibitoryConnections = true; // true
 
 		// connection gene kernel type probability (sum must be 1.0)
-		static constexpr double gaussKernelProbability			= 0.8;
-		static constexpr double mexicanHatKernelProbability		= 0.2;
+		static constexpr double gaussKernelProbability			= 0.9;
+		static constexpr double mexicanHatKernelProbability		= 0.1;
 
 		// connection gene mutation probabilities (sum must be 1.0)
 		static constexpr double mutateConnectionGeneKernelProbability			= 0.70;
@@ -207,8 +207,8 @@ namespace neat_dnfs
 	{
 		static constexpr bool parallelEvolution									= true;
 		static constexpr double pruneRatio										= 0.8;
-		static constexpr int generationsWithoutImprovementThresholdInPopulation = 10;
-		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 7;
+		static constexpr int generationsWithoutImprovementThresholdInPopulation = 15;
+		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 5;
 		static constexpr bool elitism											= true;
 
 		static constexpr bool validateUniqueSolutions					= false;

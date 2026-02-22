@@ -28,8 +28,8 @@
 		// load a previous solution
 		const auto previous_solution = std::make_shared<dnf_composer::Simulation>();
 		const dnf_composer::SimulationFileManager sfm(previous_solution,
-			//std::string(PROJECT_DIR) + "/templates/solution 15233 generation 32 species 2 fitness 0.950102.json");
-			std::string(PROJECT_DIR) + "/templates/template-hri-packaging-task.json");
+			std::string(PROJECT_DIR) + "/templates/solution 15233 generation 32 species 2 fitness 0.950102.json");
+			//std::string(PROJECT_DIR) + "/templates/template-hri-packaging-task.json");
 		sfm.loadElementsFromJson();
 		const dnf_composer::Simulation& template_solution = *previous_solution;
 
