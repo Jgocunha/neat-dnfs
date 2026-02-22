@@ -42,7 +42,7 @@ namespace neat_dnfs
 		static constexpr double small_obj_pos_b = 50.0;
 		static constexpr double large_obj_pos = 30.0;
 
-
+		removeGaussianStimuli();
 		// arbitrary selection at output field based on small objects
 		initSimulation();
 		addGaussianStimulus("nf 1",
@@ -56,12 +56,13 @@ namespace neat_dnfs
 		runSimulation(iterations);
 
 		const double f1_1 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1",
-		   small_obj_pos_a, 2.0, 2.0,
-		   small_obj_pos_b, 2.0, 2.0);
+		   small_obj_pos_a, 5.0, 4.0,
+		   small_obj_pos_b, 5.0, 4.0);
 		const double f1_2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(
-			"nf 4", { small_obj_pos_a, small_obj_pos_b }, 2.0, 2.0);
-		const double f1 = 0.2f * f1_1 + 0.8f * f1_2;
-		parameters.partialFitness.emplace_back(f1);
+			"nf 4", { small_obj_pos_a, small_obj_pos_b }, 4.0, 4.0);
+		const double f1 = 0.3f * f1_1 + 0.7f * f1_2;
+		parameters.partialFitness.emplace_back(f1_1);
+		parameters.partialFitness.emplace_back(f1_2);
 
 		// hand position negatively pre-shapes the output field
 		addGaussianStimulus("nf 3",
@@ -69,18 +70,20 @@ namespace neat_dnfs
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", large_obj_pos, 2.0, 2.0);
+		const double f2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", large_obj_pos, 6.0, 6.0);
 		const double f2_2 = negativePreShapednessAtPosition("nf 4", large_obj_pos);
-		const double f2 = 0.2f * f2_1 + 0.8f * f2_2;
-		parameters.partialFitness.emplace_back(f2);
+		const double f2 = 0.3f * f2_1 + 0.7f * f2_2;
+		parameters.partialFitness.emplace_back(f2_1);
+		parameters.partialFitness.emplace_back(f2_2);
 
 		// hand position biases the output field towards the non-targeted small object
 		moveGaussianStimulusContinuously("gs nf 3 " + std::to_string(large_obj_pos), small_obj_pos_a, -5.0f);
-		const double f3_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_b, 2.0, 2.0);
+		const double f3_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_b, 4.0, 4.0);
 		moveGaussianStimulusContinuously("gs nf 3 " + std::to_string(large_obj_pos), small_obj_pos_b, 10.0f);
-		const double f3_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_a, 2.0, 2.0);
+		const double f3_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_a, 4.0, 4.0);
 		const double f3 = 0.5f * f3_1 + 0.5f * f3_2;
-		parameters.partialFitness.emplace_back(f3);
+		parameters.partialFitness.emplace_back(f3_1);
+		parameters.partialFitness.emplace_back(f3_2);
 
 		// large object appears
 		addGaussianStimulus("nf 2",
@@ -88,18 +91,23 @@ namespace neat_dnfs
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f4_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", large_obj_pos, 2.0, 2.0);
-		const double f4_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_a, 2.0, 2.0);
+		const double f4_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", large_obj_pos, 4.0, 4.0); // 2
+		const double f4_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_a, 8.0, 4.0); // a
 		moveGaussianStimulusContinuously("gs nf 3 " + std::to_string(large_obj_pos), large_obj_pos, -5.0f);
-		const double f4_3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", large_obj_pos, 2.0, 2.0);
+		const double f4_3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", large_obj_pos, 10.0, 6.0); // c
 		moveGaussianStimulusContinuously("gs nf 3 " + std::to_string(large_obj_pos), small_obj_pos_a, -5.0f);
-		const double f4_4 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_b, 2.0, 2.0);
+		const double f4_4 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_b, 4.0, 4.0); // b
 		moveGaussianStimulusContinuously("gs nf 3 " + std::to_string(large_obj_pos), large_obj_pos, 5.0f);
-		const double f4_5 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", large_obj_pos, 2.0, 2.0);
+		const double f4_5 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", large_obj_pos, 10.0, 6.0); // c
 		moveGaussianStimulusContinuously("gs nf 3 " + std::to_string(large_obj_pos), small_obj_pos_b, 5.0f);
-		const double f4_6 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_a, 2.0, 2.0);
-		const double f4 = 0.1f*f4_1 + 0.1f*f4_2 + 0.2f*f4_3 + 0.2f*f4_4 + 0.2f*f4_5 + 0.2f*f4_6;
-		parameters.partialFitness.emplace_back(f4);
+		const double f4_6 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_a, 4.0, 4.0); // a
+		const double f4 = 0.3f*f4_1 + 0.1f*f4_2 + 0.2f*f4_3 + 0.1f*f4_4 + 0.2f*f4_5 + 0.1f*f4_6;
+		parameters.partialFitness.emplace_back(f4_1);
+		parameters.partialFitness.emplace_back(f4_2);
+		parameters.partialFitness.emplace_back(f4_3);
+		parameters.partialFitness.emplace_back(f4_4);
+		parameters.partialFitness.emplace_back(f4_5);
+		parameters.partialFitness.emplace_back(f4_6);
 
 		removeGaussianStimuli();
 		
@@ -280,19 +288,23 @@ namespace neat_dnfs
 	void HRIPackagingTask::createPhenotypeEnvironment()
 	{
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 10.0, GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 10.0f, GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0f, GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		addGaussianStimulus("nf 2",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 30.0, GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 30.0f, GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+			{ DimensionConstants::xSize, DimensionConstants::dx });
+
+		addGaussianStimulus("nf 2",
+			{ GaussStimulusConstants::width, 0.0f, 30.0f, GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		addGaussianStimulus("nf 3",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 30.0, GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 30.0f, GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 }
