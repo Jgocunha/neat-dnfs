@@ -5,15 +5,13 @@ namespace neat_dnfs
 	XOR::XOR(const SolutionTopology& topology)
 		: Solution(topology)
 	{
-		name = "Two robot team";
-		// target fitness is 0.95
+		name = "XOR";
 	}
 
 	XOR::XOR(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
 		: Solution(initialTopology, phenotype)
 	{
 		name = "XOR";
-		// target fitness is 0.95
 	}
 
 	SolutionPtr XOR::clone() const
@@ -22,6 +20,14 @@ namespace neat_dnfs
 		auto clonedSolution = std::make_shared<XOR>(solution);
 
 		return clonedSolution;
+	}
+
+	SolutionPtr XOR::copy() const
+	{
+		XOR solution(initialTopology, phenotype);
+		auto copy = std::make_shared<XOR>(solution);
+
+		return copy;
 	}
 
 	void XOR::testPhenotype()
@@ -39,8 +45,9 @@ namespace neat_dnfs
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+			GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 		const double f1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3", { 50.0 }, out_amp, out_width);
 		parameters.partialFitness.push_back(f1);
@@ -49,7 +56,8 @@ namespace neat_dnfs
 		removeGaussianStimuli();
 		initSimulation();
 		addGaussianStimulus("nf 2",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+			GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 		const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3", { 50.0 }, out_amp, out_width);
@@ -58,13 +66,15 @@ namespace neat_dnfs
 		removeGaussianStimuli();
 		initSimulation();
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+			GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 2",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f3 = preShapedness("nf 3");
+		const double f3 = noBumps("nf 3");
 		parameters.partialFitness.push_back(f3);
 
 		removeGaussianStimuli();

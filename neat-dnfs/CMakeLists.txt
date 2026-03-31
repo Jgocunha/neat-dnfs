@@ -44,49 +44,45 @@ add_compile_definitions(OUTPUT_DIRECTORY="${OUTPUT_DIRECTORY}")
 
 # Header and source files
 set(header 
-"include/neat/connection_gene.h"
-"include/neat/field_gene.h"
-"include/neat/genome.h"
-"include/neat/population.h"
-"include/neat/solution.h"
-"include/neat/species.h"
+        "include/neat/connection_gene.h"
+        "include/neat/field_gene.h"
+        "include/neat/genome.h"
+        "include/neat/population.h"
+        "include/neat/solution.h"
+        "include/neat/species.h"
 
-"include/solutions/single_bump.h"
-"include/solutions/self_sustained_single_bump.h"
-"include/solutions/and.h"
-"include/solutions/action_simulation_layer.h"
-"include/solutions/action_execution_layer.h"
-"include/solutions/selective_output_field.h"
-"include/solutions/timing_response.h"
-"include/solutions/select_the_object.h"
-"include/solutions/two_robot_team.h"
-"include/solutions/xor.h"
+        "include/solutions/detection_instability.h"
+        "include/solutions/memory_instability.h"
+        "include/solutions/selection_instability.h"
+        "include/solutions/memory_trace.h"
+        "include/solutions/delayed_match_to_sample.h"
+        "include/solutions/inhibition_of_return.h"
+        "include/solutions/and.h"
+        "include/solutions/xor.h"
 
-"include/tools/logger.h"
-"include/tools/utils.h"
+        "include/tools/logger.h"
+        "include/tools/utils.h"
 
-"include/constants.h"
+        "include/constants.h"
 )
 set(src 
-"src/neat/connection_gene.cpp"
-"src/neat/field_gene.cpp"
-"src/neat/genome.cpp"
-"src/neat/population.cpp"
-"src/neat/solution.cpp"
-"src/neat/species.cpp"
+        "src/neat/connection_gene.cpp"
+        "src/neat/field_gene.cpp"
+        "src/neat/genome.cpp"
+        "src/neat/population.cpp"
+        "src/neat/solution.cpp"
+        "src/neat/species.cpp"
 
-"src/solutions/single_bump.cpp"
-"src/solutions/self_sustained_single_bump.cpp"
-"src/solutions/and.cpp"
-"src/solutions/action_simulation_layer.cpp"
-"src/solutions/action_execution_layer.cpp"
-"src/solutions/selective_output_field.cpp"
-"src/solutions/timing_response.cpp"
-"src/solutions/select_the_object.cpp"
-"src/solutions/two_robot_team.cpp"
-"src/solutions/xor.cpp"
+        "src/solutions/detection_instability.cpp"
+        "src/solutions/memory_instability.cpp"
+        "src/solutions/selection_instability.cpp"
+        "src/solutions/memory_trace.cpp"
+        "src/solutions/delayed_match_to_sample.cpp"
+        "src/solutions/inhibition_of_return.cpp"
+        "src/solutions/and.cpp"
+        "src/solutions/xor.cpp"
 
-"src/tools/logger.cpp"
+        "src/tools/logger.cpp"
 )
 
 # Library target definition
@@ -155,8 +151,30 @@ install(EXPORT ${CMAKE_PROJECT_NAME}Targets DESTINATION ${NEAT_DNFS_CMAKE_CONFIG
 )
 
 # Main executable
-set(EXE_PROJECT_EXAMPLE ${CMAKE_PROJECT_NAME}-exe)
-add_executable(${EXE_PROJECT_EXAMPLE} "examples/neat_dnfs.cpp")
+set(EXE_PROJECT_EXAMPLE neat-dnfs-evol)
+add_executable(${EXE_PROJECT_EXAMPLE} "examples/tabula_rasa_evolution.cpp")
+target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
+target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
+        imgui::imgui
+        imgui-platform-kit
+        dynamic-neural-field-composer
+        ${CMAKE_PROJECT_NAME}
+)
+
+# Incremental evolution executable
+set(EXE_PROJECT_EXAMPLE neat-dnfs-inc-evol)
+add_executable(${EXE_PROJECT_EXAMPLE} "examples/incremental_evolution.cpp")
+target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
+target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
+        imgui::imgui
+        imgui-platform-kit
+        dynamic-neural-field-composer
+        ${CMAKE_PROJECT_NAME}
+)
+
+# Solution evaluation executable
+set(EXE_PROJECT_EXAMPLE neat-dnfs-sol-eval)
+add_executable(${EXE_PROJECT_EXAMPLE} "examples/solution_evaluation.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
 target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         imgui::imgui

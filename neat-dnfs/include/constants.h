@@ -12,8 +12,8 @@ namespace neat_dnfs
 	struct SimulationConstants
 	{
 		inline static std::string name				= "solution ";
-		static constexpr double deltaT				= 25;
-		static constexpr size_t maxSimulationSteps	= 2500;
+		static constexpr double deltaT				= 1;
+		static constexpr size_t maxSimulationSteps	= 500;
 	};
 
 	struct DimensionConstants
@@ -25,7 +25,7 @@ namespace neat_dnfs
 	struct NoiseConstants
 	{
 		inline static std::string namePrefix	= "nn ";
-		static constexpr double amplitude		= 0.2; 
+		static constexpr double amplitude		= 0.010;
 	};
 
 	struct GaussStimulusConstants
@@ -40,16 +40,15 @@ namespace neat_dnfs
 	struct NeuralFieldConstants
 	{
 		inline static std::string namePrefix		= "nf ";
-		static constexpr double stabilityThreshold	= 0.9;
-		static constexpr double tau					= 200;
-		static constexpr double restingLevel		= -5;
-		inline static dnf_composer::element::HeavisideFunction activationFunction{ 0.0 };
+		static constexpr double tau					= 100;
+		static constexpr double restingLevel		= -10;
+		inline static dnf_composer::element::SigmoidFunction activationFunction{0.0f, 5.0f};
 
-		static constexpr double tauMinVal			= 220.0;
-		static constexpr double tauMaxVal			= 300.0;
-		static constexpr double tauStep				= 5.0;
+		static constexpr double tauMinVal			= 1.0;
+		static constexpr double tauMaxVal			= 200.0;
+		static constexpr double tauStep				= 15.0;
 
-		static constexpr double restingLevelMinVal	= -20.0;
+		static constexpr double restingLevelMinVal	= -15.0;
 		static constexpr double restingLevelMaxVal	= -1.0;
 		static constexpr double restingLevelStep	= 0.5;
 	};
@@ -65,21 +64,21 @@ namespace neat_dnfs
 		inline static std::string namePrefix				= "gk ";
 		inline static std::string namePrefixConnectionGene	= "gk cg ";
 
-		static constexpr double width			= 6;
-		static constexpr double amplitude		= 10;
+		static constexpr double width			= 2.00;
+		static constexpr double amplitude		= 8.00;
 		static constexpr double amplitudeGlobal = -0.01;
 
-		static constexpr double widthMinVal		= 3.0; //3 // 3 // 1
-		static constexpr double widthMaxVal		= 10.0; //25 // 5.0 // 50
-		static constexpr double widthStep		= 0.5; // 0.5 // 1
+		static constexpr double widthMinVal		= 1.00;
+		static constexpr double widthMaxVal		= 10.0;
+		static constexpr double widthStep		= 0.50;
 
-		static constexpr double ampMinVal		= 3.0; // 0.5 // 1
-		static constexpr double ampMaxVal		= 50.0; // 10.0 // 8.0 // 80
-		static constexpr double ampStep			= 0.5; // 0.5 // 1
+		static constexpr double ampMinVal		= 3.00;
+		static constexpr double ampMaxVal		= 30.0;
+		static constexpr double ampStep			= 0.50;
 
-		static constexpr double ampGlobalMinVal = -3.5; // -0.5 // -5
-		static constexpr double ampGlobalMaxVal = 0.0; // -0.01 // 0
-		static constexpr double ampGlobalStep	= 0.1; // 0.01	 // 0.05
+		static constexpr double ampGlobalMinVal = -0.2;
+		static constexpr double ampGlobalMaxVal = 0.00;
+		static constexpr double ampGlobalStep	= 0.05;
 	};
 
 	struct MexicanHatKernelConstants
@@ -87,66 +86,39 @@ namespace neat_dnfs
 		inline static std::string namePrefix				= "mhk ";
 		inline static std::string namePrefixConnectionGene	= "mhk cg ";
 
-		static constexpr double widthExc		= 2.5; // 2.5
-		static constexpr double widthInh		= 5.0; // 5.0
-		static constexpr double amplitudeExc	= 11.0;  // 11.0
-		static constexpr double amplitudeInh	= 15.0;  // 15.0
-		static constexpr double amplitudeGlobal = -0.01; // -0.1
-
-		static constexpr double widthExcMinVal	= 5.0; // 2.0 // 1
-		static constexpr double widthExcMaxVal	= 30.0; // 9.0 // 50
-		static constexpr double widthExcStep	= 0.5; // 0.5
-
-		static constexpr double widthInhMinVal	= 5.0; // 5.0 // 1
-		static constexpr double widthInhMaxVal	= 30.0; // 30.0 // 60
-		static constexpr double widthInhStep	= 0.5; // 0.5
-
-		static constexpr double ampExcMinVal	= 5.0; // 8.0
-		static constexpr double ampExcMaxVal	= 45.0; // 25.0 //85
-		static constexpr double ampExcStep		= 0.5; // 0.5
-
-		static constexpr double ampInhMinVal	= 10.0; // 12.0 // 1
-		static constexpr double ampInhMaxVal	= 25.0; // 30.0 // 60
-		static constexpr double ampInhStep		= 0.5; // 0.5
-
-		static constexpr double ampGlobMin	= -3.5; // -0.5 // -5
-		static constexpr double ampGlobMax	= 0.0; // -0.01
-		static constexpr double ampGlobStep = 0.1; // 0.01
-	};
-
-	struct OscillatoryKernelConstants
-	{
-		inline static std::string namePrefix				= "osck ";
-		inline static std::string namePrefixConnectionGene	= "osck cg ";
-
-		static constexpr double amplitude		= 1.0;
-		static constexpr double decay			= 0.08;
-		static constexpr double zeroCrossings	= 0.3;
+		static constexpr double widthExc		= 2.50;
+		static constexpr double widthInh		= 5.00;
+		static constexpr double amplitudeExc	= 11.0;
+		static constexpr double amplitudeInh	= 15.0;
 		static constexpr double amplitudeGlobal = -0.01;
 
-		static constexpr double amplitudeMinVal = 1;
-		static constexpr double amplitudeMaxVal = 25.0;
-		static constexpr double amplitudeStep	= 0.5;
+		static constexpr double widthExcMinVal	= 5.00;
+		static constexpr double widthExcMaxVal	= 30.0;
+		static constexpr double widthExcStep	= 0.50;
 
-		static constexpr double decayMinVal = 0.01;
-		static constexpr double decayMaxVal = 1.0;
-		static constexpr double decayStep	= 0.05;
+		static constexpr double widthInhMinVal	= 5.00;
+		static constexpr double widthInhMaxVal	= 35.0;
+		static constexpr double widthInhStep	= 0.50;
 
-		static constexpr double zeroCrossingsMinVal = 0.1;
-		static constexpr double zeroCrossingsMaxVal = 1.0;
-		static constexpr double zeroCrossingsStep	= 0.5;
+		static constexpr double ampExcMinVal	= 15.0;
+		static constexpr double ampExcMaxVal	= 25.0;
+		static constexpr double ampExcStep		= 0.50;
 
-		static constexpr double ampGlobMin		= -5.0;
-		static constexpr double ampGlobMax		= 0.0;
-		static constexpr double ampGlobStep		= 0.05;
+		static constexpr double ampInhMinVal	= 1.00;
+		static constexpr double ampInhMaxVal	= 35.0;
+		static constexpr double ampInhStep		= 0.50;
+
+		static constexpr double ampGlobMin		= -0.20;
+		static constexpr double ampGlobMax		= 0.000;
+		static constexpr double ampGlobStep 	= 0.05;
 	};
 
 	struct CompatibilityCoefficients
 	{
-		static constexpr double compatibilityThreshold							= 3.0;
+		static constexpr double compatibilityThreshold							= 3.5;
 		static constexpr double excessGenesCompatibilityWeight					= 1.0;
 		static constexpr double disjointGenesCompatibilityWeight				= 0.5;
-		static constexpr double averageConnectionDifferenceCompatibilityWeight	= 1.0; //0.5
+		static constexpr double averageConnectionDifferenceCompatibilityWeight	= 1.5;
 
 		static constexpr double amplitudeDifferenceCoefficient	= 0.05;
 		static constexpr double widthDifferenceCoefficient		= 0.05;
@@ -154,12 +126,17 @@ namespace neat_dnfs
 
 	struct GenomeMutationConstants
 	{
-		// genome mutation probabilities (sum must be 1.0)
-		static constexpr double addFieldGeneProbability			= 0.0005; // 0.0025
-		static constexpr double mutateFieldGeneProbability		= 0.3495; // 0.35
-		static constexpr double addConnectionGeneProbability	= 0.20; // 0.20
-		static constexpr double mutateConnectionGeneProbability = 0.445; // 0.44
-		static constexpr double toggleConnectionGeneProbability = 0.005; // 0.0075 // 0.05
+		// genome mutation probabilities (the sum does not have to be 1.0)
+		// structural mutations
+		static constexpr double toggleConnectionGeneProbability  = 0.01;//0.010;
+		static constexpr double addFieldGeneProbability			 = 0.0005;//0.0005;
+		static constexpr double addConnectionGeneProbability	 = 0.15;//0.250;
+		// parametrical mutations
+		static constexpr double mutateFieldGenesProbability		 = 0.800;
+		static constexpr double mutateConnectionGenesProbability = 0.800;
+		// per gene mutation probabilities
+		static constexpr double mutateFieldGeneProbability		 = 0.800;
+		static constexpr double mutateConnectionGeneProbability  = 0.800;
 
 		static constexpr bool checkForDuplicateConnectionGenesInGenome = false;
 	};
@@ -168,63 +145,56 @@ namespace neat_dnfs
 	{
 		static constexpr bool variableParameters = true;
 
-		static constexpr double gaussKernelProbability			= 0.5;
-		static constexpr double mexicanHatKernelProbability		= 0.5;
-		static constexpr double oscillatoryKernelProbability	= 0.0;
+		// (sum must be 1.0)
+		static constexpr double gaussKernelProbability			= 0.8;
+		static constexpr double mexicanHatKernelProbability		= 0.2;
 
 		// field gene mutation probabilities (sum must be 1.0)
-		static constexpr double mutateFielGeneKernelProbability			= 0.50;
-		static constexpr double mutateFielGeneKernelTypeProbability		= 0.10;
-		static constexpr double mutateFieldGeneNeuralFieldProbability	= 0.40;
-		// field gene gauss kernel mutation probabilities (sum must be 1.0)
-		static constexpr double mutateFieldGeneGaussKernelAmplitudeProbability			= 1.0f / 3.0f;
-		static constexpr double mutateFieldGeneGaussKernelWidthProbability				= 1.0f / 3.0f;
-		static constexpr double mutateFieldGeneGaussKernelGlobalAmplitudeProbability	= 1.0f / 3.0f;
-		// field gene mexican hat kernel mutation probabilities (sum must be 1.0)
-		static constexpr double mutateFieldGeneMexicanHatKernelAmplitudeExcProbability		= 1.0f / 5.0f;
-		static constexpr double mutateFieldGeneMexicanHatKernelAmplitudeInhProbability		= 1.0f / 5.0f;
-		static constexpr double mutateFieldGeneMexicanHatKernelWidthExcProbability			= 1.0f / 5.0f;
-		static constexpr double mutateFieldGeneMexicanHatKernelWidthInhProbability			= 1.0f / 5.0f;
-		static constexpr double mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability	= 1.0f / 5.0f;
-		// field gene oscillatory kernel mutation probabilities (sum must be 1.0)
-		static constexpr double mutateFieldGeneOscillatoryKernelAmplitudeProbability		= 1.0f / 4.0f;
-		static constexpr double mutateFieldGeneOscillatoryKernelDecayProbability			= 1.0f / 4.0f;
-		static constexpr double mutateFieldGeneOscillatoryKernelZeroCrossingsProbability	= 1.0f / 4.0f;
-		static constexpr double mutateFieldGeneOscillatoryKernelGlobalAmplitudeProbability	= 1.0f / 4.0f;
+		static constexpr double mutateFieldGeneKernelProbability			= 0.70;
+		static constexpr double mutateFieldGeneKernelTypeProbability		= 0.10;
+		static constexpr double mutateFieldGeneNeuralFieldProbability		= 0.20;
+		// field gene gauss kernel mutation probabilities (sum does not have to be 1.0)
+		static constexpr double mutateFieldGeneGaussKernelAmplitudeProbability			= 0.80;
+		static constexpr double mutateFieldGeneGaussKernelWidthProbability				= 0.60;
+		static constexpr double mutateFieldGeneGaussKernelGlobalAmplitudeProbability	= 0.20;
+		// field gene mexican hat kernel mutation probabilities (sum does not have to be 1.0)
+		static constexpr double mutateFieldGeneMexicanHatKernelAmplitudeExcProbability		= 0.80;
+		static constexpr double mutateFieldGeneMexicanHatKernelAmplitudeInhProbability		= 0.80;
+		static constexpr double mutateFieldGeneMexicanHatKernelWidthExcProbability			= 0.60;
+		static constexpr double mutateFieldGeneMexicanHatKernelWidthInhProbability			= 0.60;
+		static constexpr double mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability	= 0.20;
+
 		// field gene neural field mutation probabilities (sum must be 1.0)
-		static constexpr double mutateFieldGeneNeuralFieldTauProbability			= 0.45;
-		static constexpr double mutateFieldGeneNeuralFieldRestingLevelProbability	= 0.45;
-		static constexpr double mutateFieldGeneNeuralFieldRandomlyProbability		= 0.10;
+		static constexpr double mutateFieldGeneNeuralFieldParametersProbability					= 0.90;
+		static constexpr double mutateFieldGeneNeuralFieldGenerateRandomParametersProbability	= 0.10;
+		// field gene neural field parameters mutation probabilities (sum does not have to be 1.0)
+		static constexpr double mutateFieldGeneNeuralFieldParametersTauProbability			= 0.50;
+		static constexpr double mutateFieldGeneNeuralFieldParametersRestingLevelProbability	= 0.80;
 	};
 
 	struct ConnectionGeneConstants
 	{
 		static constexpr int allowInhibitoryConnections = true;
 
-		static constexpr double gaussKernelProbability			= 0.5;
-		static constexpr double mexicanHatKernelProbability		= 0.5;
-		static constexpr double oscillatoryKernelProbability	= 0.0;
+		// connection gene kernel type probability (sum must be 1.0)
+		static constexpr double gaussKernelProbability			= 0.8;
+		static constexpr double mexicanHatKernelProbability		= 0.2;
 
 		// connection gene mutation probabilities (sum must be 1.0)
 		static constexpr double mutateConnectionGeneKernelProbability			= 0.70;
-		static constexpr double mutateConnectionGeneKernelTypeProbability		= 0.10;
-		static constexpr double mutateConnectionGeneConnectionSignalProbability = 0.20;
+		static constexpr double mutateConnectionGeneKernelTypeProbability		= 0.05;
+		static constexpr double mutateConnectionGeneConnectionSignalProbability = 0.25;
 
-		// field gene gauss kernel mutation probabilities (sum must be 1.0)
-		static constexpr double mutateConnectionGeneGaussKernelAmplitudeProbability			= 1.0f / 3.0f;//1.0f / 2.0f;
-		static constexpr double mutateConnectionGeneGaussKernelWidthProbability				= 1.0f / 3.0f;//1.0f / 2.0f;
-		static constexpr double mutateConnectionGeneGaussKernelGlobalAmplitudeProbability	= 1.0f / 3.0f;//0.0f;
-		// field gene mexican hat kernel mutation probabilities (sum must be 1.0)
-		static constexpr double mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability		= 1.0f / 5.0f;//1.0f / 4.0f;
-		static constexpr double mutateConnectionGeneMexicanHatKernelAmplitudeInhProbability		= 1.0f / 5.0f;//1.0f / 4.0f;
-		static constexpr double mutateConnectionGeneMexicanHatKernelWidthExcProbability			= 1.0f / 5.0f;//1.0f / 4.0f;
-		static constexpr double mutateConnectionGeneMexicanHatKernelWidthInhProbability			= 1.0f / 5.0f;//1.0f / 4.0f;
-		static constexpr double mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability	= 1.0f / 5.0f;//0.0f;
-		// field gene oscillatory kernel mutation probabilities (sum must be 1.0)
-		static constexpr double mutateConnectionGeneOscillatoryKernelAmplitudeProbability		= 1.0f / 3.0f;
-		static constexpr double mutateConnectionGeneOscillatoryKernelDecayProbability			= 1.0f / 3.0f;
-		static constexpr double mutateConnectionGeneOscillatoryKernelZeroCrossingsProbability	= 1.0f / 3.0f;
-		static constexpr double mutateConnectionGeneOscillatoryKernelGlobalAmplitudeProbability = 0.0f;
+		// field gene gauss kernel mutation probabilities (sum does not have to be 1.0)
+		static constexpr double mutateConnectionGeneGaussKernelAmplitudeProbability			= 0.80;
+		static constexpr double mutateConnectionGeneGaussKernelWidthProbability				= 0.60;
+		static constexpr double mutateConnectionGeneGaussKernelGlobalAmplitudeProbability	= 0.20;
+		// field gene mexican hat kernel mutation probabilities (sum does not have to be 1.0)
+		static constexpr double mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability		= 0.80;
+		static constexpr double mutateConnectionGeneMexicanHatKernelAmplitudeInhProbability		= 0.80;
+		static constexpr double mutateConnectionGeneMexicanHatKernelWidthExcProbability			= 0.60;
+		static constexpr double mutateConnectionGeneMexicanHatKernelWidthInhProbability			= 0.60;
+		static constexpr double mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability	= 0.20;
 	};
 
 	struct SolutionConstants
@@ -236,9 +206,9 @@ namespace neat_dnfs
 	struct PopulationConstants
 	{
 		static constexpr bool parallelEvolution									= true;
-		static constexpr double pruneRatio										= 0.2;
-		static constexpr int generationsWithoutImprovementThresholdInPopulation = 20;
-		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 10;
+		static constexpr double pruneRatio										= 0.8;
+		static constexpr int generationsWithoutImprovementThresholdInPopulation = 10;
+		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 7;
 		static constexpr bool elitism											= true;
 
 		static constexpr bool validateUniqueSolutions					= false;
@@ -252,9 +222,12 @@ namespace neat_dnfs
 		static constexpr bool logSolutions				= false;
 		static constexpr bool logOverview				= true;
 		static constexpr bool logSpecies				= false;
-		static constexpr bool logMutationStatistics		= false;
 
-		static constexpr bool saveChampions		= true;
-		static constexpr bool saveStatistics	= true;
+		static constexpr bool saveOverview				= true;
+		static constexpr bool savePerGenerationOverview	= true;
+		static constexpr bool saveChampions				= true;
+		static constexpr bool saveBestSolutions			= true;
+		static constexpr bool saveSolutions				= true;
+		static constexpr bool saveSpecies				= true;
 	};
 }

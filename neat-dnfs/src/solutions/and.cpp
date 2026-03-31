@@ -2,55 +2,72 @@
 
 namespace neat_dnfs
 {
-	AndSolution::AndSolution(const SolutionTopology& topology)
+	AND::AND(const SolutionTopology& topology)
 		: Solution(topology)
 	{
-		name = "Logic AND";
-		// target fitness is 0.90
-		// same parameters as single bump
+		name = "AND";
 	}
 
-	SolutionPtr AndSolution::clone() const
+	AND::AND(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+		:Solution(initialTopology, phenotype)
 	{
-		AndSolution solution(initialTopology);
-		auto clonedSolution = std::make_shared<AndSolution>(solution);
+		name = "AND";
+	}
+
+	SolutionPtr AND::clone() const
+	{
+		AND solution(initialTopology);
+		auto clonedSolution = std::make_shared<AND>(solution);
 
 		return clonedSolution;
 	}
 
-	void AndSolution::testPhenotype()
+	SolutionPtr AND::copy() const
+	{
+		AND solution(initialTopology, phenotype);
+		auto copy = std::make_shared<AND>(solution);
+
+		return copy;
+	}
+
+	void AND::testPhenotype()
 	{
 		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
+		parameters.partialFitness.clear();
+
 		static constexpr int iterations = SimulationConstants::maxSimulationSteps;
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
-			{ 5.0, 15.0, 50.0, true, false },
+			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		runSimulation(iterations);
 
 		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 15, 10);
-		const double f1_2 = preShapedness("nf 3");
+		const double f1_2 = noBumps("nf 3");
 		parameters.partialFitness.emplace_back(f1_1);
 		parameters.partialFitness.emplace_back(f1_2);
 
 		removeGaussianStimuli();
 		//initSimulation();
 		addGaussianStimulus("nf 2",
-			{ 5.0, 15.0, 50.0, true, false },
+{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+	GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		runSimulation(iterations);
 
 		const double f2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 15, 10);
-		const double f2_2 = preShapedness("nf 3");
+		const double f2_2 = noBumps("nf 3");
 		parameters.partialFitness.emplace_back(f2_1);
 		parameters.partialFitness.emplace_back(f2_2);
 
 		addGaussianStimulus("nf 1",
-			{ 5.0, 15.0, 50.0, true, false },
+{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+	GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		runSimulation(iterations);
@@ -87,7 +104,7 @@ namespace neat_dnfs
 			wf4_1 * f4_1 + wf4_2 * f4_2 + wf4_3 * f4_3;
 	}
 
-	void AndSolution::createPhenotypeEnvironment()
+	void AND::createPhenotypeEnvironment()
 	{
 		addGaussianStimulus("nf 1",
 			{ 5.0, 15.0, 50.0, true, false },
