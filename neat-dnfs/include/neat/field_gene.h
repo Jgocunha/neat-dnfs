@@ -24,42 +24,17 @@ namespace neat_dnfs
 		void print() const;
 	};
 
-	struct FieldGeneStatistics
-	{
-		int numNeuralFieldMutationsPerGeneration = 0;
-		int numKernelMutationsPerGeneration = 0;
-		int numKernelTypeMutationsPerGeneration = 0;
-		int numGaussKernelMutationsPerGeneration = 0;
-		int numMexicanHatKernelMutationsPerGeneration = 0;
-		int numOscillatoryKernelMutationsPerGeneration = 0;
-
-		int numNeuralFieldMutationsTotal = 0;
-		int numKernelMutationsTotal = 0;
-		int numKernelTypeMutationsTotal = 0;
-		int numGaussKernelMutationsTotal = 0;
-		int numMexicanHatKernelMutationsTotal = 0;
-		int numOscillatoryKernelMutationsTotal = 0;
-
-		FieldGeneStatistics() = default;
-		void resetPerGenerationStatistics();
-		std::string toString() const;
-		void print() const;
-		void savePerGeneration(const std::string& directory) const;
-		void saveTotal(const std::string& directory) const;
-	};
-
-
 	class FieldGene
 	{
 	private:
 		FieldGeneParameters parameters;
-		static FieldGeneStatistics statistics;
 		NeuralFieldPtr neuralField;
 		KernelPtr kernel;
 		NormalNoisePtr noise;
+		std::string mutationsInLastGeneration;
 	public:
-		FieldGene(const FieldGeneParameters& parameters, 
-			const dnf_composer::element::ElementDimensions& dimensions = {100, 1.0});
+		explicit FieldGene(const FieldGeneParameters& parameters,
+		                   const dnf_composer::element::ElementDimensions& dimensions = {100, 1.0});
 		FieldGene(const FieldGeneParameters& parameters,
 			const NeuralFieldPtr& neuralField, 
 			KernelPtr kernel);
@@ -70,13 +45,13 @@ namespace neat_dnfs
 		void setAsHidden(const dnf_composer::element::ElementDimensions& dimensions);
 
 		void mutate();
+		void clearLastMutations();
 
 		FieldGeneParameters getParameters() const;
+		std::string getMutationsInLastGeneration() const;
 		std::shared_ptr<dnf_composer::element::NeuralField> getNeuralField() const;
 		std::shared_ptr<dnf_composer::element::Kernel> getKernel() const;
 		std::shared_ptr<dnf_composer::element::NormalNoise> getNoise() const;
-		static void resetMutationStatisticsPerGeneration();
-		static FieldGeneStatistics getStatistics();
 
 		bool operator==(const FieldGene&) const;
 		bool isCloneOf(const FieldGene&) const;
@@ -88,13 +63,11 @@ namespace neat_dnfs
 		void initializeKernel(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeGaussKernel(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeMexicanHatKernel(const dnf_composer::element::ElementDimensions& dimensions);
-		void initializeOscillatoryKernel(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeNoise(const dnf_composer::element::ElementDimensions& dimensions);
 
-		void mutateKernel() const;
-		void mutateGaussKernel() const;
-		void mutateMexicanHatKernel() const;
-		void mutateOscillatoryKernel() const;
+		void mutateKernel();
+		void mutateGaussKernel();
+		void mutateMexicanHatKernel();
 
 		void mutateKernelType();
 		void mutateNeuralField();

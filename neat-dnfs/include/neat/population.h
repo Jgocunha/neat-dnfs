@@ -16,7 +16,7 @@ namespace neat_dnfs
 		int numGenerations;
 		double targetFitness;
 
-		PopulationParameters(int size = 100, int numGenerations = 1000, double targetFitness = 0.95);
+		explicit PopulationParameters(int size = 100, int numGenerations = 1000, double targetFitness = 0.95);
 	};
 
 	struct PopulationControl
@@ -24,19 +24,33 @@ namespace neat_dnfs
 		bool pause;
 		bool stop;
 
-		PopulationControl(bool pause = false, bool stop = false);
+		explicit PopulationControl(bool pause = false, bool stop = false);
 	};
 
 	struct PopulationStatistics
 	{
 		std::chrono::time_point<std::chrono::steady_clock> start;
 		std::chrono::time_point<std::chrono::steady_clock> end;
-		long long duration;
+		long long duration{};
 		
 		PopulationStatistics() = default;
-
 	};
 
+	struct PerGenerationStatistics
+	{
+		double averageFitness = 0.0f;
+		// double stdDevFitness = 0.0f;
+		double bestFitness = 0.0f;
+		int numberOfSpecies = 0;
+		int numberOfActiveSpecies = 0;
+		// double averageCompatibilityDistance;
+		int innovationNumber = 0;
+		double averageGenomeSize = 0.0f;
+		double averageConnectionGenes = 0.0f;
+		double averageFieldGenes = 0.0f;
+
+		PerGenerationStatistics() = default;
+	};
 
 	class Population
 	{
@@ -48,7 +62,8 @@ namespace neat_dnfs
 		std::vector<SolutionPtr> champions;
 		PopulationControl control;
 		PopulationStatistics statistics;
-		bool hasFitnessImproved;
+		PerGenerationStatistics perGenStatistics;
+		bool hasFitnessImproved{};
 		int generationsWithoutImprovement = 0;
 		std::string fileDirectory;
 	public:
@@ -59,16 +74,16 @@ namespace neat_dnfs
 		void initialize() const;
 		void evolve();
 
-		SolutionPtr getBestSolution() const { return bestSolution; }
+		[[nodiscard]] SolutionPtr getBestSolution() const { return bestSolution; }
 		std::vector<std::shared_ptr<Species>> getSpeciesList() { return speciesList; }
-		std::vector<SolutionPtr> getSolutions() const { return solutions; }
-		int getSize() const { return parameters.size; }
-		int getCurrentGeneration() const { return parameters.currentGeneration; }
-		int getNumGenerations() const { return parameters.numGenerations; }
-		bool isInitialized() const { return !solutions.empty(); }
+		[[nodiscard]] std::vector<SolutionPtr> getSolutions() const { return solutions; }
+		[[nodiscard]] int getSize() const { return parameters.size; }
+		[[nodiscard]] int getCurrentGeneration() const { return parameters.currentGeneration; }
+		[[nodiscard]] int getNumGenerations() const { return parameters.numGenerations; }
+		[[nodiscard]] bool isInitialized() const { return !solutions.empty(); }
 
-		void setSize(int size) { parameters.size = size; }
-		void setNumGenerations(int numGenerations) { parameters.numGenerations = numGenerations; }
+		void setSize(const int size) { parameters.size = size; }
+		void setNumGenerations(const int numGenerations) { parameters.numGenerations = numGenerations; }
 
 		void pause() { control.pause = true; }
 		void resume() { control.pause = false; }
@@ -81,13 +96,15 @@ namespace neat_dnfs
 
 		bool endConditionMet() const;
 
+		void startup();
 		void upkeep();
-		void createInitialEmptySolutions(const SolutionPtr& initialSolution);
+		void cleanup();
+		void createInitialSolutions(const SolutionPtr& initialSolution);
 		void buildInitialSolutionsGenome() const;
 
 		void assignToSpecies(const SolutionPtr& solution);
 		std::shared_ptr<Species> findSpecies(const SolutionPtr& solution);
-		std::shared_ptr<Species> getBestActiveSpecies() const;
+		[[nodiscard]] std::shared_ptr<Species> getBestActiveSpecies() const;
 
 		void calculateAdjustedFitness();
 		void assignOffspringToSpecies();
@@ -104,6 +121,7 @@ namespace neat_dnfs
 
 		void upkeepBestSolution();
 		void upkeepChampions();
+		void upkeepPerGenerationStatistics();
 		void updateGenerationAndAges();
 		void validateElitism() const;
 		void validateUniqueSolutions() const;
@@ -118,18 +136,19 @@ namespace neat_dnfs
 		void saveAllSolutionsWithFitnessAbove(double fitness) const;
 		void saveChampions() const;
 		void saveTimestampsAndDuration() const;
-		void saveFinalStatistics() const;
-		void savePerGenerationStatistics() const;
+		void saveAllSolutionsPerGeneration() const;
+		void savePerGenerationOverview() const;
 		void saveBestSolutionOfEachGeneration() const;
 		void saveChampionsOfEachGeneration() const;
+		void savePerGenerationStatistics() const;
+		void savePerGenerationSpecies() const;
 
 		void resetGenerationalInnovations() const;
-		void resetMutationStatisticsPerGeneration() const;
+		void clearLastMutations() const;
 
 		void logSolutions() const;
 		void logSpecies() const;
 		void logOverview() const;
-		void logMutationStatistics() const;
 
 		void startKeyListenerForUserCommands();
 	};

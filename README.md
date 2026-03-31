@@ -1,34 +1,49 @@
+# neat-dnfs
 
-# NEAT-DNFs: Dynamic Neural Field Evolution with NEAT for Robotics
+## A NeuroEvolutionary Framework for Evolving Dynamic Neural Field Architectures
 
 <img src="./neat-dnfs/resources/images/logo.png" alt="logo" width="800" height="800">
 
-A C++ library that combines **NEAT** (NeuroEvolution of Augmenting Topologies) with **Dynamic Neural Fields** (DNFs) to automatically evolve interpretable, neurally inspired control architectures for robotics.
+**neat-dnfs** is a C++ framework that extends **NeuroEvolution of Augmenting Topologies (NEAT)** to the automated synthesis of **Dynamic Neural Field (DNF)** architectures.
+It enables the joint evolution of **continuous-time neural dynamics**, **kernel-based interactions**, and **architectural topology**, supporting the discovery of compact and interpretable Dynamic Field Theory (DFT) models without manual tuning.
 
 ---
 
 ## Overview
 
-**NEAT-DNFs** combines the representational power of *Dynamic Neural Fields*—neural population dynamics that support perception, working memory, and action selection—with the adaptive search capabilities of *NEAT*, which evolves both parameters and topological structure.
+Dynamic Neural Fields (DNFs) provide a biologically grounded and mathematically principled framework for modelling neural population dynamics underlying perception, working memory, selection, and decision-making. Despite their expressive power, DNF architectures are traditionally **hand-designed and manually parameterised**, a process that is time-consuming, difficult to generalise, and highly dependent on expert knowledge.
 
-This integration enables fully **automated design and optimization** of DNF-based controllers, removing the need for manual tuning and handcrafted architectures.  
-The system supports a range of robotics applications, from low-level perceptual processing to high-level decision-making in human–robot collaboration.
+**neat-dnfs** addresses this limitation by integrating DNFs with **neuroevolution**.
+By extending NEAT to operate directly on neural fields and spatial interaction kernels—rather than discrete neurons and scalar weights—the framework enables the **autonomous discovery of DNF architectures** that exhibit desired dynamical behaviours.
+
+The system evolves both:
+
+* **Intrinsic field dynamics** (e.g., time constants, resting levels, kernel profiles)
+* **Inter-field structure** (number of fields and their spatial couplings)
+
+Evolution proceeds from minimal architectures and introduces complexity **only when required by task constraints**, in line with the minimal cognitive construction principle.
 
 ---
 
 ## Key Features
 
-- **Automatic Evolution of DNF Architectures**  
-  Evolve both topology and intra-field parameters—time constants, kernel shapes, and connectivity.
-  
-- **Topologically Minimal, Interpretable Solutions**  
-  Evolution favors compact yet expressive neural field architectures that can be visualized and understood.
-  
-- **Simulation-to-Reality Transfer**  
-  Evolved controllers transfer directly from simulation to physical robots with no manual re-tuning.
-  
-- **Comprehensive Statistics & Visualization**  
-  Automatic per-generation logging, species tracking, and HTML-based interactive visualizations.
+* **Evolution of Dynamic Neural Field Architectures**
+  Simultaneous evolution of neural field parameters and architectural topology.
+
+* **Continuous-Time, Kernel-Based Neuroevolution**
+  Genomes encode spatial interaction kernels and field dynamics instead of discrete synaptic weights.
+
+* **Incremental Structural Complexification**
+  New fields and interactions emerge gradually through NEAT-style structural mutations.
+
+* **Interpretability by Design**
+  Evolved solutions consist of explicit neural fields with identifiable functional roles.
+
+* **Task-General Framework**
+  Applicable to a hierarchy of DFT-inspired tasks, from basic instabilities to compositional cognitive paradigms.
+
+* **Comprehensive Evolutionary Analysis**
+  Built-in logging, statistics, and visualisation of species, genomes, and architectural growth.
 
 ---
 
@@ -36,64 +51,68 @@ The system supports a range of robotics applications, from low-level perceptual 
 
 ### Core Components
 
-| Component | Description |
-|------------|-------------|
-| **Genome** | Encodes field and interaction genes (neural fields + their connections). |
-| **Population** | Manages the evolutionary loop and fitness evaluation. |
-| **Species** | Clusters genomes by compatibility distance for diversity preservation. |
-| **Solution** | Task-specific fitness function implementation. |
-| **Field Genes** | Represent neural fields (input, output, hidden) and DNF parameters such as kernel type, τ, and resting potential *h*. |
-| **Interaction Genes** | Represent spatially structured connections between fields. |
+| Component             | Description                                                                              |
+| --------------------- | ---------------------------------------------------------------------------------------- |
+| **Genome**            | Encodes a DNF-based architecture as field genes and interaction genes.                   |
+| **Population**        | Manages evolution, evaluation, selection, and reproduction.                              |
+| **Species**           | Groups similar architectures to protect structural innovation.                           |
+| **Solution**          | Defines task-specific fitness evaluation based on field dynamics.                        |
+| **Field Genes**       | Represent individual neural fields (input, hidden, output) and their intrinsic dynamics. |
+| **Interaction Genes** | Represent spatially structured kernel-based couplings between fields.                    |
 
-<img src="./neat-dnfs/resources/images/genotype-phenotype-mapping.png">
+<img src="./neat-dnfs/resources/images/genotype-phenotype-wbg.png">
 
-***Genotype-to-phenotype mapping in neat-dnfs.*** *The left panel displays the genomic representation (genotype),
-which contains four field genes (two input, one hidden, and one output) and three interaction genes that define connections
-between fields. Each field gene encodes neural field parameters and intra-field kernel properties, while interaction genes
-specify source-target dyads, kernel parameters, enabled status, and innovation numbers. The right panel illustrates the
-corresponding DNF-based architecture (phenotype), showing how the encoded fields interact with each other.*
+**Genotype-to-phenotype mapping in neat-dnfs.**
+*Field genes encode intrinsic neural field dynamics, while interaction genes specify kernel-defined couplings. Together, they map directly to a continuous-time DNF architecture.*
 
 ---
 
-### Evolutionary Process
+## Evolutionary Process
 
-1. **Initialization** – Create an initial population of basic architectures.  
-2. **Evaluation** – Simulate DNF dynamics and compute behavioral fitness.  
-3. **Speciation** – Group similar architectures to protect new innovations.  
-4. **Selection** – Choose high-performing parents.  
-5. **Reproduction** – Apply crossover and mutation.  
-6. **Mutation** – Add/modify fields, connections, or kernel parameters.  
+1. **Initialization** – Start from ultra-minimal architectures (input and output fields only).
+2. **Simulation** – Evaluate continuous-time DNF dynamics under task-specific stimuli.
+3. **Fitness Evaluation** – Assess qualitative dynamical properties (e.g., peak formation, stability, selection).
+4. **Speciation** – Protect novel architectural innovations using compatibility distance.
+5. **Selection & Reproduction** – Apply NEAT-style crossover and fitness sharing.
+6. **Mutation** – Refine parameters or introduce new fields and interactions.
 
 ---
 
-## Implemented Solutions
+## Implemented Tasks
 
-The project includes several pre-implemented robotics solutions:
+The framework includes a hierarchy of benchmark tasks designed to probe increasingly complex DFT mechanisms:
 
-- **Single Bump**: Basic bump attractor dynamics
-- **Self-Sustained Single Bump**: Persistent activation without input
-- **Logical Operations**: AND, XOR gate implementations
-- **Action Layers**: Simulation and execution layer controllers
-- **Selective Output**: Conditional field output mechanisms
-- **Timing Response**: Temporal dynamics control
-- **Object Selection**: Spatial selection tasks
-- **Multi-Robot**: Two robot team coordination
+### Core Dynamic Mechanisms
+
+* **Detection Instability** – Transient input-driven activation and decay
+* **Memory Instability** – Self-sustained activation without input
+* **Selection Instability** – Winner-take-all competition
+
+### Compositional Tasks Requiring Structural Innovation
+
+* **Delayed Match-to-Sample (DMTS)** – Internal memory biasing later selection
+* **Inhibition of Return (IOR)** – Delayed inhibitory bias against previously selected locations
+
+Additional simple logical tasks (e.g., AND, XOR) are included for validation and demonstration.
 
 ---
 
 ## Building
 
 ### Prerequisites
-- **CMake 3.31.6+**
-- **C++20** compiler
-- **VCPKG** package manager
+
+* **CMake 3.31.6+**
+* **C++20** compiler
+* **VCPKG** package manager
 
 **Dependencies (via VCPKG):**
-- `imgui`, `implot`, `imgui-node-editor`, `nlohmann-json`
 
-**Manual dependencies:**
-- [`imgui-platform-kit`](https://github.com/Jgocunha/imgui-platform-kit)
-- [`dynamic-neural-field-composer`](https://github.com/Jgocunha/dynamic-neural-field-composer)
+* `imgui`, `implot`, `imgui-node-editor`, `nlohmann-json`
+
+**Additional dependencies:**
+
+* [`imgui-platform-kit`](https://github.com/Jgocunha/imgui-platform-kit)
+* [`dynamic-neural-field-composer`](https://github.com/Jgocunha/dynamic-neural-field-composer)
 
 ### Build Instructions
 
@@ -126,76 +145,91 @@ population.initialize();
 population.evolve();
 ```
 
-### Custom Solutions
+### Custom Tasks
 
-To implement a custom robotics task:
+To define a new task:
 
-1. Inherit from `Solution` class
-2. Define initial topology in constructor
-3. Override `evaluate()` method with task-specific fitness function
+1. Inherit from the `Solution` base class
+2. Specify the initial minimal topology
+3. Implement `evaluate()` using field-dynamics-based fitness criteria
 
 ```cpp
 void evaluate() override 
 {
-    // Your fitness evaluation logic here
-    // Use methods like oneBumpAtPositionWithAmplitudeAndWidth()
-    // Set parameters.fitness based on task performance
+    // Define fitness in terms of DNF dynamics:
+    // peak existence, position, amplitude, width, or decay to baseline
+    parameters.fitness = computedFitness;
 }
 ```
 
 ---
 
-## Statistics
+## Statistics and Analysis
 
-The system provides comprehensive statistics tracking:
+The framework automatically records:
 
-- **Mutation Statistics**: Per-generation and total counts for all mutation types
-- **Population Metrics**: Fitness evolution, species diversity, genome complexity
-- **Connection Analysis**: Kernel type distribution, parameter evolution
-- **Performance Logs**: Detailed evolution progress and best solutions
+* **Fitness evolution**
+* **Species diversity and lineage**
+* **Architectural complexity (fields and interactions)**
+* **Mutation and structural growth statistics**
 
-Statistics are automatically saved to the `data/` directory.
+All data are stored in the `data/` directory.
 
----
+### Analysis Tools (`analysis/`)
 
-## Analysis and Visualization
+* **Per-generation fitness and diversity**
+* **Genome and mutation statistics**
+* **Architectural complexity tracking**
 
-The `analysis/` folder contains comprehensive analysis tools for post-evolution analysis and visualization of evolutionary results:
-
-### Python Tools (`analysis/`)
-- **`analysis-other-statistics.py`** – Aggregate metrics, mutation rates, genome statistics.  
-- **`analysis-per-generation-overview.py`** – Generation-wise fitness and diversity tracking.
-
-### Interactive HTML Dashboards
-- **`fitness-visualizer.html`** – Real-time fitness tracking and champion evolution.  
-- **`species-tree.html`** – Interactive species lineage and extinction visualization.  
-- **`phylogenetic-tree.html`** – Genome ancestry and innovation propagation.
+Run the `launch-visualizer.bat` to open a Streamlit app, and then select the experiment directory.
 
 ---
 
 ## Project Structure
 
 ```bash
-neat-dnfs/ 
-├── include/ 
-│ ├── neat/ # Core NEAT-DNF classes 
-│ ├── solutions/ # Pre-implemented robotics solutions 
-│ ├── tools/ # Utilities and logging 
-│ └── constants.h # Global constants 
-├── src/ # Implementation files 
-├── examples/ # Usage examples 
-├── tests/ # Unit tests 
-├── data/ # Output directory for results 
-├── analysis/ # Analysis tools for results
-└── CMakeLists.txt # Build configuration
+neat-dnfs/
+├── include/
+│   ├── neat/          # Core NEAT-DNF implementation
+│   ├── solutions/     # Task definitions
+│   ├── tools/         # Logging and utilities
+│   └── constants.h    # Hyperparameter definition
+├── src/
+├── examples/
+├── tests/
+├── data/              # Evolution outputs
+├── analysis/          # Post-hoc analysis tools
+└── CMakeLists.txt
 ```
 
 ---
 
-## References
+## Video explanation
 
-Key literature:
-- K. Stanley & R. Miikkulainen, *Evolutionary Computation*, 2002 — NEAT algorithm  
-- W. Erlhagen & E. Bicho, *J. Neural Eng.*, 2006 — Dynamic Neural Field theory  
-- E. Bicho et al., *Human Movement Science*, 2011 — DNF in HRI  
-- Floreano & Nolfi, *Evolutionary Robotics*, 2000 — Foundational principles 
+[![Watch the video](https://img.youtube.com/vi/2QaL6OVnpkY/maxresdefault.jpg)](https://youtu.be/2QaL6OVnpkY)
+
+---
+
+## Documentation
+
+For a full exploration of the repository, refer to the [Wiki.](https://github.com/anonymous-author-submissions/neat-dnfs/wiki)
+
+---
+
+## Main inspiration for this work
+
+* Amari, Shun-ichi (1977) - "Dynamics of pattern formation in lateral-inhibition type neural fields"
+* Schöner, Gregor and Spencer, John and Research Group, Dft (2015) - "Dynamic Thinking: A Primer on Dynamic Field Theory"
+* Nolfi, Stefano and Floreano, Dario (2000) - "Evolutionary robotics: the biology, intelligence, and technology of self-organizing machines"
+* Floreano, Dario (2023) - "Bio-Inspired Artificial Intelligence: Theories, Methods, and Technologies"
+* Erlhagen, Wolfram and Bicho, Estela (2006) - "The dynamic neural field approach to cognitive robotics"
+* Krichmar, Jeffrey L. (2018) - "Neurorobotics — A Thriving Community and a Promising Pathway Toward Intelligent Cognitive Robots"
+* Stanley, Kenneth O. and Miikkulainen, Risto (2002) - "Evolving Neural Networks through Augmenting Topologies"
+* Erlhagen, Wolfram and Bicho, Estela (2014) - "A Dynamic Neural Field Approach to Natural and Efficient Human-Robot Collaboration"
+* Pfeifer, Rolf and Bongard, Josh (2006) - "How the Body Shapes the Way We Think: A New View of Intelligence"
+* Coombes, Stephen and Beim Graben, Peter and Potthast, Roland and Wright, James (2014) - "Neural fields: theory and applications"
+
+
+
+
+

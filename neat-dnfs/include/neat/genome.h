@@ -9,37 +9,13 @@ namespace neat_dnfs
 {
 	static int globalInnovationNumber = 0;
 
-	struct GenomeStatistics
-	{
-		int numAddConnectionGeneMutationsPerGeneration = 0;
-		int numAddFieldGeneMutationsPerGeneration = 0;
-		int numMutateFieldGeneMutationsPerGeneration = 0;
-		int numMutateConnectionGeneMutationsPerGeneration = 0;
-		int numToggleConnectionGeneMutationsPerGeneration = 0;
-
-		int numAddConnectionGeneMutationsTotal = 0;
-		int numAddFieldGeneMutationsTotal = 0;
-		int numMutateFieldGeneMutationsTotal = 0;
-		int numMutateConnectionGeneMutationsTotal = 0;
-		int numToggleConnectionGeneMutationsTotal = 0;
-
-		GenomeStatistics() = default;
-		void resetPerGenerationStatistics();
-		std::string toString() const;
-		void print() const;
-		void savePerGeneration(const std::string& directory) const;
-		void saveTotal(const std::string& directory) const;
-	};
-
-
 	class Genome
 	{
 	private:
 		std::vector<FieldGene> fieldGenes;
 		std::vector<ConnectionGene> connectionGenes;
 		static std::map<ConnectionTuple, int> connectionTupleAndInnovationNumberWithinGeneration;
-		static GenomeStatistics statistics;
-		std::string lastMutationType;
+		std::string mutationsInLastGeneration;
 	public:
 		Genome() = default;
 		~Genome();
@@ -52,40 +28,38 @@ namespace neat_dnfs
 		void checkForDuplicateConnectionGenes() const;
 		static void clearGenerationalInnovations();
 		static void resetGlobalInnovationNumber();
+		void clearLastMutations();
 		void removeConnectionGene(int innov);
 
-		std::vector<FieldGene> getFieldGenes() const;
-		std::vector<ConnectionGene> getConnectionGenes() const;
-		std::vector<int> getInnovationNumbers() const;
+		[[nodiscard]] std::vector<FieldGene> getFieldGenes() const;
+		[[nodiscard]] std::vector<ConnectionGene> getConnectionGenes() const;
+		[[nodiscard]] std::vector<int> getInnovationNumbers() const;
 		static int getGlobalInnovationNumber();
-		static GenomeStatistics getStatistics();
-		std::string getLastMutationType() const;
+		[[nodiscard]] std::string getMutationsInLastGeneration() const;
 
-		static void resetMutationStatisticsPerGeneration();
-
-		int excessGenes(const Genome& other) const;
-		int disjointGenes(const Genome& other) const;
-		double averageConnectionDifference(const Genome& other) const;
+		[[nodiscard]] int excessGenes(const Genome& other) const;
+		[[nodiscard]] int disjointGenes(const Genome& other) const;
+		[[nodiscard]] double averageConnectionDifference(const Genome& other) const;
 
 		void addFieldGene(const FieldGene& fieldGene);
 		void addConnectionGene(const ConnectionGene& connectionGene);
-		bool containsConnectionGene(const ConnectionGene& connectionGene) const;
-		bool containsFieldGene(const FieldGene& fieldGene) const;
-		bool containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const;
+		[[nodiscard]] bool containsConnectionGene(const ConnectionGene& connectionGene) const;
+		[[nodiscard]] bool containsFieldGene(const FieldGene& fieldGene) const;
+		[[nodiscard]] bool containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const;
 
-		ConnectionGene getConnectionGeneByInnovationNumber(int innovationNumber) const;
-		FieldGene getFieldGeneById(int id) const;
+		[[nodiscard]] ConnectionGene getConnectionGeneByInnovationNumber(int innovationNumber) const;
+		[[nodiscard]] FieldGene getFieldGeneById(int id) const;
 
-		bool isEmpty() const;
+		[[nodiscard]] bool isEmpty() const;
 		bool operator==(const Genome& other) const;
-		std::string toString() const;
+		[[nodiscard]] std::string toString() const;
 		void print() const;
 	private:
-		ConnectionTuple getNewRandomConnectionGeneTuple() const;
-		int getRandomGeneId() const;
-		int getRandomGeneIdByType(FieldGeneType type) const;
-		int getRandomGeneIdByTypes(const std::vector<FieldGeneType>& types) const;
-		ConnectionGene* getEnabledConnectionGene() const;
+		[[nodiscard]] ConnectionTuple getNewRandomConnectionGeneTuple() const;
+		[[nodiscard]] int getRandomGeneId() const;
+		[[nodiscard]] int getRandomGeneIdByType(FieldGeneType type) const;
+		[[nodiscard]] int getRandomGeneIdByTypes(const std::vector<FieldGeneType>& types) const;
+		[[nodiscard]] ConnectionGene* getEnabledConnectionGene() const;
 
 		void addConnectionGene(ConnectionTuple connectionTuple);
 		void addGene();

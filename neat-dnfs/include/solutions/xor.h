@@ -5,13 +5,13 @@
 
 namespace neat_dnfs
 {
-	class XOR : public Solution
+	class XOR final : public Solution
 	{
 	public:
-		XOR(const SolutionTopology& topology);
+		explicit XOR(const SolutionTopology& topology);
 		XOR(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
-
 		SolutionPtr clone() const override;
+		SolutionPtr copy() const override;
 	private:
 		void testPhenotype() override;
 		void createPhenotypeEnvironment() override;
