@@ -57,7 +57,7 @@ namespace neat_dnfs
 	ConnectionGene::ConnectionGene(const ConnectionTuple connectionTuple, const int innov)
 		: parameters(connectionTuple, innov)
 	{
-		initializeKernel({ DimensionConstants::xSize, DimensionConstants::dx });
+		initializeKernel(dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 
 	ConnectionGene::ConnectionGene(const ConnectionTuple connectionTuple, const int innov,
@@ -71,7 +71,7 @@ namespace neat_dnfs
 			" - " + std::to_string(connectionTuple.outFieldGeneId) + " " +
 			std::to_string(parameters.innovationNumber);
 		const ElementCommonParameters gkcp{ elementName,
-			{DimensionConstants::xSize, DimensionConstants::dx} };
+			dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<GaussKernel>(gkcp, gkp);
 	}
 
@@ -86,7 +86,7 @@ namespace neat_dnfs
 			" - " + std::to_string(connectionTuple.outFieldGeneId) + " " +
 			std::to_string(parameters.innovationNumber);
 		const ElementCommonParameters mhkcp{ elementName,
-			{DimensionConstants::xSize, DimensionConstants::dx} };
+			dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<MexicanHatKernel>(mhkcp, mhkp);
 	}
 
@@ -101,7 +101,7 @@ namespace neat_dnfs
 			" - " + std::to_string(parameters.connectionTuple.outFieldGeneId) + " " +
 			std::to_string(parameters.innovationNumber);
 		const ElementCommonParameters gkcp{ elementName,
-			{DimensionConstants::xSize, DimensionConstants::dx} };
+			dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<GaussKernel>(gkcp, gkp);
 	}
 
@@ -116,7 +116,7 @@ namespace neat_dnfs
 			" - " + std::to_string(parameters.connectionTuple.outFieldGeneId) + " " +
 			std::to_string(parameters.innovationNumber);
 		const ElementCommonParameters mhkcp{ elementName,
-					{DimensionConstants::xSize, DimensionConstants::dx} };
+					dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<MexicanHatKernel>(mhkcp, mhkp);
 	}
 

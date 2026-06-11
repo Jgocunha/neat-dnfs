@@ -28,7 +28,7 @@ namespace neat_dnfs
 		initSimulation();
 		addGaussianStimulus("nf 1",
 			{ 5.0, 15.0, 25.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 
 		const double f1_1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 25.0, 20, 10);
@@ -60,6 +60,6 @@ namespace neat_dnfs
 	{
 		addGaussianStimulus("nf 1",
 			{ 5.0, 15.0, 25.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 }

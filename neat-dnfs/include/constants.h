@@ -2,6 +2,9 @@
 
 #include <elements/element_factory.h>
 
+#include "neat_tools/logger.h"
+#include "neat_tools/utils.h"
+
 namespace neat_dnfs
 {
 	typedef std::shared_ptr<dnf_composer::element::NeuralField> NeuralFieldPtr;

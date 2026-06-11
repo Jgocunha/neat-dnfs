@@ -27,13 +27,13 @@ namespace neat_dnfs
 		initSimulation();
 		addGaussianStimulus("nf 1",
 			{ 5.0, 15.0, 20.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 1",
 			{ 5.0, 15.0, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 1",
 			{ 5.0, 15.0, 80.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 		const double f1 = threeBumpsAtPositionWithAmplitudeAndWidth("nf 1",
 			20.0, 15, 10,
@@ -47,7 +47,7 @@ namespace neat_dnfs
 		removeGaussianStimuli();
 		addGaussianStimulus("nf 2",
 				{ 5.0, 15.0, 50.0, true, false },
-				{ DimensionConstants::xSize, DimensionConstants::dx });
+				dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 		const double f3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 15, 10);
 		const double f4 = preShapedness("nf 3");
@@ -56,7 +56,7 @@ namespace neat_dnfs
 
 		addGaussianStimulus("nf 1",
 			{ 5.0, 15.0, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		runSimulation(iterations);
 
@@ -95,16 +95,16 @@ namespace neat_dnfs
 	{
 		addGaussianStimulus("nf 1",
 			{ 5.0, 15.0, 20.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 1",
 			{ 5.0, 15.0, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 1",
 			{ 5.0, 15.0, 80.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		addGaussianStimulus("nf 2",
 			{ 5.0, 0.0, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 }

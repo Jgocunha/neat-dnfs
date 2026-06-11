@@ -27,7 +27,7 @@ namespace neat_dnfs
 
 		addGaussianStimulus("nf 1", 
 			{ 5.0, 15.0, 50.0, true, false }, 
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		initSimulation();
 		runSimulation(iterations);
 
@@ -56,6 +56,6 @@ namespace neat_dnfs
 	{
 		addGaussianStimulus("nf 1",
 			{ 5.0, 0.0, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 }

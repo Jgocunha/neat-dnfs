@@ -46,9 +46,9 @@ namespace neat_dnfs
 		// =========================
 		initSimulation();
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, posA,
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, posA,
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 		const double f1 = preShapednessAtPosition("nf 3", posA);
 		parameters.partialFitness.push_back(f1);
@@ -61,9 +61,9 @@ namespace neat_dnfs
 		// Phase B: Encoding
 		// =========================
 		addGaussianStimulus("nf 2",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, posB,
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, posB,
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations*5);
 		const double f5 = preShapednessAtPosition("nf 3", posB);
 		parameters.partialFitness.push_back(f5);
@@ -73,13 +73,13 @@ namespace neat_dnfs
 		// =========================
 		removeGaussianStimuli();
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, posA,
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, posA,
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, posB,
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, posB,
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 		const double f6 = closenessToRestingLevel("nf 2");
 		parameters.partialFitness.push_back(f6);
@@ -110,16 +110,16 @@ namespace neat_dnfs
 	void MemoryTrace::createPhenotypeEnvironment()
 	{
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, 0.0, 20.0,
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, 0.0, 20.0,
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, 0.0, 80.0,
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, 0.0, 80.0,
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 2",
-		   { GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0,
+		   dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0,
 			 GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-		   { DimensionConstants::xSize, DimensionConstants::dx });
+		   dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 }

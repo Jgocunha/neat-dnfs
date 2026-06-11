@@ -8,7 +8,7 @@
 #include <dnf_composer/tools/logger.h>
 
 #include "neat/population.h"
-#include "tools/logger.h"
+#include "neat_tools/logger.h"
 #include "solutions/detection_instability.h"
 #include "solutions/memory_instability.h"
 #include "solutions/and.h"
@@ -36,10 +36,10 @@
 		// select the type of solution here
 		InhibitionOfReturn solution{
 			SolutionTopology{ {
-				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				//	{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				{FieldGeneType::INPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
+				//	{FieldGeneType::INPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
+				//{FieldGeneType::INPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
+				{FieldGeneType::OUTPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
 			}
 			},
 			template_solution // load a previous solution

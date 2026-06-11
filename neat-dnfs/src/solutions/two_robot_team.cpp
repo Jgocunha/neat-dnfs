@@ -45,17 +45,17 @@ namespace neat_dnfs
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 2",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 3",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 		const double f1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 5", { 50.0 }, out_amp, out_width);
 		const double f2 = preShapedness("nf 4", { 20.0, 80.0 });
@@ -98,11 +98,11 @@ namespace neat_dnfs
   //      // stage 1
   //      initSimulation();
   //      addGaussianStimulus("nf 1",
-  //          { GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
-  //          { DimensionConstants::xSize, DimensionConstants::dx });
+  //          dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+  //          dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
   //      addGaussianStimulus("nf 1",
-  //          { GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
-  //          { DimensionConstants::xSize, DimensionConstants::dx });
+  //          dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+  //          dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
   //      runSimulation(iterations);
   //      const double f1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0, 80.0 }, out_amp, out_width);
   //      parameters.partialFitness.push_back(f1);
@@ -115,8 +115,8 @@ namespace neat_dnfs
   //      removeGaussianStimuli();
   //      initSimulation();
   //      addGaussianStimulus("nf 2",
-  //          { GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
-  //          { DimensionConstants::xSize, DimensionConstants::dx });
+  //          dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+  //          dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
   //      runSimulation(iterations);
   //      const double f3 = preShapedness("nf 5");
   //      parameters.partialFitness.push_back(f3);
@@ -124,15 +124,15 @@ namespace neat_dnfs
   //      removeGaussianStimuli();
   //      //initSimulation();
   //      addGaussianStimulus("nf 3",
-  //          { GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
-  //          { DimensionConstants::xSize, DimensionConstants::dx });
+  //          dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+  //          dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
   //      runSimulation(iterations);
   //      const double f4 = preShapedness("nf 5");
   //      parameters.partialFitness.push_back(f4);
 
   //      addGaussianStimulus("nf 2",
-  //          { GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
-  //          { DimensionConstants::xSize, DimensionConstants::dx });
+  //          dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+  //          dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
   //      runSimulation(iterations);
   //      const double f5 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 5", { 50.0 }, out_amp, out_width);
   //      parameters.partialFitness.push_back(f5);
@@ -152,18 +152,18 @@ namespace neat_dnfs
   //      removeGaussianStimuli();
   //      initSimulation();
 		//addGaussianStimulus("nf 3",
-		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
-		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//	dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+		//	dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		//runSimulation(iterations);
 		//const double f7 = negativePreShapednessAtPosition("nf 4", 20.0);
 		//parameters.partialFitness.push_back(f7);
 
   //      addGaussianStimulus("nf 1",
-  //          { GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
-  //          { DimensionConstants::xSize, DimensionConstants::dx });
+  //          dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+  //          dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
   //      addGaussianStimulus("nf 1",
-  //          { GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
-  //          { DimensionConstants::xSize, DimensionConstants::dx });
+  //          dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+  //          dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		//runSimulation(iterations);
 		//const double f8_1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 80.0 }, out_amp, out_width);
 
@@ -176,14 +176,14 @@ namespace neat_dnfs
 		//removeGaussianStimuli();
 		//initSimulation();
 		//addGaussianStimulus("nf 1",
-		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
-		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//	dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+		//	dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		//addGaussianStimulus("nf 2",
-		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
-		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//	dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+		//	dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		//addGaussianStimulus("nf 3",
-		//	{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
-		//	{ DimensionConstants::xSize, DimensionConstants::dx });
+		//	dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+		//	dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		//runSimulation(iterations);
 		//const double f10 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 5", { 50.0 }, out_amp, out_width);
 		//parameters.partialFitness.push_back(f10);
@@ -233,19 +233,19 @@ namespace neat_dnfs
 	void TwoRobotTeam::createPhenotypeEnvironment()
 	{
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		addGaussianStimulus("nf 2",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		addGaussianStimulus("nf 3",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 }
