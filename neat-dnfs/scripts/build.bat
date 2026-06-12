@@ -18,7 +18,7 @@ mkdir %PROJECT_ROOT%\build\x64-release 2>nul
 mkdir %PROJECT_ROOT%\build\x64-debug 2>nul
 
 :: Release
-cmake -G "Visual Studio 17 2022" -A x64 ^
+cmake ^
     -S "%PROJECT_ROOT%" -B "%PROJECT_ROOT%\build\x64-release" ^
     -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" ^
     -DCMAKE_BUILD_TYPE=Release ^
@@ -29,7 +29,7 @@ cmake --build "%PROJECT_ROOT%\build\x64-release" --config Release --parallel
 if errorlevel 1 ( echo ERROR: Release build failed. & exit /b 1 )
 
 :: Debug
-cmake -G "Visual Studio 17 2022" -A x64 ^
+cmake ^
     -S "%PROJECT_ROOT%" -B "%PROJECT_ROOT%\build\x64-debug" ^
     -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" ^
     -DCMAKE_BUILD_TYPE=Debug ^
