@@ -105,6 +105,11 @@ find_package(unofficial-imgui-node-editor CONFIG REQUIRED)
 # Setup nlohmann-json
 find_package(nlohmann_json CONFIG REQUIRED)
 
+# Setup OpenGL (required on macOS/Linux to satisfy imgui-platform-kit's exported link interface)
+if(NOT WIN32)
+    find_package(OpenGL REQUIRED)
+endif()
+
 # Setup imgui-platform-kit
 find_package(imgui-platform-kit REQUIRED)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE imgui-platform-kit)
