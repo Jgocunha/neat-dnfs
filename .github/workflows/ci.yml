@@ -95,10 +95,9 @@ jobs:
           chmod +x scripts/build.sh
           ./scripts/build.sh
 
-      # TODO: re-enable once test suite is set up
-      # - name: Run tests
-      #   working-directory: ./neat-dnfs/build/linux-release
-      #   run: ctest --output-on-failure --parallel $(nproc)
+      - name: Run tests
+        working-directory: ./neat-dnfs/build/linux-release
+        run: ctest --output-on-failure --parallel $(nproc)
 
   # ── Windows ────────────────────────────────────────────────────────────────
   build-windows:

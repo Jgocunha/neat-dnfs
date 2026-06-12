@@ -14,6 +14,12 @@ namespace neat_dnfs
 		return clonedSolution;
 	}
 
+	SolutionPtr EmptySolution::copy() const
+	{
+		EmptySolution solution(initialTopology);
+		return std::make_shared<EmptySolution>(solution);
+	}
+
 	void EmptySolution::testPhenotype()
 	{
 		updateFitness();

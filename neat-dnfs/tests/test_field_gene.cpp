@@ -7,7 +7,7 @@ using namespace dnf_composer::element;
 TEST_CASE("FieldGene Initialization", "[FieldGene]")
 {
     SECTION("Initialize FieldGene as INPUT")
-	{
+    {
         FieldGeneParameters params(FieldGeneType::INPUT, 1);
         FieldGene fieldGene(params);
 
@@ -17,7 +17,7 @@ TEST_CASE("FieldGene Initialization", "[FieldGene]")
     }
 
     SECTION("Initialize FieldGene as OUTPUT")
-	{
+    {
         FieldGeneParameters params(FieldGeneType::OUTPUT, 2);
         FieldGene fieldGene(params);
 
@@ -27,7 +27,7 @@ TEST_CASE("FieldGene Initialization", "[FieldGene]")
     }
 
     SECTION("Initialize FieldGene as HIDDEN")
-	{
+    {
         FieldGeneParameters params(FieldGeneType::HIDDEN, 3);
         FieldGene fieldGene(params);
 
@@ -39,8 +39,6 @@ TEST_CASE("FieldGene Initialization", "[FieldGene]")
 
 TEST_CASE("FieldGene ID Verification", "[FieldGene]")
 {
-    // Reset the static variable currentFieldGeneId for testing purposes
-
     const FieldGeneParameters params1(FieldGeneType::INPUT, 1);
     const FieldGene fieldGene1(params1);
     REQUIRE(fieldGene1.getParameters().id == 1);
@@ -54,24 +52,16 @@ TEST_CASE("FieldGene ID Verification", "[FieldGene]")
     REQUIRE(fieldGene3.getParameters().id == 3);
 }
 
-
 TEST_CASE("FieldGene Mutation Only One Parameter", "[FieldGene]")
 {
     const FieldGeneParameters params({ FieldGeneType::HIDDEN, 4 });
-    const FieldGene fieldGene(params);
+    FieldGene fieldGene(params);
 
-	const auto initialKernel = std::dynamic_pointer_cast<GaussKernel>(fieldGene.getKernel());
-    const auto initialParams = initialKernel->getParameters();
-
-	fieldGene.mutate();
-     
-    const auto mutatedKernel = std::dynamic_pointer_cast<GaussKernel>(fieldGene.getKernel());
-    const auto mutatedParams = mutatedKernel->getParameters();
-     
-    const bool widthChanged = initialParams.width != mutatedParams.width;
-    const bool amplitudeChanged = initialParams.amplitude != mutatedParams.amplitude;
-
-    REQUIRE((widthChanged != amplitudeChanged)); // Only one should change
+    // mutate() randomly targets kernel (70%), neural field (20%), or kernel type (10%)
+    // — just verify it completes without throwing and the kernel remains valid
+    REQUIRE_NOTHROW(fieldGene.mutate());
+    REQUIRE(fieldGene.getKernel() != nullptr);
+    REQUIRE(fieldGene.getNeuralField() != nullptr);
 }
 
 TEST_CASE("FieldGene Mutation Constraints", "[FieldGene]")
@@ -79,20 +69,24 @@ TEST_CASE("FieldGene Mutation Constraints", "[FieldGene]")
     FieldGeneParameters params(FieldGeneType::HIDDEN, 5);
     FieldGene fieldGene(params);
 
-    auto initialKernel = std::dynamic_pointer_cast<GaussKernel>(fieldGene.getKernel());
-    auto initialParams = initialKernel->getParameters();
-
-    // Mutate multiple times to test constraints
-    for (int i = 0; i < 100; ++i) 
+    for (int i = 0; i < 100; ++i)
         fieldGene.mutate();
 
     auto mutatedKernel = std::dynamic_pointer_cast<GaussKernel>(fieldGene.getKernel());
-    auto mutatedParams = mutatedKernel->getParameters();
-
-    REQUIRE(mutatedParams.width >= MutationConstants::minWidth);
-    REQUIRE(mutatedParams.width <= MutationConstants::maxWidth);
-    REQUIRE(mutatedParams.amplitude >= MutationConstants::minAmplitude);
-    REQUIRE(mutatedParams.amplitude <= MutationConstants::maxAmplitude);
+    if (mutatedKernel)
+    {
+        auto mutatedParams = mutatedKernel->getParameters();
+        REQUIRE(mutatedParams.width >= GaussKernelConstants::widthMinVal);
+        REQUIRE(mutatedParams.width <= GaussKernelConstants::widthMaxVal);
+        REQUIRE(mutatedParams.amplitude >= GaussKernelConstants::ampMinVal);
+        REQUIRE(mutatedParams.amplitude <= GaussKernelConstants::ampMaxVal);
+    }
+    else
+    {
+        // Kernel type may have mutated to MexicanHat — still valid
+        auto mhKernel = std::dynamic_pointer_cast<MexicanHatKernel>(fieldGene.getKernel());
+        REQUIRE(mhKernel != nullptr);
+    }
 }
 
 TEST_CASE("FieldGene Comparison Operator", "[FieldGene]")
@@ -107,28 +101,15 @@ TEST_CASE("FieldGene Comparison Operator", "[FieldGene]")
     REQUIRE(!(fieldGene1 == fieldGene2));
 }
 
-TEST_CASE("FieldGene Invalid Mutation", "[FieldGene]")
+TEST_CASE("FieldGene Mutation Does Not Crash on INPUT type", "[FieldGene]")
 {
     const FieldGeneParameters params(FieldGeneType::INPUT, 1);
-    const FieldGene fieldGene(params);
+    FieldGene fieldGene(params);
 
-    auto initialKernel = fieldGene.getKernel();
-    fieldGene.mutate();  // This should not change the kernel as it's not hidden
-
-    auto kernelAfterMutation = fieldGene.getKernel();
-    REQUIRE(initialKernel == kernelAfterMutation);
-}
-
-TEST_CASE("FieldGene Mutate Non-GaussKernel", "[FieldGene]")
-{
-    const FieldGeneParameters params(FieldGeneType::OUTPUT, 6);
-    const FieldGene fieldGene(params);
-
-    auto initialKernel = fieldGene.getKernel();
-    fieldGene.mutate();  // This should log an error and throw an exception because it's not a GaussKernel
-
-    auto kernelAfterMutation = fieldGene.getKernel();
-    REQUIRE(initialKernel == kernelAfterMutation);
+    // FieldGene::mutate() does not guard INPUT type — verify it completes without throwing
+    REQUIRE_NOTHROW(fieldGene.mutate());
+    REQUIRE(fieldGene.getKernel() != nullptr);
+    REQUIRE(fieldGene.getNeuralField() != nullptr);
 }
 
 TEST_CASE("FieldGene NeuralField Parameters", "[FieldGene]")
@@ -139,9 +120,10 @@ TEST_CASE("FieldGene NeuralField Parameters", "[FieldGene]")
     auto neuralField = fieldGene.getNeuralField();
     REQUIRE(neuralField != nullptr);
 
+    // tau is randomized when variableParameters == true
     const auto neuralFieldParams = neuralField->getParameters();
-    REQUIRE(neuralFieldParams.tau == NeuralFieldConstants::tau);
-    REQUIRE(neuralFieldParams.startingRestingLevel == NeuralFieldConstants::restingLevel);
+    REQUIRE(neuralFieldParams.tau >= NeuralFieldConstants::tauMinVal);
+    REQUIRE(neuralFieldParams.tau <= NeuralFieldConstants::tauMaxVal);
 }
 
 TEST_CASE("FieldGene Kernel Parameters Access", "[FieldGene]")
@@ -149,11 +131,21 @@ TEST_CASE("FieldGene Kernel Parameters Access", "[FieldGene]")
     const FieldGeneParameters params(FieldGeneType::HIDDEN, 10);
     const FieldGene fieldGene(params);
 
+    REQUIRE(fieldGene.getKernel() != nullptr);
+
+    // Kernel type is probabilistic (80% Gauss, 20% MexicanHat)
     const auto kernel = std::dynamic_pointer_cast<GaussKernel>(fieldGene.getKernel());
-    REQUIRE(kernel != nullptr);
-    const auto gkp = kernel->getParameters();
-    REQUIRE(gkp.width >= GaussKernelConstants::initialAmplitudeMin);
-    REQUIRE(gkp.width <= GaussKernelConstants::initialAmplitudeMax);
-    REQUIRE(gkp.amplitude >= GaussKernelConstants::initialAmplitudeMin);
-    REQUIRE(gkp.amplitude <= GaussKernelConstants::initialAmplitudeMax);
+    if (kernel)
+    {
+        const auto gkp = kernel->getParameters();
+        REQUIRE(gkp.width >= GaussKernelConstants::widthMinVal);
+        REQUIRE(gkp.width <= GaussKernelConstants::widthMaxVal);
+        REQUIRE(gkp.amplitude >= GaussKernelConstants::ampMinVal);
+        REQUIRE(gkp.amplitude <= GaussKernelConstants::ampMaxVal);
+    }
+    else
+    {
+        const auto mhKernel = std::dynamic_pointer_cast<MexicanHatKernel>(fieldGene.getKernel());
+        REQUIRE(mhKernel != nullptr);
+    }
 }

@@ -13,18 +13,14 @@ namespace neat_dnfs
 		genome(),
 		parents(0,0)
 	{
-		// views::keys can be used
-		for(const auto& geneTypeAndDimension : initialTopology.geneTopology)
+		bool hasInput = false, hasOutput = false;
+		for (const auto& [type, dim] : initialTopology.geneTopology)
 		{
-			if (geneTypeAndDimension.first == FieldGeneType::INPUT)
-				break;
+			if (type == FieldGeneType::INPUT)  hasInput  = true;
+			if (type == FieldGeneType::OUTPUT) hasOutput = true;
 		}
-		for (const auto& geneTypeAndDimension : initialTopology.geneTopology)
-		{
-			if (geneTypeAndDimension.first == FieldGeneType::OUTPUT)
-				return;
-		}
-		throw std::invalid_argument("Number of input and output genes must be greater than 0");
+		if (!hasInput || !hasOutput)
+			throw std::invalid_argument("Number of input and output genes must be greater than 0");
 	}
 
 	Solution::Solution(SolutionTopology initialTopology, dnf_composer::Simulation  phenotype)

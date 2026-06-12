@@ -73,6 +73,9 @@ namespace neat_dnfs
 		PerGenerationStatistics perGenStatistics;
 		bool hasFitnessImproved{};
 		int generationsWithoutImprovement = 0;
+		double previousBestFitness = 0.0;
+		mutable SolutionPtr elitismPrevBest;
+		mutable double elitismPrevBestFitness = 0.0;
 		std::string fileDirectory;
 	public:
 		Population(const PopulationParameters& parameters, 
@@ -102,7 +105,7 @@ namespace neat_dnfs
 		void speciate();
 		void reproduceAndSelect();
 
-		bool endConditionMet() const;
+		[[nodiscard]] bool endConditionMet() const;
 
 		void startup();
 		void upkeep();
