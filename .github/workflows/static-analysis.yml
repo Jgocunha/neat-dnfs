@@ -1,0 +1,89 @@
+name: Static Analysis
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  static-analysis:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+      VCPKG_DEFAULT_TRIPLET: x64-linux
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc-13 g++-13 clang clang-tidy cppcheck \
+            libgl1-mesa-dev libglu1-mesa-dev libglfw3-dev \
+            libxrandr-dev libxinerama-dev libxcursor-dev \
+            libxi-dev libxext-dev
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
+
+      - name: Clone vcpkg
+        run: git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT
+
+      - name: Bootstrap vcpkg
+        run: $VCPKG_ROOT/bootstrap-vcpkg.sh -disableMetrics
+
+      - name: Cache vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VCPKG_ROOT }}/installed
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('neat-dnfs/scripts/setup.sh') }}
+          restore-keys: vcpkg-${{ runner.os }}-
+
+      - name: Setup dependencies
+        working-directory: ./neat-dnfs
+        run: |
+          chmod +x scripts/setup.sh
+          ./scripts/setup.sh
+
+      - name: Configure (generate compile_commands.json)
+        working-directory: ./neat-dnfs
+        run: |
+          cmake -S . -B build/analysis \
+            -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_PREFIX_PATH="deps/ipk-install;deps/dnfc-install"
+
+      - name: Run clang-tidy
+        working-directory: ./neat-dnfs
+        run: |
+          run-clang-tidy -p build/analysis \
+            -header-filter='include/neat/.*|include/constants\.h' \
+            $(find src/neat -name '*.cpp') \
+            2>&1 | tee clang-tidy-report.txt
+
+      - name: Run cppcheck
+        working-directory: ./neat-dnfs
+        run: |
+          cppcheck \
+            --enable=warning,style,performance,portability \
+            --suppressions-list=.cppcheck-suppressions \
+            --error-exitcode=0 \
+            --std=c++20 \
+            --template='{file}:{line}: {severity}: {message} [{id}]' \
+            -I include \
+            src/neat/ \
+            2>&1 | tee cppcheck-report.txt
+
+      - name: Upload analysis reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-analysis-reports
+          path: |
+            neat-dnfs/clang-tidy-report.txt
+            neat-dnfs/cppcheck-report.txt
