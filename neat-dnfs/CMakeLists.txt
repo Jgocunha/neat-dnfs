@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.31.6)
+﻿cmake_minimum_required(VERSION 3.20...3.30)
 
 project(neat-dnfs
         DESCRIPTION "Dynamic Neural Field Evolution with NEAT for Robotics"
@@ -60,8 +60,8 @@ set(header
         "include/solutions/and.h"
         "include/solutions/xor.h"
 
-        "include/tools/logger.h"
-        "include/tools/utils.h"
+        "include/neat_tools/logger.h"
+        "include/neat_tools/utils.h"
 
         "include/constants.h"
 )
@@ -82,7 +82,7 @@ set(src
         "src/solutions/and.cpp"
         "src/solutions/xor.cpp"
 
-        "src/tools/logger.cpp"
+        "src/neat_tools/logger.cpp"
 )
 
 # Library target definition
@@ -104,6 +104,11 @@ find_package(unofficial-imgui-node-editor CONFIG REQUIRED)
 
 # Setup nlohmann-json
 find_package(nlohmann_json CONFIG REQUIRED)
+
+# Setup OpenGL (required on macOS/Linux to satisfy imgui-platform-kit's exported link interface)
+if(NOT WIN32)
+    find_package(OpenGL REQUIRED)
+endif()
 
 # Setup imgui-platform-kit
 find_package(imgui-platform-kit REQUIRED)

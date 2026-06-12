@@ -1113,7 +1113,7 @@ namespace neat_dnfs
 		{
 			const auto position = gaussStimulus->getParameters().position;
 			newPosition = position + step;
-			gaussStimulus->setParameters({ gaussStimulus->getParameters().width, gaussStimulus->getParameters().amplitude, newPosition });
+			gaussStimulus->setParameters(dnf_composer::element::GaussStimulusParameters{ gaussStimulus->getParameters().width, gaussStimulus->getParameters().amplitude, newPosition });
 
 			for (int i = 0; i < steps_t; i++)
 				phenotype.step();

@@ -2,7 +2,7 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
-#include "tools/logger.h"
+#include "neat_tools/logger.h"
 
 namespace neat_dnfs
 {
@@ -25,8 +25,13 @@ namespace neat_dnfs
                 const auto in_time_t = std::chrono::system_clock::to_time_t(now);
 
                 std::tm buf;
+#ifdef _WIN32
                 if (localtime_s(&buf, &in_time_t))
                     throw std::runtime_error("Failed to get current time");
+#else
+                if (!localtime_r(&in_time_t, &buf))
+                    throw std::runtime_error("Failed to get current time");
+#endif
 
                 const std::string levelStr = getLogLevelText(logLevel);
                 const std::string prefixStr = "<neat-dnfs> " + levelStr;
@@ -135,7 +140,7 @@ namespace neat_dnfs
 //
 //// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 //
-//#include "tools/logger.h"
+//#include "neat_tools/logger.h"
 //
 //namespace dnf_composer
 //{

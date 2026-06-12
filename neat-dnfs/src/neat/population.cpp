@@ -35,7 +35,7 @@ namespace neat_dnfs
 
 	void Population::startup()
 	{
-		statistics.start = std::chrono::high_resolution_clock::now();
+		statistics.start = std::chrono::steady_clock::now();
 		setFileDirectory();
 		startKeyListenerForUserCommands();
 	}
@@ -158,7 +158,7 @@ namespace neat_dnfs
 
 	void Population::cleanup()
 	{
-		statistics.end = std::chrono::high_resolution_clock::now();
+		statistics.end = std::chrono::steady_clock::now();
 		statistics.duration = std::chrono::duration_cast<std::chrono::seconds>(statistics.end - statistics.start).count();
 
 		saveAllSolutionsWithFitnessAbove(bestSolution->getFitness() - 0.1);

@@ -41,8 +41,8 @@ namespace neat_dnfs
 
 		initSimulation();
 		addGaussianStimulus("nf 1", 
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(200);
 		const double f1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, in_amp, in_width);
 		const double f2 = closenessToRestingLevel("nf 2");
@@ -66,6 +66,6 @@ namespace neat_dnfs
 	{
 		addGaussianStimulus("nf 1",
 			{ 5.0, 0.0, 50.0, true, false },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 }

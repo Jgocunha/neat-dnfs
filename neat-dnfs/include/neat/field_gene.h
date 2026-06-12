@@ -34,7 +34,7 @@ namespace neat_dnfs
 		std::string mutationsInLastGeneration;
 	public:
 		explicit FieldGene(const FieldGeneParameters& parameters,
-		                   const dnf_composer::element::ElementDimensions& dimensions = {100, 1.0});
+		                   const dnf_composer::element::ElementDimensions& dimensions = dnf_composer::element::ElementDimensions{100, 1.0});
 		FieldGene(const FieldGeneParameters& parameters,
 			const NeuralFieldPtr& neuralField, 
 			KernelPtr kernel);

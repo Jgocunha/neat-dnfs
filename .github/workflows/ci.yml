@@ -1,0 +1,180 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Linux ──────────────────────────────────────────────────────────────────
+  build-linux:
+    runs-on: ubuntu-latest
+
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+      VCPKG_DEFAULT_TRIPLET: x64-linux
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── System dependencies ────────────────────────────────────────────────
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc-13 g++-13 \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev \
+            libglfw3-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxext-dev
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
+
+      # ── vcpkg ─────────────────────────────────────────────────────────────
+      - name: Clone vcpkg
+        run: git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT
+
+      - name: Bootstrap vcpkg
+        run: $VCPKG_ROOT/bootstrap-vcpkg.sh -disableMetrics
+
+      - name: Cache vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VCPKG_ROOT }}/installed
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('neat-dnfs/scripts/setup.sh') }}
+          restore-keys: vcpkg-${{ runner.os }}-
+
+      # ── Dependencies ───────────────────────────────────────────────────────
+      - name: Setup dependencies
+        working-directory: ./neat-dnfs
+        run: |
+          chmod +x scripts/setup.sh
+          ./scripts/setup.sh
+
+      # ── Build ──────────────────────────────────────────────────────────────
+      - name: Build
+        working-directory: ./neat-dnfs
+        run: |
+          chmod +x scripts/build.sh
+          ./scripts/build.sh
+
+      # TODO: re-enable once test suite is set up
+      # - name: Run tests
+      #   working-directory: ./neat-dnfs/build/linux-release
+      #   run: ctest --output-on-failure --parallel $(nproc)
+
+  # ── Windows ────────────────────────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
+
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+      VCPKG_DEFAULT_TRIPLET: x64-windows
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Normalize paths
+        run: |
+          echo "VCPKG_ROOT=$(echo "$VCPKG_ROOT" | tr '\\' '/')" >> "$GITHUB_ENV"
+
+      # ── vcpkg ─────────────────────────────────────────────────────────────
+      - name: Clone vcpkg
+        run: git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT
+
+      - name: Bootstrap vcpkg
+        run: $VCPKG_ROOT/bootstrap-vcpkg.bat -disableMetrics
+
+      - name: Cache vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VCPKG_ROOT }}/installed
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('neat-dnfs/scripts/setup.bat') }}
+          restore-keys: vcpkg-${{ runner.os }}-
+
+      # ── Dependencies ───────────────────────────────────────────────────────
+      - name: Setup dependencies
+        working-directory: ./neat-dnfs
+        shell: cmd
+        run: scripts\setup.bat
+
+      # ── Build ──────────────────────────────────────────────────────────────
+      - name: Build
+        working-directory: ./neat-dnfs
+        shell: cmd
+        run: scripts\build.bat
+
+      # TODO: re-enable once test suite is set up
+      # - name: Run tests
+      #   working-directory: ./neat-dnfs/build/x64-release
+      #   shell: cmd
+      #   run: |
+      #     set "PATH=%VCPKG_ROOT%/installed/x64-windows/bin;%PATH%"
+      #     ctest -C Release --output-on-failure --parallel
+
+  # ── macOS ──────────────────────────────────────────────────────────────────
+  build-macos:
+    runs-on: macos-latest
+
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set vcpkg triplet
+        id: triplet
+        run: |
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "arm64" ]; then
+            echo "VCPKG_DEFAULT_TRIPLET=arm64-osx" >> "$GITHUB_ENV"
+            echo "vcpkg_triplet=arm64-osx" >> "$GITHUB_OUTPUT"
+          else
+            echo "VCPKG_DEFAULT_TRIPLET=x64-osx" >> "$GITHUB_ENV"
+            echo "vcpkg_triplet=x64-osx" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ── vcpkg ─────────────────────────────────────────────────────────────
+      - name: Clone vcpkg
+        run: git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT
+
+      - name: Bootstrap vcpkg
+        run: $VCPKG_ROOT/bootstrap-vcpkg.sh -disableMetrics
+
+      - name: Cache vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VCPKG_ROOT }}/installed
+          key: vcpkg-${{ runner.os }}-${{ steps.triplet.outputs.vcpkg_triplet }}-${{ hashFiles('neat-dnfs/scripts/setup.sh') }}
+          restore-keys: vcpkg-${{ runner.os }}-${{ steps.triplet.outputs.vcpkg_triplet }}-
+
+      # ── Dependencies ───────────────────────────────────────────────────────
+      - name: Setup dependencies
+        working-directory: ./neat-dnfs
+        run: |
+          chmod +x scripts/setup.sh
+          ./scripts/setup.sh
+
+      # ── Build ──────────────────────────────────────────────────────────────
+      - name: Build
+        working-directory: ./neat-dnfs
+        run: |
+          chmod +x scripts/build_macos.sh
+          ./scripts/build_macos.sh
+
+      # TODO: re-enable once test suite is set up
+      # - name: Run tests
+      #   working-directory: ./neat-dnfs/build/macos-release
+      #   run: ctest --output-on-failure --parallel $(sysctl -n hw.logicalcpu)
