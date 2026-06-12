@@ -16,8 +16,9 @@ namespace neat_dnfs
 		int currentGeneration;
 		int numGenerations;
 		double targetFitness; ///< Evolution stops early when the best solution reaches this fitness.
+		bool testMode; ///< Disables file I/O, parallel eval, and key listener for unit tests.
 
-		explicit PopulationParameters(int size = 100, int numGenerations = 1000, double targetFitness = 0.95);
+		explicit PopulationParameters(int size = 100, int numGenerations = 1000, double targetFitness = 0.95, bool testMode = false);
 	};
 
 	/// @brief Runtime flags for pausing or stopping evolution from an external thread.
@@ -73,6 +74,7 @@ namespace neat_dnfs
 		PerGenerationStatistics perGenStatistics;
 		bool hasFitnessImproved{};
 		int generationsWithoutImprovement = 0;
+		double previousBestFitness = 0.0;
 		std::string fileDirectory;
 	public:
 		Population(const PopulationParameters& parameters, 

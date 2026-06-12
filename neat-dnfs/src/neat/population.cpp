@@ -2,8 +2,8 @@
 
 namespace neat_dnfs
 {
-	PopulationParameters::PopulationParameters(const int size, const int numGenerations, const double targetFitness)
-		: size(size), currentGeneration(0), numGenerations(numGenerations), targetFitness(targetFitness)
+	PopulationParameters::PopulationParameters(const int size, const int numGenerations, const double targetFitness, const bool testMode)
+		: size(size), currentGeneration(0), numGenerations(numGenerations), targetFitness(targetFitness), testMode(testMode)
 	{}
 
 	PopulationControl::PopulationControl(bool pause, bool stop)
@@ -36,8 +36,11 @@ namespace neat_dnfs
 	void Population::startup()
 	{
 		statistics.start = std::chrono::steady_clock::now();
-		setFileDirectory();
-		startKeyListenerForUserCommands();
+		if (!parameters.testMode)
+		{
+			setFileDirectory();
+			startKeyListenerForUserCommands();
+		}
 	}
 
 	void Population::evolve()
@@ -65,7 +68,7 @@ namespace neat_dnfs
 
 	void Population::evaluate() const
 	{
-		if (PopulationConstants::parallelEvolution)
+		if (PopulationConstants::parallelEvolution && !parameters.testMode)
 		{
 			std::vector<std::future<void>> futures;
 			for (const auto& solution : solutions)
@@ -136,21 +139,21 @@ namespace neat_dnfs
 		if (PopulationConstants::validateIfSpeciesHaveUniqueRepresentative)
 			validateIfSpeciesHaveUniqueRepresentative();
 
-		if (PopulationConstants::saveOverview)
+		if (!parameters.testMode && PopulationConstants::saveOverview)
 			savePerGenerationOverview();
 
 		resetGenerationalInnovations();
 		updateGenerationAndAges();
 
-		if (PopulationConstants::saveBestSolutions)
+		if (!parameters.testMode && PopulationConstants::saveBestSolutions)
 			saveBestSolutionOfEachGeneration();
-		if (PopulationConstants::saveChampions)
+		if (!parameters.testMode && PopulationConstants::saveChampions)
 			saveChampionsOfEachGeneration();
-		if (PopulationConstants::saveSolutions)
+		if (!parameters.testMode && PopulationConstants::saveSolutions)
 			saveAllSolutionsPerGeneration();
-		if (PopulationConstants::savePerGenerationOverview)
+		if (!parameters.testMode && PopulationConstants::savePerGenerationOverview)
 			savePerGenerationStatistics();
-		if (PopulationConstants::saveSpecies)
+		if (!parameters.testMode && PopulationConstants::saveSpecies)
 			savePerGenerationSpecies();
 
 		clearLastMutations();
@@ -161,9 +164,11 @@ namespace neat_dnfs
 		statistics.end = std::chrono::steady_clock::now();
 		statistics.duration = std::chrono::duration_cast<std::chrono::seconds>(statistics.end - statistics.start).count();
 
-		saveAllSolutionsWithFitnessAbove(bestSolution->getFitness() - 0.1);
-		saveTimestampsAndDuration();
-		if (PopulationConstants::saveChampions)
+		if (!parameters.testMode && PopulationConstants::saveSolutions && bestSolution != nullptr)
+			saveAllSolutionsWithFitnessAbove(bestSolution->getFitness() - 0.1);
+		if (!parameters.testMode && PopulationConstants::saveOverview)
+			saveTimestampsAndDuration();
+		if (!parameters.testMode && PopulationConstants::saveChampions)
 			saveChampions();
 	}
 
@@ -334,10 +339,13 @@ namespace neat_dnfs
 		{
 			if (species->isExtinct())
 				continue;
-			if (species->getChampion()->getFitness() > bestFitness)
+			const SolutionPtr champ = species->getChampion();
+			if (champ == nullptr)
+				continue;
+			if (champ->getFitness() > bestFitness)
 			{
-				bestFitness = species->getChampion()->getFitness();
-				bestSpecies = species;  
+				bestFitness = champ->getFitness();
+				bestSpecies = species;
 			}
 		}
 		return bestSpecies;
@@ -392,8 +400,6 @@ namespace neat_dnfs
 
 	bool Population::hasFitnessImprovedOverTheLastGenerations()
 	{
-		static double previousBestFitness = 0.0;
-
 		if (bestSolution->getFitness() > previousBestFitness)
 		{
 			previousBestFitness = bestSolution->getFitness();
@@ -534,6 +540,8 @@ namespace neat_dnfs
 			return;
 		// give the offspring to the top species
 		const std::shared_ptr<Species> topSpecies = getBestActiveSpecies();
+		if (topSpecies == nullptr)
+			return;
 		topSpecies->setOffspringCount(topSpecies->getOffspringCount() + totalOffspringToReassign);
 		log(tools::logger::LogLevel::WARNING, "Reassigned " +
 			std::to_string(totalOffspringToReassign) + " offspring to species " +
@@ -829,7 +837,8 @@ namespace neat_dnfs
 
 		const std::string solutionName = solutions[0]->getName();
 		const auto now = std::time(nullptr);
-		const auto localTime = *std::localtime(&now);
+		struct tm localTime{};
+		localtime_s(&localTime, &now);
 		char timeBuffer[100];
 		(void)std::strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d %Hh%Mm%Ss", &localTime);
 
@@ -952,13 +961,15 @@ namespace neat_dnfs
 			const std::time_t start_time_t = std::chrono::system_clock::to_time_t(system_start);
 			const std::time_t end_time_t = std::chrono::system_clock::to_time_t(system_end);
 
+			struct tm startTm{}, endTm{};
+			localtime_s(&startTm, &start_time_t);
+			localtime_s(&endTm, &end_time_t);
+
 			// Log number of generations
 			logFile << "Number of generations: " << parameters.currentGeneration << "\n";
 			// Format and write timestamps
-			logFile << "Evolution Start Time: " << std::put_time(
-				std::localtime(&start_time_t), "%Y-%m-%d %H:%M:%S") << "\n";
-			logFile << "Evolution End Time: " << std::put_time(
-				std::localtime(&end_time_t), "%Y-%m-%d %H:%M:%S") << "\n";
+			logFile << "Evolution Start Time: " << std::put_time(&startTm, "%Y-%m-%d %H:%M:%S") << "\n";
+			logFile << "Evolution End Time: " << std::put_time(&endTm, "%Y-%m-%d %H:%M:%S") << "\n";
 			logFile << "Duration (seconds): " << statistics.duration << "\n";
 			logFile << "Duration (minutes): " << statistics.duration / 60 << "\n";
 			logFile << "Duration (hours): " << statistics.duration / 3600 << "\n";
