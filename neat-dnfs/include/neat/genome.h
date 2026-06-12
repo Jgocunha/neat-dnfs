@@ -9,6 +9,11 @@ namespace neat_dnfs
 {
 	static int globalInnovationNumber = 0;
 
+	/// @brief Encodes a candidate solution as a set of field genes and connection genes.
+	///
+	/// Implements the NEAT genome representation: a graph of neural field nodes (FieldGene)
+	/// connected by weighted edges (ConnectionGene), each tagged with a global innovation
+	/// number to enable structural crossover across genomes.
 	class Genome
 	{
 	private:
@@ -26,6 +31,8 @@ namespace neat_dnfs
 
 		void mutate();
 		void checkForDuplicateConnectionGenes() const;
+		/// @brief Clears the innovation-number lookup table built during a generation.
+		/// Must be called at the end of each generation before the next round of mutations.
 		static void clearGenerationalInnovations();
 		static void resetGlobalInnovationNumber();
 		void clearLastMutations();
@@ -37,8 +44,11 @@ namespace neat_dnfs
 		static int getGlobalInnovationNumber();
 		[[nodiscard]] std::string getMutationsInLastGeneration() const;
 
+		/// @brief Number of connection genes present in @p other but beyond the range of this genome's innovation numbers.
 		[[nodiscard]] int excessGenes(const Genome& other) const;
+		/// @brief Number of connection genes that appear in one genome but not the other within the overlapping innovation range.
 		[[nodiscard]] int disjointGenes(const Genome& other) const;
+		/// @brief Mean absolute difference in kernel parameters across matching connection genes.
 		[[nodiscard]] double averageConnectionDifference(const Genome& other) const;
 
 		void addFieldGene(const FieldGene& fieldGene);

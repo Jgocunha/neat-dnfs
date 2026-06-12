@@ -68,6 +68,15 @@ namespace neat_dnfs
 		}
 	};
 
+	/// @brief Abstract base class for all NEAT-evolved solutions.
+	///
+	/// Subclasses must implement:
+	/// - @c clone() / @c copy() — for genome inheritance during crossover
+	/// - @c createPhenotypeEnvironment() — build the DNF simulation elements
+	/// - @c testPhenotype() — run the simulation and compute @c parameters.fitness
+	///
+	/// The fitness value set in @c testPhenotype() drives species assignment,
+	/// adjusted-fitness calculation, and offspring allocation.
 	class Solution : public std::enable_shared_from_this<Solution>
 	{
 	protected:
@@ -131,8 +140,9 @@ namespace neat_dnfs
 		void translateConnectionGenesToPhenotype();
 
 	protected:
+		/// @brief Run the simulation and write the result into @c parameters.fitness. Called by @c evaluate().
 		virtual void testPhenotype() = 0;
-		// validated
+
 		void initSimulation();
 		void stopSimulation();
 		void runSimulation(int iterations);
@@ -143,9 +153,13 @@ namespace neat_dnfs
 		void removeGaussianStimuli();
 		void removeGaussianStimuliFromField(const std::string& fieldName);
 		void setGaussianStimulusParameters(const std::string& stimulusName, const dnf_composer::element::GaussStimulusParameters& parameters) const;
+		/// @brief Fitness score in [0,1] reflecting how close the field activity is to its resting level (no bump).
 		double closenessToRestingLevel(const std::string& fieldName) const;
+		/// @brief Returns 1.0 if the field has no active bump, 0.0 otherwise.
 		double noBumps(const std::string& fieldName) const;
+		/// @brief Fitness score that rewards forming a bump within @p targetIterations; penalises exceeding @p maxIterations.
 		double iterationsUntilBump(const std::string& fieldName, double targetIterations, double maxIterations, double tolerance);
+		/// @brief Fitness score that rewards losing a bump within @p targetIterations; penalises exceeding @p maxIterations.
 		double iterationsUntilNoBump(const std::string& fieldName, double targetIterations, double maxIterations, double tolerance);
 
 		// validated but could be improved

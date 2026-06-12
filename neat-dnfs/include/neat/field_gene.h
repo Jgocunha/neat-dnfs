@@ -4,6 +4,7 @@
 
 namespace neat_dnfs
 {
+	/// @brief Role of a field gene within the genome topology.
 	enum class FieldGeneType
 	{
 		INPUT = 1,
@@ -54,6 +55,7 @@ namespace neat_dnfs
 		std::shared_ptr<dnf_composer::element::NormalNoise> getNoise() const;
 
 		bool operator==(const FieldGene&) const;
+		/// @brief True if both genes share identical parameters and kernel values (deep equality), unlike @c operator== which compares by id.
 		bool isCloneOf(const FieldGene&) const;
 		std::string toString() const;
 		void print() const;

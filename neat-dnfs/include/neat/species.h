@@ -54,6 +54,7 @@ namespace neat_dnfs
 
         void addSolution(const SolutionPtr& solution);
         void removeSolution(const SolutionPtr& solution);
+        /// @brief Returns true if @p solution's genome is within the compatibility distance threshold of this species' representative.
         bool isCompatible(const SolutionPtr& solution) const;
         bool contains(const SolutionPtr& solution) const;
         void sortMembersByFitness();
