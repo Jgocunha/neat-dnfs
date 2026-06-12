@@ -7,13 +7,13 @@
 ---
 
 [![Build](https://github.com/Jgocunha/neat-dnfs/actions/workflows/ci.yml/badge.svg)](https://github.com/Jgocunha/neat-dnfs/actions/workflows/ci.yml)
-[![Static Analysis](https://github.com/Jgocunha/neat-dnfs/actions/workflows/ci.yml/badge.svg?label=static-analysis)](https://github.com/Jgocunha/neat-dnfs/actions/workflows/ci.yml)
-[![Docs](https://github.com/Jgocunha/neat-dnfs/actions/workflows/ci.yml/badge.svg?label=docs)](https://jgocunha.github.io/neat-dnfs/)
+[![Static Analysis](https://github.com/Jgocunha/neat-dnfs/actions/workflows/static-analysis.yml/badge.svg)](https://github.com/Jgocunha/neat-dnfs/actions/workflows/static-analysis.yml)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://jgocunha.github.io/neat-dnfs/)
 [![Wiki](https://img.shields.io/badge/wiki-GitHub%20Wiki-blue)](https://github.com/Jgocunha/neat-dnfs/wiki)
 [![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.cppreference.com/w/cpp/20)
-[![Windows](https://img.shields.io/badge/platform-Windows-0078D6?logo=windows)](https://github.com/Jgocunha/neat-dnfs/actions)
-[![Linux](https://img.shields.io/badge/platform-Linux-FCC624?logo=linux&logoColor=black)](https://github.com/Jgocunha/neat-dnfs/actions)
-[![macOS](https://img.shields.io/badge/platform-macOS-000000?logo=apple)](https://github.com/Jgocunha/neat-dnfs/actions)
+[![Windows](https://badgen.net/badge/icon/windows?icon=windows&label)](https://github.com/Jgocunha/neat-dnfs/actions)
+[![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black)](https://github.com/Jgocunha/neat-dnfs/actions)
+[![macOS](https://img.shields.io/badge/macOS-000000?logo=apple)](https://github.com/Jgocunha/neat-dnfs/actions)
 
 **neat-dnfs** is a C++ framework that extends **NeuroEvolution of Augmenting Topologies (NEAT)** to the automated synthesis of **Dynamic Neural Field (DNF)** architectures.
 It enables the joint evolution of **continuous-time neural dynamics**, **kernel-based interactions**, and **architectural topology**, supporting the discovery of compact and interpretable Dynamic Field Theory (DFT) models without manual tuning.
