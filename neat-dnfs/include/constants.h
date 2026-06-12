@@ -12,6 +12,7 @@ namespace neat_dnfs
 	typedef std::shared_ptr<dnf_composer::element::FieldCoupling> FieldCouplingPtr;
 	typedef std::shared_ptr<dnf_composer::element::NormalNoise> NormalNoisePtr;
 
+	/// @brief Global simulation timing and step-count limits.
 	struct SimulationConstants
 	{
 		inline static std::string name				= "solution ";
@@ -116,6 +117,8 @@ namespace neat_dnfs
 		static constexpr double ampGlobStep 	= 0.05;
 	};
 
+	/// @brief Weights used to compute the NEAT compatibility distance between two genomes.
+	/// The distance determines whether two solutions belong to the same species.
 	struct CompatibilityCoefficients
 	{
 		static constexpr double compatibilityThreshold							= 3.5;
@@ -127,6 +130,7 @@ namespace neat_dnfs
 		static constexpr double widthDifferenceCoefficient		= 0.05;
 	};
 
+	/// @brief Probabilities governing structural and parametric genome mutations.
 	struct GenomeMutationConstants
 	{
 		// genome mutation probabilities (the sum does not have to be 1.0)

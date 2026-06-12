@@ -9,16 +9,18 @@
 
 namespace neat_dnfs
 {
+	/// @brief Configuration for a NEAT population run.
 	struct PopulationParameters
 	{
 		int size;
 		int currentGeneration;
 		int numGenerations;
-		double targetFitness;
+		double targetFitness; ///< Evolution stops early when the best solution reaches this fitness.
 
 		explicit PopulationParameters(int size = 100, int numGenerations = 1000, double targetFitness = 0.95);
 	};
 
+	/// @brief Runtime flags for pausing or stopping evolution from an external thread.
 	struct PopulationControl
 	{
 		bool pause;
@@ -32,10 +34,11 @@ namespace neat_dnfs
 		std::chrono::time_point<std::chrono::steady_clock> start;
 		std::chrono::time_point<std::chrono::steady_clock> end;
 		long long duration{};
-		
+
 		PopulationStatistics() = default;
 	};
 
+	/// @brief Per-generation snapshot of population health metrics.
 	struct PerGenerationStatistics
 	{
 		double averageFitness = 0.0f;
@@ -52,6 +55,11 @@ namespace neat_dnfs
 		PerGenerationStatistics() = default;
 	};
 
+	/// @brief Manages a NEAT population: speciation, evaluation, reproduction, and selection.
+	///
+	/// Call @c initialize() once, then @c evolve() to run the full evolutionary loop.
+	/// Evolution stops when @c PopulationParameters::targetFitness is reached or
+	/// @c numGenerations is exhausted. Use @c pause() / @c stop() for interactive control.
 	class Population
 	{
 	private:

@@ -7,6 +7,37 @@ on:
     branches: [main]
 
 jobs:
+  # ── Docs ───────────────────────────────────────────────────────────────────
+  docs:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Doxygen
+        run: sudo apt-get install -y doxygen
+
+      - name: Generate docs
+        working-directory: ./neat-dnfs
+        run: doxygen docs/Doxyfile
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: neat-dnfs/docs/output/html
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+
   # ── Linux ──────────────────────────────────────────────────────────────────
   build-linux:
     runs-on: ubuntu-latest
