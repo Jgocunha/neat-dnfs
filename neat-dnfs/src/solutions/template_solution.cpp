@@ -1,4 +1,4 @@
-#include "solutions/empty_solution.h"
+#include "solutions/template_solution.h"
 
 namespace neat_dnfs
 {
@@ -12,12 +12,6 @@ namespace neat_dnfs
 		auto clonedSolution = std::make_shared<EmptySolution>(solution);
 
 		return clonedSolution;
-	}
-
-	SolutionPtr EmptySolution::copy() const
-	{
-		EmptySolution solution(initialTopology);
-		return std::make_shared<EmptySolution>(solution);
 	}
 
 	void EmptySolution::testPhenotype()

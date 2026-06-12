@@ -14,10 +14,10 @@ namespace neat_dnfs
 		parents(0,0)
 	{
 		bool hasInput = false, hasOutput = false;
-		for (const auto& [type, dim] : initialTopology.geneTopology)
+		for (const auto& geneTypeAndDimension : initialTopology.geneTopology)
 		{
-			if (type == FieldGeneType::INPUT)  hasInput  = true;
-			if (type == FieldGeneType::OUTPUT) hasOutput = true;
+			if (geneTypeAndDimension.first == FieldGeneType::INPUT)  hasInput  = true;
+			if (geneTypeAndDimension.first == FieldGeneType::OUTPUT) hasOutput = true;
 		}
 		if (!hasInput || !hasOutput)
 			throw std::invalid_argument("Number of input and output genes must be greater than 0");

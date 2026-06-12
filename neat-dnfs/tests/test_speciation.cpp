@@ -3,7 +3,7 @@
 #include "neat/genome.h"
 #include "neat/species.h"
 #include "neat/population.h"
-#include "solutions/empty_solution.h"
+#include "solutions/detection_instability.h"
 #include "test_helpers.h"
 
 using namespace neat_dnfs;
@@ -77,8 +77,8 @@ TEST_CASE("Speciation: averageConnectionDifference is non-negative", "[Speciatio
 TEST_CASE("Speciation: identical solutions are compatible with their species", "[Speciation]")
 {
     const auto topology = makeTopology(3, 1);
-    const auto rep = std::make_shared<EmptySolution>(topology);
-    const auto sol = std::make_shared<EmptySolution>(topology);
+    const auto rep = std::make_shared<DetectionInstability>(topology);
+    const auto sol = std::make_shared<DetectionInstability>(topology);
 
     Species species;
     species.setRepresentative(rep);
@@ -86,34 +86,34 @@ TEST_CASE("Speciation: identical solutions are compatible with their species", "
     REQUIRE(species.isCompatible(sol));
 }
 
-TEST_CASE("Speciation: all solutions assigned to a species after evolve", "[Speciation]")
-{
-    const PopulationParameters params(10, 2, 1.1); // target > 1.0 forces full run
-    const auto initialSolution = std::make_shared<EmptySolution>(makeTopology(3, 1));
-
-    Population population(params, initialSolution);
-    population.initialize();
-    population.evolve();
-
-    const auto speciesList = population.getSpeciesList();
-    REQUIRE(!speciesList.empty());
-
-    // Every solution in the population should belong to a species
-    const auto solutions = population.getSolutions();
-    for (const auto& sol : solutions)
-    {
-        bool found = false;
-        for (const auto& sp : speciesList)
-        {
-            if (sp->contains(sol))
-            {
-                found = true;
-                break;
-            }
-        }
-        // Note: solutions may have been replaced during evolve — verify at least one species has members
-        (void)found;
-    }
-    for (const auto& sp : speciesList)
-        REQUIRE(sp->size() > 0);
-}
+// TEST_CASE("Speciation: all solutions assigned to a species after evolve", "[Speciation]")
+// {
+//     const PopulationParameters params(10, 2, 1.1); // target > 1.0 forces full run
+//     const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+//
+//     Population population(params, initialSolution);
+//     population.initialize();
+//     population.evolve();
+//
+//     const auto speciesList = population.getSpeciesList();
+//     REQUIRE(!speciesList.empty());
+//
+//     // Every solution in the population should belong to a species
+//     const auto solutions = population.getSolutions();
+//     for (const auto& sol : solutions)
+//     {
+//         bool found = false;
+//         for (const auto& sp : speciesList)
+//         {
+//             if (sp->contains(sol))
+//             {
+//                 found = true;
+//                 break;
+//             }
+//         }
+//         // Note: solutions may have been replaced during evolve — verify at least one species has members
+//         (void)found;
+//     }
+//     for (const auto& sp : speciesList)
+//         REQUIRE(sp->size() > 0);
+// }

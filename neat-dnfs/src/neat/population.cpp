@@ -1,13 +1,5 @@
 #include "neat/population.h"
 
-#ifdef _WIN32
-#include <io.h>
-#define STDIN_IS_TTY() (_isatty(_fileno(stdin)))
-#else
-#include <unistd.h>
-#define STDIN_IS_TTY() (isatty(STDIN_FILENO))
-#endif
-
 namespace neat_dnfs
 {
 	PopulationParameters::PopulationParameters(const int size, const int numGenerations, const double targetFitness)
@@ -26,10 +18,7 @@ namespace neat_dnfs
 
 	Population::~Population()
 	{
-		control.stop = true; // ensure key listener thread exits its loop before members are freed
-
 		bestSolution = nullptr;
-		elitismPrevBest = nullptr;
 		speciesList.clear();
 		champions.clear();
 		solutions.clear();
@@ -47,9 +36,7 @@ namespace neat_dnfs
 	void Population::startup()
 	{
 		statistics.start = std::chrono::steady_clock::now();
-#ifndef NEAT_DNFS_TEST
 		setFileDirectory();
-#endif
 		startKeyListenerForUserCommands();
 	}
 
@@ -83,7 +70,7 @@ namespace neat_dnfs
 			std::vector<std::future<void>> futures;
 			for (const auto& solution : solutions)
 			{
-				futures.emplace_back(std::async(std::launch::async, [solution]()
+				futures.emplace_back(std::async(std::launch::async, [&solution]()
 					{
 						solution->evaluate();
 					}));
@@ -149,15 +136,12 @@ namespace neat_dnfs
 		if (PopulationConstants::validateIfSpeciesHaveUniqueRepresentative)
 			validateIfSpeciesHaveUniqueRepresentative();
 
-#ifndef NEAT_DNFS_TEST
 		if (PopulationConstants::saveOverview)
 			savePerGenerationOverview();
-#endif
 
 		resetGenerationalInnovations();
 		updateGenerationAndAges();
 
-#ifndef NEAT_DNFS_TEST
 		if (PopulationConstants::saveBestSolutions)
 			saveBestSolutionOfEachGeneration();
 		if (PopulationConstants::saveChampions)
@@ -168,25 +152,19 @@ namespace neat_dnfs
 			savePerGenerationStatistics();
 		if (PopulationConstants::saveSpecies)
 			savePerGenerationSpecies();
-#endif
 
 		clearLastMutations();
 	}
 
 	void Population::cleanup()
 	{
-		control.stop = true; // signal the key listener thread to exit before Population is destroyed
-
 		statistics.end = std::chrono::steady_clock::now();
 		statistics.duration = std::chrono::duration_cast<std::chrono::seconds>(statistics.end - statistics.start).count();
 
-#ifndef NEAT_DNFS_TEST
-		if (bestSolution != nullptr)
-			saveAllSolutionsWithFitnessAbove(bestSolution->getFitness() - 0.1);
+		saveAllSolutionsWithFitnessAbove(bestSolution->getFitness() - 0.1);
 		saveTimestampsAndDuration();
 		if (PopulationConstants::saveChampions)
 			saveChampions();
-#endif
 	}
 
 
@@ -414,6 +392,8 @@ namespace neat_dnfs
 
 	bool Population::hasFitnessImprovedOverTheLastGenerations()
 	{
+		static double previousBestFitness = 0.0;
+
 		if (bestSolution->getFitness() > previousBestFitness)
 		{
 			previousBestFitness = bestSolution->getFitness();
@@ -554,8 +534,6 @@ namespace neat_dnfs
 			return;
 		// give the offspring to the top species
 		const std::shared_ptr<Species> topSpecies = getBestActiveSpecies();
-		if (topSpecies == nullptr)
-			return;
 		topSpecies->setOffspringCount(topSpecies->getOffspringCount() + totalOffspringToReassign);
 		log(tools::logger::LogLevel::WARNING, "Reassigned " +
 			std::to_string(totalOffspringToReassign) + " offspring to species " +
@@ -614,18 +592,23 @@ namespace neat_dnfs
 
 	void Population::validateElitism() const
 	{
-		SolutionPtr& pbs = elitismPrevBest;
-		double& pbsf = elitismPrevBestFitness;
+		static SolutionPtr pbs = nullptr; // previous best solution
+		static SolutionPtr bs = nullptr; // best solution
 
-		const SolutionPtr bs = bestSolution;
-		const double bsf = bs->getFitness();
+		static double pbsf = 0.0;
+		static double bsf = 0.0;
 
 		if (parameters.currentGeneration == 1)
 		{
 			pbs = nullptr;
+			bs = bestSolution;
 			pbsf = 0.0;
+			bsf = bestSolution->getFitness();
 			return;
 		}
+
+		bs = bestSolution;
+		bsf = bs->getFitness();
 
 		static constexpr double epsilon = 0.000;
 		const bool bsDecreased = bsf < pbsf - epsilon;
@@ -1197,9 +1180,6 @@ namespace neat_dnfs
 
 	void Population::startKeyListenerForUserCommands()
 	{
-		if (!STDIN_IS_TTY())
-			return;
-
 		std::thread keyListener([this]() {
 			std::cout << R"(
         _             _            _                 _                    _            _             _         _

@@ -51,7 +51,6 @@ set(header
         "include/neat/solution.h"
         "include/neat/species.h"
 
-        "include/solutions/empty_solution.h"
         "include/solutions/detection_instability.h"
         "include/solutions/memory_instability.h"
         "include/solutions/selection_instability.h"
@@ -74,7 +73,6 @@ set(src
         "src/neat/solution.cpp"
         "src/neat/species.cpp"
 
-        "src/solutions/empty_solution.cpp"
         "src/solutions/detection_instability.cpp"
         "src/solutions/memory_instability.cpp"
         "src/solutions/selection_instability.cpp"

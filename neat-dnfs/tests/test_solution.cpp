@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "neat/solution.h"
-#include "solutions/empty_solution.h"
+#include "solutions/detection_instability.h"
 #include "test_helpers.h"
 
 using namespace neat_dnfs;
@@ -12,8 +12,8 @@ TEST_CASE("Solution Initialization", "[Solution]")
 {
     SECTION("Valid Initialization")
     {
-        const auto topology = makeTopology(3, 1, 1);
-        EmptySolution solution(topology);
+        const auto topology = makeTopology(1, 1);
+        DetectionInstability solution(topology);
 
         REQUIRE(solution.getGenome().getFieldGenes().empty());
         REQUIRE(solution.getGenome().getConnectionGenes().empty());
@@ -24,32 +24,36 @@ TEST_CASE("Solution Initialization", "[Solution]")
 
     SECTION("Invalid Initialization - Not enough input genes")
     {
-        // SolutionTopology with no INPUT genes — constructor should throw
-        std::vector<std::pair<FieldGeneType, ElementDimensions>> genes;
-        for (int i = 0; i < 2; ++i) genes.push_back({FieldGeneType::OUTPUT, {100, 1.0}});
-        REQUIRE_THROWS_AS(EmptySolution(SolutionTopology(genes)), std::invalid_argument);
+        REQUIRE_THROWS_AS(
+            DetectionInstability(SolutionTopology{ {
+                {FieldGeneType::OUTPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
+            }}),
+            std::invalid_argument
+        );
     }
 
     SECTION("Invalid Initialization - Not enough output genes")
     {
-        std::vector<std::pair<FieldGeneType, ElementDimensions>> genes;
-        for (int i = 0; i < 2; ++i) genes.push_back({FieldGeneType::INPUT, {100, 1.0}});
-        REQUIRE_THROWS_AS(EmptySolution(SolutionTopology(genes)), std::invalid_argument);
+        REQUIRE_THROWS_AS(
+            DetectionInstability(SolutionTopology{ {
+                {FieldGeneType::INPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
+            }}),
+            std::invalid_argument
+        );
     }
 }
 
 TEST_CASE("Solution Initialize Method", "[Solution]")
 {
-    const auto topology = makeTopology(3, 1);
-    EmptySolution solution(topology);
+    const auto topology = makeTopology(1, 1);
+    DetectionInstability solution(topology);
     solution.initialize();
 
     const auto fieldGenes = solution.getGenome().getFieldGenes();
     const long inputs  = std::count_if(fieldGenes.begin(), fieldGenes.end(), [](const auto& g){ return g.getParameters().type == FieldGeneType::INPUT; });
     const long outputs = std::count_if(fieldGenes.begin(), fieldGenes.end(), [](const auto& g){ return g.getParameters().type == FieldGeneType::OUTPUT; });
 
-    // initialize() creates INPUT and OUTPUT genes from the topology; HIDDEN genes are added via mutation
-    REQUIRE(inputs  == 3);
+    REQUIRE(inputs  == 1);
     REQUIRE(outputs == 1);
 }
 
@@ -59,8 +63,8 @@ TEST_CASE("Solution Mutate Method", "[Solution]")
 
     for (uint16_t i = 0; i < attempts; ++i)
     {
-        auto topology = makeTopology(3, 1);
-        EmptySolution solution(topology);
+        auto topology = makeTopology(1, 1);
+        DetectionInstability solution(topology);
         solution.initialize();
         const size_t initialGenomeSize = solution.getGenomeSize();
 
@@ -71,8 +75,8 @@ TEST_CASE("Solution Mutate Method", "[Solution]")
 
 TEST_CASE("Solution Getters", "[Solution]")
 {
-    auto topology = makeTopology(3, 1);
-    EmptySolution solution(topology);
+    auto topology = makeTopology(1, 1);
+    DetectionInstability solution(topology);
 
     REQUIRE(solution.getGenome().getFieldGenes().empty());
     REQUIRE(solution.getGenome().getConnectionGenes().empty());
@@ -83,14 +87,14 @@ TEST_CASE("Solution Getters", "[Solution]")
 
 TEST_CASE("Solution Build Phenotype", "[Solution]")
 {
-    auto topology = makeTopology(3, 1, 1);
-    EmptySolution solution(topology);
+    auto topology = makeTopology(1, 1);
+    DetectionInstability solution(topology);
     solution.initialize();
     const auto genome = solution.getGenome();
     const auto fieldGenes = genome.getFieldGenes();
 
-    const FieldGene& firstInput  = fieldGenes[0];
-    const FieldGene& firstOutput = fieldGenes[3]; // 3 inputs then output
+    const FieldGene& firstInput  = fieldGenes[0]; // input
+    const FieldGene& firstOutput = fieldGenes[1]; // output
 
     REQUIRE(firstInput.getParameters().type == FieldGeneType::INPUT);
     REQUIRE(firstOutput.getParameters().type == FieldGeneType::OUTPUT);
@@ -107,8 +111,8 @@ TEST_CASE("Solution Build Phenotype", "[Solution]")
 
 TEST_CASE("Solution Age Increment", "[Solution]")
 {
-    const auto topology = makeTopology(3, 1, 1);
-    EmptySolution solution(topology);
+    const auto topology = makeTopology(1, 1);
+    DetectionInstability solution(topology);
 
     const int initialAge = solution.getParameters().age;
 
@@ -118,8 +122,8 @@ TEST_CASE("Solution Age Increment", "[Solution]")
 
 TEST_CASE("Solution Fitness Management", "[Solution]")
 {
-    const auto topology = makeTopology(3, 1, 1);
-    EmptySolution solution(topology);
+    const auto topology = makeTopology(1, 1);
+    DetectionInstability solution(topology);
     solution.initialize();
 
     SECTION("Initial fitness is zero")
@@ -137,8 +141,8 @@ TEST_CASE("Solution Fitness Management", "[Solution]")
 
 TEST_CASE("Solution Add Field Gene", "[Solution]")
 {
-    auto topology = makeTopology(3, 1);
-    EmptySolution solution(topology);
+    auto topology = makeTopology(1, 1);
+    DetectionInstability solution(topology);
     solution.initialize();
 
     const FieldGene newGene({ FieldGeneType::HIDDEN, 999 });
@@ -150,13 +154,13 @@ TEST_CASE("Solution Add Field Gene", "[Solution]")
 
 TEST_CASE("Solution Add Connection Gene", "[Solution]")
 {
-    auto topology = makeTopology(3, 1);
-    EmptySolution solution(topology);
+    auto topology = makeTopology(1, 1);
+    DetectionInstability solution(topology);
     solution.initialize();
 
     const auto fieldGenes = solution.getGenome().getFieldGenes();
-    const int id1 = fieldGenes[0].getParameters().id;
-    const int id2 = fieldGenes[3].getParameters().id;
+    const int id1 = fieldGenes[0].getParameters().id; // input
+    const int id2 = fieldGenes[1].getParameters().id; // output
 
     const ConnectionTuple tuple(id1, id2);
     const ConnectionGene newGene(tuple, 0);
@@ -168,13 +172,13 @@ TEST_CASE("Solution Add Connection Gene", "[Solution]")
 
 TEST_CASE("Solution Contains Connection Gene", "[Solution]")
 {
-    auto topology = makeTopology(3, 1);
-    EmptySolution solution(topology);
+    auto topology = makeTopology(1, 1);
+    DetectionInstability solution(topology);
     solution.initialize();
 
     const auto fieldGenes = solution.getGenome().getFieldGenes();
-    const int id1 = fieldGenes[0].getParameters().id;
-    const int id2 = fieldGenes[3].getParameters().id;
+    const int id1 = fieldGenes[0].getParameters().id; // input
+    const int id2 = fieldGenes[1].getParameters().id; // output
 
     const ConnectionTuple tuple(id1, id2);
     const ConnectionGene newGene(tuple, 0);
@@ -185,8 +189,8 @@ TEST_CASE("Solution Contains Connection Gene", "[Solution]")
 
 TEST_CASE("Solution Evaluation", "[Solution]")
 {
-    const auto topology = makeTopology(3, 1, 1);
-    EmptySolution solution(topology);
+    const auto topology = makeTopology(1, 1);
+    DetectionInstability solution(topology);
     solution.initialize();
 
     REQUIRE_NOTHROW(solution.evaluate());
@@ -194,9 +198,9 @@ TEST_CASE("Solution Evaluation", "[Solution]")
 
 TEST_CASE("Solution Crossover", "[Solution]")
 {
-    auto topology = makeTopology(3, 1, 1);
-    const auto parent1 = std::make_shared<EmptySolution>(topology);
-    const auto parent2 = std::make_shared<EmptySolution>(topology);
+    auto topology = makeTopology(1, 1);
+    const auto parent1 = std::make_shared<DetectionInstability>(topology);
+    const auto parent2 = std::make_shared<DetectionInstability>(topology);
     parent1->initialize();
     parent2->initialize();
 
@@ -208,8 +212,8 @@ TEST_CASE("Solution Crossover", "[Solution]")
 
 TEST_CASE("Solution Phenotype Translation", "[Solution]")
 {
-    const auto topology = makeTopology(3, 1, 1);
-    EmptySolution solution(topology);
+    const auto topology = makeTopology(1, 1);
+    DetectionInstability solution(topology);
     solution.initialize();
 
     SECTION("Build phenotype")
