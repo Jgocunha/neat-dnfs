@@ -84,7 +84,9 @@ if not exist "%DNFC_INSTALL%\release" (
     cmake -S "%DNFC_SRC%\dynamic-neural-field-composer" -B "%DNFC_SRC%\build-release" ^
         -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake" ^
         -DCMAKE_INSTALL_PREFIX="%DNFC_INSTALL%\release" ^
-        -DCMAKE_PREFIX_PATH="%IPK_INSTALL%\release"
+        -DCMAKE_PREFIX_PATH="%IPK_INSTALL%\release" ^
+        -DCMAKE_MAP_IMPORTED_CONFIG_MINSIZEREL=Release ^
+        -DCMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO=Release
     if errorlevel 1 ( echo ERROR: dnfc Release configure failed. & exit /b 1 )
     cmake --build "%DNFC_SRC%\build-release" --config Release --parallel
     if errorlevel 1 ( echo ERROR: dnfc Release build failed. & exit /b 1 )
@@ -99,7 +101,9 @@ if not exist "%DNFC_INSTALL%\debug" (
     cmake -S "%DNFC_SRC%\dynamic-neural-field-composer" -B "%DNFC_SRC%\build-debug" ^
         -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake" ^
         -DCMAKE_INSTALL_PREFIX="%DNFC_INSTALL%\debug" ^
-        -DCMAKE_PREFIX_PATH="%IPK_INSTALL%\debug"
+        -DCMAKE_PREFIX_PATH="%IPK_INSTALL%\debug" ^
+        -DCMAKE_MAP_IMPORTED_CONFIG_MINSIZEREL=Debug ^
+        -DCMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO=Debug
     if errorlevel 1 ( echo ERROR: dnfc Debug configure failed. & exit /b 1 )
     cmake --build "%DNFC_SRC%\build-debug" --config Debug --parallel
     if errorlevel 1 ( echo ERROR: dnfc Debug build failed. & exit /b 1 )

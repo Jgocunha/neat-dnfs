@@ -22,7 +22,9 @@ cmake ^
     -S "%PROJECT_ROOT%" -B "%PROJECT_ROOT%\build\x64-release" ^
     -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" ^
     -DCMAKE_BUILD_TYPE=Release ^
-    -DCMAKE_PREFIX_PATH="%IPK_RELEASE%;%DNFC_RELEASE%"
+    -DCMAKE_PREFIX_PATH="%IPK_RELEASE%;%DNFC_RELEASE%" ^
+    -DCMAKE_MAP_IMPORTED_CONFIG_MINSIZEREL=Release ^
+    -DCMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO=Release
 if errorlevel 1 ( echo ERROR: CMake Release configure failed. & exit /b 1 )
 
 cmake --build "%PROJECT_ROOT%\build\x64-release" --config Release --parallel
@@ -33,7 +35,9 @@ cmake ^
     -S "%PROJECT_ROOT%" -B "%PROJECT_ROOT%\build\x64-debug" ^
     -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" ^
     -DCMAKE_BUILD_TYPE=Debug ^
-    -DCMAKE_PREFIX_PATH="%IPK_DEBUG%;%DNFC_DEBUG%"
+    -DCMAKE_PREFIX_PATH="%IPK_DEBUG%;%DNFC_DEBUG%" ^
+    -DCMAKE_MAP_IMPORTED_CONFIG_MINSIZEREL=Debug ^
+    -DCMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO=Debug
 if errorlevel 1 ( echo ERROR: CMake Debug configure failed. & exit /b 1 )
 
 cmake --build "%PROJECT_ROOT%\build\x64-debug" --config Debug --parallel
