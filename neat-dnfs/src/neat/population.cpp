@@ -838,7 +838,11 @@ namespace neat_dnfs
 		const std::string solutionName = solutions[0]->getName();
 		const auto now = std::time(nullptr);
 		struct tm localTime{};
-		localtime_s(&localTime, &now);
+#ifdef _WIN32
+			localtime_s(&localTime, &now);
+#else
+			localtime_r(&now, &localTime);
+#endif
 		char timeBuffer[100];
 		(void)std::strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d %Hh%Mm%Ss", &localTime);
 
@@ -962,8 +966,13 @@ namespace neat_dnfs
 			const std::time_t end_time_t = std::chrono::system_clock::to_time_t(system_end);
 
 			struct tm startTm{}, endTm{};
-			localtime_s(&startTm, &start_time_t);
-			localtime_s(&endTm, &end_time_t);
+#ifdef _WIN32
+				localtime_s(&startTm, &start_time_t);
+				localtime_s(&endTm, &end_time_t);
+#else
+				localtime_r(&start_time_t, &startTm);
+				localtime_r(&end_time_t, &endTm);
+#endif
 
 			// Log number of generations
 			logFile << "Number of generations: " << parameters.currentGeneration << "\n";
