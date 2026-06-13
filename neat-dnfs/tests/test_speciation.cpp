@@ -85,35 +85,3 @@ TEST_CASE("Speciation: identical solutions are compatible with their species", "
 
     REQUIRE(species.isCompatible(sol));
 }
-
-// TEST_CASE("Speciation: all solutions assigned to a species after evolve", "[Speciation]")
-// {
-//     const PopulationParameters params(10, 2, 1.1); // target > 1.0 forces full run
-//     const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
-//
-//     Population population(params, initialSolution);
-//     population.initialize();
-//     population.evolve();
-//
-//     const auto speciesList = population.getSpeciesList();
-//     REQUIRE(!speciesList.empty());
-//
-//     // Every solution in the population should belong to a species
-//     const auto solutions = population.getSolutions();
-//     for (const auto& sol : solutions)
-//     {
-//         bool found = false;
-//         for (const auto& sp : speciesList)
-//         {
-//             if (sp->contains(sol))
-//             {
-//                 found = true;
-//                 break;
-//             }
-//         }
-//         // Note: solutions may have been replaced during evolve — verify at least one species has members
-//         (void)found;
-//     }
-//     for (const auto& sp : speciesList)
-//         REQUIRE(sp->size() > 0);
-// }
