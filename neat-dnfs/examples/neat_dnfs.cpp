@@ -9,6 +9,7 @@
 
 #include "neat/population.h"
 #include "neat_tools/logger.h"
+#include "neat_tools/key_listener.h"
 #include "solutions/single_bump.h"
 #include "solutions/self_sustained_single_bump.h"
 #include "solutions/and.h"
@@ -52,6 +53,7 @@
 			Population population{ parameters, std::make_unique<XOR>(solution) };
 
 			population.initialize();
+			KeyListener keyListener{ population };
 			population.evolve();
 		}
 

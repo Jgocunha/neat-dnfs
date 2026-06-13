@@ -48,6 +48,7 @@ set(header
         "include/neat/field_gene.h"
         "include/neat/genome.h"
         "include/neat/population.h"
+        "include/neat/population_file_manager.h"
         "include/neat/solution.h"
         "include/neat/species.h"
 
@@ -62,6 +63,7 @@ set(header
 
         "include/neat_tools/logger.h"
         "include/neat_tools/utils.h"
+        "include/neat_tools/key_listener.h"
 
         "include/constants.h"
 )
@@ -70,6 +72,7 @@ set(src
         "src/neat/field_gene.cpp"
         "src/neat/genome.cpp"
         "src/neat/population.cpp"
+        "src/neat/population_file_manager.cpp"
         "src/neat/solution.cpp"
         "src/neat/species.cpp"
 
@@ -196,19 +199,19 @@ include(Catch)
 
 # Add test project
 set(TEST_PROJECT ${CMAKE_PROJECT_NAME}-test)
-add_executable(${TEST_PROJECT} 
-    "tests/entry.cpp" 
+add_executable(${TEST_PROJECT}
+    "tests/entry.cpp"
     "tests/test_utils.cpp"
-    #"tests/test_field_gene.cpp" 
-    #"tests/test_connection_gene.cpp"
-    #"tests/test_genome.cpp"
-    #"tests/test_solution.cpp"
-    #"tests/test_species.cpp"
-    #"tests/test_population.cpp"
-    #"tests/test_single_bump.cpp"
+    "tests/test_field_gene.cpp"
+    "tests/test_connection_gene.cpp"
+    "tests/test_genome.cpp"
+    "tests/test_solution.cpp"
+    "tests/test_species.cpp"
+    "tests/test_population.cpp"
     "tests/test_speciation.cpp"
 )
-target_include_directories(${TEST_PROJECT} PRIVATE include)
+target_include_directories(${TEST_PROJECT} PRIVATE include tests)
 target_link_libraries(${TEST_PROJECT} PRIVATE Catch2::Catch2 Catch2::Catch2WithMain imgui-platform-kit  dynamic-neural-field-composer ${CMAKE_PROJECT_NAME})
+target_compile_definitions(${TEST_PROJECT} PRIVATE NEAT_DNFS_TEST=1)
 # Automatically discover and add tests
 catch_discover_tests(${TEST_PROJECT})

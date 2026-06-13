@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "constants.h"
 #include "field_gene.h"
 #include "connection_gene.h"
@@ -7,8 +9,6 @@
 
 namespace neat_dnfs
 {
-	static int globalInnovationNumber = 0;
-
 	/// @brief Encodes a candidate solution as a set of field genes and connection genes.
 	///
 	/// Implements the NEAT genome representation: a graph of neural field nodes (FieldGene)
@@ -19,7 +19,9 @@ namespace neat_dnfs
 	private:
 		std::vector<FieldGene> fieldGenes;
 		std::vector<ConnectionGene> connectionGenes;
+		static int globalInnovationNumber;
 		static std::map<ConnectionTuple, int> connectionTupleAndInnovationNumberWithinGeneration;
+		static std::mutex innovationMutex; ///< Guards globalInnovationNumber and the generational innovation map.
 		std::string mutationsInLastGeneration;
 	public:
 		Genome() = default;
@@ -79,5 +81,7 @@ namespace neat_dnfs
 		void toggleConnectionGene();
 
 		static int getInnovationNumberOfTupleWithinGeneration(const ConnectionTuple& tuple);
+		/// @brief Same as above but assumes @c innovationMutex is already held by the caller.
+		static int getInnovationNumberOfTupleWithinGenerationUnlocked(const ConnectionTuple& tuple);
 	};
 }

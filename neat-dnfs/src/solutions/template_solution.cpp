@@ -1,4 +1,4 @@
-#include "solutions/empty_solution.h"
+#include "solutions/template_solution.h"
 
 namespace neat_dnfs
 {

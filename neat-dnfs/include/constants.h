@@ -212,7 +212,6 @@ namespace neat_dnfs
 
 	struct PopulationConstants
 	{
-		static constexpr bool parallelEvolution									= true;
 		static constexpr double pruneRatio										= 0.8;
 		static constexpr int generationsWithoutImprovementThresholdInPopulation = 10;
 		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 7;

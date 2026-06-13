@@ -7,6 +7,7 @@
 ---
 
 [![Build](https://github.com/Jgocunha/neat-dnfs/actions/workflows/ci.yml/badge.svg)](https://github.com/Jgocunha/neat-dnfs/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/Jgocunha/neat-dnfs/branch/main/graph/badge.svg)](https://codecov.io/gh/Jgocunha/neat-dnfs)
 [![Static Analysis](https://github.com/Jgocunha/neat-dnfs/actions/workflows/static-analysis.yml/badge.svg)](https://github.com/Jgocunha/neat-dnfs/actions/workflows/static-analysis.yml)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://jgocunha.github.io/neat-dnfs/)
 [![Wiki](https://img.shields.io/badge/wiki-GitHub%20Wiki-blue)](https://github.com/Jgocunha/neat-dnfs/wiki)
