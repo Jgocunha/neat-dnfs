@@ -5,26 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+---
 
-### Planned
-- Cross-platform CI/CD workflow via GitHub Actions
-- Automated release workflow with pre-built binaries per platform
-- Codecov integration for test coverage reporting
-- GTest unit test suite covering all core NEAT-DNF components
-- Automated static analysis with clang-tidy
-- Doxygen documentation published to GitHub Pages
-- Refactor `examples/` → `experiments/` with per-experiment executables and JSON config files
-- Deprecate compile-time `include/constants.h` in favour of runtime config loading
+## [1.1.0] - 2026-06-13
 
-### Bug Fixes (pending)
-- Fix `localtime_s` portability issue in `logger.cpp` (MSVC-only call, breaks Linux/macOS)
-- Fix RNG performance regression — `mt19937` engine recreated on every call
-- Remove dead `finalMessage` assignment in `Logger::log()`
-- Investigate and document thread-safety contract for global innovation number map
-- Enable population integrity validations in Debug builds
-- Remove large commented-out code block from `logger.cpp`
-- Uncomment and fix disabled test files in `CMakeLists.txt`
+### Added
+- **Catch2 unit test suite** — 70 tests / 4 213 assertions covering `Genome`, `Population`, `Species`, `FieldGene`, `ConnectionGene`, and all `Solution` subclasses (closes #8)
+- **Codecov integration** — dedicated `coverage` CI job with GCC `--coverage` instrumentation, lcov report generation, and upload via `codecov/codecov-action@v4`; Codecov badge added to README (closes #9)
+- **Doxygen documentation** — Doxyfile config, targeted API comments across public headers, and automated publishing to GitHub Pages on every push to `main` (closes #6)
+- **Static analysis** — dedicated `static-analysis` CI workflow running clang-tidy and cppcheck; badges added to README (closes #7)
+- **Cross-platform CI** — GitHub Actions workflow building on Ubuntu, Windows, and macOS with vcpkg; build scripts for each platform (`build.sh`, `build.bat`, `build_macos.sh`) (closes #5)
+
+### Changed
+- `Population`: removed `testMode` flag; test-specific behaviour now handled by proper test fixtures and solution stubs
+- `Population::evolve()`: innovation-number map now guarded by a mutex to prevent data races during parallel evaluation
+- Test suite expanded from partial Catch2 scaffolding to full coverage across all core components
+
+### Fixed
+- `localtime_s` portability — replaced with `#ifdef` guard selecting `localtime_r` on POSIX and `localtime_s` on MSVC (closes #3)
+- `Population::evolve()` crash when called in test context — root cause was missing `initialize()` call and absent testMode guard; resolved via proper test fixture setup
+- MSVC `C2665` error in tests — `ElementDimensions` push-back now uses explicit brace-initialisation
+- Transitive include breakage in `examples/incremental_evolution.cpp` and `examples/solution_evaluation.cpp` — added explicit `#include <dnf_composer/simulation/simulation_file_manager.h>` after upstream dnf_composer header reorganisation
+- lcov negative-counter error from parallel test execution — added `-fprofile-update=atomic` compiler flag and `--ignore-errors negative,gcov` to lcov commands
+- OpenGL pre-find and `localtime_r` on non-Windows when building against imgui-platform-kit
+- VS multi-config generator imported-target mapping for `MinSizeRel`/`RelWithDebInfo`
+
+### Removed
+- Stale empty test files and unused Catch2 scaffolding replaced by the new test suite
 
 ---
 
@@ -63,5 +70,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [`imgui-platform-kit`](https://github.com/Jgocunha/imgui-platform-kit)
 - `imgui`, `implot`, `imgui-node-editor`, `nlohmann-json` (via VCPKG)
 
-[Unreleased]: https://github.com/Jgocunha/neat-dnfs/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Jgocunha/neat-dnfs/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Jgocunha/neat-dnfs/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Jgocunha/neat-dnfs/releases/tag/v1.0.0
