@@ -1,19 +1,23 @@
 #include "neat/population.h"
 
+#include "neat/population_file_manager.h"
+
 namespace neat_dnfs
 {
-	PopulationParameters::PopulationParameters(const int size, const int numGenerations, const double targetFitness, const bool testMode)
-		: size(size), currentGeneration(0), numGenerations(numGenerations), targetFitness(targetFitness), testMode(testMode)
+	PopulationParameters::PopulationParameters(const int size, const int numGenerations, const double targetFitness, const bool parallelEvolution)
+		: size(size), currentGeneration(0), numGenerations(numGenerations), targetFitness(targetFitness), parallelEvolution(parallelEvolution)
 	{}
 
 	PopulationControl::PopulationControl(bool pause, bool stop)
 		: pause(pause), stop(stop)
 	{}
 
-	Population::Population(const PopulationParameters& parameters, const SolutionPtr& initialSolution)
+	Population::Population(const PopulationParameters& parameters, const SolutionPtr& initialSolution, const bool enableFileIO)
 		: parameters(parameters)
 	{
 		createInitialSolutions(initialSolution);
+		if (enableFileIO)
+			fileManager = std::make_unique<PopulationFileManager>(*this);
 	}
 
 	Population::~Population()
@@ -36,11 +40,8 @@ namespace neat_dnfs
 	void Population::startup()
 	{
 		statistics.start = std::chrono::steady_clock::now();
-		if (!parameters.testMode)
-		{
-			setFileDirectory();
-			startKeyListenerForUserCommands();
-		}
+		if (fileManager)
+			fileManager->setFileDirectory();
 	}
 
 	void Population::evolve()
@@ -68,7 +69,7 @@ namespace neat_dnfs
 
 	void Population::evaluate() const
 	{
-		if (PopulationConstants::parallelEvolution && !parameters.testMode)
+		if (parameters.parallelEvolution)
 		{
 			std::vector<std::future<void>> futures;
 			for (const auto& solution : solutions)
@@ -139,22 +140,14 @@ namespace neat_dnfs
 		if (PopulationConstants::validateIfSpeciesHaveUniqueRepresentative)
 			validateIfSpeciesHaveUniqueRepresentative();
 
-		if (!parameters.testMode && PopulationConstants::saveOverview)
-			savePerGenerationOverview();
+		if (fileManager)
+			fileManager->saveOverviewForGeneration();
 
 		resetGenerationalInnovations();
 		updateGenerationAndAges();
 
-		if (!parameters.testMode && PopulationConstants::saveBestSolutions)
-			saveBestSolutionOfEachGeneration();
-		if (!parameters.testMode && PopulationConstants::saveChampions)
-			saveChampionsOfEachGeneration();
-		if (!parameters.testMode && PopulationConstants::saveSolutions)
-			saveAllSolutionsPerGeneration();
-		if (!parameters.testMode && PopulationConstants::savePerGenerationOverview)
-			savePerGenerationStatistics();
-		if (!parameters.testMode && PopulationConstants::saveSpecies)
-			savePerGenerationSpecies();
+		if (fileManager)
+			fileManager->savePerGenerationData();
 
 		clearLastMutations();
 	}
@@ -164,12 +157,8 @@ namespace neat_dnfs
 		statistics.end = std::chrono::steady_clock::now();
 		statistics.duration = std::chrono::duration_cast<std::chrono::seconds>(statistics.end - statistics.start).count();
 
-		if (!parameters.testMode && PopulationConstants::saveSolutions && bestSolution != nullptr)
-			saveAllSolutionsWithFitnessAbove(bestSolution->getFitness() - 0.1);
-		if (!parameters.testMode && PopulationConstants::saveOverview)
-			saveTimestampsAndDuration();
-		if (!parameters.testMode && PopulationConstants::saveChampions)
-			saveChampions();
+		if (fileManager)
+			fileManager->saveEndOfRunData();
 	}
 
 
@@ -830,26 +819,6 @@ namespace neat_dnfs
 		}
 	}
 
-	void Population::setFileDirectory()
-	{
-		using namespace dnf_composer;
-		if (solutions.empty()) throw std::runtime_error("No solutions in population.");
-
-		const std::string solutionName = solutions[0]->getName();
-		const auto now = std::time(nullptr);
-		struct tm localTime{};
-#ifdef _WIN32
-			localtime_s(&localTime, &now);
-#else
-			localtime_r(&now, &localTime);
-#endif
-		char timeBuffer[100];
-		(void)std::strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d %Hh%Mm%Ss", &localTime);
-
-		fileDirectory = std::string(PROJECT_DIR) + "/data/" + solutionName + "/" + timeBuffer + "/";
-		std::filesystem::create_directories(fileDirectory); // Ensure directory exist
-	}
-
 	void Population::print() const
 	{
 		std::string result = "Population: \n";
@@ -867,292 +836,6 @@ namespace neat_dnfs
 			result += "\n";
 		}
 		log(tools::logger::LogLevel::INFO, result);
-	}
-
-	void Population::saveAllSolutionsWithFitnessAbove(const double fitness) const
-	{
-		using namespace dnf_composer;
-
-		const std::string directoryPath = fileDirectory + "best_solutions/last_generation/";
-		std::filesystem::create_directories(directoryPath); // Ensure directory exist
-
-		for (const auto& solution : solutions)
-		{
-			if (solution->getFitness() > fitness)
-			{
-				solution->buildPhenotype();
-				solution->createPhenotypeEnvironment();
-				auto simulation = solution->getPhenotype();
-				solution->clearPhenotype();
-				// save weights
-				for (const auto& element : simulation.getElements())
-				{
-					if (element->getLabel() == element::ElementLabel::FIELD_COUPLING)
-					{
-						const auto fieldCoupling = std::dynamic_pointer_cast<element::FieldCoupling>(element);
-						fieldCoupling->writeWeights();
-					}
-				}
-				// save elements
-				const std::string uniqueIdentifier = "solution " + std::to_string(solution->getId())
-					+ " generation " + std::to_string(parameters.currentGeneration)
-					+ " species " + std::to_string(solution->getSpeciesId())
-					+ " fitness " + std::to_string(solution->getFitness());
-				simulation.setUniqueIdentifier(uniqueIdentifier);
-				SimulationFileManager sfm(std::make_shared<Simulation>(simulation), directoryPath);
-				sfm.saveElementsToJson();
-			}
-		}
-	}
-
-	void Population::saveChampions() const
-	{
-		using namespace dnf_composer;
-
-		const std::string directoryPath = fileDirectory + "champions/last_generation/";
-		std::filesystem::create_directories(directoryPath); // Ensure directory exist
-
-		if (champions.empty()) log(tools::logger::LogLevel::ERROR, "No champions to save.");
-
-		for (const auto& champion : champions)
-		{
-			if (champion == nullptr)
-			{
-				continue;
-			}
-			champion->buildPhenotype();
-			champion->createPhenotypeEnvironment();
-			auto simulation = champion->getPhenotype();
-			champion->clearPhenotype();
-			// save weights
-			for (const auto& element : simulation.getElements())
-			{
-				if (element->getLabel() == element::ElementLabel::FIELD_COUPLING)
-								{
-					const auto fieldCoupling = std::dynamic_pointer_cast<element::FieldCoupling>(element);
-					fieldCoupling->writeWeights();
-				}
-			}
-			// save elements
-			const std::string uniqueIdentifier = "solution " + std::to_string(champion->getId())
-				+ " generation " + std::to_string(parameters.currentGeneration)
-				+ " species " + std::to_string(champion->getSpeciesId())
-				+ " fitness " + std::to_string(champion->getFitness());
-			simulation.setUniqueIdentifier(uniqueIdentifier);
-			SimulationFileManager sfm(std::make_shared<Simulation>(simulation), directoryPath);
-			sfm.saveElementsToJson();
-		}
-	}
-
-	void Population::saveTimestampsAndDuration() const
-	{
-		const std::string directoryPath = fileDirectory + "/";
-		std::filesystem::create_directories(directoryPath); // Ensure directory exists
-
-		std::ofstream logFile(directoryPath + "evolution_timestamps.txt", std::ios::app);
-		if (logFile.is_open())
-		{
-			// Convert steady_clock timestamps to system_clock timestamps
-			const auto system_start = std::chrono::system_clock::now() +
-				std::chrono::duration_cast<std::chrono::system_clock::duration>(
-					statistics.start - std::chrono::steady_clock::now());
-
-			const auto system_end = std::chrono::system_clock::now() +
-				std::chrono::duration_cast<std::chrono::system_clock::duration>(
-					statistics.end - std::chrono::steady_clock::now());
-
-			// Convert to time_t for formatting
-			const std::time_t start_time_t = std::chrono::system_clock::to_time_t(system_start);
-			const std::time_t end_time_t = std::chrono::system_clock::to_time_t(system_end);
-
-			struct tm startTm{}, endTm{};
-#ifdef _WIN32
-				localtime_s(&startTm, &start_time_t);
-				localtime_s(&endTm, &end_time_t);
-#else
-				localtime_r(&start_time_t, &startTm);
-				localtime_r(&end_time_t, &endTm);
-#endif
-
-			// Log number of generations
-			logFile << "Number of generations: " << parameters.currentGeneration << "\n";
-			// Format and write timestamps
-			logFile << "Evolution Start Time: " << std::put_time(&startTm, "%Y-%m-%d %H:%M:%S") << "\n";
-			logFile << "Evolution End Time: " << std::put_time(&endTm, "%Y-%m-%d %H:%M:%S") << "\n";
-			logFile << "Duration (seconds): " << statistics.duration << "\n";
-			logFile << "Duration (minutes): " << statistics.duration / 60 << "\n";
-			logFile << "Duration (hours): " << statistics.duration / 3600 << "\n";
-
-			logFile.close();
-		}
-		else
-		{
-			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for timestamps.");
-		}
-	}
-
-	void Population::saveAllSolutionsPerGeneration() const
-	{
-		using namespace dnf_composer;
-
-		for (const auto& solution : solutions)
-		{
-			const std::string directoryPath = fileDirectory + "solutions/gen " + std::to_string(parameters.currentGeneration) + "/";
-			std::filesystem::create_directories(directoryPath); // Ensure directory exists
-
-			solution->buildPhenotype();
-			solution->createPhenotypeEnvironment();
-			auto simulation = solution->getPhenotype();
-			solution->clearPhenotype();
-
-			const std::string uniqueIdentifier = "solution " + std::to_string(solution->getId())
-				+ " generation " + std::to_string(parameters.currentGeneration)
-				+ " species " + std::to_string(solution->getSpeciesId())
-				+ " fitness " + std::to_string(solution->getFitness());
-			simulation.setUniqueIdentifier(uniqueIdentifier);
-			SimulationFileManager sfm(std::make_shared<Simulation>(simulation), directoryPath);
-			sfm.saveElementsToJson();
-		}
-	}
-
-	void Population::savePerGenerationOverview() const
-	{
-		const std::string directoryPath = fileDirectory + "/";
-		std::filesystem::create_directories(directoryPath); // Ensure directory exists
-
-		std::ofstream logFile(directoryPath + "per_generation_overview.txt", std::ios::app);
-		if (logFile.is_open())
-		{
-			logFile << "Current generation: " + std::to_string(parameters.currentGeneration);
-			logFile << " Number of solutions: " + std::to_string(solutions.size());
-			logFile << " Number of species: " + std::to_string(perGenStatistics.numberOfSpecies);
-			logFile << " Number of active species: " + std::to_string(perGenStatistics.numberOfActiveSpecies);
-			logFile << " Has fitness improved: " << (hasFitnessImproved ? "yes" : "no");
-			logFile << " Number of generations without improvement: " + std::to_string(generationsWithoutImprovement);
-			logFile << " Average fitness: " + std::to_string(perGenStatistics.averageFitness);
-			logFile << " Best fitness: " + std::to_string(perGenStatistics.bestFitness);
-			logFile << " Innovation number: " + std::to_string(perGenStatistics.innovationNumber);
-			logFile << " Average genome size: " + std::to_string(perGenStatistics.averageGenomeSize);
-			logFile << " Average connection genes: " + std::to_string(perGenStatistics.averageConnectionGenes);
-			logFile << " Average field genes: " + std::to_string(perGenStatistics.averageFieldGenes);
-			logFile << " Best solution: [" + bestSolution->toString() + "]";
-			logFile << "\n";
-			logFile.close();
-		}
-		else
-		{
-			tools::logger::log(tools::logger::LogLevel::ERROR,
-				"Failed to open log file for field gene per generation statistics.");
-		}
-	}
-
-	void Population::saveBestSolutionOfEachGeneration() const
-	{
-		using namespace dnf_composer;
-
-		const std::string directoryPath = fileDirectory + "best_solutions/prev_generations/";
-		std::filesystem::create_directories(directoryPath); // Ensure directory exist
-
-		bestSolution->buildPhenotype();
-		bestSolution->createPhenotypeEnvironment();
-		auto simulation = bestSolution->getPhenotype();
-		bestSolution->clearPhenotype();
-		// save weights
-		for (const auto& element : simulation.getElements())
-		{
-			if (element->getLabel() == element::ElementLabel::FIELD_COUPLING)
-			{
-				const auto fieldCoupling = std::dynamic_pointer_cast<element::FieldCoupling>(element);
-				fieldCoupling->writeWeights();
-			}
-		}
-		// save elements
-		const std::string uniqueIdentifier = "solution " + std::to_string(bestSolution->getId())
-			+ " generation " + std::to_string(parameters.currentGeneration)
-			+ " species " + std::to_string(bestSolution->getSpeciesId())
-			+ " fitness " + std::to_string(bestSolution->getFitness());
-		simulation.setUniqueIdentifier(uniqueIdentifier);
-		SimulationFileManager sfm(std::make_shared<Simulation>(simulation), directoryPath);
-		sfm.saveElementsToJson();
-	}
-
-	void Population::saveChampionsOfEachGeneration() const
-	{
-		using namespace dnf_composer;
-
-		const std::string directoryPath = fileDirectory + "champions/prev_generations/";
-		std::filesystem::create_directories(directoryPath); // Ensure directory exist
-
-		for (const auto& champion : champions)
-		{
-			if (champion == nullptr)
-			{
-				continue;
-			}
-			champion->buildPhenotype();
-			champion->createPhenotypeEnvironment();
-			auto simulation = champion->getPhenotype();
-			champion->clearPhenotype();
-			// save weights
-			for (const auto& element : simulation.getElements())
-			{
-				if (element->getLabel() == element::ElementLabel::FIELD_COUPLING)
-				{
-					const auto fieldCoupling = std::dynamic_pointer_cast<element::FieldCoupling>(element);
-					fieldCoupling->writeWeights();
-				}
-			}
-			// save elements
-			const std::string uniqueIdentifier = "solution " + std::to_string(champion->getId())
-				+ " generation " + std::to_string(parameters.currentGeneration)
-				+ " species " + std::to_string(champion->getSpeciesId())
-				+ " fitness " + std::to_string(champion->getFitness());
-			simulation.setUniqueIdentifier(uniqueIdentifier);
-			SimulationFileManager sfm(std::make_shared<Simulation>(simulation), directoryPath);
-			sfm.saveElementsToJson();
-		}
-	}
-
-	void Population::savePerGenerationStatistics() const
-	{
-		const std::string directoryPath = fileDirectory + "statistics/";
-		std::filesystem::create_directories(directoryPath); // Ensure directory exists
-
-		std::ofstream logFile(directoryPath + "generation_" + std::to_string(parameters.currentGeneration) + ".txt",
-			std::ios::app);
-		if (logFile.is_open())
-		{
-			for (const auto& solution : solutions)
-			{
-				logFile << solution->toString() << '\n';
-			}
-			logFile.close();
-		}
-		else
-		{
-			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for statistics.");
-		}
-	}
-
-	void Population::savePerGenerationSpecies() const
-	{
-		const std::string directoryPath = fileDirectory + "species/";
-		std::filesystem::create_directories(directoryPath); // Ensure directory exists
-
-		std::ofstream logFile(directoryPath + "generation_" + std::to_string(parameters.currentGeneration) + ".txt",
-			std::ios::app);
-		if (logFile.is_open())
-		{
-			for (const auto& species : speciesList)
-			{
-				logFile << species->toString() << '\n';
-			}
-			logFile.close();
-		}
-		else
-		{
-			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for species.");
-		}
 	}
 
 	void Population::resetGenerationalInnovations() const
@@ -1198,48 +881,4 @@ namespace neat_dnfs
 			" Best solution: [" + bestSolution->toString() + "]");
 	}
 
-	void Population::startKeyListenerForUserCommands()
-	{
-		std::thread keyListener([this]() {
-			std::cout << R"(
-        _             _            _                 _                    _            _             _         _
-        /\ \     _    /\ \         / /\              /\ \                 /\ \         /\ \     _    /\ \      / /\
-       /  \ \   /\_\ /  \ \       / /  \             \_\ \               /  \ \____   /  \ \   /\_\ /  \ \    / /  \
-      / /\ \ \_/ / // /\ \ \     / / /\ \            /\__ \             / /\ \_____\ / /\ \ \_/ / // /\ \ \  / / /\ \__
-     / / /\ \___/ // / /\ \_\   / / /\ \ \          / /_ \ \   ____    / / /\/___  // / /\ \___/ // / /\ \_\/ / /\ \___\
-    / / /  \/____// /_/_ \/_/  / / /  \ \ \        / / /\ \ \/\____/\ / / /   / / // / /  \/____// /_/_ \/_/\ \ \ \/___/
-   / / /    / / // /____/\    / / /___/ /\ \      / / /  \/_/\/____\// / /   / / // / /    / / // /____/\    \ \ \
-  / / /    / / // /\____\/   / / /_____/ /\ \    / / /              / / /   / / // / /    / / // /\____\/_    \ \ \
- / / /    / / // / /______  / /_________/\ \ \  / / /               \ \ \__/ / // / /    / / // / /     /_/\__/ / /
-/ / /    / / // / /_______\/ / /_       __\ \_\/_/ /                 \ \___\/ // / /    / / // / /      \ \/___/ /
-\/_/     \/_/ \/__________/\_\___\     /____/_/\_\/                   \/_____/ \/_/     \/_/ \/_/        \_____\/
-
-)"			<< std::endl;
-			std::cout << "Press 's' and 'Enter' to stop the current run." << std::endl;
-			std::cout << "Press 'p' and 'Enter' to pause the current run." << std::endl;
-			std::cout << "Press 'r' and 'Enter' to resume the current run." << std::endl << std::endl;
-			while (!control.stop)
-			{
-				if (std::cin.get() == 's')
-				{
-					control.stop = true;
-					tools::logger::log(tools::logger::LogLevel::INFO,
-						"Stopping evolution after the current run...");
-				}
-				if (std::cin.get() == 'p')
-				{
-					control.pause = true;
-					tools::logger::log(tools::logger::LogLevel::INFO,
-						"Pausing evolution...");
-				}
-				if (std::cin.get() == 'r')
-				{
-					control.pause = false;
-					tools::logger::log(tools::logger::LogLevel::INFO,
-						"Resuming evolution...");
-				}
-			}
-			});
-		keyListener.detach();
-	}
 }

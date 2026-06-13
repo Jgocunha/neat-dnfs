@@ -46,7 +46,7 @@ TEST_CASE("Population::getSize and getNumGenerations", "[Population]")
 
 TEST_CASE("Population::getBestSolution after initialize", "[Population]")
 {
-    const PopulationParameters parameters(10, 5, 0.9, true);
+    const PopulationParameters parameters(10, 5, 0.9);
     DetectionInstability solution{
         SolutionTopology{ {
             {FieldGeneType::INPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
@@ -54,7 +54,7 @@ TEST_CASE("Population::getBestSolution after initialize", "[Population]")
         }
         },
     };
-    Population population{ parameters, std::make_unique<DetectionInstability>(solution) };
+    Population population{ parameters, std::make_unique<DetectionInstability>(solution), false };
     population.initialize();
     REQUIRE_NOTHROW(population.evolve());
     REQUIRE(population.getBestSolution() != nullptr);
@@ -62,8 +62,8 @@ TEST_CASE("Population::getBestSolution after initialize", "[Population]")
 
 TEST_CASE("Population::evolve runs without error and respects generation limit", "[Population]")
 {
-    const PopulationParameters parameters(10, 3, 0.9, true);
-    Population population(parameters, std::make_shared<DetectionInstability>(makeTopology(1, 1)));
+    const PopulationParameters parameters(10, 3, 0.9);
+    Population population(parameters, std::make_shared<DetectionInstability>(makeTopology(1, 1)), false);
     population.initialize();
 
     REQUIRE_NOTHROW(population.evolve());
@@ -76,9 +76,9 @@ TEST_CASE("Population::evolve runs without error and respects generation limit",
 
 TEST_CASE("Population::evolve — all solutions have non-negative fitness", "[Population]")
 {
-    const PopulationParameters parameters(10, 2, 0.9, true);
+    const PopulationParameters parameters(10, 2, 0.9);
     const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
-    Population population(parameters, initialSolution);
+    Population population(parameters, initialSolution, false);
     population.initialize();
     population.evolve();
 
@@ -88,9 +88,9 @@ TEST_CASE("Population::evolve — all solutions have non-negative fitness", "[Po
 
 TEST_CASE("Population::evolve — best solution fitness is monotonically non-decreasing", "[Population]")
 {
-    const PopulationParameters parameters(10, 5, 1.1, true); // target > 1.0 forces full run
+    const PopulationParameters parameters(10, 5, 1.1); // target > 1.0 forces full run
     const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
-    Population population(parameters, initialSolution);
+    Population population(parameters, initialSolution, false);
     population.initialize();
     population.evolve();
 
@@ -103,9 +103,9 @@ TEST_CASE("Population::evolve — best solution fitness is monotonically non-dec
 
 TEST_CASE("Population::evolve — speciation produces at least one species", "[Population]")
 {
-    const PopulationParameters parameters(20, 2, 1.1, true);
+    const PopulationParameters parameters(20, 2, 1.1);
     const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
-    Population population(parameters, initialSolution);
+    Population population(parameters, initialSolution, false);
     population.initialize();
     population.evolve();
 

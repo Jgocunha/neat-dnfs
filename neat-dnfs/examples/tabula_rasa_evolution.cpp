@@ -9,6 +9,7 @@
 
 #include "neat/population.h"
 #include "neat_tools/logger.h"
+#include "neat_tools/key_listener.h"
 #include "solutions/detection_instability.h"
 #include "solutions/memory_instability.h"
 #include "solutions/and.h"
@@ -49,6 +50,7 @@
 			Population population{ parameters, std::make_unique<SelectionInstability>(solution) };
 
 			population.initialize();
+			KeyListener keyListener{ population };
 			population.evolve();
 		}
 

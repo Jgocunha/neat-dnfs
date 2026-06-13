@@ -1,14 +1,15 @@
 #pragma once
 
 #include <future>
-
-#include <dnf_composer/simulation/simulation_file_manager.h>
+#include <memory>
 
 #include "solution.h"
 #include "species.h"
 
 namespace neat_dnfs
 {
+	class PopulationFileManager;
+
 	/// @brief Configuration for a NEAT population run.
 	struct PopulationParameters
 	{
@@ -16,9 +17,9 @@ namespace neat_dnfs
 		int currentGeneration;
 		int numGenerations;
 		double targetFitness; ///< Evolution stops early when the best solution reaches this fitness.
-		bool testMode; ///< Disables file I/O, parallel eval, and key listener for unit tests.
+		bool parallelEvolution; ///< Evaluate solutions concurrently via std::async.
 
-		explicit PopulationParameters(int size = 100, int numGenerations = 1000, double targetFitness = 0.95, bool testMode = false);
+		explicit PopulationParameters(int size = 100, int numGenerations = 1000, double targetFitness = 0.95, bool parallelEvolution = true);
 	};
 
 	/// @brief Runtime flags for pausing or stopping evolution from an external thread.
@@ -63,6 +64,7 @@ namespace neat_dnfs
 	/// @c numGenerations is exhausted. Use @c pause() / @c stop() for interactive control.
 	class Population
 	{
+		friend class PopulationFileManager;
 	private:
 		PopulationParameters parameters;
 		std::vector<SolutionPtr> solutions;
@@ -75,10 +77,11 @@ namespace neat_dnfs
 		bool hasFitnessImproved{};
 		int generationsWithoutImprovement = 0;
 		double previousBestFitness = 0.0;
-		std::string fileDirectory;
+		std::unique_ptr<PopulationFileManager> fileManager;
 	public:
-		Population(const PopulationParameters& parameters, 
-			const SolutionPtr& initialSolution);
+		Population(const PopulationParameters& parameters,
+			const SolutionPtr& initialSolution,
+			bool enableFileIO = true);
 		~Population();
 
 		void initialize() const;
@@ -141,17 +144,7 @@ namespace neat_dnfs
 		void validateIfSpeciesHaveUniqueRepresentative() const;
 		void validateAssignmentIntoSpecies() const;
 
-		void setFileDirectory();
 		void print() const;
-		void saveAllSolutionsWithFitnessAbove(double fitness) const;
-		void saveChampions() const;
-		void saveTimestampsAndDuration() const;
-		void saveAllSolutionsPerGeneration() const;
-		void savePerGenerationOverview() const;
-		void saveBestSolutionOfEachGeneration() const;
-		void saveChampionsOfEachGeneration() const;
-		void savePerGenerationStatistics() const;
-		void savePerGenerationSpecies() const;
 
 		void resetGenerationalInnovations() const;
 		void clearLastMutations() const;
@@ -159,7 +152,5 @@ namespace neat_dnfs
 		void logSolutions() const;
 		void logSpecies() const;
 		void logOverview() const;
-
-		void startKeyListenerForUserCommands();
 	};
 }

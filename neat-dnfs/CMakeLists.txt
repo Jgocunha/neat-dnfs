@@ -48,6 +48,7 @@ set(header
         "include/neat/field_gene.h"
         "include/neat/genome.h"
         "include/neat/population.h"
+        "include/neat/population_file_manager.h"
         "include/neat/solution.h"
         "include/neat/species.h"
 
@@ -62,6 +63,7 @@ set(header
 
         "include/neat_tools/logger.h"
         "include/neat_tools/utils.h"
+        "include/neat_tools/key_listener.h"
 
         "include/constants.h"
 )
@@ -70,6 +72,7 @@ set(src
         "src/neat/field_gene.cpp"
         "src/neat/genome.cpp"
         "src/neat/population.cpp"
+        "src/neat/population_file_manager.cpp"
         "src/neat/solution.cpp"
         "src/neat/species.cpp"
 
