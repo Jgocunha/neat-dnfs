@@ -5,6 +5,7 @@
 #include <exception>
 #include <iostream>
 #include "dnf_composer/application/application.h"
+#include <dnf_composer/simulation/simulation_file_manager.h>
 #include <dnf_composer/tools/logger.h>
 
 #include "neat/population.h"
