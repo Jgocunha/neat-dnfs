@@ -2,7 +2,9 @@
 
 namespace neat_dnfs
 {
+	int Genome::globalInnovationNumber = 0;
 	std::map<ConnectionTuple, int> Genome::connectionTupleAndInnovationNumberWithinGeneration;
+	std::mutex Genome::innovationMutex;
 
 	Genome::~Genome()
 	{
@@ -81,11 +83,13 @@ namespace neat_dnfs
 
 	void Genome::clearGenerationalInnovations()
 	{
+		std::scoped_lock lock(innovationMutex);
 		connectionTupleAndInnovationNumberWithinGeneration.clear();
 	}
 
 	void Genome::resetGlobalInnovationNumber()
 	{
+		std::scoped_lock lock(innovationMutex);
 		globalInnovationNumber = 0;
 	}
 
@@ -134,6 +138,7 @@ namespace neat_dnfs
 
 	int Genome::getGlobalInnovationNumber()
 	{
+		std::scoped_lock lock(innovationMutex);
 		return globalInnovationNumber;
 	}
 
@@ -431,7 +436,8 @@ namespace neat_dnfs
 
 	void Genome::addConnectionGene(ConnectionTuple connectionTuple)
 	{
-		const int innov = getInnovationNumberOfTupleWithinGeneration(connectionTuple);
+		std::scoped_lock lock(innovationMutex);
+		const int innov = getInnovationNumberOfTupleWithinGenerationUnlocked(connectionTuple);
 		if (innov > -1)
 			// exists in the current generation
 			// use the same innovation number
@@ -473,21 +479,26 @@ namespace neat_dnfs
 
 		const ConnectionTuple connectionTupleIn{ inGeneId, fieldGenes.back().getParameters().id };
 		const ConnectionTuple connectionTupleOut{ fieldGenes.back().getParameters().id, outGeneId };
-		int innovIn = getInnovationNumberOfTupleWithinGeneration(connectionTupleIn);
-		int innovOut = getInnovationNumberOfTupleWithinGeneration(connectionTupleOut);
-
-		if (innovIn == -1) // if this mutation has not been performed in the current generation
+		int innovIn;
+		int innovOut;
 		{
-			connectionTupleAndInnovationNumberWithinGeneration[connectionTupleIn] = globalInnovationNumber;
-			innovIn = globalInnovationNumber;
-			globalInnovationNumber++;
-		}
+			std::scoped_lock lock(innovationMutex);
+			innovIn = getInnovationNumberOfTupleWithinGenerationUnlocked(connectionTupleIn);
+			innovOut = getInnovationNumberOfTupleWithinGenerationUnlocked(connectionTupleOut);
 
-		if (innovOut == -1) // if this mutation has not been performed in the current generation
-		{
-			connectionTupleAndInnovationNumberWithinGeneration[connectionTupleOut] = globalInnovationNumber;
-			innovOut = globalInnovationNumber;
-			globalInnovationNumber++;
+			if (innovIn == -1) // if this mutation has not been performed in the current generation
+			{
+				connectionTupleAndInnovationNumberWithinGeneration[connectionTupleIn] = globalInnovationNumber;
+				innovIn = globalInnovationNumber;
+				globalInnovationNumber++;
+			}
+
+			if (innovOut == -1) // if this mutation has not been performed in the current generation
+			{
+				connectionTupleAndInnovationNumberWithinGeneration[connectionTupleOut] = globalInnovationNumber;
+				innovOut = globalInnovationNumber;
+				globalInnovationNumber++;
+			}
 		}
 
 		const auto in_kernel_p = GaussKernelParameters{
@@ -584,6 +595,12 @@ namespace neat_dnfs
 	}
 
 	int Genome::getInnovationNumberOfTupleWithinGeneration(const ConnectionTuple& tuple)
+	{
+		std::scoped_lock lock(innovationMutex);
+		return getInnovationNumberOfTupleWithinGenerationUnlocked(tuple);
+	}
+
+	int Genome::getInnovationNumberOfTupleWithinGenerationUnlocked(const ConnectionTuple& tuple)
 	{
 		if (connectionTupleAndInnovationNumberWithinGeneration.contains(tuple))
 		{
