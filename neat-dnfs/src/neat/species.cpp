@@ -1,4 +1,5 @@
 #include "neat/species.h"
+#include <format> 
 
 
 namespace neat_dnfs
@@ -125,7 +126,7 @@ namespace neat_dnfs
 	{
 		if (representative == nullptr)
 		{
-			//throw std::runtime_error("Species " + std::to_string(id) + " has no representative.");
+			//throw std::runtime_error(std::format("Species {} has no representative.", id));
 			return false;
 		}
 
@@ -168,7 +169,7 @@ namespace neat_dnfs
 		for (size_t i = 0; i < static_cast<size_t>(members.size() * ratio); ++i)
 			members.pop_back();
 	}
-
+ 
 	void Species::crossover()
 	{
 		offspring.clear();
@@ -176,7 +177,7 @@ namespace neat_dnfs
 		if (members.empty())
 		{
 			if (offspringCount > 0)
-				log(tools::logger::LogLevel::FATAL, "Species " + std::to_string(id) + " with no members has offspring count > 0.");
+				log(tools::logger::LogLevel::FATAL, std::format("Species {} with no members has offspring count > 0.", id)); 
 			extinct = true;
 			representative = nullptr;
 			champion = nullptr;
@@ -236,19 +237,20 @@ namespace neat_dnfs
 	}
 
 	std::string Species::toString() const
-	{
-		std::string str = "species " + std::to_string(id);
-		str += " [ age: " + std::to_string(age);
-		str += ", extinct: " + std::string((extinct ? "yes" : "no"));
-		str += ", improved: " + std::string((hasFitnessImproved ? "yes" : "no"));
-		str += ", gens. since imp.: " + std::to_string(generationsSinceFitnessImproved);
-		str += "  offs.: " + std::to_string(offspringCount);
-		str += ", mem: " + std::to_string(members.size());
-		str += " rep.: {" + (representative == nullptr ? "none}]" : representative->toString()) + "}";
-		str += " champ.: {" + (champion == nullptr ? "none}]" : champion->toString()) + "}";
-		str += "]";
-		return str;
-	}
+{
+    return std::format(
+        "species {} [ age: {}, extinct: {}, improved: {}, gens. since imp.: {}, offs.: {}, mem: {}, rep.: {{{}}}, champ.: {{{}}}]",
+        id,
+        age,
+        extinct ? "yes" : "no",
+        hasFitnessImproved ? "yes" : "no",
+        generationsSinceFitnessImproved,
+        offspringCount,
+        members.size(),
+        representative == nullptr ? "none" : representative->toString(),
+        champion == nullptr ? "none" : champion->toString()
+    );
+}
 
 	void Species::print() const
 	{
