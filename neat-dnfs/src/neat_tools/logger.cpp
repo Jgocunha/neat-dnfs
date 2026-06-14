@@ -41,33 +41,34 @@ namespace neat_dnfs
                 const ImVec4 color = getLogLevelColorCodeGui(logLevel);
                 switch (outputMode)
     {
-        case LogOutputMode::ALL:
+    case LogOutputMode::ALL:
         colorCode = getLogLevelColorCodeCmd(logLevel);
-        log_cmd(std::format("{}[{:%Y-%m-%d %X}] {} {}", colorCode, buf, prefixStr, message));
-        log_ui(color, std::format("[{:%Y-%m-%d %X}] {}  {}", buf, prefixStr, message));
+        log_cmd(std::format("{}[{}] {}", colorCode, prefixStr, message));
+        log_ui(color, std::format("[{}] {}", prefixStr, message));
         break;
-        case LogOutputMode::CONSOLE:
+    case LogOutputMode::CONSOLE:
         colorCode = getLogLevelColorCodeCmd(logLevel);
-        log_cmd(std::format("{}[{:%Y-%m-%d %X}] {} {}", colorCode, buf, prefixStr, message));
+        log_cmd(std::format("{}[{}] {}", colorCode, prefixStr, message));
         break;
-        case LogOutputMode::GUI:
-        log_ui(color, std::format("[{:%Y-%m-%d %X}] {}  {}", buf, prefixStr, message));
-        break; 
-        case LogOutputMode::NONE:
-        default:
+    case LogOutputMode::GUI: 
+        log_ui(color, std::format("[{}] {}", prefixStr, message));
         break;
-    }
+    case LogOutputMode::NONE:
+    default:
+        break;
+    } 
 }
 
-void Logger::log_cmd(const std::string& message)
+void Logger::log_cmd(const std::string& message) 
 {
-    // Agar std::print chal raha hai toh simply aise likhein:
-    std::print("{}\033[0m\n", message);
+    // GitHub Runner systems par compatibility ke liye std::cout use kiya hai
+    std::cout << message << "\033[0m\n";
 }
 
 void Logger::log_ui(ImVec4 color, const std::string& message)
 {
-    imgui_kit::LogWindow::addLog(color, message.c_str());
+    // "%s" use karne se format security warning [-Wformat-security] resolve ho jayegi
+    imgui_kit::LogWindow::addLog(color, "%s", message.c_str());
 }
             void log(LogLevel level, const std::string& message, LogOutputMode mode)
             {
