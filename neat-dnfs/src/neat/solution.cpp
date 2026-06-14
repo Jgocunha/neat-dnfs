@@ -1,6 +1,7 @@
 #include <utility>
 
 #include "neat/solution.h"
+#include <format> 
 
 namespace neat_dnfs
 {
@@ -635,13 +636,14 @@ namespace neat_dnfs
 	std::string Solution::toString() const
 	{
 		// solution id [ age, fit. spec., adj. fit., Parents, Genome, Mutations]
-		std::string result = "solution " + std::to_string(id);
-		result += " [" + parameters.toString() + ", ";
-		result += "parents (" + std::to_string(std::get<0>(parents)) + ", " + std::to_string(std::get<1>(parents)) + "), ";
-		result += genome.toString();
-		result += ", last mutations{" + genome.getMutationsInLastGeneration();
-		result += "}]";
-		return result;
+		std::string result = std::format("solution {} [{}{}, ({}, {}), {}, last mutations{{{}}}]", 
+        id, 
+        parameters.toString(), 
+        ", ", 
+        std::get<0>(parents), 
+        std::get<1>(parents), 
+        genome.toString(), 
+        genome.getMutationsInLastGeneration());
 	}
 
 	void Solution::print() const
