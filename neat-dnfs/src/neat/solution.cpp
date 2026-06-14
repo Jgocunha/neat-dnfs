@@ -634,24 +634,21 @@ namespace neat_dnfs
 	}
 
 	std::string Solution::toString() const
-	{
-		// solution id [ age, fit. spec., adj. fit., Parents, Genome, Mutations]
-		std::string Solution::toString() const
 {
     // solution id [ age, fit. spec., adj. fit., Parents, Genome, Mutations]
-    return std::format("solution {} [{}, parents ({}, {}), {}, last mutations{}]",
-        id,
-        parameters.toString(),
-        std::get<0>(parents),
-        std::get<1>(parents),
-        genome.toString(),
+    return std::format("solution {} [{}{}, ({}, {}), {}, last mutations{{{}}}]", 
+        id, 
+        parameters.toString(), 
+        ", ", 
+        std::get<0>(parents), 
+        std::get<1>(parents), 
+        genome.toString(), 
         genome.getMutationsInLastGeneration());
-};
-	}
+}
 
 	void Solution::print() const
 	{
-		log(tools::logger::LogLevel::INFO, toString());
+		log(tools::logger::LogLevel::INFO, toString()); 
 	}
 
 	// Solution evaluation specific functions
