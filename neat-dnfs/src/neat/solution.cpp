@@ -1,6 +1,7 @@
 #include <utility>
 
 #include "neat/solution.h"
+#include <format> 
 
 namespace neat_dnfs
 {
@@ -9,7 +10,7 @@ namespace neat_dnfs
 		name("undefined"),
 		initialTopology(initialTopology),
 		parameters(),
-		phenotype(SimulationConstants::name + std::to_string(id), SimulationConstants::deltaT),
+		phenotype(std::format("{}{}", SimulationConstants::name, id), SimulationConstants::deltaT), 
 		genome(),
 		parents(0,0)
 	{
@@ -34,7 +35,7 @@ namespace neat_dnfs
 	{
 		translatePhenotypeToGenome();
 		clearPhenotype();
-		this->phenotype = dnf_composer::Simulation(SimulationConstants::name + std::to_string(id), SimulationConstants::deltaT);
+		this->phenotype = dnf_composer::Simulation(std::format("{}{}", SimulationConstants::name, id), SimulationConstants::deltaT);
 	}
 
 	void Solution::evaluate()
@@ -144,7 +145,7 @@ namespace neat_dnfs
 			{
 				if (element->getUniqueName() == nfcp.identifiers.uniqueName)
 				{
-					log(tools::logger::LogLevel::ERROR, "Neural field with unique name " + nfcp.identifiers.uniqueName + " already exists in phenotype.");
+					log(tools::logger::LogLevel::ERROR, std::format("Neural field with unique name {} already exists in phenotype.", nfcp.identifiers.uniqueName));	
 				}
 			}
 
@@ -227,8 +228,8 @@ namespace neat_dnfs
 				const auto targetId = connectionGene.getOutFieldGeneId();
 
 				phenotype.addElement(coupling);
-				phenotype.createInteraction("nf " + std::to_string(sourceId), "output", coupling->getUniqueName());
-				phenotype.createInteraction(coupling->getUniqueName(), "output", "nf " + std::to_string(targetId));
+				phenotype.createInteraction(std::format("nf {}", sourceId), "output", coupling->getUniqueName());
+				phenotype.createInteraction(coupling->getUniqueName(), "output", std::format("nf {}", targetId));
 			}
 		}
 	}
@@ -291,8 +292,8 @@ namespace neat_dnfs
 						// Default to HIDDEN if the connection pattern doesn't match expected patterns
 						fieldType = FieldGeneType::HIDDEN;
 						tools::logger::log(tools::logger::LogLevel::WARNING,
-							"Unusual connection pattern for neural field: " + nfcp.identifiers.uniqueName +
-							" (inputs: " + std::to_string(numInputs) + ", outputs: " + std::to_string(numOutputs) + ")");
+							std::format("Unusual connection pattern for neural field: {} (inputs: {}, outputs: {})", 
+								nfcp.identifiers.uniqueName, numInputs, numOutputs));
 					}
 
 					// Create field gene parameters
@@ -325,7 +326,7 @@ namespace neat_dnfs
 						{
 							associatedNoise = std::dynamic_pointer_cast<NormalNoise>(inputInteraction);
 							break;
-						}
+						} 
 					}
 
 					// If kernel and noise are found, add the field gene
@@ -337,7 +338,7 @@ namespace neat_dnfs
 					else
 					{
 						tools::logger::log(tools::logger::LogLevel::WARNING,
-							"Could not find associated kernel or noise for neural field: " + nfcp.identifiers.uniqueName);
+							std::format("Could not find associated kernel or noise for neural field: {}", nfcp.identifiers.uniqueName));
 					}
 
 					// Update nextFieldId if necessary
@@ -633,20 +634,21 @@ namespace neat_dnfs
 	}
 
 	std::string Solution::toString() const
-	{
-		// solution id [ age, fit. spec., adj. fit., Parents, Genome, Mutations]
-		std::string result = "solution " + std::to_string(id);
-		result += " [" + parameters.toString() + ", ";
-		result += "parents (" + std::to_string(std::get<0>(parents)) + ", " + std::to_string(std::get<1>(parents)) + "), ";
-		result += genome.toString();
-		result += ", last mutations{" + genome.getMutationsInLastGeneration();
-		result += "}]";
-		return result;
-	}
+{
+    // solution id [ age, fit. spec., adj. fit., Parents, Genome, Mutations]
+    return std::format("solution {} [{}{}, ({}, {}), {}, last mutations{{{}}}]", 
+        id, 
+        parameters.toString(), 
+        ", ", 
+        std::get<0>(parents), 
+        std::get<1>(parents), 
+        genome.toString(), 
+        genome.getMutationsInLastGeneration());
+}
 
 	void Solution::print() const
 	{
-		log(tools::logger::LogLevel::INFO, toString());
+		log(tools::logger::LogLevel::INFO, toString()); 
 	}
 
 	// Solution evaluation specific functions
@@ -672,7 +674,7 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer::element;
 
-		const std::string gsId = "gs " + targetElement + " " + std::to_string(stimulusParameters.position);
+		const std::string gsId = std::format("gs {} {}", targetElement, stimulusParameters.position);
 		const auto gaussStimulus = std::make_shared<GaussStimulus>(GaussStimulus{ { gsId, dimensions }, stimulusParameters });
 		phenotype.addElement(gaussStimulus);
 		phenotype.createInteraction(gsId, "output", targetElement);
