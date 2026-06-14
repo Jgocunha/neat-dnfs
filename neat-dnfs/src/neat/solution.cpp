@@ -636,11 +636,11 @@ namespace neat_dnfs
 	std::string Solution::toString() const
 	{
 		// solution id [ age, fit. spec., adj. fit., Parents, Genome, Mutations]
-		std::string result = std::format("solution {} [{}]{}, ({}, {}), {}, last mutations[{{{}}}]", 
+		return std::string result = std::format("solution {} [{}]{}, ({}, {}), {}, last mutations[{{{}}}]", 
         id,
         parameters.toString(),
         " ",
-        std::get<0>(parents),
+        std::get<0>(parents), 
         std::get<1>(parents), 
         genome.toString(),
         genome.getMutationsInLastGeneration()); 
