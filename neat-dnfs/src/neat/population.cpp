@@ -1,6 +1,7 @@
 #include "neat/population.h"
 
 #include "neat/population_file_manager.h"
+#include <format> 
 
 namespace neat_dnfs
 {
@@ -350,7 +351,7 @@ namespace neat_dnfs
 			if (std::isnan (adjustedFitness))
 			{
 				log(tools::logger::LogLevel::FATAL, "Adjusted fitness is NaN.");
-				log(tools::logger::LogLevel::FATAL, "Fitness: " + std::to_string(solution->getFitness()) + " Species size: " + std::to_string(speciesSize));
+				log(tools::logger::LogLevel::FATAL, std::format("Fitness: {} Species size: {}", solution->getFitness(), speciesSize));
 				throw std::runtime_error("Adjusted fitness is NaN.");
 			}
 			solution->setAdjustedFitness(adjustedFitness);
@@ -422,8 +423,8 @@ namespace neat_dnfs
 				if (++assigned == 2) break; // Stop after assigning two species
 			}
 		}
-		log(tools::logger::LogLevel::WARNING, "Fitness of entire population has not improved for the last " 
-			+ std::to_string(PopulationConstants::generationsWithoutImprovementThresholdInPopulation) + " generations. Assigned offspring to top two species.");
+		log(tools::logger::LogLevel::WARNING, std::format("Fitness of entire population has not improved for the last {} generations. Assigned offspring to top two species", 
+                                                      PopulationConstants::generationsWithoutImprovementThresholdInPopulation));
 	}
 
 	void Population::sortSpeciesListByChampionFitness()
@@ -519,10 +520,9 @@ namespace neat_dnfs
 			{
 				totalOffspringToReassign += species->getOffspringCount();
 				species->setOffspringCount(0);
-				log(tools::logger::LogLevel::WARNING, "Fitness of species " +
-					std::to_string(species->getId()) + " has not improved for the last " +
-					std::to_string(PopulationConstants::generationsWithoutImprovementThresholdInSpecies) +
-					" generations.");
+				log(tools::logger::LogLevel::WARNING, std::format("Fitness of species {} has not improved for the last {} generations.", 
+                                                          species->getId(), 
+                                                          PopulationConstants::generationsWithoutImprovementThresholdInSpecies));
 			}
 		}
 		if (totalOffspringToReassign == 0)
@@ -532,9 +532,7 @@ namespace neat_dnfs
 		if (topSpecies == nullptr)
 			return;
 		topSpecies->setOffspringCount(topSpecies->getOffspringCount() + totalOffspringToReassign);
-		log(tools::logger::LogLevel::WARNING, "Reassigned " +
-			std::to_string(totalOffspringToReassign) + " offspring to species " +
-			std::to_string(topSpecies->getId()) + ".");
+		log(tools::logger::LogLevel::WARNING, std::format("Reassigned {} offspring to species {}", totalOffspringToReassign, topSpecies->getId()));
 	}
 
 	void Population::pruneWorsePreformingSolutions() const
@@ -652,8 +650,8 @@ namespace neat_dnfs
 			std::stringstream addr_opbs;
 			addr_opbs << pbs.get();
 			log(tools::logger::LogLevel::WARNING, "Fitness decreased and previous best solution is not in the population.");
-			log(tools::logger::LogLevel::WARNING, "Best solution address: " + addr_bs.str() + " Fitness: " + std::to_string(bsf));
-			log(tools::logger::LogLevel::WARNING, "Previous best solution address: " + addr_opbs.str() + " Fitness: " + std::to_string(pbsf));
+			log(tools::logger::LogLevel::WARNING, std::format("Best solution address: {} Fitness: {}", addr_bs.str(), bsf));
+			log(tools::logger::LogLevel::WARNING, std::format("Previous best solution address: {} Fitness: {}", addr_opbs.str(), pbsf));
 			//throw std::runtime_error("Best solution decreased and previous best solution not in population.");
 		}
 
@@ -707,9 +705,10 @@ namespace neat_dnfs
 							const auto outFieldGeneId = connectionGene1.getOutFieldGeneId();
 							const auto innovationNumber = connectionGene1.getInnovationNumber();
 							log(tools::logger::LogLevel::FATAL, "Connection genes are the same.");
-							log(tools::logger::LogLevel::FATAL, "InFieldGeneId: " + std::to_string(inFieldGeneId) +
-								" OutFieldGeneId: " + std::to_string(outFieldGeneId) + " InnovationNumber: " +
-								std::to_string(innovationNumber));
+							log(tools::logger::LogLevel::FATAL, std::format("InFieldGeneId: {} OutFieldGeneId: {} InnovationNumber: {}", 
+                                                        inFieldGeneId, 
+                                                        outFieldGeneId, 
+                                                        innovationNumber));
 						}
 					}
 				}
@@ -780,12 +779,8 @@ namespace neat_dnfs
 				if (representative_a == representative_b)
 				{
 					log(tools::logger::LogLevel::FATAL, "Species have the same representative.");
-					log(tools::logger::LogLevel::FATAL, "Species a id: " +
-						std::to_string(species_a->getId()) +
-						" Representative a id: " + representative_a);
-					log(tools::logger::LogLevel::FATAL, "Species b id: " +
-						std::to_string(species_b->getId()) +
-						" Representative b id: " + representative_b);
+					log(tools::logger::LogLevel::FATAL, std::format("Species a id: {} Representative a id: {}", species_a->getId(), representative_a));
+					log(tools::logger::LogLevel::FATAL, std::format("Species b id: {} Representative b id: {}", species_b->getId(), representative_b));
 				}
 			}
 		}
@@ -827,7 +822,7 @@ namespace neat_dnfs
 			std::stringstream addr;
 			addr << solution.get();
 			result += "Solution address: " + addr.str() + "\n";
-			result += "Fitness is: " + std::to_string(solution->getFitness()) + "\n";
+			result += std::format("Fitness is: {}\n", solution->getFitness());
 			const auto genome = solution->getGenome();
 			for (const auto& nodeGene : genome.getFieldGenes())
 				result += nodeGene.toString();
@@ -864,21 +859,34 @@ namespace neat_dnfs
 	}
 
 	void Population::logOverview() const
-	{
-		tools::logger::log(tools::logger::INFO,
-			"Current generation: " + std::to_string(parameters.currentGeneration) +
-			" Number of solutions: " + std::to_string(solutions.size()) +
-			" Number of species: " + std::to_string(perGenStatistics.numberOfSpecies) +
-			" Number of active species: " + std::to_string(perGenStatistics.numberOfActiveSpecies) +
-			" Has fitness improved: " + (hasFitnessImproved ? "yes" : "no") +
-			" Number of generations without improvement: " + std::to_string(generationsWithoutImprovement) +
-			" Average fitness: " + std::to_string(perGenStatistics.averageFitness) +
-			" Best fitness: " + std::to_string(perGenStatistics.bestFitness) +
-			" Innovation number: " + std::to_string(perGenStatistics.innovationNumber) +
-			" Average genome size: " + std::to_string(perGenStatistics.averageGenomeSize) +
-			" Average connection genes: " + std::to_string(perGenStatistics.averageConnectionGenes) +
-			" Average field genes: " + std::to_string(perGenStatistics.averageFieldGenes) +
-			" Best solution: [" + bestSolution->toString() + "]");
-	}
-
+{
+    log(tools::logger::LogLevel::INFO, std::format(
+        "Current generation: {}\n"
+        " Number of solutions: {}\n"
+        " Number of species: {}\n"
+        " Number of active species: {}\n"
+        " Has fitness improved: {}\n"
+        " Number of generations without improvement: {}\n"
+        " Average fitness: {}\n"
+        " Best fitness: {}\n"
+        " Innovation number: {}\n"
+        " Average genome size: {}\n"
+        " Average connection genes: {}\n"
+        " Average field genes: {}\n"
+        " Best solution: [{}]",
+        parameters.currentGeneration,
+        solutions.size(),
+        perGenStatistics.numberOfSpecies,
+        perGenStatistics.numberOfActiveSpecies,
+        hasFitnessImproved ? "yes" : "no",
+        generationsWithoutImprovement,
+        perGenStatistics.averageFitness,
+        perGenStatistics.bestFitness,
+        perGenStatistics.innovationNumber,
+        perGenStatistics.averageGenomeSize,
+        perGenStatistics.averageConnectionGenes,
+        perGenStatistics.averageFieldGenes,
+        bestSolution->toString()
+    ));
+}
 }
