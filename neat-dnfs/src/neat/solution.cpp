@@ -641,7 +641,7 @@ namespace neat_dnfs
         parameters.toString(),
         " ",
         std::get<0>(parents),
-        std::get<1>(parents),
+        std::get<1>(parents), 
         genome.toString(),
         genome.getMutationsInLastGeneration()); 
 	}
