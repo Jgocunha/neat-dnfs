@@ -1,6 +1,7 @@
 #pragma once
 
 #include "genome.h"
+#include <format> 
 
 namespace neat_dnfs
 {
@@ -46,21 +47,20 @@ namespace neat_dnfs
 		}
 
 		std::string toString() const
-		{
-			std::string result =
-				" fit.: " + std::to_string(fitness) +
-				", part.: (";
+    {
+        std::string partials;
+        for (const auto& partial : partialFitness)
+        {
+            partials += std::format("{}, ", partial);
+        }
 
-			for (const auto& partial : partialFitness)
-			{
-				result += std::to_string(partial) + ", ";
-			}
-
-			result += "), spec.: " + std::to_string(speciesId) +
-				", adj.fit.: " + std::to_string(adjustedFitness) +
-				", age: " + std::to_string(age);
-			return result;
-		}
+        return std::format(" fit.: {}, part.: ({}) spec.: {}, adj.fit.: {}, age: {}", 
+            fitness, 
+            partials, 
+            speciesId, 
+            adjustedFitness, 
+            age);
+    }
 
 		void print() const
 		{
