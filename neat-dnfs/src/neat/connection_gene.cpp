@@ -43,10 +43,13 @@ namespace neat_dnfs
 			innovationNumber == other.innovationNumber;
 	}
 
-	return std::format("{}, innov: {}, enabled: {}",
-		connectionTuple.toString().c_str(),
-		innovationNumber,
-		enabled ? "true" : "false");
+	std::string ConnectionGeneParameters::toString() const
+{
+    return std::format("{}, innov: {}, enabled: {}",
+                       connectionTuple.toString().c_str(),
+                       innovationNumber,
+                       enabled ? "true" : "false");
+} 
 
 	void ConnectionGeneParameters::print() const
 	{
@@ -58,7 +61,7 @@ namespace neat_dnfs
 	{
 		initializeKernel(dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
-
+ 
 	ConnectionGene::ConnectionGene(const ConnectionTuple connectionTuple, const int innov,
 		const dnf_composer::element::GaussKernelParameters& gkp)
 		: parameters(connectionTuple, innov)
