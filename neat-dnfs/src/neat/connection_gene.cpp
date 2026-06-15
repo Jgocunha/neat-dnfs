@@ -43,13 +43,10 @@ namespace neat_dnfs
 			innovationNumber == other.innovationNumber;
 	}
 
-	std::string ConnectionGeneParameters::toString() const
-	{
-		return std::format("{}, innov: {}, enabled: {}", 
-                       connectionTuple.toString(), 
-                       innovationNumber, 
-                       enabled ? "true" : "false"); 
-	}
+	return std::format("{}, innov: {}, enabled: {}",
+		connectionTuple.toString().c_str(),// Wait! Isko dhyan se dekhiye
+		innovationNumber,
+		enabled ? "true" : "false");
 
 	void ConnectionGeneParameters::print() const
 	{
@@ -66,11 +63,11 @@ namespace neat_dnfs
 		const dnf_composer::element::GaussKernelParameters& gkp)
 		: parameters(connectionTuple, innov)
 	{
-		const std::string elementName = std::format("{}{}-{} {}", 
-                                                GaussKernelConstants::namePrefixConnectionGene, 
-                                                connectionTuple.inFieldGeneId, 
-                                                connectionTuple.outFieldGeneId, 
-                                                parameters.innovationNumber); 
+		const std::string elementName = std::format("{}{}-{} {}",
+			GaussKernelConstants::namePrefixConnectionGene.c_str(),
+            connectionTuple.inFieldGeneId,
+            connectionTuple.outFieldGeneId,
+            innov); 
 		const ElementCommonParameters gkcp{ elementName,
 			dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<GaussKernel>(gkcp, gkp);
@@ -82,11 +79,11 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer::element;
 
-		const std::string elementName = std::format("{}{}-{} {}", 
-                                                MexicanHatKernelConstants::namePrefixConnectionGene,
-                                                connectionTuple.inFieldGeneId,
-                                                connectionTuple.outFieldGeneId,
-                                                parameters.innovationNumber); 
+		const std::string elementName = std::format("{}{}-{} {}",
+            MexicanHatKernelConstants::namePrefixConnectionGene.c_str(),
+            connectionTuple.inFieldGeneId,
+            connectionTuple.outFieldGeneId,
+            innov);   
 		const ElementCommonParameters mhkcp{ elementName,
 			dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<MexicanHatKernel>(mhkcp, mhkp);
@@ -99,10 +96,10 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 
 		const std::string elementName = std::format("{}{}-{} {}", 
-                                                GaussKernelConstants::namePrefixConnectionGene, 
-                                                parameters.connectionTuple.inFieldGeneId, 
-                                                parameters.connectionTuple.outFieldGeneId, 
-                                                parameters.innovationNumber); 
+			GaussKernelConstants::namePrefixConnectionGene.c_str(),
+    		parameters.connectionTuple.inFieldGeneId,
+    		parameters.connectionTuple.outFieldGeneId,
+    		parameters.innovationNumber);
 		const ElementCommonParameters gkcp{ elementName,
 			dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<GaussKernel>(gkcp, gkp);
@@ -115,10 +112,10 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 
 		const std::string elementName = std::format("{}{}-{} {}", 
-                                                MexicanHatKernelConstants::namePrefixConnectionGene,
-                                                parameters.connectionTuple.inFieldGeneId,
-                                                parameters.connectionTuple.outFieldGeneId,
-                                                parameters.innovationNumber);
+			MexicanHatKernelConstants::namePrefixConnectionGene.c_str(),
+    		parameters.connectionTuple.inFieldGeneId,
+    		parameters.connectionTuple.outFieldGeneId,
+    		parameters.innovationNumber);
 		const ElementCommonParameters mhkcp{ elementName,
 					dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<MexicanHatKernel>(mhkcp, mhkp);
