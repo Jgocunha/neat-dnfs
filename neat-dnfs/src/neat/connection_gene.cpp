@@ -44,7 +44,7 @@ namespace neat_dnfs
 	}
 
 	return std::format("{}, innov: {}, enabled: {}",
-		connectionTuple.toString().c_str(),// Wait! Isko dhyan se dekhiye
+		connectionTuple.toString().c_str(),
 		innovationNumber,
 		enabled ? "true" : "false");
 
@@ -83,7 +83,7 @@ namespace neat_dnfs
             MexicanHatKernelConstants::namePrefixConnectionGene.c_str(),
             connectionTuple.inFieldGeneId,
             connectionTuple.outFieldGeneId,
-            innov);   
+            innov);    
 		const ElementCommonParameters mhkcp{ elementName,
 			dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<MexicanHatKernel>(mhkcp, mhkp);
