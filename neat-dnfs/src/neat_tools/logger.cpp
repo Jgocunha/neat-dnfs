@@ -43,20 +43,20 @@ namespace neat_dnfs
     {
     case LogOutputMode::ALL:
         colorCode = getLogLevelColorCodeCmd(logLevel);
-        log_cmd(std::format("{}[{}] {}", colorCode, prefixStr, message));
-        log_ui(color, std::format("[{}] {}", prefixStr, message));
+        log_cmd(std::format("{}[{}] {}", colorCode.c_str(), prefixStr.c_str(), message.c_str()));
+        log_ui(color, std::format("[{}] {}", prefixStr.c_str(), message.c_str()));
         break;
     case LogOutputMode::CONSOLE:
         colorCode = getLogLevelColorCodeCmd(logLevel);
-        log_cmd(std::format("{}[{}] {}", colorCode, prefixStr, message));
+        log_cmd(std::format("{}[{}] {}", colorCode.c_str(), prefixStr.c_str(), message.c_str()));
         break;
-    case LogOutputMode::GUI: 
-        log_ui(color, std::format("[{}] {}", prefixStr, message));
+    case LogOutputMode::GUI:
+        log_ui(color, std::format("[{}] {}", prefixStr.c_str(), message.c_str()));
         break;
     case LogOutputMode::NONE:
     default:
         break;
-    } 
+    }  
 }
 
 void Logger::log_cmd(const std::string& message) 
