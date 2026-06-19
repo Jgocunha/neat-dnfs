@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+- **CodeRabbit PR review** — `.coderabbit.yaml` with project-specific rules: C++20 idioms, no raw owning pointers, Catch2 test coverage enforcement, Doxygen completeness, and a welcoming tone for first-time contributors
+- **Gemini issue triage** — `gemini-issue-triage.yml` auto-labels and posts a welcome comment on every new issue using the Gemini free tier; label creation and `gh` write commands are deterministic shell steps hardened against prompt injection
+- **Gemini doc-sync check** — `gemini-doc-sync.yml` audits Doxygen, README, and CHANGELOG completeness on PRs touching `neat-dnfs/include/**`; skipped on forked PRs to avoid secret-missing failures
+- **vcpkg maintenance** — `vcpkg-maintenance.yml` monthly cron creates a dependency version report issue using pure shell and `gh` CLI (no LLM required)
+
+---
+
 ## [1.1.0] - 2026-06-13
 
 ### Added
