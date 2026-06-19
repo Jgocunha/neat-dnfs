@@ -127,10 +127,15 @@ jobs:
             PRIORITY="priority: medium"
           fi
 
-          # Build comma-separated label list
+          # Build comma-separated label list, validating secondary labels
+          ALLOWED_SECONDARY="help wanted good first issue duplicate"
           LABELS="$TYPE_LABEL,$PRIORITY"
           for lbl in $SECONDARY; do
-            LABELS="$LABELS,$lbl"
+            if echo "$ALLOWED_SECONDARY" | grep -qF "$lbl"; then
+              LABELS="$LABELS,$lbl"
+            else
+              echo "Skipping unexpected secondary label: '$lbl'"
+            fi
           done
 
           gh issue edit "$ISSUE_NUMBER" --add-label "$LABELS"
