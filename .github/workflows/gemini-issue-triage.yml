@@ -1,0 +1,142 @@
+name: Gemini Issue Triage
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure labels exist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh label create "bug"                --color "#d73a4a" --description "Something is broken or behaves incorrectly" --force
+          gh label create "enhancement"        --color "#a2eeef" --description "New feature or capability request" --force
+          gh label create "question"           --color "#d876e3" --description "Further information is requested" --force
+          gh label create "documentation"      --color "#0075ca" --description "Improvements or additions to documentation" --force
+          gh label create "duplicate"          --color "#cfd3d7" --description "This issue or pull request already exists" --force
+          gh label create "help wanted"        --color "#008672" --description "Extra attention is needed" --force
+          gh label create "good first issue"   --color "#7057ff" --description "Good for newcomers" --force
+          gh label create "wontfix"            --color "#ffffff" --description "This will not be worked on" --force
+          gh label create "maintenance"        --color "#ededed" --description "Routine maintenance tasks" --force
+          gh label create "priority: critical" --color "#b60205" --description "Must fix immediately" --force
+          gh label create "priority: high"     --color "#e4604e" --description "Fix in the next release" --force
+          gh label create "priority: medium"   --color "#e99695" --description "Fix when possible" --force
+          gh label create "priority: low"      --color "#f9d0c4" --description "Nice to have" --force
+
+      - name: Fetch existing issues for duplicate check
+        id: existing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh issue list --state all --limit 100 --json number,title,state \
+            > /tmp/existing_issues.json
+          echo "fetched=$(cat /tmp/existing_issues.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Classify issue with Gemini
+        id: classify
+        uses: google-github-actions/run-gemini-cli@f77273f4c914e4bf38440cf36a0369cb64a37489 # v0
+        with:
+          gemini_cli_version: latest
+          prompt: |
+            Classify a GitHub issue for the **neat-dnfs** project and return ONLY a JSON object.
+            Do not execute any commands. Do not produce any text outside the JSON object.
+
+            Issue title: ${{ github.event.issue.title }}
+
+            Existing issues (for duplicate detection):
+            ${{ steps.existing.outputs.fetched }}
+
+            Rules:
+
+            type_label — pick exactly one:
+              "bug"           if something is broken or behaves incorrectly
+              "enhancement"   if it is a new feature or capability request
+              "question"      if the author is asking how to use the library
+              "documentation" if docs, wiki, or Doxygen are missing or wrong
+              "wontfix"       if clearly out of scope
+
+            secondary_labels — array, include any that apply:
+              "help wanted"      if valid but complex enough to need community help
+              "good first issue" if small and well-scoped (Doxygen block, typo, simple test)
+              "duplicate"        if a clearly related open issue exists (set duplicate_of)
+
+            priority_label — pick exactly one:
+              "priority: critical" if crash, data loss, or broken build on a supported platform
+              "priority: high"     if significant functional regression or missing core feature
+              "priority: medium"   if non-blocking bug or useful enhancement
+              "priority: low"      if cosmetic, minor doc issue, or speculative feature
+
+            duplicate_of — integer issue number if duplicate, otherwise null
+
+            comment — welcoming comment under 150 words. Rules:
+              - Address the author by username: ${{ github.event.issue.user.login }}
+              - bug: ask to confirm OS, compiler, and version if not obvious from the title
+              - question: mention the wiki at https://github.com/${{ github.repository }}/wiki
+              - enhancement: note contributions are welcome and link CONTRIBUTING.md at
+                https://github.com/${{ github.repository }}/blob/main/CONTRIBUTING.md
+              - documentation: point to the wiki and Doxygen comment conventions
+              - duplicate: explain which existing issue covers the topic and suggest continuing there
+              - Always end with: "A maintainer will follow up shortly."
+              - Do not be sycophantic
+
+            Return exactly this JSON schema (no extra keys, no markdown fences):
+            {
+              "type_label": "...",
+              "secondary_labels": [],
+              "priority_label": "...",
+              "duplicate_of": null,
+              "comment": "..."
+            }
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      - name: Apply labels and post comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          TRIAGE: ${{ steps.classify.outputs.summary }}
+        run: |
+          TRIAGE=$(echo "$TRIAGE")
+
+          TYPE_LABEL=$(echo "$TRIAGE"    | jq -r '.type_label')
+          PRIORITY=$(echo "$TRIAGE"      | jq -r '.priority_label')
+          SECONDARY=$(echo "$TRIAGE"     | jq -r '.secondary_labels[]' 2>/dev/null || true)
+          DUPLICATE_OF=$(echo "$TRIAGE"  | jq -r '.duplicate_of // empty')
+          COMMENT=$(echo "$TRIAGE"       | jq -r '.comment')
+
+          # Validate type_label is one of the allowed values
+          ALLOWED_TYPES="bug enhancement question documentation wontfix"
+          if ! echo "$ALLOWED_TYPES" | grep -qw "$TYPE_LABEL"; then
+            echo "Unexpected type_label '$TYPE_LABEL' — defaulting to 'question'"
+            TYPE_LABEL="question"
+          fi
+
+          # Validate priority_label is one of the allowed values
+          ALLOWED_PRIORITIES="priority: critical|priority: high|priority: medium|priority: low"
+          if ! echo "$PRIORITY" | grep -qE "^($ALLOWED_PRIORITIES)$"; then
+            echo "Unexpected priority_label '$PRIORITY' — defaulting to 'priority: medium'"
+            PRIORITY="priority: medium"
+          fi
+
+          # Build comma-separated label list, validating secondary labels
+          ALLOWED_SECONDARY="help wanted good first issue duplicate"
+          LABELS="$TYPE_LABEL,$PRIORITY"
+          for lbl in $SECONDARY; do
+            if echo "$ALLOWED_SECONDARY" | grep -qF "$lbl"; then
+              LABELS="$LABELS,$lbl"
+            else
+              echo "Skipping unexpected secondary label: '$lbl'"
+            fi
+          done
+
+          gh issue edit "$ISSUE_NUMBER" --add-label "$LABELS"
+          gh issue comment "$ISSUE_NUMBER" --body "$COMMENT"
