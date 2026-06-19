@@ -22,9 +22,10 @@ jobs:
           persist-credentials: false
 
       - name: Check documentation completeness with Gemini
-        uses: google-github-actions/run-gemini-cli@f77273f4c914e4bf38440cf36a0369cb64a37489 # v0
+        uses: google-github-actions/run-gemini-cli@055c24c9f565debe282e4adf1f7ca1715040ebe2 # v0 (2026-06-19)
         with:
           gemini_cli_version: latest
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           prompt: |
             This pull request modifies one or more public API headers under
             `neat-dnfs/include/`. Audit the documentation impact and post a
@@ -76,5 +77,5 @@ jobs:
                Write "No issues found." under any heading with nothing to report.
                One line per item. Do not suggest replacement wording — only identify what needs attention.
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_CLI_TRUST_WORKSPACE: 'true'
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

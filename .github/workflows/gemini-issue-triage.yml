@@ -24,7 +24,6 @@ jobs:
           gh label create "help wanted"        --color "#008672" --description "Extra attention is needed" --force
           gh label create "good first issue"   --color "#7057ff" --description "Good for newcomers" --force
           gh label create "wontfix"            --color "#ffffff" --description "This will not be worked on" --force
-          gh label create "maintenance"        --color "#ededed" --description "Routine maintenance tasks" --force
           gh label create "priority: critical" --color "#b60205" --description "Must fix immediately" --force
           gh label create "priority: high"     --color "#e4604e" --description "Fix in the next release" --force
           gh label create "priority: medium"   --color "#e99695" --description "Fix when possible" --force
@@ -38,13 +37,18 @@ jobs:
         run: |
           gh issue list --state all --limit 100 --json number,title,state \
             > /tmp/existing_issues.json
-          echo "fetched=$(cat /tmp/existing_issues.json)" >> "$GITHUB_OUTPUT"
+          {
+            echo "fetched<<EOF"
+            cat /tmp/existing_issues.json
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Classify issue with Gemini
         id: classify
-        uses: google-github-actions/run-gemini-cli@f77273f4c914e4bf38440cf36a0369cb64a37489 # v0
+        uses: google-github-actions/run-gemini-cli@055c24c9f565debe282e4adf1f7ca1715040ebe2 # v0 (2026-06-19)
         with:
           gemini_cli_version: latest
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           prompt: |
             Classify a GitHub issue for the **neat-dnfs** project and return ONLY a JSON object.
             Do not execute any commands. Do not produce any text outside the JSON object.
@@ -96,7 +100,7 @@ jobs:
               "comment": "..."
             }
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_CLI_TRUST_WORKSPACE: 'true'
 
       - name: Apply labels and post comment
         env:
@@ -105,33 +109,28 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           TRIAGE: ${{ steps.classify.outputs.summary }}
         run: |
-          TRIAGE=$(echo "$TRIAGE")
-
           TYPE_LABEL=$(echo "$TRIAGE"    | jq -r '.type_label')
           PRIORITY=$(echo "$TRIAGE"      | jq -r '.priority_label')
           SECONDARY=$(echo "$TRIAGE"     | jq -r '.secondary_labels[]' 2>/dev/null || true)
           DUPLICATE_OF=$(echo "$TRIAGE"  | jq -r '.duplicate_of // empty')
           COMMENT=$(echo "$TRIAGE"       | jq -r '.comment')
 
-          # Validate type_label is one of the allowed values
           ALLOWED_TYPES="bug enhancement question documentation wontfix"
           if ! echo "$ALLOWED_TYPES" | grep -qw "$TYPE_LABEL"; then
             echo "Unexpected type_label '$TYPE_LABEL' — defaulting to 'question'"
             TYPE_LABEL="question"
           fi
 
-          # Validate priority_label is one of the allowed values
           ALLOWED_PRIORITIES="priority: critical|priority: high|priority: medium|priority: low"
           if ! echo "$PRIORITY" | grep -qE "^($ALLOWED_PRIORITIES)$"; then
             echo "Unexpected priority_label '$PRIORITY' — defaulting to 'priority: medium'"
             PRIORITY="priority: medium"
           fi
 
-          # Build comma-separated label list, validating secondary labels
           ALLOWED_SECONDARY="help wanted good first issue duplicate"
           LABELS="$TYPE_LABEL,$PRIORITY"
           for lbl in $SECONDARY; do
-            if echo "$ALLOWED_SECONDARY" | grep -qF "$lbl"; then
+            if echo "$ALLOWED_SECONDARY" | grep -qw "$lbl"; then
               LABELS="$LABELS,$lbl"
             else
               echo "Skipping unexpected secondary label: '$lbl'"
@@ -140,3 +139,8 @@ jobs:
 
           gh issue edit "$ISSUE_NUMBER" --add-label "$LABELS"
           gh issue comment "$ISSUE_NUMBER" --body "$COMMENT"
+
+          if [ -n "$DUPLICATE_OF" ]; then
+            gh issue close "$ISSUE_NUMBER" --reason "not planned" \
+              --comment "Closing as duplicate of #${DUPLICATE_OF}."
+          fi
