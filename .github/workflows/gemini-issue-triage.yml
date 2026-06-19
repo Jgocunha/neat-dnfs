@@ -16,6 +16,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
+          gh label create "bug"                --color "#d73a4a" --description "Something is broken or behaves incorrectly" --force
+          gh label create "enhancement"        --color "#a2eeef" --description "New feature or capability request" --force
           gh label create "question"           --color "#d876e3" --description "Further information is requested" --force
           gh label create "documentation"      --color "#0075ca" --description "Improvements or additions to documentation" --force
           gh label create "duplicate"          --color "#cfd3d7" --description "This issue or pull request already exists" --force
