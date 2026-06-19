@@ -114,10 +114,17 @@ jobs:
           COMMENT=$(echo "$TRIAGE"       | jq -r '.comment')
 
           # Validate type_label is one of the allowed values
-          ALLOWED="bug enhancement question documentation wontfix"
-          if ! echo "$ALLOWED" | grep -qw "$TYPE_LABEL"; then
+          ALLOWED_TYPES="bug enhancement question documentation wontfix"
+          if ! echo "$ALLOWED_TYPES" | grep -qw "$TYPE_LABEL"; then
             echo "Unexpected type_label '$TYPE_LABEL' — defaulting to 'question'"
             TYPE_LABEL="question"
+          fi
+
+          # Validate priority_label is one of the allowed values
+          ALLOWED_PRIORITIES="priority: critical|priority: high|priority: medium|priority: low"
+          if ! echo "$PRIORITY" | grep -qE "^($ALLOWED_PRIORITIES)$"; then
+            echo "Unexpected priority_label '$PRIORITY' — defaulting to 'priority: medium'"
+            PRIORITY="priority: medium"
           fi
 
           # Build comma-separated label list
