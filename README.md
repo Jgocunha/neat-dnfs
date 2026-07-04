@@ -6,15 +6,17 @@
 
 ---
 
-[![Build](https://github.com/Jgocunha/neat-dnfs/actions/workflows/ci.yml/badge.svg)](https://github.com/Jgocunha/neat-dnfs/actions/workflows/ci.yml)
-[![Coverage](https://codecov.io/gh/Jgocunha/neat-dnfs/branch/main/graph/badge.svg)](https://codecov.io/gh/Jgocunha/neat-dnfs)
-[![Static Analysis](https://github.com/Jgocunha/neat-dnfs/actions/workflows/static-analysis.yml/badge.svg)](https://github.com/Jgocunha/neat-dnfs/actions/workflows/static-analysis.yml)
-[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://jgocunha.github.io/neat-dnfs/)
-[![Wiki](https://img.shields.io/badge/wiki-GitHub%20Wiki-blue)](https://github.com/Jgocunha/neat-dnfs/wiki)
-[![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.cppreference.com/w/cpp/20)
-[![Windows](https://badgen.net/badge/icon/windows?icon=windows&label)](https://github.com/Jgocunha/neat-dnfs/actions)
-[![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black)](https://github.com/Jgocunha/neat-dnfs/actions)
-[![macOS](https://img.shields.io/badge/macOS-000000?logo=apple)](https://github.com/Jgocunha/neat-dnfs/actions)
+[![CI](https://img.shields.io/github/actions/workflow/status/Jgocunha/neat-dnfs/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI)](https://github.com/Jgocunha/neat-dnfs/actions/workflows/ci.yml)
+[![Static Analysis](https://img.shields.io/github/actions/workflow/status/Jgocunha/neat-dnfs/static-analysis.yml?branch=main&style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj48Y2lyY2xlIGN4PSIxMCIgY3k9IjEwIiByPSI3Ii8%2BPGxpbmUgeDE9IjE1IiB5MT0iMTUiIHgyPSIyMSIgeTI9IjIxIi8%2BPC9zdmc%2B&logoColor=white&label=static%20analysis)](https://github.com/Jgocunha/neat-dnfs/actions/workflows/static-analysis.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/Jgocunha/neat-dnfs?style=flat-square&logo=codecov&logoColor=white)](https://codecov.io/gh/Jgocunha/neat-dnfs)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue?style=flat-square&logo=readthedocs&logoColor=white)](https://jgocunha.github.io/neat-dnfs/)
+[![Wiki](https://img.shields.io/badge/wiki-GitHub%20Wiki-blue?style=flat-square&logo=github&logoColor=white)](https://github.com/Jgocunha/neat-dnfs/wiki)
+
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C?style=flat-square&logo=cplusplus&logoColor=white)](https://en.cppreference.com/w/cpp/20)
+[![CMake](https://img.shields.io/badge/CMake-3.31%2B-064F8C?style=flat-square&logo=cmake&logoColor=white)](https://cmake.org)
+[![Windows](https://img.shields.io/badge/Windows-0078D6?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmZiI%2BPHBhdGggZD0iTTAgMy40NDlMOS43NSAyLjF2OS40NTFIMG0xMC45NDktOS42MDJMMjQgMHYxMS40SDEwLjk0OU0wIDEyLjZoOS43NXY5LjQ1MUwwIDIwLjY5OU0xMC45NDkgMTIuNkgyNFYyNGwtMTIuOS0xLjgwMSIvPjwvc3ZnPg%3D%3D&logoColor=white)](https://github.com/Jgocunha/neat-dnfs/actions)
+[![Linux](https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black)](https://github.com/Jgocunha/neat-dnfs/actions)
+[![macOS](https://img.shields.io/badge/macOS-000000?style=flat-square&logo=apple&logoColor=white)](https://github.com/Jgocunha/neat-dnfs/actions)
 
 **neat-dnfs** is a C++ framework that extends **NeuroEvolution of Augmenting Topologies (NEAT)** to the automated synthesis of **Dynamic Neural Field (DNF)** architectures.
 It enables the joint evolution of **continuous-time neural dynamics**, **kernel-based interactions**, and **architectural topology**, supporting the discovery of compact and interpretable Dynamic Field Theory (DFT) models without manual tuning.
