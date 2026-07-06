@@ -74,7 +74,7 @@ Evolution proceeds from minimal architectures and introduces complexity **only w
 | **Field Genes**       | Represent individual neural fields (input, hidden, output) and their intrinsic dynamics. |
 | **Interaction Genes** | Represent spatially structured kernel-based couplings between fields.                    |
 
-<img src="./neat-dnfs/resources/images/genotype-phenotype-wbg.png">
+<img src="./neat-dnfs/resources/images/phenotype-genotype-mapping-wb.png">
 
 **Genotype-to-phenotype mapping in neat-dnfs.**
 *Field genes encode intrinsic neural field dynamics, while interaction genes specify kernel-defined couplings. Together, they map directly to a continuous-time DNF architecture.*
