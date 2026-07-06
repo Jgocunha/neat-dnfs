@@ -56,7 +56,6 @@ namespace neat_dnfs
                 case LogOutputMode::GUI:
                     log_ui(color, std::format("[{}] {}  {}", timeStr, prefixStr, message));
                     break;
-                case LogOutputMode::NONE:
                 default:
                     break;
                 }
