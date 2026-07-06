@@ -3,7 +3,7 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
 #include "neat_tools/logger.h"
-#include <format> 
+#include <format>
 
 namespace neat_dnfs
 {
@@ -36,40 +36,42 @@ namespace neat_dnfs
 
                 const std::string levelStr = getLogLevelText(logLevel);
                 const std::string prefixStr = std::format("<neat-dnfs> {}", levelStr);
+                std::ostringstream timeStream;
+                timeStream << std::put_time(&buf, "%Y-%m-%d %X");
+                const std::string timeStr = timeStream.str();
                 std::string colorCode;
 
                 const ImVec4 color = getLogLevelColorCodeGui(logLevel);
                 switch (outputMode)
-    {
-    case LogOutputMode::ALL:
-        colorCode = getLogLevelColorCodeCmd(logLevel);
-        log_cmd(std::format("{}[{}] {}", colorCode.c_str(), prefixStr.c_str(), message.c_str()));
-        log_ui(color, std::format("[{}] {}", prefixStr.c_str(), message.c_str()));
-        break;
-    case LogOutputMode::CONSOLE:
-        colorCode = getLogLevelColorCodeCmd(logLevel);
-        log_cmd(std::format("{}[{}] {}", colorCode.c_str(), prefixStr.c_str(), message.c_str()));
-        break;
-    case LogOutputMode::GUI:
-        log_ui(color, std::format("[{}] {}", prefixStr.c_str(), message.c_str()));
-        break;
-    case LogOutputMode::NONE:
-    default:
-        break;
-    }  
-}
+                {
+                case LogOutputMode::ALL:
+                    colorCode = getLogLevelColorCodeCmd(logLevel);
+                    log_cmd(std::format("{}[{}] {} {}", colorCode, timeStr, prefixStr, message));
+                    log_ui(color, std::format("[{}] {}  {}", timeStr, prefixStr, message));
+                    break;
+                case LogOutputMode::CONSOLE:
+                    colorCode = getLogLevelColorCodeCmd(logLevel);
+                    log_cmd(std::format("{}[{}] {} {}", colorCode, timeStr, prefixStr, message));
+                    break;
+                case LogOutputMode::GUI:
+                    log_ui(color, std::format("[{}] {}  {}", timeStr, prefixStr, message));
+                    break;
+                case LogOutputMode::NONE:
+                default:
+                    break;
+                }
+            }
 
-void Logger::log_cmd(const std::string& message) 
-{
-    // GitHub Runner systems par compatibility ke liye std::cout use kiya hai
-    std::cout << message << "\033[0m\n";
-}
+            void Logger::log_cmd(const std::string& message)
+            {
+                std::cout << message << "\033[0m\n";
+            }
 
-void Logger::log_ui(ImVec4 color, const std::string& message)
-{
-    // "%s" use karne se format security warning [-Wformat-security] resolve ho jayegi
-    imgui_kit::LogWindow::addLog(color, "%s", message.c_str());
-}
+            void Logger::log_ui(ImVec4 color, const std::string& message)
+            {
+                imgui_kit::LogWindow::addLog(color, "%s", message.c_str());
+            }
+
             void log(LogLevel level, const std::string& message, LogOutputMode mode)
             {
 #ifndef _DEBUG
