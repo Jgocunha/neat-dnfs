@@ -451,12 +451,12 @@ namespace neat_dnfs
 		if (randomValue < FieldGeneConstants::gaussKernelProbability)
 		{
 			initializeGaussKernel(dimensions);
-			mutationsInLastGeneration += std::format("(mhk to gk)");
+			mutationsInLastGeneration += "(mhk to gk)";
 		}
 		else if (randomValue < FieldGeneConstants::gaussKernelProbability + FieldGeneConstants::mexicanHatKernelProbability)
 		{
 			initializeMexicanHatKernel(dimensions);
-			mutationsInLastGeneration += std::format("(gk to mhk)");
+			mutationsInLastGeneration += "(gk to mhk)";
 		}
 	}
 
@@ -501,7 +501,7 @@ namespace neat_dnfs
 		{
 			dnf_composer::element::ElementCommonParameters nfcp = neuralField->getElementCommonParameters();
 			initializeNeuralField(nfcp.dimensionParameters);
-			mutationsInLastGeneration += std::format("(fg nf rand.)");
+			mutationsInLastGeneration += "(fg nf rand.)";
 		}
 	}
 }
