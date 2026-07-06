@@ -1,6 +1,5 @@
 #include "neat/connection_gene.h"
-#include <format> 
-
+#include <format>
 
 namespace neat_dnfs
 {
@@ -44,12 +43,12 @@ namespace neat_dnfs
 	}
 
 	std::string ConnectionGeneParameters::toString() const
-{
-    return std::format("{}, innov: {}, enabled: {}",
-                       connectionTuple.toString().c_str(),
-                       innovationNumber,
-                       enabled ? "true" : "false");
-} 
+	{
+		return std::format("{}, innov: {}, enabled: {}",
+			connectionTuple.toString(),
+			innovationNumber,
+			enabled ? "true" : "false");
+	}
 
 	void ConnectionGeneParameters::print() const
 	{
@@ -61,16 +60,16 @@ namespace neat_dnfs
 	{
 		initializeKernel(dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
- 
+
 	ConnectionGene::ConnectionGene(const ConnectionTuple connectionTuple, const int innov,
 		const dnf_composer::element::GaussKernelParameters& gkp)
 		: parameters(connectionTuple, innov)
 	{
 		const std::string elementName = std::format("{}{}-{} {}",
-			GaussKernelConstants::namePrefixConnectionGene.c_str(),
-            connectionTuple.inFieldGeneId,
-            connectionTuple.outFieldGeneId,
-            innov); 
+			GaussKernelConstants::namePrefixConnectionGene,
+			connectionTuple.inFieldGeneId,
+			connectionTuple.outFieldGeneId,
+			innov);
 		const ElementCommonParameters gkcp{ elementName,
 			dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<GaussKernel>(gkcp, gkp);
@@ -83,10 +82,10 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 
 		const std::string elementName = std::format("{}{}-{} {}",
-            MexicanHatKernelConstants::namePrefixConnectionGene.c_str(),
-            connectionTuple.inFieldGeneId,
-            connectionTuple.outFieldGeneId,
-            innov);    
+			MexicanHatKernelConstants::namePrefixConnectionGene,
+			connectionTuple.inFieldGeneId,
+			connectionTuple.outFieldGeneId,
+			innov);
 		const ElementCommonParameters mhkcp{ elementName,
 			dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<MexicanHatKernel>(mhkcp, mhkp);
@@ -94,15 +93,15 @@ namespace neat_dnfs
 
 	ConnectionGene::ConnectionGene(const ConnectionGeneParameters& parameters,
 		const dnf_composer::element::GaussKernelParameters& gkp)
-		: parameters(parameters) 
+		: parameters(parameters)
 	{
 		using namespace dnf_composer::element;
 
-		const std::string elementName = std::format("{}{}-{} {}", 
-			GaussKernelConstants::namePrefixConnectionGene.c_str(),
-    		parameters.connectionTuple.inFieldGeneId,
-    		parameters.connectionTuple.outFieldGeneId,
-    		parameters.innovationNumber);
+		const std::string elementName = std::format("{}{}-{} {}",
+			GaussKernelConstants::namePrefixConnectionGene,
+			parameters.connectionTuple.inFieldGeneId,
+			parameters.connectionTuple.outFieldGeneId,
+			parameters.innovationNumber);
 		const ElementCommonParameters gkcp{ elementName,
 			dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<GaussKernel>(gkcp, gkp);
@@ -114,11 +113,11 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer::element;
 
-		const std::string elementName = std::format("{}{}-{} {}", 
-			MexicanHatKernelConstants::namePrefixConnectionGene.c_str(),
-    		parameters.connectionTuple.inFieldGeneId,
-    		parameters.connectionTuple.outFieldGeneId,
-    		parameters.innovationNumber);
+		const std::string elementName = std::format("{}{}-{} {}",
+			MexicanHatKernelConstants::namePrefixConnectionGene,
+			parameters.connectionTuple.inFieldGeneId,
+			parameters.connectionTuple.outFieldGeneId,
+			parameters.innovationNumber);
 		const ElementCommonParameters mhkcp{ elementName,
 					dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx} };
 		kernel = std::make_unique<MexicanHatKernel>(mhkcp, mhkp);
@@ -137,8 +136,8 @@ namespace neat_dnfs
 
 		if (!kernel)
 		{
-			const std::string message = std::format("Calling mutate() on ConnectionGene with ConnectionTuple: {}-{} but kernel is nullptr.", 
-                                                parameters.connectionTuple.inFieldGeneId, 
+			const std::string message = std::format("Calling mutate() on ConnectionGene with ConnectionTuple: {}-{} but kernel is nullptr.",
+                                                parameters.connectionTuple.inFieldGeneId,
                                                 parameters.connectionTuple.outFieldGeneId);
 			tools::logger::log(tools::logger::FATAL, message);
 			throw std::runtime_error(message);
@@ -338,10 +337,10 @@ namespace neat_dnfs
 									KernelConstants::circularity,
 									KernelConstants::normalization
 		};
-		const std::string elementName = std::format("{}{}-{} {}", 
-                                                GaussKernelConstants::namePrefixConnectionGene, 
-                                                parameters.connectionTuple.inFieldGeneId, 
-                                                parameters.connectionTuple.outFieldGeneId, 
+		const std::string elementName = std::format("{}{}-{} {}",
+                                                GaussKernelConstants::namePrefixConnectionGene,
+                                                parameters.connectionTuple.inFieldGeneId,
+                                                parameters.connectionTuple.outFieldGeneId,
                                                 parameters.innovationNumber);
 		const ElementCommonParameters gkcp{ elementName, dimensions };
 		kernel = std::make_shared<GaussKernel>(gkcp, gkp);
@@ -366,11 +365,11 @@ namespace neat_dnfs
 								KernelConstants::circularity,
 								KernelConstants::normalization
 		};
-		const std::string elementName = std::format("{}{}-{} {}", 
-                                                MexicanHatKernelConstants::namePrefixConnectionGene, 
-                                                parameters.connectionTuple.inFieldGeneId, 
-                                                parameters.connectionTuple.outFieldGeneId, 
-                                                parameters.innovationNumber); 
+		const std::string elementName = std::format("{}{}-{} {}",
+                                                MexicanHatKernelConstants::namePrefixConnectionGene,
+                                                parameters.connectionTuple.inFieldGeneId,
+                                                parameters.connectionTuple.outFieldGeneId,
+                                                parameters.innovationNumber);
 		const ElementCommonParameters mhcp{ elementName, dimensions};
 		kernel = std::make_shared<MexicanHatKernel>(mhcp, mhkp);
 	}
@@ -381,7 +380,7 @@ namespace neat_dnfs
 		{
 		case dnf_composer::element::ElementLabel::GAUSS_KERNEL:
 			mutateGaussKernel();
-			break; 
+			break;
 		case dnf_composer::element::ElementLabel::MEXICAN_HAT_KERNEL:
 			mutateMexicanHatKernel();
 			break;
@@ -472,7 +471,7 @@ namespace neat_dnfs
 			mhkp.amplitudeExc = amp_sign * std::clamp(mhkp.amplitudeExc + MexicanHatKernelConstants::ampExcStep * signal,
 				MexicanHatKernelConstants::ampExcMinVal,
 				MexicanHatKernelConstants::ampExcMaxVal);
-				mutationsInLastGeneration += std::format("(cg mhk amp. exc. {})", MexicanHatKernelConstants::ampExcStep * signal); 
+				mutationsInLastGeneration += std::format("(cg mhk amp. exc. {})", MexicanHatKernelConstants::ampExcStep * signal);
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelWidthExcProbability)
@@ -532,7 +531,7 @@ namespace neat_dnfs
 				mhkp.amplitudeExc = -mhkp.amplitudeExc;
 				mexicanHatKernel->setParameters(mhkp);
 				const bool amp_sign = mhkp.amplitudeExc >=0;
-				mutationsInLastGeneration += std::format("(cg to {})", amp_sign ? "excitatory" : "inhibitory"); 
+				mutationsInLastGeneration += std::format("(cg to {})", amp_sign ? "excitatory" : "inhibitory");
 			}
 			break;
 		default:
