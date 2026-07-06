@@ -2,7 +2,7 @@
 
 ## A NeuroEvolutionary Framework for Evolving Dynamic Neural Field Architectures
 
-<img src="./neat-dnfs/resources/images/logo.png" alt="logo" width="800" height="800">
+<img src="https://raw.githubusercontent.com/Jgocunha/neat-dnfs/main/neat-dnfs/resources/images/logo.png" alt="logo" width="800" height="800">
 
 ---
 
@@ -74,7 +74,7 @@ Evolution proceeds from minimal architectures and introduces complexity **only w
 | **Field Genes**       | Represent individual neural fields (input, hidden, output) and their intrinsic dynamics. |
 | **Interaction Genes** | Represent spatially structured kernel-based couplings between fields.                    |
 
-<img src="./neat-dnfs/resources/images/phenotype-genotype-mapping-wb.png">
+<img src="https://raw.githubusercontent.com/Jgocunha/neat-dnfs/main/neat-dnfs/resources/images/phenotype-genotype-mapping-wb.png">
 
 **Genotype-to-phenotype mapping in neat-dnfs.**
 *Field genes encode intrinsic neural field dynamics, while interaction genes specify kernel-defined couplings. Together, they map directly to a continuous-time DNF architecture.*
