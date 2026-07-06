@@ -1,6 +1,5 @@
 #include "solutions/two_robot_team.h"
 #include <format>
-#include <string>
 
 namespace neat_dnfs
 {

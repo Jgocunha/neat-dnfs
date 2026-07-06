@@ -1,6 +1,5 @@
 #include "solutions/select_the_object.h"
 #include <format>
-#include <string> 
 
 namespace neat_dnfs
 {

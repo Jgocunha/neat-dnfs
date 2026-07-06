@@ -1,6 +1,5 @@
-#include "solutions/action_execution_layer.h" 
-#include <format> 
-#include <string>
+#include "solutions/action_execution_layer.h"
+#include <format>
 
 namespace neat_dnfs
 {
@@ -90,7 +89,7 @@ namespace neat_dnfs
 		parameters.fitness += wf6 * f6;
 		parameters.partialFitness.emplace_back(f6);
 
-		removeGaussianStimuli(); S
+		removeGaussianStimuli();
 
 
 		
