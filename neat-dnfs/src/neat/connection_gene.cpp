@@ -65,6 +65,8 @@ namespace neat_dnfs
 		const dnf_composer::element::GaussKernelParameters& gkp)
 		: parameters(connectionTuple, innov)
 	{
+		using namespace dnf_composer::element;
+
 		const std::string elementName = std::format("{}{}-{} {}",
 			GaussKernelConstants::namePrefixConnectionGene,
 			connectionTuple.inFieldGeneId,
