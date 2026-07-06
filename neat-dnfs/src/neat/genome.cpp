@@ -449,6 +449,7 @@ namespace neat_dnfs
 			connectionGenes.emplace_back(connectionTuple, globalInnovationNumber);
 			connectionTupleAndInnovationNumberWithinGeneration[connectionTuple] = globalInnovationNumber;
 			mutationsInLastGeneration += std::format("(added cg {} innov. {})\n", connectionTuple.toString(), globalInnovationNumber);
+			globalInnovationNumber++;
 		}
 	} 
 
