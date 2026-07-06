@@ -145,7 +145,8 @@ namespace neat_dnfs
 
 	void PopulationFileManager::saveTimestampsAndDuration() const
 	{
-		const std::string directoryPath = std::format("{}/", fileDirectory); // Ensure directory exists
+		const std::string directoryPath = std::format("{}/", fileDirectory);
+		std::filesystem::create_directories(directoryPath); // Ensure directory exists
 
 		std::ofstream logFile(std::format("{}evolution_timestamps.txt", directoryPath), std::ios::app);
 		if (logFile.is_open())
@@ -216,24 +217,26 @@ namespace neat_dnfs
 
 	void PopulationFileManager::savePerGenerationOverview() const
 	{
-		const std::string directoryPath = std::format("{}/", fileDirectory); // Ensure directory exists
+		const std::string directoryPath = std::format("{}/", fileDirectory);
+		std::filesystem::create_directories(directoryPath); // Ensure directory exists
 
 		std::ofstream logFile(std::format("{}per_generation_overview.txt", directoryPath), std::ios::app);
 		if (logFile.is_open())
 		{
-			logFile << std::format("Current generation: {}\n", population.parameters.currentGeneration);
-			logFile << std::format(" Number of solutions: {}\n", population.solutions.size());
-        	logFile << std::format(" Number of species: {}\n", population.perGenStatistics.numberOfSpecies);
-        	logFile << std::format(" Number of active species: {}\n", population.perGenStatistics.numberOfActiveSpecies);
-        	logFile << std::format(" Has fitness improved: {}\n", population.hasFitnessImproved ? "yes" : "no");
-        	logFile << std::format(" Number of generations without improvement: {}\n", population.generationsWithoutImprovement);
-        	logFile << std::format(" Average fitness: {}\n", population.perGenStatistics.averageFitness);
-        	logFile << std::format(" Best fitness: {}\n", population.perGenStatistics.bestFitness);
-        	logFile << std::format(" Innovation number: {}\n", population.perGenStatistics.innovationNumber);
-        	logFile << std::format(" Average genome size: {}\n", population.perGenStatistics.averageGenomeSize);
-        	logFile << std::format(" Average connection genes: {}\n", population.perGenStatistics.averageConnectionGenes);
-        	logFile << std::format(" Average field genes: {}\n", population.perGenStatistics.averageFieldGenes);
-        	logFile << std::format(" Best solution: [{}]\n", population.bestSolution->toString());
+			logFile << std::format("Current generation: {} Number of solutions: {} Number of species: {} Number of active species: {} Has fitness improved: {} Number of generations without improvement: {} Average fitness: {} Best fitness: {} Innovation number: {} Average genome size: {} Average connection genes: {} Average field genes: {} Best solution: [{}]\n",
+				population.parameters.currentGeneration,
+				population.solutions.size(),
+				population.perGenStatistics.numberOfSpecies,
+				population.perGenStatistics.numberOfActiveSpecies,
+				population.hasFitnessImproved ? "yes" : "no",
+				population.generationsWithoutImprovement,
+				population.perGenStatistics.averageFitness,
+				population.perGenStatistics.bestFitness,
+				population.perGenStatistics.innovationNumber,
+				population.perGenStatistics.averageGenomeSize,
+				population.perGenStatistics.averageConnectionGenes,
+				population.perGenStatistics.averageFieldGenes,
+				population.bestSolution->toString());
 			logFile.close();
 		}
 		else
