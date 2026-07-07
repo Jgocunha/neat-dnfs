@@ -1,4 +1,5 @@
 #include "solutions/two_robot_team.h"
+#include <format>
 
 namespace neat_dnfs
 {
@@ -62,13 +63,13 @@ namespace neat_dnfs
 		parameters.partialFitness.emplace_back(f1);
 		parameters.partialFitness.emplace_back(f2);
 
-		moveGaussianStimulusContinously("gs nf 3 " + std::to_string(50.0), 20.0, -0.5);
+		moveGaussianStimulusContinously(std::format("gs nf 3 {}", 50.0), 20.0, -0.5);
 		const double f3 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 80.0 }, out_amp, out_width);
 		const double f4 = preShapedness("nf 5", { 20.0, 50.0 });
 		parameters.partialFitness.emplace_back(f3);
 		parameters.partialFitness.emplace_back(f4);
 
-		moveGaussianStimulusContinously("gs nf 3 " + std::to_string(50.0), 80.0, +0.5);
+		moveGaussianStimulusContinously(std::format("gs nf 3 {}", 50.0), 80.0, +0.5); 
 		const double f5 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0 }, out_amp, out_width);
 		const double f6 = preShapedness("nf 5", { 80.0, 50.0 });
 		parameters.partialFitness.emplace_back(f5);

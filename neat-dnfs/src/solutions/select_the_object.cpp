@@ -1,4 +1,5 @@
 #include "solutions/select_the_object.h"
+#include <format>
 
 namespace neat_dnfs
 {
@@ -243,7 +244,7 @@ namespace neat_dnfs
 		//	dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
 		//	dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		std::string gs = "gs nf 3";
-		gs += " " + std::to_string(80.0);
+		gs += std::format(" {}", 80.0);
 		moveGaussianStimulusContinously(gs, 20.0, -0.2);
 		//runSimulation(iterations);
 		const double f8_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 80.0, out_amp, out_width);
@@ -284,14 +285,14 @@ namespace neat_dnfs
 		//	dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		//runSimulation(iterations);
 		std::string gs2 = "gs nf 1";
-		gs2 += " " + std::to_string(20.0);
+		gs2 += std::format(" {}", 20.0);
 		moveGaussianStimulusContinously(gs2, 80.0, 0.2);
 		//addGaussianStimulus("nf 3",
 		//	dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
 		//	dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		//runSimulation(iterations);
 		std::string gs3 = "gs nf 3";
-		gs3 += " " + std::to_string(20.0);
+		gs3 += std::format(" {}", 20.0); 
 		moveGaussianStimulusContinously(gs3, 80.0, 0.2);
 		const double f10_2 = noBumps("nf 4");
 		parameters.partialFitness.emplace_back(f10_2);
@@ -341,11 +342,11 @@ namespace neat_dnfs
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);*/
 		std::string gs4 = "gs nf 3";
-		gs4 += " " + std::to_string(50.0);
+		gs4 += std::format(" {}", 50.0); 
 		moveGaussianStimulusContinously(gs4, 20.0, -0.2);
 		const double f12_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 80.0, out_amp, in_width);
 		parameters.partialFitness.emplace_back(f12_1);
-
+ 
 		/*removeGaussianStimuli();
 		initSimulation();
 		addGaussianStimulus("nf 2",
