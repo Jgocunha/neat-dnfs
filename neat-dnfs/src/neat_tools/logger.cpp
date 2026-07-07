@@ -3,6 +3,7 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
 #include "neat_tools/logger.h"
+#include <format>
 
 namespace neat_dnfs
 {
@@ -34,9 +35,10 @@ namespace neat_dnfs
 #endif
 
                 const std::string levelStr = getLogLevelText(logLevel);
-                const std::string prefixStr = "<neat-dnfs> " + levelStr;
-                std::ostringstream oss;
-                const std::string finalMessage = oss.str();
+                const std::string prefixStr = std::format("<neat-dnfs> {}", levelStr);
+                std::ostringstream timeStream;
+                timeStream << std::put_time(&buf, "%Y-%m-%d %X");
+                const std::string timeStr = timeStream.str();
                 std::string colorCode;
 
                 const ImVec4 color = getLogLevelColorCodeGui(logLevel);
@@ -44,36 +46,29 @@ namespace neat_dnfs
                 {
                 case LogOutputMode::ALL:
                     colorCode = getLogLevelColorCodeCmd(logLevel);
-                    oss << colorCode << "[" << std::put_time(&buf, "%Y-%m-%d %X") << "] "<< prefixStr << " " << message;
-                    log_cmd(oss.str());
-                    std::ostringstream().swap(oss); // swap m with a default constructed stringstream
-                    oss << "[" << std::put_time(&buf, "%Y-%m-%d %X") << "] "<< prefixStr << " "  << " " << message;
-                    log_ui(color, oss.str());
+                    log_cmd(std::format("{}[{}] {} {}", colorCode, timeStr, prefixStr, message));
+                    log_ui(color, std::format("[{}] {}  {}", timeStr, prefixStr, message));
                     break;
                 case LogOutputMode::CONSOLE:
                     colorCode = getLogLevelColorCodeCmd(logLevel);
-                    oss << colorCode << "[" << std::put_time(&buf, "%Y-%m-%d %X") << "] " << prefixStr << " " << message;
-                    log_cmd(oss.str());
+                    log_cmd(std::format("{}[{}] {} {}", colorCode, timeStr, prefixStr, message));
                     break;
                 case LogOutputMode::GUI:
-                    oss << "[" << std::put_time(&buf, "%Y-%m-%d %X") << "] " << prefixStr << " " <<  " " << message;
-                    log_ui(color, oss.str());
+                    log_ui(color, std::format("[{}] {}  {}", timeStr, prefixStr, message));
                     break;
                 default:
                     break;
                 }
-
             }
 
             void Logger::log_cmd(const std::string& message)
             {
-                const std::string finalMessage_cmd = message + "\033[0m"; // Reset color code
-                std::cout << finalMessage_cmd << std::endl;
+                std::cout << message << "\033[0m\n";
             }
 
             void Logger::log_ui(ImVec4 color, const std::string& message)
             {
-                imgui_kit::LogWindow::addLog(color, message.c_str());
+                imgui_kit::LogWindow::addLog(color, "%s", message.c_str());
             }
 
             void log(LogLevel level, const std::string& message, LogOutputMode mode)
