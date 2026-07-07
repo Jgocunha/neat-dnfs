@@ -1,4 +1,5 @@
 #include "neat/field_gene.h"
+#include <format> 
 
 namespace neat_dnfs
 {
@@ -26,7 +27,7 @@ namespace neat_dnfs
 			typeStr = "HIDDEN";
 			break;
 		}
-		return "id: " + std::to_string(id) + ", type: " + typeStr;
+		return std::format("id: {}, type: {}", id, typeStr);
 	}
 
 	void FieldGeneParameters::print() const
@@ -64,7 +65,7 @@ namespace neat_dnfs
 		const ElementDimensions dimensions = other.getNeuralField()->getElementCommonParameters().dimensionParameters;
 
 		const std::shared_ptr<NeuralField> nf = other.getNeuralField();
-		const ElementCommonParameters nfcp{ NeuralFieldConstants::namePrefix + std::to_string(parameters.id), dimensions };
+		const ElementCommonParameters nfcp{ std::format("{}{}", NeuralFieldConstants::namePrefix, parameters.id), dimensions };
 		neuralField = std::make_shared<NeuralField>(nfcp, nf->getParameters());
 
 		const auto k = other.getKernel();
@@ -73,14 +74,14 @@ namespace neat_dnfs
 			case ElementLabel::GAUSS_KERNEL:
 				{
 					const auto gkp = std::dynamic_pointer_cast<GaussKernel>(k)->getParameters();
-					const ElementCommonParameters gkcp{ GaussKernelConstants::namePrefix + std::to_string(parameters.id), dimensions };
+					const ElementCommonParameters gkcp{ std::format("{}{}", GaussKernelConstants::namePrefix, parameters.id), dimensions };
 					kernel = std::make_shared<GaussKernel>(gkcp, gkp);
 				}
 				break;
 			case ElementLabel::MEXICAN_HAT_KERNEL:
 				{
 					const auto mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(k)->getParameters();
-					const ElementCommonParameters mhcp{ MexicanHatKernelConstants::namePrefix + std::to_string(parameters.id), dimensions };
+					const ElementCommonParameters mhcp{ std::format("{}{}", MexicanHatKernelConstants::namePrefix, parameters.id), dimensions };
 					kernel = std::make_shared<MexicanHatKernel>(mhcp, mhkp);
 				}
 				break;
@@ -90,7 +91,7 @@ namespace neat_dnfs
 		}
 
 		const std::shared_ptr<NormalNoise> nn = other.getNoise();
-		const ElementCommonParameters nncp{ NoiseConstants::namePrefix + std::to_string(parameters.id), dimensions };
+		const ElementCommonParameters nncp{ std::format("{}{}", NoiseConstants::namePrefix, parameters.id), dimensions };
 		noise = std::make_shared<NormalNoise>(nncp, nn->getParameters());
 	}
 
@@ -100,7 +101,7 @@ namespace neat_dnfs
 		initializeNeuralField(dimensions);
 		initializeKernel(dimensions);
 		initializeNoise(dimensions);
-	}
+	} 
 
 	void FieldGene::setAsOutput(const dnf_composer::element::ElementDimensions& dimensions)
 	{
@@ -225,7 +226,7 @@ namespace neat_dnfs
 			const double restingLevel = generateRandomDouble(NeuralFieldConstants::restingLevelMinVal, NeuralFieldConstants::restingLevelMaxVal);
 
 			const NeuralFieldParameters nfp{ tau, restingLevel, NeuralFieldConstants::activationFunction };
-			const ElementCommonParameters nfcp{ NeuralFieldConstants::namePrefix + std::to_string(parameters.id), dimensions };
+			const ElementCommonParameters nfcp{ std::format("{}{}", NeuralFieldConstants::namePrefix, parameters.id), dimensions };
 			neuralField = std::make_shared<NeuralField>(nfcp, nfp);
 		}
 		else
@@ -233,7 +234,7 @@ namespace neat_dnfs
 			constexpr double tau = NeuralFieldConstants::tau;
 			constexpr double restingLevel = NeuralFieldConstants::restingLevel;
 			const NeuralFieldParameters nfp{ tau, restingLevel, NeuralFieldConstants::activationFunction };
-			const ElementCommonParameters nfcp{ NeuralFieldConstants::namePrefix + std::to_string(parameters.id), dimensions };
+			const ElementCommonParameters nfcp{ std::format("{}{}", NeuralFieldConstants::namePrefix, parameters.id), dimensions };
 			neuralField = std::make_shared<NeuralField>(nfcp, nfp);
 		}
 	}
@@ -277,8 +278,7 @@ namespace neat_dnfs
 										KernelConstants::circularity,
 										KernelConstants::normalization
 			};
-			const ElementCommonParameters gkcp{ GaussKernelConstants::namePrefix + std::to_string(parameters.id),
-							dimensions };
+			const ElementCommonParameters gkcp{ std::format("{}{}", GaussKernelConstants::namePrefix, parameters.id), dimensions };
 			kernel = std::make_shared<GaussKernel>(gkcp, gkp);
 		}
 		else
@@ -290,8 +290,7 @@ namespace neat_dnfs
 										KernelConstants::circularity,
 										KernelConstants::normalization
 			};
-			const ElementCommonParameters gkcp{ GaussKernelConstants::namePrefix + std::to_string(parameters.id),
-							dimensions };
+			const ElementCommonParameters gkcp{ std::format("{}{}", GaussKernelConstants::namePrefix, parameters.id), dimensions };
 			kernel = std::make_shared<GaussKernel>(gkcp, gkp);
 		}
 	}
@@ -314,8 +313,7 @@ namespace neat_dnfs
 								KernelConstants::circularity,
 								KernelConstants::normalization
 		};
-		const ElementCommonParameters mhcp{ MexicanHatKernelConstants::namePrefix + std::to_string(parameters.id), dimensions
-		};
+		const ElementCommonParameters mhcp{ std::format("{}{}", MexicanHatKernelConstants::namePrefix, parameters.id), dimensions };
 		kernel = std::make_shared<MexicanHatKernel>(mhcp, mhkp);
 	}
 
@@ -325,7 +323,7 @@ namespace neat_dnfs
 		using namespace neat_dnfs::tools::utils;
 
 		const NormalNoiseParameters nnp{ NoiseConstants::amplitude };
-		const ElementCommonParameters nncp{  NoiseConstants::namePrefix + std::to_string(parameters.id), dimensions };
+		const ElementCommonParameters nncp{ std::format("{}{}", NoiseConstants::namePrefix, parameters.id), dimensions };
 		noise = std::make_shared<NormalNoise>(nncp, nnp);
 	}
 
@@ -360,7 +358,7 @@ namespace neat_dnfs
 			gkp.width = std::clamp(gkp.width + GaussKernelConstants::widthStep * signal,
 								GaussKernelConstants::widthMinVal,
 								GaussKernelConstants::widthMaxVal);
-			mutationsInLastGeneration += "(fg gk width " + std::to_string(GaussKernelConstants::widthStep * signal) + ")";
+			mutationsInLastGeneration += std::format("(fg gk width {})", GaussKernelConstants::widthStep * signal);
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneGaussKernelAmplitudeProbability)
@@ -368,7 +366,7 @@ namespace neat_dnfs
 			gkp.amplitude = std::clamp(gkp.amplitude + GaussKernelConstants::ampStep * signal,
 								GaussKernelConstants::ampMinVal,
 								GaussKernelConstants::ampMaxVal);
-			mutationsInLastGeneration += "(fg gk amp." + std::to_string(GaussKernelConstants::ampStep * signal) + ")";
+			mutationsInLastGeneration += std::format("(fg gk amp. {})", GaussKernelConstants::ampStep * signal);
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneGaussKernelGlobalAmplitudeProbability)
@@ -376,7 +374,7 @@ namespace neat_dnfs
 			gkp.amplitudeGlobal = std::clamp(gkp.amplitudeGlobal + GaussKernelConstants::ampGlobalStep * signal,
 								GaussKernelConstants::ampGlobalMinVal,
 								GaussKernelConstants::ampGlobalMaxVal);
-			mutationsInLastGeneration += "(fg gk amp. glob."  + std::to_string(GaussKernelConstants::ampGlobalStep * signal) + ")";
+			mutationsInLastGeneration += std::format("(fg gk amp. glob. {})", GaussKernelConstants::ampGlobalStep * signal);
 		}
 		std::dynamic_pointer_cast<GaussKernel>(kernel)->setParameters(gkp);
 
@@ -397,7 +395,7 @@ namespace neat_dnfs
 			mhkp.amplitudeExc = std::clamp(mhkp.amplitudeExc + MexicanHatKernelConstants::ampExcStep * signal,
 								MexicanHatKernelConstants::ampExcMinVal,
 								MexicanHatKernelConstants::ampExcMaxVal);
-			mutationsInLastGeneration += "(fg mhk amp. exc. " + std::to_string(MexicanHatKernelConstants::ampExcStep * signal) + ")";
+			mutationsInLastGeneration += std::format("(fg mhk amp. exc. {})", MexicanHatKernelConstants::ampExcStep * signal);
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthExcProbability)
@@ -405,7 +403,7 @@ namespace neat_dnfs
 			mhkp.widthExc = std::clamp(mhkp.widthExc + MexicanHatKernelConstants::widthExcStep * signal,
 												MexicanHatKernelConstants::widthExcMinVal,
 												MexicanHatKernelConstants::widthExcMaxVal);
-			mutationsInLastGeneration += "(fg mhk width exc. " + std::to_string(MexicanHatKernelConstants::widthExcStep * signal) + ")";
+			mutationsInLastGeneration += std::format("(fg mhk width exc. {})", MexicanHatKernelConstants::widthExcStep * signal);
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeInhProbability)
@@ -413,7 +411,7 @@ namespace neat_dnfs
 			mhkp.amplitudeInh = std::clamp(mhkp.amplitudeInh + MexicanHatKernelConstants::ampInhStep * signal,
 																MexicanHatKernelConstants::ampInhMinVal,
 																MexicanHatKernelConstants::ampInhMaxVal);
-			mutationsInLastGeneration += "(fg mhk amp. inh. " + std::to_string(MexicanHatKernelConstants::ampInhStep * signal) + ")";
+			mutationsInLastGeneration += std::format("(fg mhk amp. inh. {})", MexicanHatKernelConstants::ampInhStep * signal);
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthInhProbability)
@@ -421,7 +419,7 @@ namespace neat_dnfs
 			mhkp.widthInh = std::clamp(mhkp.widthInh + MexicanHatKernelConstants::widthInhStep * signal,
 															MexicanHatKernelConstants::widthInhMinVal,
 															MexicanHatKernelConstants::widthInhMaxVal);
-			mutationsInLastGeneration += "(fg mhk width inh. " + std::to_string(MexicanHatKernelConstants::widthInhStep * signal) + ")";
+			mutationsInLastGeneration += std::format("(fg mhk width inh. {})", MexicanHatKernelConstants::widthInhStep * signal); 
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability)
@@ -429,7 +427,7 @@ namespace neat_dnfs
 			mhkp.amplitudeGlobal = std::clamp(mhkp.amplitudeGlobal + MexicanHatKernelConstants::ampGlobStep * signal,
 															MexicanHatKernelConstants::ampGlobMin,
 															MexicanHatKernelConstants::ampGlobMax);
-			mutationsInLastGeneration += "(fg mhk amp. glob. " + std::to_string(MexicanHatKernelConstants::ampGlobStep * signal) + ")";
+			mutationsInLastGeneration += std::format("(fg mhk amp. glob. {})", MexicanHatKernelConstants::ampGlobStep * signal);
 		}
 		std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->setParameters(mhkp);
 	}
@@ -485,7 +483,7 @@ namespace neat_dnfs
 													NeuralFieldConstants::tauMinVal,
 													NeuralFieldConstants::tauMaxVal);
 				neuralField->setParameters(nfp);
-				mutationsInLastGeneration += "(fg nf tau " + std::to_string(NeuralFieldConstants::tauStep * signal) + ")";
+				mutationsInLastGeneration += std::format("(fg nf tau {})", NeuralFieldConstants::tauStep * signal);
 			}
 
 			if (tools::utils::generateRandomDouble(0.0, 1.0) <
@@ -496,7 +494,7 @@ namespace neat_dnfs
 													NeuralFieldConstants::restingLevelMinVal,
 													NeuralFieldConstants::restingLevelMaxVal);
 				neuralField->setParameters(nfp);
-				mutationsInLastGeneration += "(fg nf rest. lvl. " + std::to_string(NeuralFieldConstants::restingLevelStep * signal) + ")";
+				mutationsInLastGeneration += std::format("(fg nf rest. lvl. {})", NeuralFieldConstants::restingLevelStep * signal);
 			}
 		}
 		else
