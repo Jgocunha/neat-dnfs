@@ -20,7 +20,9 @@ namespace neat_dnfs
 	void Species::randomlyAssignRepresentative()
 	{
 		if (members.empty())
+		{
 			return;
+		}
 
 		representative = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
 	}
@@ -28,7 +30,9 @@ namespace neat_dnfs
 	void Species::assignChampion()
 	{
 		if (members.empty())
+		{
 			return;
+		}
 
 		sortMembersByFitness();
 
@@ -77,7 +81,9 @@ namespace neat_dnfs
 	{
 		double total = 0;
 		for (const auto& member : members)
+		{
 			total += member->getParameters().adjustedFitness;
+		}
 
 		return total;
 	}
@@ -100,7 +106,9 @@ namespace neat_dnfs
 	bool Species::hasFitnessImprovedOverTheLastGenerations() const
 	{
 		if (generationsSinceFitnessImproved >= PopulationConstants::generationsWithoutImprovementThresholdInSpecies)
+		{
 			return false;
+		}
 		return true;
 	}
 
@@ -112,14 +120,18 @@ namespace neat_dnfs
 	void Species::addSolution(const SolutionPtr& solution)
 	{
 		if (!contains(solution))
+		{
 			members.push_back(solution);
+		}
 	}
 
 	void Species::removeSolution(const SolutionPtr& solution)
 	{
 		const auto it = std::ranges::find(members, solution);
 		if (it != members.end())
+		{
 			members.erase(it);
+		}
 	}
 
 	bool Species::isCompatible(const SolutionPtr& solution) const
@@ -131,7 +143,10 @@ namespace neat_dnfs
 		}
 
 		int N = static_cast<int>(std::max(representative->getGenomeSize(), solution->getGenomeSize()));
-		if (N < 20) N = 1; // Normalize for small genomes
+		if (N < 20)
+		{
+			N = 1; // Normalize for small genomes
+		}
 
 		const auto representativeGenome = representative->getGenome();
 		const auto solutionGenome = solution->getGenome();
@@ -167,7 +182,9 @@ namespace neat_dnfs
 		sortMembersByFitness();
 		// narrowing conversion from size_t to double
 		for (size_t i = 0; i < static_cast<size_t>(members.size() * ratio); ++i)
+		{
 			members.pop_back();
+		}
 	}
  
 	void Species::crossover()
@@ -177,7 +194,9 @@ namespace neat_dnfs
 		if (members.empty())
 		{
 			if (offspringCount > 0)
-				log(tools::logger::LogLevel::FATAL, std::format("Species {} with no members has offspring count > 0.", id)); 
+			{
+				log(tools::logger::LogLevel::FATAL, std::format("Species {} with no members has offspring count > 0.", id));
+			}
 			extinct = true;
 			representative = nullptr;
 			champion = nullptr;
@@ -205,7 +224,9 @@ namespace neat_dnfs
 				const SolutionPtr parent2 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
 				const SolutionPtr son = parent1->crossover(parent2);
 				if (son->getId() == parent1->getId() || son->getId() == parent2->getId())
+				{
 					std::cout << "When crossing over id's are the same " << parent1->getId() << " or " << parent2->getId() << " is equal to " << son->getId() << std::endl;
+				}
 				offspring.emplace_back(son);
 			}
 		}
@@ -216,13 +237,17 @@ namespace neat_dnfs
 	{
 		members.clear();
 		for (const auto& child : offspring)
+		{
 			members.emplace_back(child);
+		}
 	}
 
 	void Species::copyChampionToNextGeneration()
 	{
 		if (champion == nullptr)
+		{
 			return;
+		}
 
 		const size_t initialMembersSize = members.size();
 		members.pop_back();

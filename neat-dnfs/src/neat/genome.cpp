@@ -36,23 +36,33 @@ namespace neat_dnfs
 	{
 		if (tools::utils::generateRandomDouble(0.0, 1.0) <
 			GenomeMutationConstants::toggleConnectionGeneProbability)
+		{
 			toggleConnectionGene();
+		}
 
 		if (tools::utils::generateRandomDouble(0.0, 1.0) <
 			GenomeMutationConstants::addFieldGeneProbability)
+		{
 			addGene();
+		}
 
 		if (tools::utils::generateRandomDouble(0.0, 1.0) <
 			GenomeMutationConstants::mutateFieldGenesProbability)
+		{
 			mutateGene();
+		}
 
 		if (tools::utils::generateRandomDouble(0.0, 1.0) <
 			GenomeMutationConstants::addConnectionGeneProbability)
+		{
 			addConnectionGene();
+		}
 
 		if (tools::utils::generateRandomDouble(0.0, 1.0) <
 			GenomeMutationConstants::mutateConnectionGenesProbability)
+		{
 			mutateConnectionGene();
+		}
 
 		mutationsInLastGeneration += " (mutated)";
 		checkForDuplicateConnectionGenes();
@@ -97,9 +107,13 @@ namespace neat_dnfs
 	{
 		mutationsInLastGeneration = "";
 		for (auto& gene : fieldGenes)
+		{
 			gene.clearLastMutations();
+		}
 		for (auto& gene : connectionGenes)
+		{
 			gene.clearLastMutations();
+		}
 	}
 
 	void Genome::removeConnectionGene(int innov)
@@ -111,8 +125,10 @@ namespace neat_dnfs
 		});
 
 		if (it == connectionGenes.end())
+		{
 			throw std::invalid_argument("Connection gene with the specified innovation number " +
 				std::to_string(innov) + " does not exist.");
+		}
 
 		connectionGenes.erase(it);
 	}
@@ -131,7 +147,9 @@ namespace neat_dnfs
 	{
 		std::vector<int> innovationNumbers;
 		for (const auto& connectionGene : connectionGenes)
+		{
 			innovationNumbers.push_back(connectionGene.getInnovationNumber());
+		}
 
 		return innovationNumbers;
 	}
@@ -155,13 +173,19 @@ namespace neat_dnfs
 		int otherMaxInnovationNumber = 0;
 
 		if (thisInnovationNumbers.empty() && otherInnovationNumbers.empty())
+		{
 			return 0;
+		}
 
 		if (!thisInnovationNumbers.empty())
+		{
 			thisMaxInnovationNumber = *std::ranges::max_element(thisInnovationNumbers);
+		}
 
 		if (!otherInnovationNumbers.empty())
+		{
 			otherMaxInnovationNumber = *std::ranges::max_element(otherInnovationNumbers);
+		}
 
 		const int thisExcessCount = static_cast<int>(std::ranges::count_if(thisInnovationNumbers,
 			[otherMaxInnovationNumber](const int innovationNumber)
@@ -184,7 +208,9 @@ namespace neat_dnfs
 		const auto otherInnovationNumbers = other.getInnovationNumbers();
 
 		if (thisInnovationNumbers.empty() && otherInnovationNumbers.empty())
+		{
 			return 0;
+		}
 
 		std::vector<int> sortedThisInnovationNumbers = thisInnovationNumbers;
 		std::vector<int> sortedOtherInnovationNumbers = otherInnovationNumbers;
@@ -224,7 +250,9 @@ namespace neat_dnfs
 		const auto otherConnectionGenes = other.getConnectionGenes();
 
 		if (thisConnectionGenes.empty() && otherConnectionGenes.empty())
+		{
 			return 0.0;
+		}
 
 		double sumAmpDiff = 0.0;
 		double sumWidthDiff = 0.0;
@@ -252,14 +280,18 @@ namespace neat_dnfs
 	void Genome::addFieldGene(const FieldGene& fieldGene)
 	{
 		if (containsFieldGene(fieldGene))
+		{
 			return;
+		}
 		fieldGenes.push_back(fieldGene);
 	}
 
 	void Genome::addConnectionGene(const ConnectionGene& connectionGene)
 	{
 		if (containsConnectionGene(connectionGene))
+		{
 			return;
+		}
 		connectionGenes.push_back(connectionGene);
 	}
 
@@ -291,8 +323,10 @@ namespace neat_dnfs
 			});
 
 		if (it == connectionGenes.end())
+		{
 			throw std::invalid_argument("Connection gene with the specified innovation number " +
 				std::to_string(innovationNumber) + " does not exist.");
+		}
 
 		return *it;
 	}
@@ -306,8 +340,10 @@ namespace neat_dnfs
 			});
 
 		if (it == fieldGenes.end())
+		{
 			throw std::invalid_argument("Field gene with the specified id " +
 				std::to_string(id) + " does not exist.");
+		}
 
 		return *it;
 	}
@@ -328,12 +364,16 @@ namespace neat_dnfs
 		+ std::to_string(connectionGenes.size()) + " connection genes )";
 		genomeString += " field genes {";
 		for (const auto& fieldGene : fieldGenes)
+		{
 			genomeString += fieldGene.toString() + ", ";
+		}
 		genomeString += "}";
 
 		genomeString += " connection genes {";
 		for (const auto& connectionGene : connectionGenes)
+		{
 			genomeString += connectionGene.toString() + ", ";
+		}
 		genomeString += "}";
 
 		return genomeString;
@@ -348,17 +388,23 @@ namespace neat_dnfs
 	{
 		// if there aren't enough genes to create a connection gene
 		if (fieldGenes.size() < 2)
+		{
 			return { 0, 0 };
+		}
 
 		int geneIndex1 = getRandomGeneIdByTypes({ FieldGeneType::HIDDEN, FieldGeneType::INPUT });
 		if (geneIndex1 == -1)
+		{
 			return { 0, 0 };
+		}
 
 		int geneIndex2;
 		do {
 			geneIndex2 = getRandomGeneIdByTypes({ FieldGeneType::HIDDEN, FieldGeneType::OUTPUT });
 			if (geneIndex2 == -1)
+			{
 				return { 0, 0 };
+			}
 		} while (geneIndex2 == geneIndex1);
 
 		if (std::ranges::find_if(connectionGenes, [geneIndex1, geneIndex2](const ConnectionGene& connectionGene)
@@ -376,7 +422,9 @@ namespace neat_dnfs
 	int Genome::getRandomGeneId() const
 	{
 		if (fieldGenes.empty())
+		{
 			return -1;
+		}
 
 		const int randomValue = tools::utils::generateRandomInt(0, static_cast<int>(fieldGenes.size()) - 1);
 
@@ -389,11 +437,15 @@ namespace neat_dnfs
 		for (const auto& gene : fieldGenes)
 		{
 			if (gene.getParameters().type == type)
+			{
 				geneIds.push_back(gene.getParameters().id);
+			}
 		}
 
 		if (geneIds.empty())
+		{
 			return -1;
+		}
 
 		const int randomValue = tools::utils::generateRandomInt(0, static_cast<int>(geneIds.size()) - 1);
 
@@ -406,11 +458,15 @@ namespace neat_dnfs
 		for (const auto& gene : fieldGenes)
 		{
 			if (std::ranges::find(types, gene.getParameters().type) != types.end())
+			{
 				geneIds.push_back(gene.getParameters().id);
+			}
 		}
 
 		if (geneIds.empty())
+		{
 			return -1;
+		}
 
 		const int randomValue = tools::utils::generateRandomInt(0, static_cast<int>(geneIds.size()) - 1);
 
@@ -423,11 +479,15 @@ namespace neat_dnfs
 		for (const auto& connectionGene : connectionGenes)
 		{
 			if (connectionGene.isEnabled())
+			{
 				enabledConnectionGenes.push_back(const_cast<ConnectionGene*>(&connectionGene));
+			}
 		}
 
 		if (enabledConnectionGenes.empty())
+		{
 			return nullptr; // Return nullptr instead of a temporary object
+		}
 
 		// Generate a random valid index
 		const int randomIndex = tools::utils::generateRandomInt(0, static_cast<int>(enabledConnectionGenes.size()) - 1);
@@ -464,7 +524,9 @@ namespace neat_dnfs
 
 		ConnectionGene* randEnabledConnectionGene = getEnabledConnectionGene();
 		if (randEnabledConnectionGene == nullptr)
+		{
 			return;
+		}
 		randEnabledConnectionGene->disable();
 
 		const auto inGeneId = randEnabledConnectionGene->getParameters().connectionTuple.inFieldGeneId;

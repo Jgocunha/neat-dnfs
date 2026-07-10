@@ -17,11 +17,19 @@ namespace neat_dnfs
 		bool hasInput = false, hasOutput = false;
 		for (const auto& geneTypeAndDimension : initialTopology.geneTopology)
 		{
-			if (geneTypeAndDimension.first == FieldGeneType::INPUT)  hasInput  = true;
-			if (geneTypeAndDimension.first == FieldGeneType::OUTPUT) hasOutput = true;
+			if (geneTypeAndDimension.first == FieldGeneType::INPUT)
+			{
+				hasInput = true;
+			}
+			if (geneTypeAndDimension.first == FieldGeneType::OUTPUT)
+			{
+				hasOutput = true;
+			}
 		}
 		if (!hasInput || !hasOutput)
+		{
 			throw std::invalid_argument("Number of input and output genes must be greater than 0");
+		}
 	}
 
 	Solution::Solution(SolutionTopology initialTopology, dnf_composer::Simulation  phenotype)
@@ -120,15 +128,23 @@ namespace neat_dnfs
 	void Solution::createInputGenes()
 	{
 		for (const auto& gene : initialTopology.geneTopology)
+		{
 			if (gene.first == FieldGeneType::INPUT)
+			{
 				genome.addInputGene(gene.second);
+			}
+		}
 	}
 
 	void Solution::createOutputGenes()
 	{
 		for (const auto& gene : initialTopology.geneTopology)
+		{
 			if (gene.first == FieldGeneType::OUTPUT)
+			{
 				genome.addOutputGene(gene.second);
+			}
+		}
 	}
 
 	void Solution::translateGenesToPhenotype()
@@ -208,11 +224,15 @@ namespace neat_dnfs
 		}
 		// remove all elements
 		for (const auto& element : phenotype.getElements())
+		{
 			phenotype.removeElement(element->getUniqueName());
+		}
 		// check if elements were removed
 		phenotype.clean();
 		if (!phenotype.getElements().empty())
+		{
 			throw std::runtime_error("Phenotype elements were not cleared correctly.");
+		}
 	}
 
 	void Solution::translateConnectionGenesToPhenotype()
@@ -533,7 +553,9 @@ namespace neat_dnfs
 		offspring->clearGenome();
 
 		for (const auto& gene : moreFitParent->getGenome().getFieldGenes())
+		{
 			offspring->addFieldGene(gene.clone());
+		}
 
 		const auto& parentConnectionGenes = moreFitParent->getGenome().getConnectionGenes();
 		for (const auto& gene : parentConnectionGenes)
@@ -543,9 +565,13 @@ namespace neat_dnfs
 			{
 				const auto lessFitGene = lessFitParent->getGenome().getConnectionGeneByInnovationNumber(gene.getInnovationNumber());
 				if (tools::utils::generateRandomInt(0, 1))
+				{
 					offspring->addConnectionGene(gene.clone());
+				}
 				else
+				{
 					offspring->addConnectionGene(lessFitGene.clone());
+				}
 			}
 			else
 			{
@@ -556,10 +582,14 @@ namespace neat_dnfs
 				if (fitnessDifference < 1e-6)
 				{
 					if (tools::utils::generateRandomInt(0, 1))
+					{
 						offspring->addConnectionGene(gene.clone());
+					}
 				}
 				else
+				{
 					offspring->addConnectionGene(gene.clone());
+				}
 			}
 		}
 
@@ -585,7 +615,9 @@ namespace neat_dnfs
 							for (const auto& fieldGene : lessFitParent->getGenome().getFieldGenes())
 							{
 								if (fieldGene.getParameters().id == inFieldGeneId || fieldGene.getParameters().id == outFieldGeneId)
+								{
 									offspring->addFieldGene(fieldGene.clone());
+								}
 							}
 						}
 					}
@@ -606,9 +638,13 @@ namespace neat_dnfs
 					outFieldGeneId == otherGene.getOutFieldGeneId())
 				{
 					if (fitnessDifference < 1e-6)
+					{
 						tools::logger::log(tools::logger::LogLevel::ERROR, "Crossover produced offspring with duplicate connection genes.");
+					}
 					else
+					{
 						tools::logger::log(tools::logger::LogLevel::WARNING, "Crossover produced offspring with duplicate connection genes.");
+					}
 					break;
 				}
 			}
@@ -665,7 +701,9 @@ namespace neat_dnfs
 	void Solution::runSimulation(const int iterations)
 	{
 		for (int i = 0; i < iterations; ++i)
+		{
 			phenotype.step();
+		}
 	}
 
 	void Solution::addGaussianStimulus(const std::string& targetElement, const dnf_composer::element::GaussStimulusParameters& stimulusParameters, 
@@ -701,12 +739,14 @@ namespace neat_dnfs
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
 
 		for (const auto& input : neuralField->getInputs())
+		{
 			if (input->getLabel() == GAUSS_STIMULUS)
 			{
 				input->removeInputs();
 				input->removeOutputs();
 				phenotype.removeElement(input->getUniqueName());
 			}
+		}
 	}
 
 	void Solution::setGaussianStimulusParameters(const std::string& stimulusName, const dnf_composer::element::GaussStimulusParameters& parameters) const
@@ -738,7 +778,9 @@ namespace neat_dnfs
 
 		// If activation is below 0, return maximum fitness of 1.0
 		if (highestActivation < 0.0)
+		{
 			return 1.0;
+		}
 
 		// For positive activations, apply exponential decay
 		// The decay rate can be adjusted with the constant (5.0 here)
@@ -809,15 +851,23 @@ namespace neat_dnfs
 		static constexpr double wWidth  = 0.05;
 
 		const int n = static_cast<int>(neuralField->getBumps().size());
-		if (n == 0) return 0.0;
-		if (n != 1) return 0.2 * (wBumps / (1.0 + std::abs(1 - n)));
-
+		if (n == 0)
+		{
+			return 0.0;
+		}
+		if (n != 1)
+		{
+			return 0.2 * (wBumps / (1.0 + std::abs(1 - n)));
+		}
 
 		const NeuralFieldBump bump = neuralField->getBumps().front();
 
 		// find distance to the closest valid position
 		double minDistance = std::numeric_limits<double>::max();
-		for (double p : positions) minDistance = std::min(minDistance, std::abs(bump.centroid - p));
+		for (double p : positions)
+		{
+			minDistance = std::min(minDistance, std::abs(bump.centroid - p));
+		}
 
 		constexpr double epsilon = DimensionConstants::xSize / 20;
 
@@ -849,7 +899,9 @@ namespace neat_dnfs
 		static constexpr double weightWidth = 0.05;
 		// if the sum of weights is not 1.0, throw exception
 		if (std::abs(weightBumps + weightPos + weightAmp + weightWidth - 1.0) > 1e-6)
+		{
 			throw std::invalid_argument("Sum of weights must be 1.0");
+		}
 
 		static constexpr int targetNumberOfBumps = 1;
 		double fitness = 0.0;
@@ -858,14 +910,21 @@ namespace neat_dnfs
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
 		const auto& bumps = neuralField->getBumps();
 		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
-		if (numberOfBumps == 0) return fitness;
+		if (numberOfBumps == 0)
+		{
+			return fitness;
+		}
 
 		fitness += weightBumps / ( 1.0 + std::abs(targetNumberOfBumps - numberOfBumps));
 
 		NeuralFieldBump closestBump = bumps.front();
 		for (const auto& bump : neuralField->getBumps())
+		{
 			if (std::abs(bump.centroid - position) < std::abs(closestBump.centroid - position))
+			{
 				closestBump = bump;
+			}
+		}
 
 		fitness += weightPos / (1.0 + std::abs(closestBump.centroid - position));
 		fitness += weightAmp / (1.0 + std::abs(closestBump.amplitude - amplitude));
@@ -886,7 +945,9 @@ namespace neat_dnfs
 		static constexpr double weightWidth = 0.05 / targetNumberOfBumps;
 		// if sum of weights is not 1.0, throw exception
 		if (std::abs(weightBumps + (weightPos + weightAmp + weightWidth) * targetNumberOfBumps - 1.0) > 1e-6)
+		{
 			throw std::invalid_argument("Sum of weights must be 1.0");
+		}
 		double fitness = 0.0;
 
 		using namespace dnf_composer::element;
@@ -899,7 +960,9 @@ namespace neat_dnfs
 		for (const auto& bump : neuralField->getBumps())
 		{
 			if (std::abs(bump.centroid - position1) < std::abs(closestBump1.centroid - position1))
+			{
 				closestBump1 = bump;
+			}
 		}
 		fitness += weightPos / (1.0 + std::abs(closestBump1.centroid - position1));
 		fitness += weightAmp / (1.0 + std::abs(closestBump1.amplitude - amplitude1));
@@ -909,7 +972,9 @@ namespace neat_dnfs
 		for (const auto& bump : neuralField->getBumps())
 		{
 			if (std::abs(bump.centroid - position2) < std::abs(closestBump2.centroid - position2))
+			{
 				closestBump2 = bump;
+			}
 		}
 		fitness += weightPos / (1.0 + std::abs(closestBump2.centroid - position2));
 		fitness += weightAmp / (1.0 + std::abs(closestBump2.amplitude - amplitude2));
@@ -944,7 +1009,9 @@ namespace neat_dnfs
 		for (const auto& bump : neuralField->getBumps())
 		{
 			if (std::abs(bump.centroid - position1) < std::abs(closestBump1.centroid - position1))
+			{
 				closestBump1 = bump;
+			}
 		}
 		fitness += weightPos / (1.0 + std::abs(closestBump1.centroid - position1));
 		fitness += weightAmp / (1.0 + std::abs(closestBump1.amplitude - amplitude1));
@@ -954,7 +1021,9 @@ namespace neat_dnfs
 		for (const auto& bump : neuralField->getBumps())
 		{
 			if (std::abs(bump.centroid - position2) < std::abs(closestBump2.centroid - position2))
+			{
 				closestBump2 = bump;
+			}
 		}
 		fitness += weightPos / (1.0 + std::abs(closestBump2.centroid - position2));
 		fitness += weightAmp / (1.0 + std::abs(closestBump2.amplitude - amplitude2));
@@ -964,7 +1033,9 @@ namespace neat_dnfs
 		for (const auto& bump : neuralField->getBumps())
 		{
 			if (std::abs(bump.centroid - position3) < std::abs(closestBump3.centroid - position3))
+			{
 				closestBump3 = bump;
+			}
 		}
 		fitness += weightPos / (1.0 + std::abs(closestBump3.centroid - position3));
 		fitness += weightAmp / (1.0 + std::abs(closestBump3.amplitude - amplitude3));
@@ -1026,11 +1097,17 @@ namespace neat_dnfs
 		constexpr double sigma = 10.0;
 
 		// 1) enforce subthreshold
-		if (u >= 0.0) return 0.0;
+		if (u >= 0.0)
+		{
+			return 0.0;
+		}
 
 		// 2) enforce higher than resting level
 		static constexpr double epsilon = 0.01;
-		if (u <= h + epsilon) return 0.0;
+		if (u <= h + epsilon)
+		{
+			return 0.0;
+		}
 
 		// 3) reward closeness to target subthreshold height
 		const double score_height = tools::utils::normalizeWithGaussian(u, u_tar, sigma);
@@ -1050,7 +1127,9 @@ namespace neat_dnfs
 		// we need to be careful here because if the field is in the resting level, this still produces above 0.5 fitness
 		static constexpr double epsilon = 0.15;
 		if (u_pos >= neuralField->getParameters().startingRestingLevel - epsilon)
+		{
 			return 0.0;
+		}
 
 		// static constexpr double epsilon = 0.015;
 		// // activation of field at position should be lower than the rest of the neighboring positions
@@ -1113,7 +1192,9 @@ namespace neat_dnfs
 			gaussStimulus->setParameters(dnf_composer::element::GaussStimulusParameters{ gaussStimulus->getParameters().width, gaussStimulus->getParameters().amplitude, newPosition });
 
 			for (int i = 0; i < steps_t; i++)
+			{
 				phenotype.step();
+			}
 		} while (std::abs(newPosition - targetPosition) > epsilon);
 	}
 

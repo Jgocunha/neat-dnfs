@@ -14,7 +14,9 @@ namespace neat_dnfs
 
 	bool ConnectionTuple::operator<(const ConnectionTuple& other) const {
 		if (inFieldGeneId == other.inFieldGeneId)
+		{
 			return outFieldGeneId < other.outFieldGeneId;
+		}
 		return inFieldGeneId < other.inFieldGeneId;
 	}
 
@@ -129,7 +131,9 @@ namespace neat_dnfs
 		: parameters(connectionTuple, innov), kernel(std::move(kernel))
 	{
 		if (!kernel)
+		{
 			throw std::invalid_argument("Cannot create ConnectionGene with null kernel");
+		}
 	}
 
 	void ConnectionGene::mutate()
@@ -151,7 +155,9 @@ namespace neat_dnfs
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(totalProbability - 1.0) > epsilon)
+		{
 			throw std::runtime_error("Mutation probabilities in connection gene mutation must sum up to 1.");
+		}
 
 		const double randomValue = tools::utils::generateRandomDouble(0.0, 1.0);
 		if (randomValue < ConnectionGeneConstants::mutateConnectionGeneKernelProbability)
@@ -311,7 +317,9 @@ namespace neat_dnfs
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(totalProbability - 1.0) > epsilon)
+		{
 			throw std::runtime_error("Kernel probabilities in connection gene initialization must sum up to 1.");
+		}
 
 		const double randomValue = generateRandomDouble(0.0, 1.0);
 		if (randomValue < ConnectionGeneConstants::gaussKernelProbability)
@@ -404,7 +412,9 @@ namespace neat_dnfs
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(totalProbability - 1.0) > epsilon)
+		{
 			throw std::runtime_error("Mutation probabilities in connection gene kernel type mutation must sum up to 1.");
+		}
 
 		const double randomValue = generateRandomDouble(0.0, 1.0);
 

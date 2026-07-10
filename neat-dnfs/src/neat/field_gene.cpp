@@ -128,7 +128,9 @@ namespace neat_dnfs
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(totalProbability - 1.0) > epsilon)
+		{
 			throw std::runtime_error("Mutation probabilities in field gene mutation must sum up to 1.");
+		}
 
 		const double randomValue = tools::utils::generateRandomDouble(0.0, 1.0);
 		if (randomValue < FieldGeneConstants::mutateFieldGeneKernelProbability)
@@ -248,7 +250,9 @@ namespace neat_dnfs
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(totalProbability - 1.0) > epsilon)
+		{
 			throw std::runtime_error("Kernel probabilities in field gene initialization must sum up to 1.");
+		}
 
 		const double randomValue = generateRandomDouble(0.0, 1.0);
 		if (randomValue < FieldGeneConstants::gaussKernelProbability)
@@ -444,7 +448,9 @@ namespace neat_dnfs
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(totalProbability - 1.0) > epsilon)
+		{
 			throw std::runtime_error("Mutation probabilities in field gene kernel type mutation must sum up to 1.");
+		}
 
 		const double randomValue = generateRandomDouble(0.0, 1.0);
 
@@ -467,7 +473,9 @@ namespace neat_dnfs
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(totalProbability - 1.0) > epsilon)
+		{
 			throw std::runtime_error("Mutation probabilities in field gene neural field mutation must sum up to 1.");
+		}
 
 		const double signal = tools::utils::generateRandomSignal();
 		dnf_composer::element::NeuralFieldParameters nfp = neuralField->getParameters();

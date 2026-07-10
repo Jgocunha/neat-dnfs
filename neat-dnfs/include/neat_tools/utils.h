@@ -44,8 +44,14 @@ namespace neat_dnfs
 
             inline double normalize(const double value, const double min, const double max)
 			{
-                if (value < min) return 0.0;
-                if (value > max) return 1.0;
+				if (value < min)
+				{
+					return 0.0;
+				}
+				if (value > max)
+				{
+					return 1.0;
+				}
 				return (value - min) / (max - min);
 			}
 

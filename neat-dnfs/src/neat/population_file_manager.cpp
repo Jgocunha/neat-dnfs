@@ -18,37 +18,58 @@ namespace neat_dnfs
 	void PopulationFileManager::saveOverviewForGeneration() const
 	{
 		if (PopulationConstants::saveOverview)
+		{
 			savePerGenerationOverview();
+		}
 	}
 
 	void PopulationFileManager::savePerGenerationData() const
 	{
 		if (PopulationConstants::saveBestSolutions)
+		{
 			saveBestSolutionOfEachGeneration();
+		}
 		if (PopulationConstants::saveChampions)
+		{
 			saveChampionsOfEachGeneration();
+		}
 		if (PopulationConstants::saveSolutions)
+		{
 			saveAllSolutionsPerGeneration();
+		}
 		if (PopulationConstants::savePerGenerationOverview)
+		{
 			savePerGenerationStatistics();
+		}
 		if (PopulationConstants::saveSpecies)
+		{
 			savePerGenerationSpecies();
+		}
 	}
 
 	void PopulationFileManager::saveEndOfRunData() const
 	{
 		if (PopulationConstants::saveSolutions && population.bestSolution != nullptr)
+		{
 			saveAllSolutionsWithFitnessAbove(population.bestSolution->getFitness() - 0.1);
+		}
 		if (PopulationConstants::saveOverview)
+		{
 			saveTimestampsAndDuration();
+		}
 		if (PopulationConstants::saveChampions)
+		{
 			saveChampions();
+		}
 	}
 
 	void PopulationFileManager::setFileDirectory()
 	{
 		using namespace dnf_composer;
-		if (population.solutions.empty()) throw std::runtime_error("No solutions in population.");
+		if (population.solutions.empty())
+		{
+			throw std::runtime_error("No solutions in population.");
+		}
 
 		const std::string solutionName = population.solutions[0]->getName();
 		const auto now = std::time(nullptr);
@@ -108,7 +129,10 @@ namespace neat_dnfs
 		const std::string directoryPath = fileDirectory + "champions/last_generation/";
 		std::filesystem::create_directories(directoryPath); // Ensure directory exist
 
-		if (population.champions.empty()) log(tools::logger::LogLevel::ERROR, "No champions to save.");
+		if (population.champions.empty())
+		{
+			log(tools::logger::LogLevel::ERROR, "No champions to save.");
+		}
 
 		for (const auto& champion : population.champions)
 		{
