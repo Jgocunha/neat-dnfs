@@ -83,6 +83,10 @@ namespace neat_dnfs
 			const SolutionPtr& initialSolution,
 			bool enableFileIO = true);
 		~Population();
+		Population(const Population& other) = delete;
+		Population(Population&& other) = delete;
+		Population& operator=(const Population& other) = delete;
+		Population& operator=(Population&& other) = delete;
 
 		void initialize() const;
 		void evolve();

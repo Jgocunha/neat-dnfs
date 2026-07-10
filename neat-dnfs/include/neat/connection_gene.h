@@ -31,6 +31,10 @@ namespace neat_dnfs
 		ConnectionGeneParameters(ConnectionTuple connectionTuple, int innov);
 		ConnectionGeneParameters(int inFieldGeneId, int outFieldGeneId, int innov);
 		ConnectionGeneParameters(const ConnectionGeneParameters& other) = default;
+		ConnectionGeneParameters(ConnectionGeneParameters&& other) = default;
+		ConnectionGeneParameters& operator=(const ConnectionGeneParameters& other) = default;
+		ConnectionGeneParameters& operator=(ConnectionGeneParameters&& other) = default;
+		~ConnectionGeneParameters() = default;
 		bool operator==(const ConnectionGeneParameters& other) const;
 		[[nodiscard]] std::string toString() const;
 		void print() const;

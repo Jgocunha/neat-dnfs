@@ -6,12 +6,6 @@ namespace neat_dnfs
 	std::map<ConnectionTuple, int> Genome::connectionTupleAndInnovationNumberWithinGeneration;
 	std::mutex Genome::innovationMutex;
 
-	Genome::~Genome()
-	{
-		fieldGenes.clear();
-		connectionGenes.clear();
-	}
-
 	void Genome::addInputGene(const dnf_composer::element::ElementDimensions& dimensions)
 	{
 		const auto index = fieldGenes.size() + 1;

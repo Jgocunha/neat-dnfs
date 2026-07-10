@@ -19,6 +19,10 @@ namespace neat_dnfs
 
 		FieldGeneParameters(const FieldGeneParameters& other) = default;
 		FieldGeneParameters(FieldGeneType type, int id);
+		FieldGeneParameters(FieldGeneParameters&& other) = default;
+		FieldGeneParameters& operator=(const FieldGeneParameters& other) = default;
+		FieldGeneParameters& operator=(FieldGeneParameters&& other) = default;
+		~FieldGeneParameters() = default;
 
 		bool operator==(const FieldGeneParameters& other) const;
 		[[nodiscard]] std::string toString() const;

@@ -24,14 +24,11 @@ namespace neat_dnfs
         int generationsSinceFitnessImproved = 0;
     public:
         Species();
-		~Species()
-		{
-			// Clean up any dynamically allocated resources
-			representative = nullptr;
-			champion = nullptr;
-			members.clear();
-			offspring.clear();
-		}
+		~Species() = default;
+		Species(const Species& other) = default;
+		Species(Species&& other) = default;
+		Species& operator=(const Species& other) = default;
+		Species& operator=(Species&& other) = default;
         void setRepresentative(const SolutionPtr& newRepresentative);
         void randomlyAssignRepresentative();
         void assignChampion();
