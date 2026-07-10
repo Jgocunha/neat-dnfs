@@ -10,7 +10,15 @@ Checks: >
   -modernize-use-trailing-return-type,
   -readability-magic-numbers,
   -cppcoreguidelines-avoid-magic-numbers,
-  -cppcoreguidelines-pro-bounds-pointer-arithmetic
-WarningsAsErrors: ''
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -readability-identifier-length,
+  -bugprone-easily-swappable-parameters,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -readability-function-cognitive-complexity,
+  -cppcoreguidelines-avoid-do-while,
+  -performance-enum-size
+WarningsAsErrors: '*'
 HeaderFilterRegex: 'include/neat/.*|include/constants\.h'
 FormatStyle: none
+CheckOptions:
+  cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor: true

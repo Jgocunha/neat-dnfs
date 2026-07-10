@@ -6,8 +6,8 @@
 namespace neat_dnfs
 {
 	class Solution;
-	typedef std::shared_ptr<dnf_composer::Simulation> PhenotypePtr;
-	typedef std::shared_ptr<Solution> SolutionPtr;
+	using PhenotypePtr = std::shared_ptr<dnf_composer::Simulation>;
+	using SolutionPtr = std::shared_ptr<Solution>;
 
 	struct SolutionTopology
 	{
@@ -28,14 +28,14 @@ namespace neat_dnfs
 		double fitness;
 		double adjustedFitness;
 		int age;
-		int speciesId;
+		int speciesId{-1};
 		std::vector<double> partialFitness;
 		std::vector<dnf_composer::element::NeuralFieldBump> bumps;
 
 		SolutionParameters(double fitness = 0.0,
 			double adjustedFitness = 0.0, int age = 0)
-			: fitness(fitness), adjustedFitness(adjustedFitness), age(age), speciesId(-1)
-			, partialFitness({}), bumps({})
+			: fitness(fitness), adjustedFitness(adjustedFitness), age(age),
+			partialFitness({}), bumps({})
 		{}
 
 		bool operator==(const SolutionParameters& other) const
@@ -46,7 +46,7 @@ namespace neat_dnfs
 				age == other.age;
 		}
 
-		std::string toString() const
+		[[nodiscard]] std::string toString() const
     {
         std::string partials;
         for (const auto& partial : partialFitness)

@@ -6,46 +6,43 @@
 namespace neat_dnfs
 {
     class Species;
-    typedef std::unique_ptr<Species> SpeciesPtr;
+    using SpeciesPtr = std::unique_ptr<Species>;
 
     class Species
     {
     private:
 		static int currentSpeciesId;
         int id = 0;
-        int offspringCount;
+        int offspringCount{0};
         SolutionPtr representative;
         SolutionPtr champion;
         std::vector<SolutionPtr> members;
         std::vector<SolutionPtr> offspring;
-        bool extinct;
-        int age;
+        bool extinct{false};
+        int age{0};
         bool hasFitnessImproved = true;
         int generationsSinceFitnessImproved = 0;
     public:
         Species();
-		~Species()
-		{
-			// Clean up any dynamically allocated resources
-			representative = nullptr;
-			champion = nullptr;
-			members.clear();
-			offspring.clear();
-		}
+		~Species() = default;
+		Species(const Species& other) = default;
+		Species(Species&& other) = default;
+		Species& operator=(const Species& other) = default;
+		Species& operator=(Species&& other) = default;
         void setRepresentative(const SolutionPtr& newRepresentative);
         void randomlyAssignRepresentative();
         void assignChampion();
 
-        size_t size() const;
+        [[nodiscard]] size_t size() const;
         void setOffspringCount(int count);
-        SolutionPtr getRepresentative() const;
-        SolutionPtr getChampion() const;
-        int getId() const;
-        double totalAdjustedFitness() const;
-        int getOffspringCount() const;
-        std::vector<SolutionPtr> getMembers() const;
-        bool isExtinct() const;
-        bool hasFitnessImprovedOverTheLastGenerations() const;
+        [[nodiscard]] SolutionPtr getRepresentative() const;
+        [[nodiscard]] SolutionPtr getChampion() const;
+        [[nodiscard]] int getId() const;
+        [[nodiscard]] double totalAdjustedFitness() const;
+        [[nodiscard]] int getOffspringCount() const;
+        [[nodiscard]] std::vector<SolutionPtr> getMembers() const;
+        [[nodiscard]] bool isExtinct() const;
+        [[nodiscard]] bool hasFitnessImprovedOverTheLastGenerations() const;
         void incrementAge();
         static void resetUniqueIdentifier()
         {
@@ -55,15 +52,15 @@ namespace neat_dnfs
         void addSolution(const SolutionPtr& solution);
         void removeSolution(const SolutionPtr& solution);
         /// @brief Returns true if @p solution's genome is within the compatibility distance threshold of this species' representative.
-        bool isCompatible(const SolutionPtr& solution) const;
-        bool contains(const SolutionPtr& solution) const;
+        [[nodiscard]] bool isCompatible(const SolutionPtr& solution) const;
+        [[nodiscard]] bool contains(const SolutionPtr& solution) const;
         void sortMembersByFitness();
         void pruneWorsePerformingMembers(double ratio);
     	void crossover();
         void replaceMembersWithOffspring();
         void copyChampionToNextGeneration();
 
-        std::string toString() const;
+        [[nodiscard]] std::string toString() const;
         void print() const;
     };
 }

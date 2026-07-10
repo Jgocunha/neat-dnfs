@@ -19,9 +19,13 @@ namespace neat_dnfs
 
 		FieldGeneParameters(const FieldGeneParameters& other) = default;
 		FieldGeneParameters(FieldGeneType type, int id);
+		FieldGeneParameters(FieldGeneParameters&& other) = default;
+		FieldGeneParameters& operator=(const FieldGeneParameters& other) = default;
+		FieldGeneParameters& operator=(FieldGeneParameters&& other) = default;
+		~FieldGeneParameters() = default;
 
 		bool operator==(const FieldGeneParameters& other) const;
-		std::string toString() const;
+		[[nodiscard]] std::string toString() const;
 		void print() const;
 	};
 
@@ -48,18 +52,18 @@ namespace neat_dnfs
 		void mutate();
 		void clearLastMutations();
 
-		FieldGeneParameters getParameters() const;
-		std::string getMutationsInLastGeneration() const;
-		std::shared_ptr<dnf_composer::element::NeuralField> getNeuralField() const;
-		std::shared_ptr<dnf_composer::element::Kernel> getKernel() const;
-		std::shared_ptr<dnf_composer::element::NormalNoise> getNoise() const;
+		[[nodiscard]] FieldGeneParameters getParameters() const;
+		[[nodiscard]] std::string getMutationsInLastGeneration() const;
+		[[nodiscard]] std::shared_ptr<dnf_composer::element::NeuralField> getNeuralField() const;
+		[[nodiscard]] std::shared_ptr<dnf_composer::element::Kernel> getKernel() const;
+		[[nodiscard]] std::shared_ptr<dnf_composer::element::NormalNoise> getNoise() const;
 
-		bool operator==(const FieldGene&) const;
+		bool operator==(const FieldGene& /*other*/) const;
 		/// @brief True if both genes share identical parameters and kernel values (deep equality), unlike @c operator== which compares by id.
-		bool isCloneOf(const FieldGene&) const;
-		std::string toString() const;
+		[[nodiscard]] bool isCloneOf(const FieldGene& /*other*/) const;
+		[[nodiscard]] std::string toString() const;
 		void print() const;
-		FieldGene clone() const;
+		[[nodiscard]] FieldGene clone() const;
 	private:
 		void initializeNeuralField(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeKernel(const dnf_composer::element::ElementDimensions& dimensions);

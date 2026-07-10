@@ -9,7 +9,6 @@ on:
 jobs:
   static-analysis:
     runs-on: ubuntu-latest
-    continue-on-error: true
 
     env:
       VCPKG_ROOT: ${{ github.workspace }}/vcpkg
@@ -61,6 +60,7 @@ jobs:
       - name: Run clang-tidy
         working-directory: ./neat-dnfs
         run: |
+          set -o pipefail
           run-clang-tidy -p build/analysis \
             -header-filter='include/neat/.*|include/constants\.h' \
             $(find src/neat -name '*.cpp') \

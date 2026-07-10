@@ -14,7 +14,7 @@ namespace neat_dnfs
 	struct PopulationParameters
 	{
 		int size;
-		int currentGeneration;
+		int currentGeneration{0};
 		int numGenerations;
 		double targetFitness; ///< Evolution stops early when the best solution reaches this fitness.
 		bool parallelEvolution; ///< Evaluate solutions concurrently via std::async.
@@ -43,16 +43,16 @@ namespace neat_dnfs
 	/// @brief Per-generation snapshot of population health metrics.
 	struct PerGenerationStatistics
 	{
-		double averageFitness = 0.0f;
+		double averageFitness = 0.0F;
 		// double stdDevFitness = 0.0f;
-		double bestFitness = 0.0f;
+		double bestFitness = 0.0F;
 		int numberOfSpecies = 0;
 		int numberOfActiveSpecies = 0;
 		// double averageCompatibilityDistance;
 		int innovationNumber = 0;
-		double averageGenomeSize = 0.0f;
-		double averageConnectionGenes = 0.0f;
-		double averageFieldGenes = 0.0f;
+		double averageGenomeSize = 0.0F;
+		double averageConnectionGenes = 0.0F;
+		double averageFieldGenes = 0.0F;
 
 		PerGenerationStatistics() = default;
 	};
@@ -83,6 +83,10 @@ namespace neat_dnfs
 			const SolutionPtr& initialSolution,
 			bool enableFileIO = true);
 		~Population();
+		Population(const Population& other) = delete;
+		Population(Population&& other) = delete;
+		Population& operator=(const Population& other) = delete;
+		Population& operator=(Population&& other) = delete;
 
 		void initialize() const;
 		void evolve();
@@ -107,7 +111,7 @@ namespace neat_dnfs
 		void speciate();
 		void reproduceAndSelect();
 
-		bool endConditionMet() const;
+		[[nodiscard]] bool endConditionMet() const;
 
 		void startup();
 		void upkeep();

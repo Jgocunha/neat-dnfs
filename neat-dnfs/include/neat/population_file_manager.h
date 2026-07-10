@@ -40,7 +40,7 @@ namespace neat_dnfs
 		void savePerGenerationStatistics() const;
 		void savePerGenerationSpecies() const;
 
-		const Population& population;
+		const Population* population;
 		std::string fileDirectory;
 	};
 }

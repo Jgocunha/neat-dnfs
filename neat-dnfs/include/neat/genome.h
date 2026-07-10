@@ -25,7 +25,11 @@ namespace neat_dnfs
 		std::string mutationsInLastGeneration;
 	public:
 		Genome() = default;
-		~Genome();
+		~Genome() = default;
+		Genome(const Genome& other) = default;
+		Genome(Genome&& other) = default;
+		Genome& operator=(const Genome& other) = default;
+		Genome& operator=(Genome&& other) = default;
 
 		void addInputGene(const dnf_composer::element::ElementDimensions& dimensions);
 		void addOutputGene(const dnf_composer::element::ElementDimensions& dimensions);
@@ -71,7 +75,7 @@ namespace neat_dnfs
 		[[nodiscard]] int getRandomGeneId() const;
 		[[nodiscard]] int getRandomGeneIdByType(FieldGeneType type) const;
 		[[nodiscard]] int getRandomGeneIdByTypes(const std::vector<FieldGeneType>& types) const;
-		[[nodiscard]] ConnectionGene* getEnabledConnectionGene() const;
+		[[nodiscard]] ConnectionGene* getEnabledConnectionGene();
 
 		void addConnectionGene(ConnectionTuple connectionTuple);
 		void addGene();
