@@ -562,7 +562,7 @@ namespace neat_dnfs
 			if (lessFitParent->containsConnectionGene(gene))
 			{
 				const auto lessFitGene = lessFitParent->getGenome().getConnectionGeneByInnovationNumber(gene.getInnovationNumber());
-				if (tools::utils::generateRandomInt(0, 1))
+				if (tools::utils::generateRandomInt(0, 1) != 0)
 				{
 					offspring->addConnectionGene(gene.clone());
 				}
@@ -579,7 +579,7 @@ namespace neat_dnfs
 				// later add randomly from the less fit parent
 				if (fitnessDifference < 1e-6)
 				{
-					if (tools::utils::generateRandomInt(0, 1))
+					if (tools::utils::generateRandomInt(0, 1) != 0)
 					{
 						offspring->addConnectionGene(gene.clone());
 					}
@@ -603,7 +603,7 @@ namespace neat_dnfs
 				{
 					if (!moreFitParent->containsConnectionGeneWithTheSameInputOutputPair(gene))
 					{
-						const bool randomTrueOrFalse = tools::utils::generateRandomInt(0, 1);
+						const bool randomTrueOrFalse = tools::utils::generateRandomInt(0, 1) != 0;
 						if (randomTrueOrFalse)
 						{
 							offspring->addConnectionGene(gene.clone());

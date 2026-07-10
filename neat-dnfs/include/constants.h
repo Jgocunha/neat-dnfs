@@ -181,7 +181,7 @@ namespace neat_dnfs
 
 	struct ConnectionGeneConstants
 	{
-		static constexpr int allowInhibitoryConnections = true;
+		static constexpr bool allowInhibitoryConnections = true;
 
 		// connection gene kernel type probability (sum must be 1.0)
 		static constexpr double gaussKernelProbability			= 0.8;
