@@ -28,6 +28,18 @@ set(NEAT_DNFS_ADDITIONAL_FILES_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/${CMAK
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Sanitizers
+set(NEAT_DNFS_SANITIZER "" CACHE STRING "Sanitizer: '' | address (ASan+UBSan) | thread (TSan)")
+if(NEAT_DNFS_SANITIZER STREQUAL "address")
+    add_compile_options(-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -g)
+    add_link_options(-fsanitize=address,undefined)
+elseif(NEAT_DNFS_SANITIZER STREQUAL "thread")
+    add_compile_options(-fsanitize=thread -fno-omit-frame-pointer -g)
+    add_link_options(-fsanitize=thread)
+elseif(NOT NEAT_DNFS_SANITIZER STREQUAL "")
+    message(FATAL_ERROR "Unknown NEAT_DNFS_SANITIZER: ${NEAT_DNFS_SANITIZER}")
+endif()
+
 # VCPKG integration
 if(NOT DEFINED ENV{VCPKG_ROOT})
     message(FATAL_ERROR "ERROR: This project requires VCPKG.\n")
