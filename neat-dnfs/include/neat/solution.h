@@ -6,8 +6,8 @@
 namespace neat_dnfs
 {
 	class Solution;
-	typedef std::shared_ptr<dnf_composer::Simulation> PhenotypePtr;
-	typedef std::shared_ptr<Solution> SolutionPtr;
+	using PhenotypePtr = std::shared_ptr<dnf_composer::Simulation>;
+	using SolutionPtr = std::shared_ptr<Solution>;
 
 	struct SolutionTopology
 	{

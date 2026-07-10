@@ -7,10 +7,10 @@
 
 namespace neat_dnfs
 {
-	typedef std::shared_ptr<dnf_composer::element::NeuralField> NeuralFieldPtr;
-	typedef std::shared_ptr<dnf_composer::element::Kernel> KernelPtr;
-	typedef std::shared_ptr<dnf_composer::element::FieldCoupling> FieldCouplingPtr;
-	typedef std::shared_ptr<dnf_composer::element::NormalNoise> NormalNoisePtr;
+	using NeuralFieldPtr = std::shared_ptr<dnf_composer::element::NeuralField>;
+	using KernelPtr = std::shared_ptr<dnf_composer::element::Kernel>;
+	using FieldCouplingPtr = std::shared_ptr<dnf_composer::element::FieldCoupling>;
+	using NormalNoisePtr = std::shared_ptr<dnf_composer::element::NormalNoise>;
 
 	/// @brief Global simulation timing and step-count limits.
 	struct SimulationConstants
