@@ -46,7 +46,7 @@ namespace neat_dnfs
 				age == other.age;
 		}
 
-		std::string toString() const
+		[[nodiscard]] std::string toString() const
     {
         std::string partials;
         for (const auto& partial : partialFitness)

@@ -107,7 +107,7 @@ namespace neat_dnfs
 		void speciate();
 		void reproduceAndSelect();
 
-		bool endConditionMet() const;
+		[[nodiscard]] bool endConditionMet() const;
 
 		void startup();
 		void upkeep();

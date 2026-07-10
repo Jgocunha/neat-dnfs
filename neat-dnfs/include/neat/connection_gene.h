@@ -18,7 +18,7 @@ namespace neat_dnfs
 		ConnectionTuple(int inFieldGeneId, int outFieldGeneId);
 		bool operator==(const ConnectionTuple& other) const;
 		bool operator<(const ConnectionTuple& other) const;
-		std::string toString() const;
+		[[nodiscard]] std::string toString() const;
 		void print() const;
 	};
 
@@ -32,7 +32,7 @@ namespace neat_dnfs
 		ConnectionGeneParameters(int inFieldGeneId, int outFieldGeneId, int innov);
 		ConnectionGeneParameters(const ConnectionGeneParameters& other) = default;
 		bool operator==(const ConnectionGeneParameters& other) const;
-		std::string toString() const;
+		[[nodiscard]] std::string toString() const;
 		void print() const;
 	};
 
@@ -62,24 +62,24 @@ namespace neat_dnfs
 		void disable();
 		void toggle();
 
-		bool isEnabled() const;
+		[[nodiscard]] bool isEnabled() const;
 
 		void setInnovationNumber(int innovationNumber);
 
-		ConnectionGeneParameters getParameters() const;
-		std::string getMutationsInLastGeneration() const;
-		KernelPtr getKernel() const;
-		int getInnovationNumber() const;
-		int getInFieldGeneId() const;
-		int getOutFieldGeneId() const;
-		double getKernelAmplitude() const;
-		double getKernelWidth() const;
+		[[nodiscard]] ConnectionGeneParameters getParameters() const;
+		[[nodiscard]] std::string getMutationsInLastGeneration() const;
+		[[nodiscard]] KernelPtr getKernel() const;
+		[[nodiscard]] int getInnovationNumber() const;
+		[[nodiscard]] int getInFieldGeneId() const;
+		[[nodiscard]] int getOutFieldGeneId() const;
+		[[nodiscard]] double getKernelAmplitude() const;
+		[[nodiscard]] double getKernelWidth() const;
 
 		bool operator==(const ConnectionGene&) const;
-		bool isCloneOf(const ConnectionGene&) const;
-		std::string toString() const;
+		[[nodiscard]] bool isCloneOf(const ConnectionGene&) const;
+		[[nodiscard]] std::string toString() const;
 		void print() const;
-		ConnectionGene clone() const;
+		[[nodiscard]] ConnectionGene clone() const;
 	private:
 		void initializeKernel(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeGaussKernel(const dnf_composer::element::ElementDimensions& dimensions);

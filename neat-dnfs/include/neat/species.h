@@ -36,16 +36,16 @@ namespace neat_dnfs
         void randomlyAssignRepresentative();
         void assignChampion();
 
-        size_t size() const;
+        [[nodiscard]] size_t size() const;
         void setOffspringCount(int count);
-        SolutionPtr getRepresentative() const;
-        SolutionPtr getChampion() const;
-        int getId() const;
-        double totalAdjustedFitness() const;
-        int getOffspringCount() const;
-        std::vector<SolutionPtr> getMembers() const;
-        bool isExtinct() const;
-        bool hasFitnessImprovedOverTheLastGenerations() const;
+        [[nodiscard]] SolutionPtr getRepresentative() const;
+        [[nodiscard]] SolutionPtr getChampion() const;
+        [[nodiscard]] int getId() const;
+        [[nodiscard]] double totalAdjustedFitness() const;
+        [[nodiscard]] int getOffspringCount() const;
+        [[nodiscard]] std::vector<SolutionPtr> getMembers() const;
+        [[nodiscard]] bool isExtinct() const;
+        [[nodiscard]] bool hasFitnessImprovedOverTheLastGenerations() const;
         void incrementAge();
         static void resetUniqueIdentifier()
         {
@@ -55,15 +55,15 @@ namespace neat_dnfs
         void addSolution(const SolutionPtr& solution);
         void removeSolution(const SolutionPtr& solution);
         /// @brief Returns true if @p solution's genome is within the compatibility distance threshold of this species' representative.
-        bool isCompatible(const SolutionPtr& solution) const;
-        bool contains(const SolutionPtr& solution) const;
+        [[nodiscard]] bool isCompatible(const SolutionPtr& solution) const;
+        [[nodiscard]] bool contains(const SolutionPtr& solution) const;
         void sortMembersByFitness();
         void pruneWorsePerformingMembers(double ratio);
     	void crossover();
         void replaceMembersWithOffspring();
         void copyChampionToNextGeneration();
 
-        std::string toString() const;
+        [[nodiscard]] std::string toString() const;
         void print() const;
     };
 }

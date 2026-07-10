@@ -21,7 +21,7 @@ namespace neat_dnfs
 		FieldGeneParameters(FieldGeneType type, int id);
 
 		bool operator==(const FieldGeneParameters& other) const;
-		std::string toString() const;
+		[[nodiscard]] std::string toString() const;
 		void print() const;
 	};
 
@@ -48,18 +48,18 @@ namespace neat_dnfs
 		void mutate();
 		void clearLastMutations();
 
-		FieldGeneParameters getParameters() const;
-		std::string getMutationsInLastGeneration() const;
-		std::shared_ptr<dnf_composer::element::NeuralField> getNeuralField() const;
-		std::shared_ptr<dnf_composer::element::Kernel> getKernel() const;
-		std::shared_ptr<dnf_composer::element::NormalNoise> getNoise() const;
+		[[nodiscard]] FieldGeneParameters getParameters() const;
+		[[nodiscard]] std::string getMutationsInLastGeneration() const;
+		[[nodiscard]] std::shared_ptr<dnf_composer::element::NeuralField> getNeuralField() const;
+		[[nodiscard]] std::shared_ptr<dnf_composer::element::Kernel> getKernel() const;
+		[[nodiscard]] std::shared_ptr<dnf_composer::element::NormalNoise> getNoise() const;
 
 		bool operator==(const FieldGene&) const;
 		/// @brief True if both genes share identical parameters and kernel values (deep equality), unlike @c operator== which compares by id.
-		bool isCloneOf(const FieldGene&) const;
-		std::string toString() const;
+		[[nodiscard]] bool isCloneOf(const FieldGene&) const;
+		[[nodiscard]] std::string toString() const;
 		void print() const;
-		FieldGene clone() const;
+		[[nodiscard]] FieldGene clone() const;
 	private:
 		void initializeNeuralField(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeKernel(const dnf_composer::element::ElementDimensions& dimensions);
