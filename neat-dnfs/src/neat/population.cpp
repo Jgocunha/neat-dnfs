@@ -6,7 +6,7 @@
 namespace neat_dnfs
 {
 	PopulationParameters::PopulationParameters(const int size, const int numGenerations, const double targetFitness, const bool parallelEvolution)
-		: size(size), currentGeneration(0), numGenerations(numGenerations), targetFitness(targetFitness), parallelEvolution(parallelEvolution)
+		: size(size), numGenerations(numGenerations), targetFitness(targetFitness), parallelEvolution(parallelEvolution)
 	{}
 
 	PopulationControl::PopulationControl(bool pause, bool stop)
@@ -252,7 +252,7 @@ namespace neat_dnfs
 	void Population::upkeepPerGenerationStatistics()
 	{
 		// average fitness
-		perGenStatistics.averageFitness = 0.0f;
+		perGenStatistics.averageFitness = 0.0F;
 		for (const auto& solution : solutions)
 		{
 			perGenStatistics.averageFitness += solution->getFitness();
@@ -293,7 +293,7 @@ namespace neat_dnfs
 		}
 
 		// average genome size
-		perGenStatistics.averageGenomeSize = 0.0f;
+		perGenStatistics.averageGenomeSize = 0.0F;
 		for (const auto& solution : solutions)
 		{
 			perGenStatistics.averageGenomeSize += solution->getNumConnectionGenes() + solution->getNumFieldGenes();
@@ -301,7 +301,7 @@ namespace neat_dnfs
 		perGenStatistics.averageGenomeSize /= solutions.size();
 
 		// average connection genes
-		perGenStatistics.averageConnectionGenes = 0.0f;
+		perGenStatistics.averageConnectionGenes = 0.0F;
 		for (const auto& solution : solutions)
 		{
 			perGenStatistics.averageConnectionGenes += solution->getNumConnectionGenes();
@@ -309,7 +309,7 @@ namespace neat_dnfs
 		perGenStatistics.averageConnectionGenes /= solutions.size();
 
 		// average field genes
-		perGenStatistics.averageFieldGenes = 0.0f;
+		perGenStatistics.averageFieldGenes = 0.0F;
 		for (const auto& solution : solutions)
 		{
 			perGenStatistics.averageFieldGenes += solution->getNumFieldGenes();
@@ -707,7 +707,7 @@ namespace neat_dnfs
 
 		if (bsDecreased)
 		{
-			for (auto& solution : solutions)
+			for (const auto& solution : solutions)
 			{
 				if (solution == pbs)
 				{

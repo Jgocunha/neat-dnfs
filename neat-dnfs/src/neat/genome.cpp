@@ -218,7 +218,8 @@ namespace neat_dnfs
 		std::ranges::sort(sortedThisInnovationNumbers);
 		std::ranges::sort(sortedOtherInnovationNumbers);
 
-		std::vector<int> thisDisjointInnovationNumbers, otherDisjointInnovationNumbers;
+		std::vector<int> thisDisjointInnovationNumbers;
+		std::vector<int> otherDisjointInnovationNumbers;
 
 		std::ranges::set_difference(sortedThisInnovationNumbers,
 			sortedOtherInnovationNumbers, std::back_inserter(thisDisjointInnovationNumbers));
@@ -416,7 +417,7 @@ namespace neat_dnfs
 			return { 0, 0 };
 		}
 
-		return { static_cast<int>(geneIndex1), static_cast<int>(geneIndex2) };
+		return { geneIndex1, geneIndex2 };
 	}
 
 	int Genome::getRandomGeneId() const
@@ -567,7 +568,7 @@ namespace neat_dnfs
 			GaussKernelConstants::width, GaussKernelConstants::amplitude, GaussKernelConstants::amplitudeGlobal };
 		const ConnectionGene connectionGeneIn{
 			ConnectionTuple{inGeneId, fieldGenes.back().getParameters().id},
-			static_cast<int>(innovIn),
+			innovIn,
 			in_kernel_p };
 
 		switch (kernel->getLabel())
@@ -577,7 +578,7 @@ namespace neat_dnfs
 				const auto gkp = std::dynamic_pointer_cast<GaussKernel>(kernel)->getParameters();
 				const ConnectionGene connectionGeneOut{
 					ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId},
-					static_cast<int>(innovOut),
+					innovOut,
 					gkp };
 				connectionGenes.emplace_back(connectionGeneIn);
 				connectionGenes.emplace_back(connectionGeneOut);
@@ -588,7 +589,7 @@ namespace neat_dnfs
 				const auto mhkp = std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->getParameters();
 				const ConnectionGene connectionGeneOut{
 					ConnectionTuple{fieldGenes.back().getParameters().id, outGeneId},
-						static_cast<int>(innovOut),
+						innovOut,
 						mhkp };
 				connectionGenes.emplace_back(connectionGeneIn);
 				connectionGenes.emplace_back(connectionGeneOut);

@@ -7,8 +7,7 @@ namespace neat_dnfs
 	int Species::currentSpeciesId = 0;
 
 	Species::Species()
-		: id(currentSpeciesId++), offspringCount(0), representative(nullptr),
-			members(), offspring(), extinct(false), age(0)
+		: id(currentSpeciesId++), representative(nullptr)
 	{
 	}
 
@@ -105,11 +104,7 @@ namespace neat_dnfs
 
 	bool Species::hasFitnessImprovedOverTheLastGenerations() const
 	{
-		if (generationsSinceFitnessImproved >= PopulationConstants::generationsWithoutImprovementThresholdInSpecies)
-		{
-			return false;
-		}
-		return true;
+		return generationsSinceFitnessImproved < PopulationConstants::generationsWithoutImprovementThresholdInSpecies;
 	}
 
 	void Species::incrementAge()
@@ -225,7 +220,7 @@ namespace neat_dnfs
 				const SolutionPtr son = parent1->crossover(parent2);
 				if (son->getId() == parent1->getId() || son->getId() == parent2->getId())
 				{
-					std::cout << "When crossing over id's are the same " << parent1->getId() << " or " << parent2->getId() << " is equal to " << son->getId() << std::endl;
+					std::cout << "When crossing over id's are the same " << parent1->getId() << " or " << parent2->getId() << " is equal to " << son->getId() << '\n';
 				}
 				offspring.emplace_back(son);
 			}

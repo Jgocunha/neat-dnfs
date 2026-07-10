@@ -340,7 +340,7 @@ namespace neat_dnfs
 		const int amplitude_sign = generateRandomSignal();
 		const double width = generateRandomDouble(GaussKernelConstants::widthMinVal, GaussKernelConstants::widthMaxVal);
 		const double amplitude = amplitude_sign * generateRandomDouble(GaussKernelConstants::ampMinVal, GaussKernelConstants::ampMaxVal);
-		constexpr double amplitudeGlobal = 0.0f;
+		constexpr double amplitudeGlobal = 0.0F;
 		const GaussKernelParameters gkp{ width,
 										amplitude,
 											amplitudeGlobal,
@@ -366,7 +366,7 @@ namespace neat_dnfs
 		const double amplitudeExc = amplitude_sign * generateRandomDouble(MexicanHatKernelConstants::ampExcMinVal, MexicanHatKernelConstants::ampExcMaxVal);
 		const double widthInh = generateRandomDouble(MexicanHatKernelConstants::widthInhMinVal, MexicanHatKernelConstants::widthInhMaxVal);
 		const double amplitudeInh = generateRandomDouble(MexicanHatKernelConstants::ampInhMinVal, MexicanHatKernelConstants::ampInhMaxVal);
-		constexpr double amplitudeGlobal = 0.0f;
+		constexpr double amplitudeGlobal = 0.0F;
 		const MexicanHatKernelParameters mhkp{ widthExc,
 								amplitudeExc,
 								widthInh,

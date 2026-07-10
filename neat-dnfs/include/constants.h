@@ -46,7 +46,7 @@ namespace neat_dnfs
 		inline static std::string namePrefix		= "nf ";
 		static constexpr double tau					= 100;
 		static constexpr double restingLevel		= -10;
-		inline static dnf_composer::element::SigmoidFunction activationFunction{0.0f, 5.0f};
+		inline static dnf_composer::element::SigmoidFunction activationFunction{0.0F, 5.0F};
 
 		static constexpr double tauMinVal			= 1.0;
 		static constexpr double tauMaxVal			= 200.0;

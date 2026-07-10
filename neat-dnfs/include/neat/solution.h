@@ -28,14 +28,14 @@ namespace neat_dnfs
 		double fitness;
 		double adjustedFitness;
 		int age;
-		int speciesId;
+		int speciesId{-1};
 		std::vector<double> partialFitness;
 		std::vector<dnf_composer::element::NeuralFieldBump> bumps;
 
 		SolutionParameters(double fitness = 0.0,
 			double adjustedFitness = 0.0, int age = 0)
-			: fitness(fitness), adjustedFitness(adjustedFitness), age(age), speciesId(-1)
-			, partialFitness({}), bumps({})
+			: fitness(fitness), adjustedFitness(adjustedFitness), age(age),
+			partialFitness({}), bumps({})
 		{}
 
 		bool operator==(const SolutionParameters& other) const

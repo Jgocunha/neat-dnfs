@@ -13,13 +13,13 @@ namespace neat_dnfs
     private:
 		static int currentSpeciesId;
         int id = 0;
-        int offspringCount;
+        int offspringCount{0};
         SolutionPtr representative;
         SolutionPtr champion;
         std::vector<SolutionPtr> members;
         std::vector<SolutionPtr> offspring;
-        bool extinct;
-        int age;
+        bool extinct{false};
+        int age{0};
         bool hasFitnessImproved = true;
         int generationsSinceFitnessImproved = 0;
     public:

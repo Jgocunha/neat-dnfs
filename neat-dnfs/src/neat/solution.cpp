@@ -9,12 +9,11 @@ namespace neat_dnfs
 		: id(uniqueIdentifierCounter++),
 		name("undefined"),
 		initialTopology(initialTopology),
-		parameters(),
-		phenotype(std::format("{}{}", SimulationConstants::name, id), SimulationConstants::deltaT), 
-		genome(),
+		phenotype(std::format("{}{}", SimulationConstants::name, id), SimulationConstants::deltaT),
 		parents(0,0)
 	{
-		bool hasInput = false, hasOutput = false;
+		bool hasInput = false;
+		bool hasOutput = false;
 		for (const auto& geneTypeAndDimension : initialTopology.geneTopology)
 		{
 			if (geneTypeAndDimension.first == FieldGeneType::INPUT)
@@ -36,9 +35,7 @@ namespace neat_dnfs
 		: id(uniqueIdentifierCounter++),
 		name("undefined"),
 		initialTopology(std::move(initialTopology)),
-		parameters(),
 		phenotype(std::move(phenotype)),
-		genome(),
 		parents(0, 0)
 	{
 		translatePhenotypeToGenome();
@@ -282,7 +279,7 @@ namespace neat_dnfs
 
 				// Determine a field gene type based on naming convention
 				FieldGeneType fieldType;
-				if (nfcp.identifiers.uniqueName.find(NeuralFieldConstants::namePrefix) == 0)
+				if (nfcp.identifiers.uniqueName.starts_with(NeuralFieldConstants::namePrefix))
 				{
 					const std::string idStr = nfcp.identifiers.uniqueName.substr(NeuralFieldConstants::namePrefix.length());
 					const int fieldId = std::stoi(idStr);
@@ -379,7 +376,8 @@ namespace neat_dnfs
 			{
 				// Skip self-connection kernels (which are part of field genes)
 				bool isSelfConnection = false;
-				std::string sourceName, targetName;
+				std::string sourceName;
+				std::string targetName;
 
 				// Find source and target of this connection
 				for (const auto& inputInteraction : element->getInputs())
@@ -811,7 +809,7 @@ namespace neat_dnfs
 
 		} while (it < maxIterations);
 
-		return 0.0f;
+		return 0.0F;
 	}
 
 	double Solution::iterationsUntilNoBump(const std::string& fieldName, const double targetIterations, const double maxIterations, const double tolerance)
@@ -837,7 +835,7 @@ namespace neat_dnfs
 
 		} while (it < maxIterations);
 
-		return 0.0f;
+		return 0.0F;
 	}
 
 	double Solution::justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName, const std::vector<double>& positions, const double& amplitude, const double& width) const

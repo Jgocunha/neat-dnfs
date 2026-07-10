@@ -54,9 +54,9 @@ namespace neat_dnfs
 		[[nodiscard]] std::shared_ptr<dnf_composer::element::Kernel> getKernel() const;
 		[[nodiscard]] std::shared_ptr<dnf_composer::element::NormalNoise> getNoise() const;
 
-		bool operator==(const FieldGene&) const;
+		bool operator==(const FieldGene& /*other*/) const;
 		/// @brief True if both genes share identical parameters and kernel values (deep equality), unlike @c operator== which compares by id.
-		[[nodiscard]] bool isCloneOf(const FieldGene&) const;
+		[[nodiscard]] bool isCloneOf(const FieldGene& /*other*/) const;
 		[[nodiscard]] std::string toString() const;
 		void print() const;
 		[[nodiscard]] FieldGene clone() const;
