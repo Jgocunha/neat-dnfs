@@ -77,6 +77,7 @@ namespace neat_dnfs
 		if (parameters.parallelEvolution)
 		{
 			std::vector<std::future<void>> futures;
+			futures.reserve(solutions.size());
 			for (const auto& solution : solutions)
 			{
 				futures.emplace_back(std::async(std::launch::async, [&solution]()

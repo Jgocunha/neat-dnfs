@@ -140,6 +140,7 @@ namespace neat_dnfs
 	std::vector<int> Genome::getInnovationNumbers() const
 	{
 		std::vector<int> innovationNumbers;
+		innovationNumbers.reserve(connectionGenes.size());
 		for (const auto& connectionGene : connectionGenes)
 		{
 			innovationNumbers.push_back(connectionGene.getInnovationNumber());
@@ -468,14 +469,14 @@ namespace neat_dnfs
 		return geneIds[randomValue];
 	}
 
-	ConnectionGene* Genome::getEnabledConnectionGene() const
+	ConnectionGene* Genome::getEnabledConnectionGene()
 	{
 		std::vector<ConnectionGene*> enabledConnectionGenes;
-		for (const auto& connectionGene : connectionGenes)
+		for (auto& connectionGene : connectionGenes)
 		{
 			if (connectionGene.isEnabled())
 			{
-				enabledConnectionGenes.push_back(const_cast<ConnectionGene*>(&connectionGene));
+				enabledConnectionGenes.push_back(&connectionGene);
 			}
 		}
 

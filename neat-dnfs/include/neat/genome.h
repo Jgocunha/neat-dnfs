@@ -75,7 +75,7 @@ namespace neat_dnfs
 		[[nodiscard]] int getRandomGeneId() const;
 		[[nodiscard]] int getRandomGeneIdByType(FieldGeneType type) const;
 		[[nodiscard]] int getRandomGeneIdByTypes(const std::vector<FieldGeneType>& types) const;
-		[[nodiscard]] ConnectionGene* getEnabledConnectionGene() const;
+		[[nodiscard]] ConnectionGene* getEnabledConnectionGene();
 
 		void addConnectionGene(ConnectionTuple connectionTuple);
 		void addGene();
