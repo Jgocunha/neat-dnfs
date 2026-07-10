@@ -393,7 +393,7 @@ namespace neat_dnfs
 			return { 0, 0 };
 		}
 
-		int geneIndex2;
+		int geneIndex2 = -1;
 		do {
 			geneIndex2 = getRandomGeneIdByTypes({ FieldGeneType::HIDDEN, FieldGeneType::OUTPUT });
 			if (geneIndex2 == -1)
@@ -536,8 +536,8 @@ namespace neat_dnfs
 
 		const ConnectionTuple connectionTupleIn{ inGeneId, fieldGenes.back().getParameters().id };
 		const ConnectionTuple connectionTupleOut{ fieldGenes.back().getParameters().id, outGeneId };
-		int innovIn;
-		int innovOut;
+		int innovIn = -1;
+		int innovOut = -1;
 		{
 			std::scoped_lock lock(innovationMutex);
 			innovIn = getInnovationNumberOfTupleWithinGenerationUnlocked(connectionTupleIn);

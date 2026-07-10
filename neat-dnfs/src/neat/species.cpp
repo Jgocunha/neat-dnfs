@@ -175,8 +175,7 @@ namespace neat_dnfs
 	void Species::pruneWorsePerformingMembers(double ratio)
 	{
 		sortMembersByFitness();
-		// narrowing conversion from size_t to double
-		for (size_t i = 0; i < static_cast<size_t>(members.size() * ratio); ++i)
+		for (size_t i = 0; i < static_cast<size_t>(static_cast<double>(members.size()) * ratio); ++i)
 		{
 			members.pop_back();
 		}

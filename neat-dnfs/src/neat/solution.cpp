@@ -278,7 +278,7 @@ namespace neat_dnfs
 				const auto nfp = neuralField->getParameters();
 
 				// Determine a field gene type based on naming convention
-				FieldGeneType fieldType;
+				FieldGeneType fieldType = FieldGeneType::HIDDEN;
 				if (nfcp.identifiers.uniqueName.starts_with(NeuralFieldConstants::namePrefix))
 				{
 					const std::string idStr = nfcp.identifiers.uniqueName.substr(NeuralFieldConstants::namePrefix.length());
@@ -867,7 +867,7 @@ namespace neat_dnfs
 			minDistance = std::min(minDistance, std::abs(bump.centroid - p));
 		}
 
-		constexpr double epsilon = DimensionConstants::xSize / 20;
+		constexpr double epsilon = static_cast<double>(DimensionConstants::xSize) / 20;
 
 		// If the bump is not near any allowed position, do NOT give the big reward.
 		if (minDistance >= epsilon) {

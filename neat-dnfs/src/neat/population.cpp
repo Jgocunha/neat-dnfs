@@ -257,13 +257,13 @@ namespace neat_dnfs
 		{
 			perGenStatistics.averageFitness += solution->getFitness();
 		}
-		perGenStatistics.averageFitness /= solutions.size();
+		perGenStatistics.averageFitness /= static_cast<double>(solutions.size());
 
 		// best fitness
 		perGenStatistics.bestFitness = bestSolution->getFitness();
 
 		// number of species
-		perGenStatistics.numberOfSpecies = speciesList.size();
+		perGenStatistics.numberOfSpecies = static_cast<int>(speciesList.size());
 
 		// number of active species
 		perGenStatistics.numberOfActiveSpecies = 0;
@@ -298,7 +298,7 @@ namespace neat_dnfs
 		{
 			perGenStatistics.averageGenomeSize += solution->getNumConnectionGenes() + solution->getNumFieldGenes();
 		}
-		perGenStatistics.averageGenomeSize /= solutions.size();
+		perGenStatistics.averageGenomeSize /= static_cast<double>(solutions.size());
 
 		// average connection genes
 		perGenStatistics.averageConnectionGenes = 0.0F;
@@ -306,7 +306,7 @@ namespace neat_dnfs
 		{
 			perGenStatistics.averageConnectionGenes += solution->getNumConnectionGenes();
 		}
-		perGenStatistics.averageConnectionGenes /= solutions.size();
+		perGenStatistics.averageConnectionGenes /= static_cast<double>(solutions.size());
 
 		// average field genes
 		perGenStatistics.averageFieldGenes = 0.0F;
@@ -314,7 +314,7 @@ namespace neat_dnfs
 		{
 			perGenStatistics.averageFieldGenes += solution->getNumFieldGenes();
 		}
-		perGenStatistics.averageFieldGenes /= solutions.size();
+		perGenStatistics.averageFieldGenes /= static_cast<double>(solutions.size());
 	}
 
 
@@ -439,8 +439,8 @@ namespace neat_dnfs
 		// only the top two species are allowed to reproduce
 		// (a species is "better than the other" based on its champion)
 		const int numActiveSpecies =
-			std::ranges::count_if(speciesList.begin(), speciesList.end(), [](const auto& species)
-			{ return !species->isExtinct(); });
+			static_cast<int>(std::ranges::count_if(speciesList.begin(), speciesList.end(), [](const auto& species)
+			{ return !species->isExtinct(); }));
 		if (!hasFitnessImprovedOverTheLastGenerations())
 		{
 			if (numActiveSpecies > 2)
@@ -549,7 +549,7 @@ namespace neat_dnfs
 			if (total_adjusted_fitness > 0)
 			{
 				species_ptr->setOffspringCount(
-					(species_ptr->totalAdjustedFitness() / total_adjusted_fitness) * total_offspring);
+					static_cast<int>((species_ptr->totalAdjustedFitness() / total_adjusted_fitness) * total_offspring));
 			}
 			else
 			{
