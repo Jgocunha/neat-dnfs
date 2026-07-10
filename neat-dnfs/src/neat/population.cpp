@@ -297,7 +297,7 @@ namespace neat_dnfs
 		perGenStatistics.averageGenomeSize = 0.0F;
 		for (const auto& solution : solutions)
 		{
-			perGenStatistics.averageGenomeSize += solution->getNumConnectionGenes() + solution->getNumFieldGenes();
+			perGenStatistics.averageGenomeSize += static_cast<double>(solution->getNumConnectionGenes() + solution->getNumFieldGenes());
 		}
 		perGenStatistics.averageGenomeSize /= static_cast<double>(solutions.size());
 
@@ -305,7 +305,7 @@ namespace neat_dnfs
 		perGenStatistics.averageConnectionGenes = 0.0F;
 		for (const auto& solution : solutions)
 		{
-			perGenStatistics.averageConnectionGenes += solution->getNumConnectionGenes();
+			perGenStatistics.averageConnectionGenes += static_cast<double>(solution->getNumConnectionGenes());
 		}
 		perGenStatistics.averageConnectionGenes /= static_cast<double>(solutions.size());
 
@@ -313,7 +313,7 @@ namespace neat_dnfs
 		perGenStatistics.averageFieldGenes = 0.0F;
 		for (const auto& solution : solutions)
 		{
-			perGenStatistics.averageFieldGenes += solution->getNumFieldGenes();
+			perGenStatistics.averageFieldGenes += static_cast<double>(solution->getNumFieldGenes());
 		}
 		perGenStatistics.averageFieldGenes /= static_cast<double>(solutions.size());
 	}
@@ -719,9 +719,6 @@ namespace neat_dnfs
 					addr_npbs << solution.get();
 					std::stringstream addr_opbs;
 					addr_opbs << pbs.get();
-
-					const double opbsf = pbsf;
-					const double npbsf = solution->getFitness();
 
 					log(tools::logger::LogLevel::WARNING, "Fitness decreased but previous best solution is in the population.");
 
