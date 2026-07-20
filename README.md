@@ -243,6 +243,14 @@ For a full exploration of the repository, refer to the [Wiki.](https://github.co
 * Pfeifer, Rolf and Bongard, Josh (2006) - "How the Body Shapes the Way We Think: A New View of Intelligence"
 * Coombes, Stephen and Beim Graben, Peter and Potthast, Roland and Wright, James (2014) - "Neural fields: theory and applications"
 
+---
+
+## Citation
+
+If you use this work in your research, please cite:
+
+> J. G. Cunha, W. Erlhagen, R. H. Cuijpers, E. Bicho, "NEAT-DNFs: A NeuroEvolutionary Framework for Evolving Dynamic Neural Field Architectures," in *Proceedings of the Genetic and Evolutionary Computation Conference (GECCO '26)*, Association for Computing Machinery, New York, NY, USA, 2026, pp. 966–974. https://doi.org/10.1145/3795095.3805169
+
 
 
 
