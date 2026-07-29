@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Gemini issue triage** — `gemini-issue-triage.yml` auto-labels and posts a welcome comment on every new issue using the Gemini free tier; label creation and `gh` write commands are deterministic shell steps hardened against prompt injection
 - **Gemini doc-sync check** — `gemini-doc-sync.yml` audits Doxygen, README, and CHANGELOG completeness on PRs touching `neat-dnfs/include/**`; skipped on forked PRs to avoid secret-missing failures
 - **vcpkg maintenance** — `vcpkg-maintenance.yml` monthly cron creates a dependency version report issue using pure shell and `gh` CLI (no LLM required)
+- **Release-baseline test coverage** — extends the Catch2 suite to establish a verified baseline before tagging a release (closes #20, #21, #23, #24, #25, #26):
+  - `tests/test_solutions_tasks.cpp` (new) — construction, `clone()`/`copy()`, `mutate()`, and one real `evaluate()` per previously-untested task class (`MemoryInstability`, `SelectionInstability`, `MemoryTrace`, `DelayedMatchToSample`, `InhibitionOfReturn`, `AND`, `XOR`)
+  - `tests/test_population_file_manager.cpp` (new) — exercises `PopulationFileManager`'s per-generation and end-of-run writes; cleans up its own output directory afterward
+  - `tools::utils::normalize`, `normalizeWithGaussian`, `normalizeWithFlatheadGaussian` — boundary, peak/decay, and flat-top behaviour
+  - `Solution::hasTheSameTopology`/`hasTheSameParameters`/`hasTheSameGenome`, `clearGenome`, `translatePhenotypeToGenome`, and `crossover()` edge cases (identical parents, fitter-parent inheritance)
+  - `Population::setSize`/`setNumGenerations`, `getSolutions`/`getSpeciesList`, and the `stop`/`pause`/`resume`/`start` control surface
+  - `Species::copyChampionToNextGeneration`, `randomlyAssignRepresentative`, `hasFitnessImprovedOverTheLastGenerations`, `isExtinct`, and single-member `crossover()`
+  - `Genome::removeConnectionGene`, `isEmpty`, `clearLastMutations`, and excess/disjoint/difference metrics at identical and fully-disjoint boundaries
+  - `FieldGene`/`ConnectionGene` `clone()` independence, `clearLastMutations()`, and `FieldGene::setAsHidden()`
+  - `test_helpers.h::resetGlobalState()` — resets the three process-global statics (`Genome::globalInnovationNumber`, `Solution::uniqueIdentifierCounter`, `Species::currentSpeciesId`) that are not reset between `TEST_CASE`s, so the suite is order-independent under `--order rand`
 
 ### Changed
 - `tools::utils` RNG — replaced per-call `std::random_device` + `std::mt19937` construction with a `thread_local` xoshiro256++ engine seeded once per thread, eliminating redundant reseeding overhead on every `generateRandomInt`/`Double`/`Float`/`Signal` call (~970x faster in microbenchmark) (closes #6)

@@ -219,8 +219,10 @@ add_executable(${TEST_PROJECT}
     "tests/test_connection_gene.cpp"
     "tests/test_genome.cpp"
     "tests/test_solution.cpp"
+    "tests/test_solutions_tasks.cpp"
     "tests/test_species.cpp"
     "tests/test_population.cpp"
+    "tests/test_population_file_manager.cpp"
     "tests/test_speciation.cpp"
 )
 target_include_directories(${TEST_PROJECT} PRIVATE include tests)

@@ -157,6 +157,32 @@ TEST_CASE("ConnectionGene Set Max Innovation Number", "[ConnectionGene]")
     REQUIRE(connectionGene.getInnovationNumber() == std::numeric_limits<uint16_t>::max());
 }
 
+TEST_CASE("ConnectionGene::clone preserves parameters and innovation number", "[ConnectionGene]")
+{
+    const ConnectionTuple connectionTuple(1, 2);
+    const GaussKernelParameters gkp{ 5.0, 3.0, false, false };
+    const ConnectionGene connectionGene(connectionTuple, 42, gkp);
+
+    const ConnectionGene cloned = connectionGene.clone();
+
+    REQUIRE(cloned.getInnovationNumber() == connectionGene.getInnovationNumber());
+    REQUIRE(cloned.isEnabled() == connectionGene.isEnabled());
+    REQUIRE(cloned.getKernelWidth() == connectionGene.getKernelWidth());
+    REQUIRE(cloned.getKernelAmplitude() == connectionGene.getKernelAmplitude());
+    REQUIRE(cloned.getKernel() != connectionGene.getKernel());
+}
+
+TEST_CASE("ConnectionGene::clearLastMutations empties getMutationsInLastGeneration", "[ConnectionGene]")
+{
+    const ConnectionTuple connectionTuple(1, 2);
+    ConnectionGene connectionGene(connectionTuple, 0);
+    connectionGene.mutate();
+
+    connectionGene.clearLastMutations();
+
+    REQUIRE(connectionGene.getMutationsInLastGeneration().empty());
+}
+
 TEST_CASE("ConnectionGene Multiple Mutations Consistency", "[ConnectionGene]")
 {
     const ConnectionTuple connectionTuple(1, 2);

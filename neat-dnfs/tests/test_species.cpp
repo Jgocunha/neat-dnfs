@@ -181,3 +181,92 @@ TEST_CASE("Species::setOffspringCount and getOffspringCount", "[Species]")
     species.setOffspringCount(count);
     REQUIRE(species.getOffspringCount() == count);
 }
+
+TEST_CASE("Species::randomlyAssignRepresentative picks a current member", "[Species]")
+{
+    Species species;
+    const auto solution1 = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    const auto solution2 = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    species.addSolution(solution1);
+    species.addSolution(solution2);
+
+    species.randomlyAssignRepresentative();
+
+    const auto members = species.getMembers();
+    const auto representative = species.getRepresentative();
+    REQUIRE(std::ranges::find(members, representative) != members.end());
+}
+
+TEST_CASE("Species::assignChampion tracks fitness improvement across generations", "[Species]")
+{
+    // hasFitnessImprovedOverTheLastGenerations() reads generationsSinceFitnessImproved,
+    // which assignChampion() resets to 0 on improvement and increments otherwise.
+    Species species;
+    const auto solution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    solution->initialize();
+    species.addSolution(solution);
+
+    solution->evaluate(); // some fitness > 0
+    species.assignChampion();
+    REQUIRE(species.hasFitnessImprovedOverTheLastGenerations());
+
+    // Champion's stored fitness (from the first assignChampion call) cannot be
+    // exceeded without re-evaluating higher; repeated calls with no better
+    // member increment generationsSinceFitnessImproved.
+    for (int i = 0; i < PopulationConstants::generationsWithoutImprovementThresholdInSpecies + 1; ++i)
+        species.assignChampion();
+
+    REQUIRE_FALSE(species.hasFitnessImprovedOverTheLastGenerations());
+}
+
+TEST_CASE("Species::isExtinct is true after crossover with no members", "[Species]")
+{
+    Species species;
+    const auto solution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    species.addSolution(solution);
+    REQUIRE_FALSE(species.isExtinct());
+
+    species.removeSolution(solution);
+    species.setOffspringCount(0); // avoid the FATAL log path for members.empty() && offspringCount > 0
+    species.crossover();
+
+    REQUIRE(species.isExtinct());
+}
+
+TEST_CASE("Species::copyChampionToNextGeneration replaces the last member with the champion", "[Species]")
+{
+    Species species;
+    const auto solution1 = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    const auto solution2 = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    solution1->initialize();
+    solution2->initialize();
+    solution1->evaluate();
+    solution2->evaluate();
+
+    species.addSolution(solution1);
+    species.addSolution(solution2);
+    species.assignChampion();
+    const auto champion = species.getChampion();
+    REQUIRE(champion != nullptr);
+
+    species.copyChampionToNextGeneration();
+
+    const auto members = species.getMembers();
+    REQUIRE(std::ranges::find(members, champion) != members.end());
+}
+
+TEST_CASE("Species::crossover with a single member self-pairs without throwing", "[Species]")
+{
+    // crossover() has a distinct code path for members.size() == 1: it crosses
+    // the lone member with itself (species.cpp:202-211) rather than skipping.
+    Species species;
+    const auto solution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    solution->initialize();
+    solution->evaluate();
+
+    species.addSolution(solution);
+    species.setOffspringCount(3);
+
+    REQUIRE_NOTHROW(species.crossover());
+    REQUIRE_FALSE(species.isExtinct());
+}

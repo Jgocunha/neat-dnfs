@@ -1,4 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
+#include <cmath>
 
 #include "neat_tools/utils.h"
 
@@ -136,4 +138,65 @@ TEST_CASE("Random Double Generation stays in range over many draws", "[generateR
         REQUIRE(result >= min);
         REQUIRE(result <= max);
     }
+}
+
+TEST_CASE("normalize maps value to [0, 1] within range", "[normalize]")
+{
+    using neat_dnfs::tools::utils::normalize;
+
+    REQUIRE(normalize(0.0, 0.0, 10.0) == 0.0);
+    REQUIRE(normalize(10.0, 0.0, 10.0) == 1.0);
+    REQUIRE(normalize(5.0, 0.0, 10.0) == Catch::Approx(0.5));
+    REQUIRE(normalize(2.5, 0.0, 10.0) == Catch::Approx(0.25));
+}
+
+TEST_CASE("normalize clamps values outside [min, max]", "[normalize]")
+{
+    using neat_dnfs::tools::utils::normalize;
+
+    REQUIRE(normalize(-5.0, 0.0, 10.0) == 0.0);
+    REQUIRE(normalize(15.0, 0.0, 10.0) == 1.0);
+}
+
+TEST_CASE("normalize with min == max produces a non-finite result at the boundary", "[normalize]")
+{
+    // value == min == max skips both clamp branches and divides by zero (0/0 = NaN).
+    // This documents the existing behaviour rather than asserting a "correct" one.
+    using neat_dnfs::tools::utils::normalize;
+
+    const double result = normalize(5.0, 5.0, 5.0);
+    REQUIRE(std::isnan(result));
+}
+
+TEST_CASE("normalizeWithGaussian peaks at the target and decays away from it", "[normalizeWithGaussian]")
+{
+    using neat_dnfs::tools::utils::normalizeWithGaussian;
+
+    REQUIRE(normalizeWithGaussian(50.0, 50.0, 10.0) == Catch::Approx(1.0));
+
+    const double near = normalizeWithGaussian(52.0, 50.0, 10.0);
+    const double far = normalizeWithGaussian(500.0, 50.0, 10.0);
+    REQUIRE(near < 1.0);
+    REQUIRE(near > far);
+    REQUIRE(far == Catch::Approx(0.0).margin(1e-6));
+}
+
+TEST_CASE("normalizeWithFlatheadGaussian is 1.0 inside the flat region", "[normalizeWithFlatheadGaussian]")
+{
+    using neat_dnfs::tools::utils::normalizeWithFlatheadGaussian;
+
+    REQUIRE(normalizeWithFlatheadGaussian(0.0, 0.0, 10.0, 5.0) == Catch::Approx(1.0));
+    REQUIRE(normalizeWithFlatheadGaussian(5.0, 0.0, 10.0, 5.0) == Catch::Approx(1.0));
+    REQUIRE(normalizeWithFlatheadGaussian(10.0, 0.0, 10.0, 5.0) == Catch::Approx(1.0));
+}
+
+TEST_CASE("normalizeWithFlatheadGaussian decreases away from the flat region", "[normalizeWithFlatheadGaussian]")
+{
+    using neat_dnfs::tools::utils::normalizeWithFlatheadGaussian;
+
+    const double atEdge = normalizeWithFlatheadGaussian(10.0, 0.0, 10.0, 5.0);
+    const double beyond = normalizeWithFlatheadGaussian(40.0, 0.0, 10.0, 5.0);
+    REQUIRE(atEdge == Catch::Approx(1.0));
+    REQUIRE(beyond < atEdge);
+    REQUIRE(beyond >= 0.0);
 }

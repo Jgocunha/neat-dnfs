@@ -176,3 +176,110 @@ TEST_CASE("Population::evolve — exceptions from serial evaluation propagate", 
 
     REQUIRE_THROWS_AS(population.evolve(), std::runtime_error);
 }
+
+TEST_CASE("Population::setSize and setNumGenerations round-trip", "[Population]")
+{
+    const PopulationParameters parameters(10, 5, 0.9);
+    const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    Population population(parameters, initialSolution);
+
+    population.setSize(25);
+    REQUIRE(population.getSize() == 25);
+
+    population.setNumGenerations(50);
+    REQUIRE(population.getNumGenerations() == 50);
+}
+
+TEST_CASE("Population::getSolutions returns exactly getSize() elements after initialize", "[Population]")
+{
+    const PopulationParameters parameters(10, 5, 0.9);
+    const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    Population population(parameters, initialSolution, false);
+    population.initialize();
+
+    REQUIRE(population.getSolutions().size() == static_cast<size_t>(population.getSize()));
+}
+
+TEST_CASE("Population::getSpeciesList is non-empty after evolve", "[Population]")
+{
+    const PopulationParameters parameters(10, 2, 1.1);
+    const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    Population population(parameters, initialSolution, false);
+    population.initialize();
+    population.evolve();
+
+    REQUIRE(!population.getSpeciesList().empty());
+}
+
+TEST_CASE("Population::stop halts evolve before the generation limit", "[Population]")
+{
+    // Uses CountingSolution (2ms sleep per evaluation) so evolve() takes long
+    // enough for a background thread to call stop() mid-run. Real solutions
+    // would make this timing-dependent test far too slow.
+    CountingSolution::live = 0;
+    CountingSolution::peak = 0;
+
+    const PopulationParameters parameters(50, 1000, 1.1, false); // serial, many generations
+    const auto initialSolution = std::make_shared<CountingSolution>(makeTopology(1, 1));
+    Population population(parameters, initialSolution, false);
+    population.initialize();
+
+    std::thread stopper([&population]()
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            population.stop();
+        });
+
+    population.evolve();
+    stopper.join();
+
+    REQUIRE(population.getCurrentGeneration() < population.getNumGenerations());
+}
+
+TEST_CASE("Population::pause and resume allow evolution to complete normally", "[Population]")
+{
+    CountingSolution::live = 0;
+    CountingSolution::peak = 0;
+
+    const PopulationParameters parameters(10, 3, 1.1, false);
+    const auto initialSolution = std::make_shared<CountingSolution>(makeTopology(1, 1));
+    Population population(parameters, initialSolution, false);
+    population.initialize();
+
+    population.pause();
+    std::thread resumer([&population]()
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            population.resume();
+        });
+
+    REQUIRE_NOTHROW(population.evolve());
+    resumer.join();
+
+    REQUIRE(population.getCurrentGeneration() >= population.getNumGenerations());
+}
+
+TEST_CASE("Population::start clears a prior stop request", "[Population]")
+{
+    const PopulationParameters parameters(10, 3, 1.1, false);
+    const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    Population population(parameters, initialSolution, false);
+    population.initialize();
+
+    population.stop();
+    population.start(); // clears control.stop before evolve() ever runs
+
+    population.evolve();
+    REQUIRE(population.getCurrentGeneration() >= population.getNumGenerations());
+}
+
+TEST_CASE("Population of size 1 evolves without throwing", "[Population]")
+{
+    const PopulationParameters parameters(1, 3, 1.1, false);
+    const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    Population population(parameters, initialSolution, false);
+    population.initialize();
+
+    REQUIRE_NOTHROW(population.evolve());
+    REQUIRE(population.getSolutions().size() == 1);
+}
