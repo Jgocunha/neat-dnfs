@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Gemini doc-sync check** — `gemini-doc-sync.yml` audits Doxygen, README, and CHANGELOG completeness on PRs touching `neat-dnfs/include/**`; skipped on forked PRs to avoid secret-missing failures
 - **vcpkg maintenance** — `vcpkg-maintenance.yml` monthly cron creates a dependency version report issue using pure shell and `gh` CLI (no LLM required)
 
+### Changed
+- `tools::utils` RNG — replaced per-call `std::random_device` + `std::mt19937` construction with a `thread_local` xoshiro256++ engine seeded once per thread, eliminating redundant reseeding overhead on every `generateRandomInt`/`Double`/`Float`/`Signal` call (~970x faster in microbenchmark) (closes #6)
+
+### Fixed
+- `generateRandomSignal()` returned `-1` with probability 2/3 instead of the intended 50/50, biasing every mutation step direction in `FieldGene` and `ConnectionGene` mutation
+- Per-thread RNG seed hardened against a degraded `std::random_device` (some implementations fall back to a deterministic sequence) by mixing in a per-thread hash and an incrementing counter, preventing threads from ever sharing a seed
+
 ---
 
 ## [1.1.0] - 2026-06-13
