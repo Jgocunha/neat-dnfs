@@ -22,8 +22,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - `tools::logger::log()` raced on a shared global `Logger` object when called concurrently from parallel solution evaluation, risking a message being emitted with another thread's level/colour; replaced with a per-call temporary and removed the now-unused shared global. `std::cout` writes in `log_cmd` are now serialised with a mutex (closes #5)
 - `Genome::getInnovationNumberOfTupleWithinGeneration()` — removed this unused locked variant of the innovation-number lookup; it had zero callers and, being a plain `std::mutex`, would have self-deadlocked if ever called from inside an already-locked context such as `addConnectionGene()` (closes #3)
-
-### Fixed
 - `generateRandomSignal()` returned `-1` with probability 2/3 instead of the intended 50/50, biasing every mutation step direction in `FieldGene` and `ConnectionGene` mutation
 - Per-thread RNG seed hardened against a degraded `std::random_device` (some implementations fall back to a deterministic sequence) by mixing in a per-thread hash and an incrementing counter, preventing threads from ever sharing a seed
 
