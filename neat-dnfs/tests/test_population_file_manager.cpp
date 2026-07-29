@@ -41,15 +41,23 @@ TEST_CASE("PopulationFileManager writes per-generation artifacts to disk", "[Pop
     CountingSolution::peak = 0;
 
     const PopulationParameters parameters(5, 2, 1.1);
+    const std::string solutionName = "Counting"; // CountingSolution sets this name itself
     const auto initialSolution = std::make_shared<CountingSolution>(makeTopology(1, 1));
 
     // File IO enabled (the 3rd ctor arg defaults to true) -- this is the point of the test.
     Population population(parameters, initialSolution);
     population.initialize();
 
-    const std::string runDirectory = expectedRunDirectory("Counting");
+    // setFileDirectory() (called inside evolve()) computes its own timestamp
+    // independently of the test, so the directory is reconstructed on both sides
+    // of the call to tolerate a wall-clock second boundary being crossed in between.
+    const std::string directoryBeforeEvolve = expectedRunDirectory(solutionName);
 
     REQUIRE_NOTHROW(population.evolve());
+
+    const std::string directoryAfterEvolve = expectedRunDirectory(solutionName);
+    const std::string runDirectory =
+        std::filesystem::exists(directoryBeforeEvolve) ? directoryBeforeEvolve : directoryAfterEvolve;
 
     REQUIRE(std::filesystem::exists(runDirectory));
     REQUIRE(std::filesystem::is_directory(runDirectory));
@@ -65,5 +73,7 @@ TEST_CASE("PopulationFileManager writes per-generation artifacts to disk", "[Pop
     }
     REQUIRE(wroteAtLeastOneFile);
 
-    std::filesystem::remove_all(std::string(PROJECT_DIR) + "/data/Counting/");
+    // Remove only this run's own timestamped directory, not the whole shared
+    // data/Counting/ root, so other/concurrent runs under that name are untouched.
+    std::filesystem::remove_all(runDirectory);
 }

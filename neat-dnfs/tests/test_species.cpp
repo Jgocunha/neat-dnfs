@@ -5,6 +5,7 @@
 #include "neat/solution.h"
 #include "solutions/detection_instability.h"
 #include "test_helpers.h"
+#include "test_stub_solution.h"
 
 using namespace neat_dnfs;
 using namespace neat_dnfs::test;
@@ -201,12 +202,15 @@ TEST_CASE("Species::assignChampion tracks fitness improvement across generations
 {
     // hasFitnessImprovedOverTheLastGenerations() reads generationsSinceFitnessImproved,
     // which assignChampion() resets to 0 on improvement and increments otherwise.
+    // FixedFitnessSolution reports a known positive fitness deterministically,
+    // rather than depending on DetectionInstability::evaluate()'s task- and
+    // seed-dependent outcome.
     Species species;
-    const auto solution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    const auto solution = std::make_shared<FixedFitnessSolution>(makeTopology(1, 1), 0.5);
     solution->initialize();
     species.addSolution(solution);
 
-    solution->evaluate(); // some fitness > 0
+    solution->evaluate();
     species.assignChampion();
     REQUIRE(species.hasFitnessImprovedOverTheLastGenerations());
 

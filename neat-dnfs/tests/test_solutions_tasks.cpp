@@ -31,6 +31,13 @@ static void checkSolutionContract(const SolutionTopology& topology)
     REQUIRE(cloned->getId() != solution.getId());
     REQUIRE(cloned->hasTheSameTopology(std::make_shared<SolutionType>(solution)));
 
+    // Independence: mutating the clone must not affect the original's genome,
+    // i.e. clone() does not share mutable state with the source solution.
+    const size_t originalSizeBeforeCloneMutation = solution.getGenomeSize();
+    for (int i = 0; i < 20; ++i)
+        cloned->mutate();
+    REQUIRE(solution.getGenomeSize() == originalSizeBeforeCloneMutation);
+
     solution.buildPhenotype();
     const auto copied = solution.copy();
     REQUIRE(copied->getId() != solution.getId());
@@ -39,6 +46,12 @@ static void checkSolutionContract(const SolutionTopology& topology)
     // guarantee is topology + gene count, not byte-for-byte genome equality.
     REQUIRE(copied->hasTheSameTopology(std::make_shared<SolutionType>(solution)));
     REQUIRE(copied->getGenomeSize() == solution.getGenomeSize());
+
+    // Independence: mutating the copy must not affect the original's genome.
+    const size_t originalSizeBeforeCopyMutation = solution.getGenomeSize();
+    for (int i = 0; i < 20; ++i)
+        copied->mutate();
+    REQUIRE(solution.getGenomeSize() == originalSizeBeforeCopyMutation);
 
     size_t previousGenomeSize = solution.getGenomeSize();
     for (int i = 0; i < 100; ++i)

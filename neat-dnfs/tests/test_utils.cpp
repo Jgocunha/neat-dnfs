@@ -174,6 +174,11 @@ TEST_CASE("normalizeWithGaussian peaks at the target and decays away from it", "
 
     REQUIRE(normalizeWithGaussian(50.0, 50.0, 10.0) == Catch::Approx(1.0));
 
+    // width == 0: (value-target)/width is 0/0 = NaN at the target, and
+    // exp(-0.5 * inf^2) = 0.0 anywhere off-target.
+    REQUIRE(std::isnan(normalizeWithGaussian(50.0, 50.0, 0.0)));
+    REQUIRE(normalizeWithGaussian(60.0, 50.0, 0.0) == Catch::Approx(0.0));
+
     const double near = normalizeWithGaussian(52.0, 50.0, 10.0);
     const double far = normalizeWithGaussian(500.0, 50.0, 10.0);
     REQUIRE(near < 1.0);

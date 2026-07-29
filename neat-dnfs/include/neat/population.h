@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <future>
 #include <memory>
 
@@ -25,8 +26,8 @@ namespace neat_dnfs
 	/// @brief Runtime flags for pausing or stopping evolution from an external thread.
 	struct PopulationControl
 	{
-		bool pause;
-		bool stop;
+		std::atomic<bool> pause;
+		std::atomic<bool> stop;
 
 		explicit PopulationControl(bool pause = false, bool stop = false);
 	};

@@ -3,6 +3,7 @@
 #include "neat/solution.h"
 #include "solutions/detection_instability.h"
 #include "test_helpers.h"
+#include "test_stub_solution.h"
 
 using namespace neat_dnfs;
 using namespace neat_dnfs::test;
@@ -270,8 +271,7 @@ TEST_CASE("Solution::hasTheSameGenome", "[Solution]")
     solutionB->initialize();
     REQUIRE(solutionA->hasTheSameGenome(solutionB));
 
-    for (int i = 0; i < 100 && solutionB->getGenome() == solutionA->getGenome(); ++i)
-        solutionB->mutate();
+    solutionB->addFieldGene(FieldGene({ FieldGeneType::HIDDEN, 999 }));
     REQUIRE_FALSE(solutionA->hasTheSameGenome(solutionB));
 }
 
@@ -343,16 +343,16 @@ TEST_CASE("Solution::crossover inherits field genes from the fitter parent", "[S
 {
     resetGlobalState();
     const auto topology = makeTopology(1, 1);
-    const auto parent1 = std::make_shared<DetectionInstability>(topology);
-    const auto parent2 = std::make_shared<DetectionInstability>(topology);
+    // FixedFitnessSolution::evaluate() reports a fitness set directly by the
+    // test rather than one derived from a real (task- and seed-dependent)
+    // DNF simulation -- crossover() compares getFitness(), not adjustedFitness,
+    // and Solution has no direct fitness setter otherwise.
+    const auto parent1 = std::make_shared<FixedFitnessSolution>(topology, 0.9);
+    const auto parent2 = std::make_shared<FixedFitnessSolution>(topology, 0.1);
     parent1->initialize();
     parent2->initialize();
+    parent1->addFieldGene(FieldGene({ FieldGeneType::HIDDEN, 999 }));
 
-    // Give the parents disjoint mutation histories, then evaluate() so
-    // getFitness() (parameters.fitness) actually differs -- crossover()
-    // compares fitness, not adjustedFitness, and there is no direct setter.
-    for (int i = 0; i < 20; ++i)
-        parent1->mutate();
     parent1->evaluate();
     parent2->evaluate();
     REQUIRE(parent1->getFitness() != parent2->getFitness());

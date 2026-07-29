@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Gemini doc-sync check** — `gemini-doc-sync.yml` audits Doxygen, README, and CHANGELOG completeness on PRs touching `neat-dnfs/include/**`; skipped on forked PRs to avoid secret-missing failures
 - **vcpkg maintenance** — `vcpkg-maintenance.yml` monthly cron creates a dependency version report issue using pure shell and `gh` CLI (no LLM required)
 - **Release-baseline test coverage** — extends the Catch2 suite to establish a verified baseline before tagging a release (closes #20, #21, #23, #24, #25, #26):
-  - `tests/test_solutions_tasks.cpp` (new) — construction, `clone()`/`copy()`, `mutate()`, and one real `evaluate()` per previously-untested task class (`MemoryInstability`, `SelectionInstability`, `MemoryTrace`, `DelayedMatchToSample`, `InhibitionOfReturn`, `AND`, `XOR`)
+  - `tests/test_solutions_tasks.cpp` (new) — construction, `clone()`/`copy()` independence, `mutate()`, and one real `evaluate()` per previously-untested task class (`MemoryInstability`, `SelectionInstability`, `MemoryTrace`, `InhibitionOfReturn`, `AND`, `XOR`); `DelayedMatchToSample` instead gets a regression test documenting a pre-existing bug (#47) that makes its `evaluate()` always throw
   - `tests/test_population_file_manager.cpp` (new) — exercises `PopulationFileManager`'s per-generation and end-of-run writes; cleans up its own output directory afterward
   - `tools::utils::normalize`, `normalizeWithGaussian`, `normalizeWithFlatheadGaussian` — boundary, peak/decay, and flat-top behaviour
   - `Solution::hasTheSameTopology`/`hasTheSameParameters`/`hasTheSameGenome`, `clearGenome`, `translatePhenotypeToGenome`, and `crossover()` edge cases (identical parents, fitter-parent inheritance)
