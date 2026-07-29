@@ -2,6 +2,7 @@
 
 #include <thread>
 #include <vector>
+#include <sstream>
 
 #include "neat_tools/logger.h"
 
@@ -50,10 +51,27 @@ TEST_CASE("logger::log honours minLogLevel per call", "[Logger]")
 
     Logger::setMinLogLevel(LogLevel::WARNING);
 
-    REQUIRE_NOTHROW(log(LogLevel::DEBUG, "should be filtered", LogOutputMode::CONSOLE));
-    REQUIRE_NOTHROW(log(LogLevel::INFO, "should be filtered", LogOutputMode::CONSOLE));
-    REQUIRE_NOTHROW(log(LogLevel::WARNING, "should be printed", LogOutputMode::CONSOLE));
-    REQUIRE_NOTHROW(log(LogLevel::ERROR, "should be printed", LogOutputMode::CONSOLE));
+    std::ostringstream captured;
+    std::streambuf* const originalCoutBuffer = std::cout.rdbuf(captured.rdbuf());
+
+    try
+    {
+        log(LogLevel::DEBUG, "should be filtered", LogOutputMode::CONSOLE);
+        log(LogLevel::INFO, "should be filtered", LogOutputMode::CONSOLE);
+        log(LogLevel::WARNING, "should be printed", LogOutputMode::CONSOLE);
+        log(LogLevel::ERROR, "should be printed", LogOutputMode::CONSOLE);
+    }
+    catch (...)
+    {
+        std::cout.rdbuf(originalCoutBuffer);
+        throw;
+    }
+
+    std::cout.rdbuf(originalCoutBuffer);
+
+    const std::string output = captured.str();
+    REQUIRE(output.find("should be filtered") == std::string::npos);
+    REQUIRE(output.find("should be printed") != std::string::npos);
 
     Logger::setMinLogLevel(LogLevel::DEBUG); // restore default
 }

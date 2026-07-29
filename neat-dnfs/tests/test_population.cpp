@@ -150,6 +150,9 @@ TEST_CASE("Population::evaluate — parallel evaluation concurrency is bounded b
     const int peak = CountingSolution::peak.load();
     const int hardwareConcurrency = static_cast<int>(std::max(1u, std::thread::hardware_concurrency()));
 
+    if (hardwareConcurrency <= 1)
+        return; // single-core runner: Population::evaluate() takes the serial fallback by design
+
     REQUIRE(peak > 1); // evaluation is still actually concurrent
     REQUIRE(peak <= hardwareConcurrency);
 }

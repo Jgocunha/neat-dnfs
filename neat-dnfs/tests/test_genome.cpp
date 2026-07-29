@@ -245,6 +245,7 @@ TEST_CASE("Genome::globalInnovationNumber is consistent under concurrent mutatio
         thread.join();
 
     std::map<int, ConnectionTuple> tupleByInnovation; // innovation -> the tuple that first claimed it
+    std::map<ConnectionTuple, int> innovationByTuple; // tuple -> its assigned innovation
     for (const auto& connectionGenes : connectionGenesByThread)
     {
         for (const auto& connectionGene : connectionGenes)
@@ -255,6 +256,14 @@ TEST_CASE("Genome::globalInnovationNumber is consistent under concurrent mutatio
             {
                 // Same innovation number seen again — must be for the same tuple.
                 REQUIRE(it->second == params.connectionTuple);
+            }
+
+            const auto [tupleIt, tupleInserted] =
+                innovationByTuple.try_emplace(params.connectionTuple, params.innovationNumber);
+            if (!tupleInserted)
+            {
+                // Same tuple seen again — must have been assigned the same innovation number.
+                REQUIRE(tupleIt->second == params.innovationNumber);
             }
         }
     }
