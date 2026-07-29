@@ -4,6 +4,7 @@
 
 #include "neat_tools/logger.h"
 #include <format>
+#include <mutex>
 
 namespace neat_dnfs
 {
@@ -63,6 +64,8 @@ namespace neat_dnfs
 
             void Logger::log_cmd(const std::string& message)
             {
+                static std::mutex coutMutex;
+                std::scoped_lock lock(coutMutex);
                 std::cout << message << "\033[0m\n";
             }
 
@@ -78,8 +81,7 @@ namespace neat_dnfs
                     return;
 #endif
 
-                logger = Logger(level, mode);
-                logger.log(message);
+                Logger(level, mode).log(message);
             }
 
             std::string Logger::getLogLevelColorCodeCmd(LogLevel level)

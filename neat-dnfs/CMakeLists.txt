@@ -214,6 +214,7 @@ set(TEST_PROJECT ${CMAKE_PROJECT_NAME}-test)
 add_executable(${TEST_PROJECT}
     "tests/entry.cpp"
     "tests/test_utils.cpp"
+    "tests/test_logger.cpp"
     "tests/test_field_gene.cpp"
     "tests/test_connection_gene.cpp"
     "tests/test_genome.cpp"
