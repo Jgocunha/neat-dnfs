@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - `tools::utils` RNG — replaced per-call `std::random_device` + `std::mt19937` construction with a `thread_local` xoshiro256++ engine seeded once per thread, eliminating redundant reseeding overhead on every `generateRandomInt`/`Double`/`Float`/`Signal` call (~970x faster in microbenchmark) (closes #6)
+- `Population::evaluate()` — replaced unbounded per-solution `std::async` fan-out (one OS thread per solution every generation) with a fixed worker pool sized to `hardware_concurrency()`, work-stealing over an atomic index; exceptions from any worker now propagate reliably instead of being dropped when an earlier future threw (closes #45)
+
+### Fixed
+- `tools::logger::log()` raced on a shared global `Logger` object when called concurrently from parallel solution evaluation, risking a message being emitted with another thread's level/colour; replaced with a per-call temporary and removed the now-unused shared global. `std::cout` writes in `log_cmd` are now serialised with a mutex (closes #5)
+- `Genome::getInnovationNumberOfTupleWithinGeneration()` — removed this unused locked variant of the innovation-number lookup; it had zero callers and, being a plain `std::mutex`, would have self-deadlocked if ever called from inside an already-locked context such as `addConnectionGene()` (closes #3)
 
 ### Fixed
 - `generateRandomSignal()` returned `-1` with probability 2/3 instead of the intended 50/50, biasing every mutation step direction in `FieldGene` and `ConnectionGene` mutation

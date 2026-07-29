@@ -84,8 +84,8 @@ namespace neat_dnfs
 		void mutateConnectionGene();
 		void toggleConnectionGene();
 
-		static int getInnovationNumberOfTupleWithinGeneration(const ConnectionTuple& tuple);
-		/// @brief Same as above but assumes @c innovationMutex is already held by the caller.
+		/// @brief Looks up the innovation number assigned to @p tuple within the current generation, or -1 if none.
+		/// @warning Caller MUST hold @c innovationMutex.
 		static int getInnovationNumberOfTupleWithinGenerationUnlocked(const ConnectionTuple& tuple);
 	};
 }
