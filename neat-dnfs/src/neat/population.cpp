@@ -1,7 +1,9 @@
 #include "neat/population.h"
 
 #include "neat/population_file_manager.h"
-#include <format> 
+#include <format>
+#include <atomic>
+#include <thread>
 
 namespace neat_dnfs
 {
@@ -74,29 +76,52 @@ namespace neat_dnfs
 
 	void Population::evaluate() const
 	{
-		if (parameters.parallelEvolution)
-		{
-			std::vector<std::future<void>> futures;
-			futures.reserve(solutions.size());
-			for (const auto& solution : solutions)
-			{
-				futures.emplace_back(std::async(std::launch::async, [&solution]()
-					{
-						solution->evaluate();
-					}));
-			}
+		const size_t solutionCount = solutions.size();
+		const unsigned hardwareConcurrency = std::max(1u, std::thread::hardware_concurrency());
+		const size_t numWorkers = std::min<size_t>(hardwareConcurrency, solutionCount);
 
-			for (auto& future : futures)
-			{
-				future.get();
-			}
-		}
-		else
+		if (!parameters.parallelEvolution || numWorkers <= 1)
 		{
 			for (const auto& solution : solutions)
 			{
 				solution->evaluate();
 			}
+			return;
+		}
+
+		std::atomic<size_t> nextIndex{ 0 };
+		std::vector<std::future<void>> futures;
+		futures.reserve(numWorkers);
+		for (size_t w = 0; w < numWorkers; ++w)
+		{
+			futures.emplace_back(std::async(std::launch::async, [this, &nextIndex, solutionCount]()
+				{
+					for (size_t i = nextIndex.fetch_add(1); i < solutionCount; i = nextIndex.fetch_add(1))
+					{
+						solutions[i]->evaluate();
+					}
+				}));
+		}
+
+		std::exception_ptr firstError;
+		for (auto& future : futures)
+		{
+			try
+			{
+				future.get();
+			}
+			catch (...)
+			{
+				if (!firstError)
+				{
+					firstError = std::current_exception();
+				}
+			}
+		}
+
+		if (firstError)
+		{
+			std::rethrow_exception(firstError);
 		}
 	}
 
