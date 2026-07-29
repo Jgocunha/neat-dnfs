@@ -652,12 +652,6 @@ namespace neat_dnfs
 			(connectionGenes[connectionGeneId].isEnabled() ? "enabled." : "disabled.");
 	}
 
-	int Genome::getInnovationNumberOfTupleWithinGeneration(const ConnectionTuple& tuple)
-	{
-		std::scoped_lock lock(innovationMutex);
-		return getInnovationNumberOfTupleWithinGenerationUnlocked(tuple);
-	}
-
 	int Genome::getInnovationNumberOfTupleWithinGenerationUnlocked(const ConnectionTuple& tuple)
 	{
 		if (connectionTupleAndInnovationNumberWithinGeneration.contains(tuple))

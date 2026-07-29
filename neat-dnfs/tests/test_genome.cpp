@@ -1,5 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <thread>
+#include <vector>
+#include <algorithm>
+#include <map>
+
 #include "neat/genome.h"
 
 using namespace neat_dnfs;
@@ -184,5 +189,82 @@ TEST_CASE("Mutate Genome", "[Genome]")
         genome.addConnectionGene(ConnectionGene(ConnectionTuple(3, 2), 2));
 
         REQUIRE_NOTHROW(genome.mutate());
+    }
+}
+
+// Regression test for issue #3 (innovation number thread safety). The
+// statics globalInnovationNumber and connectionTupleAndInnovationNumberWithinGeneration
+// are guarded by Genome::innovationMutex (see genome.cpp addConnectionGene/addGene).
+//
+// The dedup table is shared across all genomes by design: identical structural
+// mutations (same ConnectionTuple) occurring in different genomes within the same
+// generation are SUPPOSED to receive the same innovation number — that isn't a
+// race, it's the NEAT innovation-number contract. The actual invariant a lock
+// failure would violate is narrower: (a) a given tuple must always map to the
+// SAME innovation number everywhere it appears, and (b) two DIFFERENT tuples must
+// never be assigned the same innovation number (which is what a lost
+// globalInnovationNumber++ from an unsynchronised read-modify-write would cause).
+//
+// This passes with or without the mutex on MSVC (a lost increment needs unlucky
+// timing this test cannot force). Its value is making CI's ThreadSanitizer job
+// (Linux/macOS only) flag a data race if the lock is ever removed.
+TEST_CASE("Genome::globalInnovationNumber is consistent under concurrent mutation", "[Genome]")
+{
+    // Other TEST_CASEs in this process may have left stale tuple -> innovation
+    // entries in the shared generational map (it is a process-global static,
+    // not reset between TEST_CASEs). Clear it so this test's own tuples dedupe
+    // only against each other, not against unrelated genomes from earlier tests.
+    Genome::clearGenerationalInnovations();
+
+    const unsigned threadCount = std::max(2u, std::thread::hardware_concurrency());
+    constexpr int mutationsPerThread = 50;
+
+    std::vector<std::vector<ConnectionGene>> connectionGenesByThread(threadCount);
+    std::vector<std::thread> threads;
+    threads.reserve(threadCount);
+
+    for (unsigned t = 0; t < threadCount; ++t)
+    {
+        threads.emplace_back([&connectionGenesByThread, t]()
+            {
+                Genome genome;
+                genome.addInputGene(kDim);
+                genome.addOutputGene(kDim);
+                genome.addHiddenGene(FieldGene({ FieldGeneType::HIDDEN, 3 }));
+                genome.addHiddenGene(FieldGene({ FieldGeneType::HIDDEN, 4 }));
+                genome.addHiddenGene(FieldGene({ FieldGeneType::HIDDEN, 5 }));
+
+                for (int i = 0; i < mutationsPerThread; ++i)
+                    genome.mutate();
+
+                connectionGenesByThread[t] = genome.getConnectionGenes();
+            });
+    }
+
+    for (auto& thread : threads)
+        thread.join();
+
+    std::map<int, ConnectionTuple> tupleByInnovation; // innovation -> the tuple that first claimed it
+    std::map<ConnectionTuple, int> innovationByTuple; // tuple -> its assigned innovation
+    for (const auto& connectionGenes : connectionGenesByThread)
+    {
+        for (const auto& connectionGene : connectionGenes)
+        {
+            const auto params = connectionGene.getParameters();
+            const auto [it, inserted] = tupleByInnovation.try_emplace(params.innovationNumber, params.connectionTuple);
+            if (!inserted)
+            {
+                // Same innovation number seen again — must be for the same tuple.
+                REQUIRE(it->second == params.connectionTuple);
+            }
+
+            const auto [tupleIt, tupleInserted] =
+                innovationByTuple.try_emplace(params.connectionTuple, params.innovationNumber);
+            if (!tupleInserted)
+            {
+                // Same tuple seen again — must have been assigned the same innovation number.
+                REQUIRE(tupleIt->second == params.innovationNumber);
+            }
+        }
     }
 }

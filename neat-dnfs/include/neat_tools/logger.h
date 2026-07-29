@@ -52,8 +52,6 @@ namespace neat_dnfs
 			};
 
 			void log(LogLevel level, const std::string& message, LogOutputMode mode = ALL);
-
-			static Logger logger(LogLevel::INFO);
 		}
 	}
 
