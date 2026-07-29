@@ -3,6 +3,7 @@
 #include "neat/solution.h"
 #include "solutions/detection_instability.h"
 #include "test_helpers.h"
+#include "test_stub_solution.h"
 
 using namespace neat_dnfs;
 using namespace neat_dnfs::test;
@@ -225,4 +226,143 @@ TEST_CASE("Solution Phenotype Translation", "[Solution]")
     {
         REQUIRE_NOTHROW(solution.clearPhenotype());
     }
+}
+
+TEST_CASE("Solution::hasTheSameTopology", "[Solution]")
+{
+    resetGlobalState();
+    const auto topology = makeTopology(1, 1);
+    const auto solutionA = std::make_shared<DetectionInstability>(topology);
+    const auto solutionB = std::make_shared<DetectionInstability>(topology);
+
+    REQUIRE(solutionA->hasTheSameTopology(solutionB));
+
+    const auto differentTopology = makeTopology(1, 1, 1); // extra hidden gene
+    const auto solutionC = std::make_shared<DetectionInstability>(differentTopology);
+    REQUIRE_FALSE(solutionA->hasTheSameTopology(solutionC));
+}
+
+TEST_CASE("Solution::hasTheSameParameters", "[Solution]")
+{
+    resetGlobalState();
+    const auto topology = makeTopology(1, 1);
+    const auto solutionA = std::make_shared<DetectionInstability>(topology);
+    const auto solutionB = std::make_shared<DetectionInstability>(topology);
+
+    REQUIRE(solutionA->hasTheSameParameters(solutionB));
+
+    solutionB->setAdjustedFitness(0.5);
+    REQUIRE_FALSE(solutionA->hasTheSameParameters(solutionB));
+}
+
+TEST_CASE("Solution::hasTheSameGenome", "[Solution]")
+{
+    resetGlobalState();
+    const auto topology = makeTopology(1, 1);
+    const auto solutionA = std::make_shared<DetectionInstability>(topology);
+    solutionA->initialize();
+
+    // hasTheSameGenome compares Genome::operator== directly, so use a genome
+    // that is actually identical -- a fresh solution built from the same
+    // topology and initialize() sequence, not copy() (which reconstructs the
+    // genome from the phenotype via translatePhenotypeToGenome() and is not
+    // guaranteed to produce a byte-identical genome; see test_solutions_tasks.cpp).
+    const auto solutionB = std::make_shared<DetectionInstability>(topology);
+    solutionB->initialize();
+    REQUIRE(solutionA->hasTheSameGenome(solutionB));
+
+    solutionB->addFieldGene(FieldGene({ FieldGeneType::HIDDEN, 999 }));
+    REQUIRE_FALSE(solutionA->hasTheSameGenome(solutionB));
+}
+
+TEST_CASE("Solution::clearGenome", "[Solution]")
+{
+    resetGlobalState();
+    const auto topology = makeTopology(1, 1);
+    DetectionInstability solution(topology);
+    solution.initialize();
+    // getGenomeSize() counts connection genes only; a freshly initialized
+    // solution has field genes but no connections yet, so check field genes.
+    REQUIRE(!solution.getGenome().getFieldGenes().empty());
+
+    solution.clearGenome();
+    REQUIRE(solution.getGenomeSize() == 0);
+    REQUIRE(solution.getGenome().getFieldGenes().empty());
+    REQUIRE(solution.getGenome().getConnectionGenes().empty());
+}
+
+TEST_CASE("Solution::clearPhenotype allows rebuilding the phenotype", "[Solution]")
+{
+    resetGlobalState();
+    const auto topology = makeTopology(1, 1);
+    DetectionInstability solution(topology);
+    solution.initialize();
+
+    solution.buildPhenotype();
+    solution.clearPhenotype();
+
+    REQUIRE_NOTHROW(solution.buildPhenotype());
+    REQUIRE(solution.getPhenotype().getNumberOfElements() > 0);
+}
+
+TEST_CASE("Solution::translatePhenotypeToGenome produces a non-empty genome from a built phenotype", "[Solution]")
+{
+    // translatePhenotypeToGenome() infers field gene type (INPUT/OUTPUT/HIDDEN)
+    // from each neural field's connection pattern in the phenotype (see
+    // solution.cpp translatePhenotypeToGenome). With zero connection genes,
+    // as here, that inference does not reproduce the original field count
+    // exactly -- so this only asserts the documented, guaranteed behaviour:
+    // it does not throw and the resulting genome is non-empty.
+    resetGlobalState();
+    const auto topology = makeTopology(1, 1);
+    DetectionInstability solution(topology);
+    solution.initialize();
+    solution.buildPhenotype();
+
+    REQUIRE_NOTHROW(solution.translatePhenotypeToGenome());
+    REQUIRE(!solution.getGenome().getFieldGenes().empty());
+}
+
+TEST_CASE("Solution::crossover with identical parents yields a matching-topology child", "[Solution]")
+{
+    resetGlobalState();
+    const auto topology = makeTopology(1, 1);
+    const auto parent1 = std::make_shared<DetectionInstability>(topology);
+    const auto parent2 = std::make_shared<DetectionInstability>(topology);
+    parent1->initialize();
+    parent2->initialize();
+
+    const auto offspring = parent1->crossover(parent2);
+
+    REQUIRE(offspring != nullptr);
+    REQUIRE(offspring->hasTheSameTopology(parent1));
+    REQUIRE(offspring->getGenome().getFieldGenes().size() == parent1->getGenome().getFieldGenes().size());
+}
+
+TEST_CASE("Solution::crossover inherits field genes from the fitter parent", "[Solution]")
+{
+    resetGlobalState();
+    const auto topology = makeTopology(1, 1);
+    // FixedFitnessSolution::evaluate() reports a fitness set directly by the
+    // test rather than one derived from a real (task- and seed-dependent)
+    // DNF simulation -- crossover() compares getFitness(), not adjustedFitness,
+    // and Solution has no direct fitness setter otherwise.
+    const auto parent1 = std::make_shared<FixedFitnessSolution>(topology, 0.9);
+    const auto parent2 = std::make_shared<FixedFitnessSolution>(topology, 0.1);
+    parent1->initialize();
+    parent2->initialize();
+    parent1->addFieldGene(FieldGene({ FieldGeneType::HIDDEN, 999 }));
+
+    parent1->evaluate();
+    parent2->evaluate();
+    REQUIRE(parent1->getFitness() != parent2->getFitness());
+
+    const auto fitterParent = parent1->getFitness() > parent2->getFitness() ? parent1 : parent2;
+    const auto offspring = parent1->crossover(parent2);
+
+    REQUIRE(offspring != nullptr);
+    REQUIRE(!offspring->getGenome().getFieldGenes().empty());
+    // Every offspring field gene must trace back to the fitter parent.
+    for (const auto& gene : offspring->getGenome().getFieldGenes())
+        REQUIRE(fitterParent->getGenome().containsFieldGene(gene));
 }

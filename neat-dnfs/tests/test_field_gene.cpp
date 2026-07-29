@@ -126,6 +126,42 @@ TEST_CASE("FieldGene NeuralField Parameters", "[FieldGene]")
     REQUIRE(neuralFieldParams.tau <= NeuralFieldConstants::tauMaxVal);
 }
 
+TEST_CASE("FieldGene::clone produces an independent deep copy", "[FieldGene]")
+{
+    const FieldGeneParameters params(FieldGeneType::HIDDEN, 7);
+    const FieldGene fieldGene(params);
+
+    const FieldGene cloned = fieldGene.clone();
+
+    // operator== only compares `parameters` (type + id), so equal here means
+    // "same identity slot", not "identical kernel content".
+    REQUIRE(fieldGene == cloned);
+    REQUIRE(cloned.getKernel() != fieldGene.getKernel());
+    REQUIRE(cloned.getNeuralField() != fieldGene.getNeuralField());
+}
+
+TEST_CASE("FieldGene::clearLastMutations empties getMutationsInLastGeneration", "[FieldGene]")
+{
+    FieldGeneParameters params(FieldGeneType::HIDDEN, 8);
+    FieldGene fieldGene(params);
+    fieldGene.mutate();
+
+    fieldGene.clearLastMutations();
+
+    REQUIRE(fieldGene.getMutationsInLastGeneration().empty());
+}
+
+TEST_CASE("FieldGene::setAsHidden changes the gene type to HIDDEN", "[FieldGene]")
+{
+    FieldGeneParameters params(FieldGeneType::INPUT, 11);
+    FieldGene fieldGene(params);
+    REQUIRE(fieldGene.getParameters().type == FieldGeneType::INPUT);
+
+    fieldGene.setAsHidden(ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+
+    REQUIRE(fieldGene.getParameters().type == FieldGeneType::HIDDEN);
+}
+
 TEST_CASE("FieldGene Kernel Parameters Access", "[FieldGene]")
 {
     const FieldGeneParameters params(FieldGeneType::HIDDEN, 10);

@@ -6,8 +6,10 @@
 #include <map>
 
 #include "neat/genome.h"
+#include "test_helpers.h"
 
 using namespace neat_dnfs;
+using namespace neat_dnfs::test;
 using namespace dnf_composer::element;
 
 static const ElementDimensions kDim{100, 1.0};
@@ -18,6 +20,16 @@ TEST_CASE("Genome Initialization", "[Genome]")
 
     REQUIRE(genome.getFieldGenes().empty());
     REQUIRE(genome.getConnectionGenes().empty());
+    REQUIRE(genome.isEmpty());
+}
+
+TEST_CASE("Genome::isEmpty is false once any gene is added", "[Genome]")
+{
+    Genome genome;
+    REQUIRE(genome.isEmpty());
+
+    genome.addInputGene(kDim);
+    REQUIRE_FALSE(genome.isEmpty());
 }
 
 TEST_CASE("Add Field Genes", "[Genome]")
@@ -265,6 +277,108 @@ TEST_CASE("Genome::globalInnovationNumber is consistent under concurrent mutatio
                 // Same tuple seen again — must have been assigned the same innovation number.
                 REQUIRE(tupleIt->second == params.innovationNumber);
             }
+        }
+    }
+}
+
+TEST_CASE("Genome::removeConnectionGene removes the gene by innovation number", "[Genome]")
+{
+    Genome genome;
+    genome.addInputGene(kDim);
+    genome.addOutputGene(kDim);
+    genome.addConnectionGene(ConnectionGene(ConnectionTuple(1, 2), 7));
+    REQUIRE(genome.getConnectionGenes().size() == 1);
+
+    genome.removeConnectionGene(7);
+
+    REQUIRE(genome.getConnectionGenes().empty());
+}
+
+TEST_CASE("Genome::removeConnectionGene throws for an unknown innovation number", "[Genome]")
+{
+    Genome genome;
+    genome.addInputGene(kDim);
+    genome.addOutputGene(kDim);
+    genome.addConnectionGene(ConnectionGene(ConnectionTuple(1, 2), 7));
+
+    REQUIRE_THROWS_AS(genome.removeConnectionGene(999), std::invalid_argument);
+}
+
+TEST_CASE("Genome metrics for two identical genomes are all zero", "[Genome]")
+{
+    // ConnectionGene(tuple, innov) randomizes its kernel parameters, so two
+    // separately constructed genes with the same tuple/innov are NOT
+    // parameter-identical. Use the explicit-kernel constructor so both
+    // genomes truly match, isolating averageConnectionDifference at 0.0.
+    const dnf_composer::element::GaussKernelParameters gkp{ 5.0, 3.0, false, false };
+
+    Genome genome1;
+    genome1.addInputGene(kDim);
+    genome1.addOutputGene(kDim);
+    genome1.addConnectionGene(ConnectionGene(ConnectionTuple(1, 2), 1, gkp));
+
+    Genome genome2;
+    genome2.addInputGene(kDim);
+    genome2.addOutputGene(kDim);
+    genome2.addConnectionGene(ConnectionGene(ConnectionTuple(1, 2), 1, gkp));
+
+    REQUIRE(genome1.excessGenes(genome2) == 0);
+    REQUIRE(genome1.disjointGenes(genome2) == 0);
+    REQUIRE(genome1.averageConnectionDifference(genome2) == 0.0);
+}
+
+TEST_CASE("Genome metrics for two completely disjoint genomes", "[Genome]")
+{
+    Genome genome1;
+    genome1.addInputGene(kDim);
+    genome1.addOutputGene(kDim);
+    genome1.addConnectionGene(ConnectionGene(ConnectionTuple(1, 2), 1));
+
+    Genome genome2;
+    genome2.addInputGene(kDim);
+    genome2.addOutputGene(kDim);
+    genome2.addConnectionGene(ConnectionGene(ConnectionTuple(1, 2), 2));
+
+    // No shared innovation numbers: genome1's {1} is entirely within genome2's
+    // range [0, max=2], so it's disjoint, not excess; genome2's {2} exceeds
+    // genome1's max of 1, so it's excess.
+    REQUIRE(genome1.disjointGenes(genome2) == 1);
+    REQUIRE(genome2.excessGenes(genome1) == 1);
+    // No matching innovation numbers between the genomes to average over.
+    REQUIRE(genome1.averageConnectionDifference(genome2) == 0.0);
+}
+
+TEST_CASE("Genome::clearLastMutations empties getMutationsInLastGeneration", "[Genome]")
+{
+    Genome genome;
+    genome.addInputGene(kDim);
+    genome.addOutputGene(kDim);
+    genome.addConnectionGene(ConnectionGene(ConnectionTuple(1, 2), 1));
+    genome.mutate();
+
+    genome.clearLastMutations();
+
+    REQUIRE(genome.getMutationsInLastGeneration().empty());
+}
+
+TEST_CASE("Genome::mutate over many iterations always produces valid gene ids", "[Genome]")
+{
+    // Covers the private random-id pickers (getRandomGeneId, getRandomGeneIdByType(s))
+    // indirectly, since they have no public access path and no friend declaration.
+    resetGlobalState();
+    Genome genome;
+    genome.addInputGene(kDim);
+    genome.addOutputGene(kDim);
+    genome.addHiddenGene(FieldGene({ FieldGeneType::HIDDEN, 3 }));
+
+    for (int i = 0; i < 200; ++i)
+    {
+        genome.mutate();
+        for (const auto& connectionGene : genome.getConnectionGenes())
+        {
+            const auto params = connectionGene.getParameters();
+            REQUIRE(genome.containsFieldGene(genome.getFieldGeneById(params.connectionTuple.inFieldGeneId)));
+            REQUIRE(genome.containsFieldGene(genome.getFieldGeneById(params.connectionTuple.outFieldGeneId)));
         }
     }
 }

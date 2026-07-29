@@ -100,4 +100,49 @@ private:
     void createPhenotypeEnvironment() override {}
 };
 
+// Stand-in whose fitness is set directly by the test rather than computed by
+// a real DNF simulation, for tests that need a specific, deterministic
+// fitness value (e.g. proving fitter-parent inheritance in crossover(), or
+// fitness-improvement tracking) without depending on task-specific,
+// seed-dependent evaluate() outcomes.
+class FixedFitnessSolution final : public Solution
+{
+public:
+    FixedFitnessSolution(const SolutionTopology& topology, double fitness)
+        : Solution(topology)
+    {
+        name = "FixedFitness";
+        fitnessToReport = fitness;
+    }
+
+    FixedFitnessSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "FixedFitness";
+    }
+
+    SolutionPtr clone() const override
+    {
+        FixedFitnessSolution solution(initialTopology, fitnessToReport);
+        return std::make_shared<FixedFitnessSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        FixedFitnessSolution solution(initialTopology, phenotype);
+        solution.fitnessToReport = fitnessToReport;
+        return std::make_shared<FixedFitnessSolution>(solution);
+    }
+
+private:
+    double fitnessToReport = 0.0;
+
+    void testPhenotype() override
+    {
+        parameters.fitness = fitnessToReport;
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
 } // namespace neat_dnfs::test
