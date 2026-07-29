@@ -85,3 +85,55 @@ TEST_CASE("Random Float Generation", "[generateRandomFloat]")
     REQUIRE(result >= min);
     REQUIRE(result <= max);
 }
+
+TEST_CASE("Random Signal Generation is unbiased", "[generateRandomSignal]")
+{
+    constexpr int attempts = 100000;
+    int positiveCount = 0;
+
+    for (int i = 0; i < attempts; ++i)
+    {
+        const int result = neat_dnfs::tools::utils::generateRandomSignal();
+        REQUIRE((result == 1 || result == -1));
+        if (result == 1)
+            ++positiveCount;
+    }
+
+    // Expect ~50% +1, allow generous tolerance (~5 sigma) to avoid flakiness
+    // while still failing decisively against the old ~33% biased implementation.
+    const double proportion = static_cast<double>(positiveCount) / attempts;
+    REQUIRE(proportion > 0.47);
+    REQUIRE(proportion < 0.53);
+}
+
+TEST_CASE("Random generators do not degenerate to a constant stream", "[generateRandomInt]")
+{
+    constexpr int attempts = 1000;
+    int first = neat_dnfs::tools::utils::generateRandomInt(0, 1000000);
+    bool sawDifferentValue = false;
+
+    for (int i = 0; i < attempts; ++i)
+    {
+        if (neat_dnfs::tools::utils::generateRandomInt(0, 1000000) != first)
+        {
+            sawDifferentValue = true;
+            break;
+        }
+    }
+
+    REQUIRE(sawDifferentValue);
+}
+
+TEST_CASE("Random Double Generation stays in range over many draws", "[generateRandomDouble]")
+{
+    constexpr int attempts = 10000;
+    constexpr double min = -5.0;
+    constexpr double max = 5.0;
+
+    for (int i = 0; i < attempts; ++i)
+    {
+        const double result = neat_dnfs::tools::utils::generateRandomDouble(min, max);
+        REQUIRE(result >= min);
+        REQUIRE(result <= max);
+    }
+}
