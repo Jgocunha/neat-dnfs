@@ -12,6 +12,9 @@
 #include <random>
 #include <cstdint>
 #include <bit>
+#include <thread>
+#include <atomic>
+#include <chrono>
 
 namespace neat_dnfs
 {
@@ -66,10 +69,28 @@ namespace neat_dnfs
                 std::uint64_t s[4]{};
             };
 
+            // random_device::result_type is only 32 bits, and on some implementations
+            // random_device degrades to a fixed, deterministic sequence. Mix in a
+            // per-thread hash and a monotonically incrementing counter so that no two
+            // threads can ever end up with the same seed, even in that degraded case.
+            inline std::uint64_t makeThreadSeed()
+            {
+                static std::atomic<std::uint64_t> counter{ 0 };
+
+                const std::uint64_t entropy = std::random_device{}();
+                const std::uint64_t threadHash = std::hash<std::thread::id>{}(std::this_thread::get_id());
+                const std::uint64_t time = static_cast<std::uint64_t>(
+                    std::chrono::steady_clock::now().time_since_epoch().count());
+                const std::uint64_t sequence = counter.fetch_add(1, std::memory_order_relaxed);
+
+                return entropy ^ (threadHash + 0x9E3779B97F4A7C15ULL + (entropy << 6) + (entropy >> 2))
+                    ^ time ^ (sequence * 0xBF58476D1CE4E5B9ULL);
+            }
+
             // One engine per thread, constructed once and reused for every draw.
             inline Xoshiro256pp& engine()
             {
-                thread_local Xoshiro256pp gen{ std::random_device{}() };
+                thread_local Xoshiro256pp gen{ makeThreadSeed() };
                 return gen;
             }
 
