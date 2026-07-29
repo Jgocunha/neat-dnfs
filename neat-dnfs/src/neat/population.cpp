@@ -77,7 +77,7 @@ namespace neat_dnfs
 	void Population::evaluate() const
 	{
 		const size_t solutionCount = solutions.size();
-		const unsigned hardwareConcurrency = std::max(1u, std::thread::hardware_concurrency());
+		const unsigned hardwareConcurrency = std::max(1U, std::thread::hardware_concurrency());
 		const size_t numWorkers = std::min<size_t>(hardwareConcurrency, solutionCount);
 
 		if (!parameters.parallelEvolution || numWorkers <= 1)
