@@ -127,6 +127,17 @@ namespace neat_dnfs
 		{
 			members.erase(it);
 		}
+		// A representative that leaves must not linger: another species may
+		// legitimately hold the same solution as ITS representative or a member,
+		// which would otherwise let two species share one representative pointer.
+		// randomlyAssignRepresentative() no-ops on an empty members list, so clear
+		// explicitly first to cover the case where the departing solution was the
+		// species' only member.
+		if (representative == solution)
+		{
+			representative = nullptr;
+			randomlyAssignRepresentative();
+		}
 	}
 
 	bool Species::isCompatible(const SolutionPtr& solution) const
@@ -234,6 +245,11 @@ namespace neat_dnfs
 		{
 			members.emplace_back(child);
 		}
+		// The representative must always be a current member: a stale pointer to
+		// last generation's representative (which offspring replaced) could later
+		// collide with another species' representative and violate the invariant
+		// that an individual can only represent the one species it belongs to.
+		randomlyAssignRepresentative();
 	}
 
 	void Species::copyChampionToNextGeneration()

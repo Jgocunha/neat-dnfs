@@ -172,6 +172,19 @@ namespace neat_dnfs
 		{
 			assignToSpecies(solution);
 		}
+
+		// A species that lost all its members to reassignment this generation is
+		// not touched again until crossover() runs later in reproduceAndSelect(),
+		// so without this it would still look alive (and keep a stale
+		// representative) when upkeep()'s validation runs right after speciate().
+		for (const auto& species : speciesList)
+		{
+			if (!species->isExtinct() && species->size() == 0)
+			{
+				species->extinguish();
+			}
+		}
+
 		for (const auto& species : speciesList)
 		{
 			species->assignChampion();
