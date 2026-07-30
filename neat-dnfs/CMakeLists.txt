@@ -245,9 +245,22 @@ add_executable(${TEST_PROJECT}
     "tests/test_population.cpp"
     "tests/test_population_file_manager.cpp"
     "tests/test_speciation.cpp"
+    "tests/test_evolution_helpers.h"
+    "tests/solutions/evol_detection_instability.cpp"
+    "tests/solutions/evol_memory_instability.cpp"
+    "tests/solutions/evol_selection_instability.cpp"
+    "tests/solutions/evol_memory_trace.cpp"
+    "tests/solutions/evol_inhibition_of_return.cpp"
+    "tests/solutions/evol_and.cpp"
+    "tests/solutions/evol_xor.cpp"
 )
 target_include_directories(${TEST_PROJECT} PRIVATE include tests)
 target_link_libraries(${TEST_PROJECT} PRIVATE Catch2::Catch2 Catch2::Catch2WithMain imgui-platform-kit  dynamic-neural-field-composer ${CMAKE_PROJECT_NAME})
-target_compile_definitions(${TEST_PROJECT} PRIVATE NEAT_DNFS_TEST=1)
-# Automatically discover and add tests
-catch_discover_tests(${TEST_PROJECT})
+# Automatically discover and add tests, split into a fast default lane and a
+# slow lane (the [Evolution] tier runs real Population::evolve() at
+# populationSize=50/numGenerations=10/numRuns=5 per solution -- tens of
+# seconds, versus ~2.6s for everything else). `ctest -LE slow` stays fast;
+# `ctest -L slow` runs the evolution tier.
+catch_discover_tests(${TEST_PROJECT} TEST_SPEC "~[Evolution]" TEST_PREFIX "fast.")
+catch_discover_tests(${TEST_PROJECT} TEST_SPEC "[Evolution]" TEST_PREFIX "slow."
+    PROPERTIES LABELS "slow" TIMEOUT 600)
