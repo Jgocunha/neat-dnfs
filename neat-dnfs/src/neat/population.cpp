@@ -4,6 +4,7 @@
 #include <format>
 #include <atomic>
 #include <thread>
+#include <cmath>
 
 namespace neat_dnfs
 {

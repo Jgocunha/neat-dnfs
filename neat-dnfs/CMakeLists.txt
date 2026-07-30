@@ -129,6 +129,9 @@ endif()
 find_package(imgui-platform-kit REQUIRED)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE imgui-platform-kit)
 
+# Setup FFTW3 (transitive dependency of dynamic-neural-field-composer's spectral convolution path)
+find_package(FFTW3 CONFIG REQUIRED)
+
 # Setup dynamic-neural-field-composer
 find_package(dynamic-neural-field-composer REQUIRED)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE dynamic-neural-field-composer)
@@ -172,7 +175,7 @@ install(EXPORT ${CMAKE_PROJECT_NAME}Targets DESTINATION ${NEAT_DNFS_CMAKE_CONFIG
 
 # Main executable
 set(EXE_PROJECT_EXAMPLE neat-dnfs-evol)
-add_executable(${EXE_PROJECT_EXAMPLE} "examples/tabula_rasa_evolution.cpp")
+add_executable(${EXE_PROJECT_EXAMPLE} "examples/neat_dnfs_evol.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
 target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         imgui::imgui
@@ -183,7 +186,7 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
 
 # Incremental evolution executable
 set(EXE_PROJECT_EXAMPLE neat-dnfs-inc-evol)
-add_executable(${EXE_PROJECT_EXAMPLE} "examples/incremental_evolution.cpp")
+add_executable(${EXE_PROJECT_EXAMPLE} "examples/neat_dnfs_incremental_evolution.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
 target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         imgui::imgui
@@ -194,7 +197,7 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
 
 # Solution evaluation executable
 set(EXE_PROJECT_EXAMPLE neat-dnfs-sol-eval)
-add_executable(${EXE_PROJECT_EXAMPLE} "examples/solution_evaluation.cpp")
+add_executable(${EXE_PROJECT_EXAMPLE} "examples/neat_dnfs_solution_evaluation.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
 target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         imgui::imgui
@@ -202,6 +205,24 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         dynamic-neural-field-composer
         ${CMAKE_PROJECT_NAME}
 )
+
+# Solution executables
+foreach(SOLUTION_SRC
+        evol_detection_instability
+        evol_memory_instability
+        evol_selection_instability
+        evol_and
+        evol_xor)
+    set(EXE_PROJECT_EXAMPLE neat-dnfs-${SOLUTION_SRC})
+    add_executable(${EXE_PROJECT_EXAMPLE} "examples/solutions/${SOLUTION_SRC}.cpp")
+    target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
+    target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
+            imgui::imgui
+            imgui-platform-kit
+            dynamic-neural-field-composer
+            ${CMAKE_PROJECT_NAME}
+    )
+endforeach()
 
 # Setup Catch2
 enable_testing()

@@ -1,7 +1,9 @@
 #include <utility>
 
 #include "neat/solution.h"
-#include <format> 
+#include <format>
+#include <limits>
+#include <cmath>
 
 namespace neat_dnfs
 {
@@ -762,10 +764,16 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
 
+		if (neuralField == nullptr)
+		{
+			return 0.0;
+		}
+
 		const double highestActivationValue = neuralField->getHighestActivation();
 		const double restingLevel = neuralField->getParameters().startingRestingLevel;
+		const double result = 1.0 / (1.0 + std::abs(highestActivationValue - restingLevel));
 
-		return 1.0 / (1.0 + std::abs(highestActivationValue - restingLevel));
+		return result;
 	}
 
 	double Solution::noBumps(const std::string& fieldName) const
@@ -784,7 +792,8 @@ namespace neat_dnfs
 		// The decay rate can be adjusted with the constant (5.0 here)
 		// A larger value will make it decline more steeply
 		static constexpr double decayRate = 10.0;
-		return exp(-decayRate * highestActivation);
+		const double result = exp(-decayRate * highestActivation);
+		return result;
 	}
 
 	double Solution::iterationsUntilBump(const std::string& fieldName, const double targetIterations, const double maxIterations, const double tolerance)
@@ -1144,7 +1153,8 @@ namespace neat_dnfs
 		const double u_target = u_baseline + u_baseline / 2.0;
 		constexpr double width = 10.0;// std::abs(u_baseline / 8.0);
 
-		return tools::utils::normalizeWithGaussian(u_pos, u_target, width);
+		const double result = tools::utils::normalizeWithGaussian(u_pos, u_target, width);
+		return result;
 
 		// using namespace dnf_composer::element;
 		// const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
@@ -1206,7 +1216,8 @@ namespace neat_dnfs
 		const double targetBaseline = startingRestingLevel * 2;
 		const double width = std::abs(maxActivation / 8);
 
-		return tools::utils::normalizeWithGaussian(maxActivation, targetBaseline, width);
+		const double result = tools::utils::normalizeWithGaussian(maxActivation, targetBaseline, width);
+		return result;
 	}
 
 }

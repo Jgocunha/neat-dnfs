@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <thread>
+#include <set>
 
 #include "neat/population.h"
 #include "solutions/detection_instability.h"
@@ -282,4 +283,76 @@ TEST_CASE("Population of size 1 evolves without throwing", "[Population]")
 
     REQUIRE_NOTHROW(population.evolve());
     REQUIRE(population.getSolutions().size() == 1);
+}
+
+// Regression test for the Release-mode SIGSEGV in parallel Population::evaluate()
+// (see .claude/issues/release-parallel-eval-sigsegv.md). Root cause:
+// dnf_composer::element::ElementIdentifiers::uniqueIdentifierCounter is a plain
+// `static inline int`, incremented unguarded by every element constructor.
+// Population::evaluate() constructs elements (NeuralField, kernels, noise) from
+// hardware_concurrency() worker threads concurrently, racing on that non-atomic
+// increment. Two threads reading the same counter value produce two elements
+// with the same uniqueName; Simulation::addElement() silently drops the second
+// one, and getElement() later returns nullptr for it, which is dereferenced
+// without a null check on the fitness-evaluation path -> SIGSEGV in Release.
+// This test constructs ElementIdentifiers concurrently from many threads and
+// asserts every id and every generated name is unique.
+TEST_CASE("ElementIdentifiers::uniqueIdentifierCounter is unique under concurrent construction", "[Population][thread-safety]")
+{
+    using dnf_composer::element::ElementIdentifiers;
+    using dnf_composer::element::ElementLabel;
+
+    const unsigned hardwareConcurrency = std::max(4U, std::thread::hardware_concurrency());
+    constexpr int perThread = 500;
+
+    std::vector<std::vector<int>> idsByThread(hardwareConcurrency);
+    std::vector<std::vector<std::string>> namesByThread(hardwareConcurrency);
+    std::vector<std::thread> threads;
+    threads.reserve(hardwareConcurrency);
+
+    for (unsigned t = 0; t < hardwareConcurrency; ++t)
+    {
+        idsByThread[t].reserve(perThread);
+        namesByThread[t].reserve(perThread);
+        threads.emplace_back([t, &idsByThread, &namesByThread]()
+            {
+                for (int i = 0; i < perThread; ++i)
+                {
+                    const ElementIdentifiers identifiers(ElementLabel::NEURAL_FIELD);
+                    idsByThread[t].push_back(identifiers.uniqueIdentifier);
+                    namesByThread[t].push_back(identifiers.uniqueName);
+                }
+            });
+    }
+    for (auto& thread : threads)
+        thread.join();
+
+    std::set<int> allIds;
+    std::set<std::string> allNames;
+    for (unsigned t = 0; t < hardwareConcurrency; ++t)
+    {
+        allIds.insert(idsByThread[t].begin(), idsByThread[t].end());
+        allNames.insert(namesByThread[t].begin(), namesByThread[t].end());
+    }
+
+    const size_t expectedCount = static_cast<size_t>(hardwareConcurrency) * perThread;
+    REQUIRE(allIds.size() == expectedCount);
+    REQUIRE(allNames.size() == expectedCount);
+}
+
+// End-to-end regression test: runs a real Population::evolve() with parallel
+// evaluation (the default) using a real DNF-simulating solution. Runs several
+// times because the underlying races this guards against are non-deterministic.
+TEST_CASE("Population::evolve with parallel evaluation and a real solution does not crash", "[Population][thread-safety]")
+{
+    for (int attempt = 0; attempt < 5; ++attempt)
+    {
+        const PopulationParameters parameters(10, 3, 0.9); // parallelEvolution defaults to true
+        const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+        Population population(parameters, initialSolution, false);
+        population.initialize();
+
+        REQUIRE_NOTHROW(population.evolve());
+        REQUIRE(population.getBestSolution() != nullptr);
+    }
 }

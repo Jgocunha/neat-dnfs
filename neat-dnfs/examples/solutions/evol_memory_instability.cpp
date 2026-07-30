@@ -1,23 +1,12 @@
- // This is a personal academic project. Dear PVS-Studio, please check it.
-
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
-
 #include <exception>
 #include <iostream>
-#include "dnf_composer/application/application.h"
+#include <dnf_composer/application/application.h>
 #include <dnf_composer/tools/logger.h>
 
 #include "neat/population.h"
 #include "neat_tools/logger.h"
 #include "neat_tools/key_listener.h"
-#include "solutions/detection_instability.h"
 #include "solutions/memory_instability.h"
-#include "solutions/and.h"
-#include "solutions/delayed_match_to_sample.h"
-#include "solutions/inhibition_of_return.h"
-#include "solutions/selection_instability.h"
-#include "solutions/memory_trace.h"
-#include "solutions/xor.h"
 
  int main(int argc, char* argv[])
 {
@@ -26,14 +15,10 @@
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
 
-		// select the type of solution here and in the population init.
-		SelectionInstability solution{
+		MemoryInstability solution{
 			SolutionTopology{ {
 				{FieldGeneType::INPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::INPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::INPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
 				{FieldGeneType::OUTPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::OUTPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
 			}
 			},
 		};
@@ -47,7 +32,7 @@
 			constexpr double target_fitness		= 0.95;
 
 			const PopulationParameters parameters{ population_size, number_generations, target_fitness };
-			Population population{ parameters, std::make_unique<SelectionInstability>(solution) };
+			Population population{ parameters, std::make_unique<MemoryInstability>(solution) };
 
 			population.initialize();
 			KeyListener keyListener{ population };
