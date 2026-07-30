@@ -78,7 +78,7 @@ TEST_CASE("Population::evolve runs without error and respects generation limit",
     REQUIRE(validEndCondition);
 }
 
-TEST_CASE("Population::evolve — all solutions have non-negative fitness", "[Population]")
+TEST_CASE("Population::evolve - all solutions have non-negative fitness", "[Population]")
 {
     const PopulationParameters parameters(10, 2, 0.9);
     const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
@@ -90,7 +90,7 @@ TEST_CASE("Population::evolve — all solutions have non-negative fitness", "[Po
         REQUIRE(solution->getFitness() >= 0.0);
 }
 
-TEST_CASE("Population::evolve — best solution fitness is monotonically non-decreasing", "[Population]")
+TEST_CASE("Population::evolve - best solution fitness is monotonically non-decreasing", "[Population]")
 {
     const PopulationParameters parameters(10, 5, 1.1); // target > 1.0 forces full run
     const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
@@ -105,7 +105,7 @@ TEST_CASE("Population::evolve — best solution fitness is monotonically non-dec
         REQUIRE(solution->getFitness() <= best->getFitness() + 1e-9);
 }
 
-TEST_CASE("Population::evolve — speciation produces at least one species", "[Population]")
+TEST_CASE("Population::evolve - speciation produces at least one species", "[Population]")
 {
     const PopulationParameters parameters(20, 2, 1.1);
     const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
@@ -116,7 +116,7 @@ TEST_CASE("Population::evolve — speciation produces at least one species", "[P
     REQUIRE(!population.getSpeciesList().empty());
 }
 
-TEST_CASE("PopulationParameters — parallelEvolution defaults to true", "[Population]")
+TEST_CASE("PopulationParameters - parallelEvolution defaults to true", "[Population]")
 {
     const PopulationParameters parameters(10, 5, 0.9);
     REQUIRE(parameters.parallelEvolution);
@@ -137,7 +137,7 @@ TEST_CASE("PopulationParameters — parallelEvolution defaults to true", "[Popul
 // self-throttles new work near hardware_concurrency even in the unfixed
 // code — so this assertion is a weaker pre-fix red locally, but is still a
 // real, deterministic bound on the fixed implementation either way.
-TEST_CASE("Population::evaluate — parallel evaluation concurrency is bounded by hardware_concurrency", "[Population]")
+TEST_CASE("Population::evaluate - parallel evaluation concurrency is bounded by hardware_concurrency", "[Population]")
 {
     CountingSolution::live = 0;
     CountingSolution::peak = 0;
@@ -158,7 +158,7 @@ TEST_CASE("Population::evaluate — parallel evaluation concurrency is bounded b
     REQUIRE(peak <= hardwareConcurrency);
 }
 
-TEST_CASE("Population::evolve — exceptions from parallel evaluation propagate", "[Population]")
+TEST_CASE("Population::evolve - exceptions from parallel evaluation propagate", "[Population]")
 {
     const PopulationParameters parameters(20, 1, 1.1); // parallelEvolution defaults true
     const auto initialSolution = std::make_shared<ThrowingSolution>(makeTopology(1, 1));
@@ -168,7 +168,7 @@ TEST_CASE("Population::evolve — exceptions from parallel evaluation propagate"
     REQUIRE_THROWS_AS(population.evolve(), std::runtime_error);
 }
 
-TEST_CASE("Population::evolve — exceptions from serial evaluation propagate", "[Population]")
+TEST_CASE("Population::evolve - exceptions from serial evaluation propagate", "[Population]")
 {
     const PopulationParameters parameters(20, 1, 1.1, false); // parallelEvolution explicitly disabled
     const auto initialSolution = std::make_shared<ThrowingSolution>(makeTopology(1, 1));

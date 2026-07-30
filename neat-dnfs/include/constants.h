@@ -216,6 +216,10 @@ namespace neat_dnfs
 		static constexpr int generationsWithoutImprovementThresholdInPopulation = 10;
 		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 7;
 		static constexpr bool elitism											= true;
+		// Tolerance for the elitism validation check: re-evaluating the same champion
+		// solution can yield a fitness that differs slightly, which would otherwise
+		// look like a fitness decrease.
+		static constexpr double elitismFitnessEpsilon							= 5e-3;
 
 		static constexpr bool logSolutions				= false;
 		static constexpr bool logOverview				= true;

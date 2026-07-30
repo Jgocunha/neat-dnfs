@@ -28,6 +28,12 @@ set(NEAT_DNFS_ADDITIONAL_FILES_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/${CMAK
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# MSVC defaults to the system codepage for non-BOM source files, which mangles
+# non-ASCII characters (e.g. em dashes in Catch2 test names) at compile time.
+if(MSVC)
+    add_compile_options(/utf-8)
+endif()
+
 # Sanitizers
 set(NEAT_DNFS_SANITIZER "" CACHE STRING "Sanitizer: '' | address (ASan+UBSan) | thread (TSan)")
 if(NEAT_DNFS_SANITIZER STREQUAL "address")

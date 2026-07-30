@@ -743,7 +743,7 @@ namespace neat_dnfs
 		}
 
 		const double bestFitness = bestSolution->getFitness();
-		if (bestFitness >= previousBestFitness)
+		if (bestFitness >= previousBestFitness - PopulationConstants::elitismFitnessEpsilon)
 		{
 			return;
 		}
