@@ -756,18 +756,24 @@ namespace neat_dnfs
 		gaussStimulus->setParameters(parameters);
 	}
 
+	std::shared_ptr<dnf_composer::element::NeuralField> Solution::getNeuralFieldOrThrow(const std::string& fieldName, const std::string& callerName) const
+	{
+		using namespace dnf_composer::element;
+		auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		if (neuralField == nullptr)
+		{
+			throw std::invalid_argument(std::format(
+				"{}: field '{}' does not exist in the phenotype or is not a NeuralField.", callerName, fieldName));
+		}
+		return neuralField;
+	}
+
 	double Solution::closenessToRestingLevel(const std::string& fieldName) const
 	{
 		// the highest value of activation should be equal to the resting level
 		// the farther it is from the resting level, the lower the fitness (0.0)
 		// the closer it is to the resting level, the higher the fitness (1.0)
-		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-
-		if (neuralField == nullptr)
-		{
-			return 0.0;
-		}
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "closenessToRestingLevel");
 
 		const double highestActivationValue = neuralField->getHighestActivation();
 		const double restingLevel = neuralField->getParameters().startingRestingLevel;
@@ -778,13 +784,7 @@ namespace neat_dnfs
 
 	double Solution::noBumps(const std::string& fieldName) const
 	{
-		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-
-		if (neuralField == nullptr)
-		{
-			return 0.0;
-		}
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "noBumps");
 
 		const double highestActivation = neuralField->getHighestActivation();
 
@@ -804,8 +804,7 @@ namespace neat_dnfs
 
 	double Solution::iterationsUntilBump(const std::string& fieldName, const double targetIterations, const double maxIterations, const double tolerance)
 	{
-		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "iterationsUntilBump");
 		int it = 0;
 		do
 		{
@@ -829,8 +828,7 @@ namespace neat_dnfs
 
 	double Solution::iterationsUntilNoBump(const std::string& fieldName, const double targetIterations, const double maxIterations, const double tolerance)
 	{
-		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "iterationsUntilNoBump");
 
 		int it = 0;
 		do
@@ -856,12 +854,7 @@ namespace neat_dnfs
 	double Solution::justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName, const std::vector<double>& positions, const double& amplitude, const double& width) const
 	{
 		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-
-		if (neuralField == nullptr)
-		{
-			return 0.0;
-		}
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth");
 
 		static constexpr double wBumps  = 0.55;
 		static constexpr double wPos    = 0.35;
@@ -925,12 +918,7 @@ namespace neat_dnfs
 		double fitness = 0.0;
 
 		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-
-		if (neuralField == nullptr)
-		{
-			return fitness;
-		}
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "oneBumpAtPositionWithAmplitudeAndWidth");
 
 		const auto& bumps = neuralField->getBumps();
 		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
@@ -976,12 +964,7 @@ namespace neat_dnfs
 
 		using namespace dnf_composer::element;
 
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-
-		if (neuralField == nullptr)
-		{
-			return fitness;
-		}
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "twoBumpsAtPositionWithAmplitudeAndWidth");
 
 		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
 		fitness += weightBumps / (1.0 + std::abs(targetNumberOfBumps - numberOfBumps));
@@ -1031,12 +1014,7 @@ namespace neat_dnfs
 
 		using namespace dnf_composer::element;
 
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-
-		if (neuralField == nullptr)
-		{
-			return fitness;
-		}
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "threeBumpsAtPositionWithAmplitudeAndWidth");
 
 		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
 		fitness += weightBumps / (1.0 + std::abs(targetNumberOfBumps - numberOfBumps));
@@ -1123,13 +1101,7 @@ namespace neat_dnfs
 
 	double Solution::preShapednessAtPosition(const std::string& fieldName, double position) const
 	{
-		using namespace dnf_composer::element;
-		const auto nf = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-
-		if (nf == nullptr)
-		{
-			return 0.0;
-		}
+		const auto nf = getNeuralFieldOrThrow(fieldName, "preShapednessAtPosition");
 
 		const int idx = static_cast<int>(position / nf->getElementCommonParameters().dimensionParameters.d_x);
 		const double u = nf->getComponent("activation")[idx];
@@ -1158,13 +1130,7 @@ namespace neat_dnfs
 
 	double Solution::negativePreShapednessAtPosition(const std::string& fieldName, const double& position) const
 	{
-		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-
-		if (neuralField == nullptr)
-		{
-			return 0.0;
-		}
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "negativePreShapednessAtPosition");
 
 		const int pos = static_cast<int>(position/neuralField->getElementCommonParameters().dimensionParameters.d_x);
 		const double u_pos = neuralField->getComponent("activation")[pos];
@@ -1247,13 +1213,7 @@ namespace neat_dnfs
 
 	double Solution::negativeBaseline(const std::string& fieldName) const
 	{
-		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-
-		if (neuralField == nullptr)
-		{
-			return 0.0;
-		}
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "negativeBaseline");
 
 		const double startingRestingLevel = neuralField->getParameters().startingRestingLevel;
 		const double maxActivation = neuralField->getHighestActivation();
