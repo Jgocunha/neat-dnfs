@@ -790,7 +790,13 @@ namespace neat_dnfs
 
 	void Population::validateElitism()
 	{
-		if (parameters.currentGeneration == 1)
+		// Nothing to compare against yet -- previousBestSolution/previousBestFitness
+		// only hold meaningful state once hasFitnessImprovedOverTheLastGenerations()
+		// has recorded a first improvement. Guarding on currentGeneration instead
+		// would be off-by-one: it increments in updateGenerationAndAges(), which runs
+		// after this check within the same upkeep() call, so currentGeneration == 1
+		// is already the *second* generation's check, not the first.
+		if (previousBestSolution == nullptr)
 		{
 			return;
 		}

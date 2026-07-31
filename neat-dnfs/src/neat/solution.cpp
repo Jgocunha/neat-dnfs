@@ -54,7 +54,19 @@ namespace neat_dnfs
 		}
 		catch (...)
 		{
-			clearPhenotype();
+			// Preserve the original evaluation failure -- it's the actionable
+			// diagnostic (e.g. which field name was wrong). A cleanup failure on
+			// top of it is secondary; log it rather than let it replace the
+			// exception the caller actually needs to see.
+			try
+			{
+				clearPhenotype();
+			}
+			catch (const std::exception& cleanupError)
+			{
+				log(tools::logger::LogLevel::ERROR, std::format(
+					"clearPhenotype() failed while handling an evaluation exception: {}", cleanupError.what()));
+			}
 			throw;
 		}
 		clearPhenotype();

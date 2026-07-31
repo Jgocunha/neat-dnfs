@@ -209,6 +209,7 @@ TEST_CASE("Solution fitness helpers throw on a field name that doesn't exist", "
     solution.initialize();
 
     REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
+    REQUIRE(solution.getPhenotype().getNumberOfElements() == 0);
 }
 
 // Same guard, but the name resolves to a real element (a GaussStimulus)
@@ -221,6 +222,7 @@ TEST_CASE("Solution fitness helpers throw when the named element isn't a NeuralF
     solution.initialize();
 
     REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
+    REQUIRE(solution.getPhenotype().getNumberOfElements() == 0);
 }
 
 TEST_CASE("Solution Crossover", "[Solution]")
