@@ -197,6 +197,20 @@ TEST_CASE("Solution Evaluation", "[Solution]")
     REQUIRE_NOTHROW(solution.evaluate());
 }
 
+// Regression test: fitness helpers (closenessToRestingLevel, noBumps, etc.)
+// all resolve their field through the shared Solution::getNeuralFieldOrThrow,
+// which must raise an indicative error rather than silently returning 0.0 --
+// a missing/wrong-type field means the solution is misconfigured, not that it
+// legitimately scored the worst possible fitness.
+TEST_CASE("Solution fitness helpers throw on a field name that doesn't exist", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    MissingFieldSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
+}
+
 TEST_CASE("Solution Crossover", "[Solution]")
 {
     auto topology = makeTopology(1, 1);
