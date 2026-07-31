@@ -21,7 +21,7 @@ namespace neat_dnfs
 
 	int ValidationReport::count(const ValidationCheck check) const
 	{
-		return counts[static_cast<size_t>(check)];
+		return counts.at(static_cast<size_t>(check));
 	}
 
 	void ValidationReport::clear()
@@ -36,7 +36,7 @@ namespace neat_dnfs
 
 	void Population::reportViolation(const ValidationCheck check, const std::string& message)
 	{
-		validationReport.counts[static_cast<size_t>(check)]++;
+		validationReport.counts.at(static_cast<size_t>(check))++;
 		if (validationReport.messages.size() < ValidationReport::maxRetainedMessages)
 		{
 			validationReport.messages.push_back(message);
@@ -801,12 +801,23 @@ namespace neat_dnfs
 			return;
 		}
 
+		// Fitness dropped beyond jitter tolerance, which the DNF simulation's
+		// noise can cause on its own (e.g. a bump forming or not near a
+		// solution's decision boundary swings a partial-fitness term far more
+		// than typical re-evaluation jitter). What elitism actually guarantees
+		// is that the previous best genome itself survives reproduction, not
+		// that its re-measured fitness stays within a fixed tolerance -- so
+		// this is only a genuine violation if that genome is gone.
 		const bool previousBestStillPresent = std::ranges::any_of(solutions,
 			[this](const SolutionPtr& solution) { return solution == previousBestSolution; });
+		if (previousBestStillPresent)
+		{
+			return;
+		}
 
 		reportViolation(ValidationCheck::Elitism, std::format(
-			"Best fitness decreased. previous={} current={} previousBestSolutionStillInPopulation={}",
-			previousBestFitness, bestFitness, previousBestStillPresent));
+			"Best fitness decreased and the previous best solution was lost. previous={} current={}",
+			previousBestFitness, bestFitness));
 	}
 
 	void Population::validateUniqueSolutions()

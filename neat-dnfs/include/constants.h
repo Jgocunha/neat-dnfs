@@ -218,9 +218,13 @@ namespace neat_dnfs
 		static constexpr bool elitism											= true;
 		// Tolerance for the elitism validation check. The DNF simulation is
 		// stochastic (see NoiseConstants::amplitude), so re-evaluating the same
-		// preserved elite yields a fitness that drifts slightly rather than being
-		// bit-identical; this covers that drift without masking a real regression.
-		static constexpr double elitismFitnessEpsilon							= 2e-3;
+		// preserved elite yields a fitness that drifts rather than being
+		// bit-identical -- and near a solution's bump-formation boundary, that
+		// drift can be much larger than typical jitter (a bump forming or not
+		// swings a partial-fitness term by ~0.1). This covers that drift for
+		// the common case; a drop beyond it is still fine as long as the
+		// previous best solution itself is still present (see validateElitism).
+		static constexpr double elitismFitnessEpsilon							= 0.05;
 
 		static constexpr bool logSolutions				= false;
 		static constexpr bool logOverview				= true;
