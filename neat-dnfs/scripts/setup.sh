@@ -37,7 +37,8 @@ echo "Installing vcpkg packages..."
     "imgui-node-editor:$TRIPLET" \
     "nlohmann-json:$TRIPLET" \
     "catch2:$TRIPLET" \
-    "gtest:$TRIPLET"
+    "gtest:$TRIPLET" \
+    "fftw3:$TRIPLET"
 
 # ── imgui-platform-kit ────────────────────────────────────────────────────────
 IPK_SRC="$DEPS_DIR/imgui-platform-kit"
