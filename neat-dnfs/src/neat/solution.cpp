@@ -48,7 +48,15 @@ namespace neat_dnfs
 	void Solution::evaluate()
 	{
 		buildPhenotype();
-		testPhenotype();
+		try
+		{
+			testPhenotype();
+		}
+		catch (...)
+		{
+			clearPhenotype();
+			throw;
+		}
 		clearPhenotype();
 	}
 

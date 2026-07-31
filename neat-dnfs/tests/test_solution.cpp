@@ -211,6 +211,18 @@ TEST_CASE("Solution fitness helpers throw on a field name that doesn't exist", "
     REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
 }
 
+// Same guard, but the name resolves to a real element (a GaussStimulus)
+// instead of no element at all -- the dynamic_pointer_cast<NeuralField>
+// failure path, not just the phenotype.getElement() miss path.
+TEST_CASE("Solution fitness helpers throw when the named element isn't a NeuralField", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    WrongElementTypeSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
+}
+
 TEST_CASE("Solution Crossover", "[Solution]")
 {
     auto topology = makeTopology(1, 1);
