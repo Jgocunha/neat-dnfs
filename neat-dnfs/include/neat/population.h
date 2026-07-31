@@ -1,15 +1,72 @@
 #pragma once
 
+#include <array>
 #include <atomic>
 #include <future>
 #include <memory>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
+#include "genome.h"
 #include "solution.h"
 #include "species.h"
 
 namespace neat_dnfs
 {
 	class PopulationFileManager;
+
+	/// @brief Identifies which internal invariant check reported a violation.
+	enum class ValidationCheck
+	{
+		PopulationSize,
+		UniqueSolutions,
+		Elitism,
+		UniqueGenesInGenomes,
+		UniqueKernelAndNeuralFieldPtrs,
+		SpeciesHaveUniqueRepresentative,
+		AssignmentIntoSpecies,
+		Count
+	};
+
+	/// @brief How a Population reacts to an invariant violation.
+	/// Log (the production default) only records/prints it; Throw raises
+	/// ValidationError, which is what the test binary opts into via
+	/// Population::setDefaultValidationPolicy so violations fail tests loudly
+	/// without changing production behaviour.
+	enum class ValidationPolicy
+	{
+		Log,
+		Throw
+	};
+
+	/// @brief Accumulates invariant-check violations observed during a run.
+	/// Messages are capped (not one per violation) since an O(n^2) check at a
+	/// large population size can otherwise emit far more strings than anyone
+	/// will read; counts remain exact regardless of the cap.
+	struct ValidationReport
+	{
+		static constexpr size_t maxRetainedMessages = 32;
+
+		std::array<int, static_cast<size_t>(ValidationCheck::Count)> counts{};
+		std::vector<std::string> messages;
+
+		[[nodiscard]] int total() const;
+		[[nodiscard]] int count(ValidationCheck check) const;
+		[[nodiscard]] bool clean() const { return total() == 0; }
+		void clear();
+	};
+
+	/// @brief Thrown by Population::reportViolation when the active
+	/// ValidationPolicy is Throw.
+	class ValidationError : public std::runtime_error
+	{
+	public:
+		ValidationError(ValidationCheck check, const std::string& message);
+		[[nodiscard]] ValidationCheck getCheck() const { return check; }
+	private:
+		ValidationCheck check;
+	};
 
 	/// @brief Configuration for a NEAT population run.
 	struct PopulationParameters
@@ -78,7 +135,17 @@ namespace neat_dnfs
 		bool hasFitnessImproved{};
 		int generationsWithoutImprovement = 0;
 		double previousBestFitness = 0.0;
+		SolutionPtr previousBestSolution;
+		std::vector<double> bestFitnessHistory;
+		std::vector<int> bestSolutionIdHistory;
+		std::vector<Genome> bestSolutionGenomeHistory;
 		std::unique_ptr<PopulationFileManager> fileManager;
+		ValidationReport validationReport;
+		ValidationPolicy validationPolicy = defaultValidationPolicy;
+
+		// Not thread-safe; only ever called from upkeep()/speciate(), both
+		// main-thread. Must not be called from the parallel evaluate() path.
+		void reportViolation(ValidationCheck check, const std::string& message);
 	public:
 		Population(const PopulationParameters& parameters,
 			const SolutionPtr& initialSolution,
@@ -99,6 +166,19 @@ namespace neat_dnfs
 		[[nodiscard]] int getCurrentGeneration() const { return parameters.currentGeneration; }
 		[[nodiscard]] int getNumGenerations() const { return parameters.numGenerations; }
 		[[nodiscard]] bool isInitialized() const { return !solutions.empty(); }
+		[[nodiscard]] const std::vector<double>& getBestFitnessHistory() const { return bestFitnessHistory; }
+		[[nodiscard]] const std::vector<int>& getBestSolutionIdHistory() const { return bestSolutionIdHistory; }
+		[[nodiscard]] const std::vector<Genome>& getBestSolutionGenomeHistory() const { return bestSolutionGenomeHistory; }
+
+		[[nodiscard]] const ValidationReport& getValidationReport() const { return validationReport; }
+		void setValidationPolicy(ValidationPolicy policy) { validationPolicy = policy; }
+
+		/// Sets the ValidationPolicy every subsequently constructed Population
+		/// starts with. Production code never calls this (default stays Log);
+		/// the test binary calls it once at startup (see tests/entry.cpp) so
+		/// invariant violations throw during tests without any production
+		/// behaviour change.
+		static void setDefaultValidationPolicy(ValidationPolicy policy) { defaultValidationPolicy = policy; }
 
 		void setSize(const int size) { parameters.size = size; }
 		void setNumGenerations(const int numGenerations) { parameters.numGenerations = numGenerations; }
@@ -108,6 +188,7 @@ namespace neat_dnfs
 		void stop() { control.stop = true; }
 		void start() { control.stop = false; }
 	private:
+		static inline ValidationPolicy defaultValidationPolicy = ValidationPolicy::Log;
 		void evaluate() const;
 		void speciate();
 		void reproduceAndSelect();
@@ -135,19 +216,20 @@ namespace neat_dnfs
 
 		void pruneWorsePreformingSolutions() const;
 		void replaceEntirePopulationWithOffspring();
+		void preserveGlobalBestSolution();
 		void mutate();
 
 		void upkeepBestSolution();
 		void upkeepChampions();
 		void upkeepPerGenerationStatistics();
 		void updateGenerationAndAges();
-		void validateElitism() const;
-		void validateUniqueSolutions() const;
-		void validatePopulationSize() const;
-		void validateUniqueGenesInGenomes() const;
-		void validateUniqueKernelAndNeuralFieldPtrs() const;
-		void validateIfSpeciesHaveUniqueRepresentative() const;
-		void validateAssignmentIntoSpecies() const;
+		void validateElitism();
+		void validateUniqueSolutions();
+		void validatePopulationSize();
+		void validateUniqueGenesInGenomes();
+		void validateUniqueKernelAndNeuralFieldPtrs();
+		void validateIfSpeciesHaveUniqueRepresentative();
+		void validateAssignmentIntoSpecies();
 
 		void print() const;
 

@@ -1,12 +1,53 @@
 #include "neat/population.h"
 
 #include "neat/population_file_manager.h"
+#include <algorithm>
 #include <format>
 #include <atomic>
 #include <thread>
+#include <cmath>
 
 namespace neat_dnfs
 {
+	int ValidationReport::total() const
+	{
+		int sum = 0;
+		for (const int c : counts)
+		{
+			sum += c;
+		}
+		return sum;
+	}
+
+	int ValidationReport::count(const ValidationCheck check) const
+	{
+		return counts.at(static_cast<size_t>(check));
+	}
+
+	void ValidationReport::clear()
+	{
+		counts.fill(0);
+		messages.clear();
+	}
+
+	ValidationError::ValidationError(const ValidationCheck check, const std::string& message)
+		: std::runtime_error(message), check(check)
+	{}
+
+	void Population::reportViolation(const ValidationCheck check, const std::string& message)
+	{
+		validationReport.counts.at(static_cast<size_t>(check))++;
+		if (validationReport.messages.size() < ValidationReport::maxRetainedMessages)
+		{
+			validationReport.messages.push_back(message);
+		}
+		log(tools::logger::LogLevel::FATAL, message, tools::logger::LogOutputMode::CONSOLE);
+		if (validationPolicy == ValidationPolicy::Throw)
+		{
+			throw ValidationError(check, message);
+		}
+	}
+
 	PopulationParameters::PopulationParameters(const int size, const int numGenerations, const double targetFitness, const bool parallelEvolution)
 		: size(size), numGenerations(numGenerations), targetFitness(targetFitness), parallelEvolution(parallelEvolution)
 	{}
@@ -131,9 +172,27 @@ namespace neat_dnfs
 		{
 			assignToSpecies(solution);
 		}
+
+		// A species that lost all its members to reassignment this generation is
+		// not touched again until crossover() runs later in reproduceAndSelect(),
+		// so without this it would still look alive (and keep a stale
+		// representative) when upkeep()'s validation runs right after speciate().
+		for (const auto& species : speciesList)
+		{
+			if (!species->isExtinct() && species->size() == 0)
+			{
+				species->extinguish();
+			}
+		}
+
 		for (const auto& species : speciesList)
 		{
 			species->assignChampion();
+		}
+
+		if (validationPolicy == ValidationPolicy::Throw)
+		{
+			validateAssignmentIntoSpecies();
 		}
 
 		calculateAdjustedFitness();
@@ -172,29 +231,14 @@ namespace neat_dnfs
 			logSpecies();
 		}
 
-		if (PopulationConstants::validatePopulationSize)
+		if (validationPolicy == ValidationPolicy::Throw)
 		{
 			validatePopulationSize();
-		}
-		if (PopulationConstants::validateUniqueSolutions)
-		{
-			validateUniqueSolutions();
-		}
-		if (PopulationConstants::validateElitism)
-		{
-			validateElitism();
-		}
-		if (PopulationConstants::validateUniqueGenesInGenomes)
-		{
-			validateUniqueGenesInGenomes();
-		}
-		if (PopulationConstants::validateUniqueKernelAndNeuralFieldPtrs)
-		{
-			validateUniqueKernelAndNeuralFieldPtrs();
-		}
-		if (PopulationConstants::validateIfSpeciesHaveUniqueRepresentative)
-		{
 			validateIfSpeciesHaveUniqueRepresentative();
+			validateUniqueSolutions();
+			validateElitism();
+			validateUniqueGenesInGenomes();
+			validateUniqueKernelAndNeuralFieldPtrs();
 		}
 
 		if (fileManager)
@@ -287,6 +331,9 @@ namespace neat_dnfs
 
 		// best fitness
 		perGenStatistics.bestFitness = bestSolution->getFitness();
+		bestFitnessHistory.push_back(perGenStatistics.bestFitness);
+		bestSolutionIdHistory.push_back(bestSolution->getId());
+		bestSolutionGenomeHistory.push_back(bestSolution->getGenome());
 
 		// number of species
 		perGenStatistics.numberOfSpecies = static_cast<int>(speciesList.size());
@@ -392,16 +439,11 @@ namespace neat_dnfs
 				currentSpecies->removeSolution(solution);
 			}
 
-			auto newSpecies = std::make_shared<Species>(); 
+			auto newSpecies = std::make_shared<Species>();
 			newSpecies->addSolution(solution);
 			solution->setSpeciesId(newSpecies->getId());
 			newSpecies->randomlyAssignRepresentative();
 			speciesList.emplace_back(newSpecies);
-		}
-
-		if (PopulationConstants::validateAssignmentIntoSpecies)
-		{
-			validateAssignmentIntoSpecies();
 		}
 	}
 
@@ -495,6 +537,7 @@ namespace neat_dnfs
 		if (bestSolution->getFitness() > previousBestFitness)
 		{
 			previousBestFitness = bestSolution->getFitness();
+			previousBestSolution = bestSolution;
 			generationsWithoutImprovement = 0;
 			hasFitnessImproved = true;
 			return true;
@@ -682,6 +725,44 @@ namespace neat_dnfs
 			const auto speciesSolutions = species->getMembers();
 			solutions.insert(solutions.end(), speciesSolutions.begin(), speciesSolutions.end());
 		}
+
+		preserveGlobalBestSolution();
+	}
+
+	void Population::preserveGlobalBestSolution()
+	{
+		if (!PopulationConstants::elitism || previousBestSolution == nullptr)
+		{
+			return;
+		}
+		if (std::ranges::find(solutions, previousBestSolution) != solutions.end())
+		{
+			return; // already survived reproduction on its own
+		}
+
+		// Find and evict the current worst solution to make room, keeping
+		// solutions.size() == parameters.size (validatePopulationSize enforces this).
+		auto worstIt = std::ranges::min_element(solutions,
+			[](const SolutionPtr& a, const SolutionPtr& b) { return a->getFitness() < b->getFitness(); });
+		if (worstIt == solutions.end())
+		{
+			return;
+		}
+		const SolutionPtr worst = *worstIt;
+
+		const auto worstSpecies = findSpecies(worst);
+		if (worstSpecies != nullptr)
+		{
+			worstSpecies->removeSolution(worst);
+		}
+		solutions.erase(worstIt);
+
+		// Route through the same compatibility-based placement every other
+		// solution uses -- never insert into a species by positional
+		// convenience, since that would corrupt that species' genetic
+		// coherence and its adjusted-fitness-based offspring allocation.
+		solutions.push_back(previousBestSolution);
+		assignToSpecies(previousBestSolution);
 	}
 
 	void Population::mutate()
@@ -707,82 +788,45 @@ namespace neat_dnfs
 		return fitnessCondition || generationCondition || control.stop;
 	}
 
-	void Population::validateElitism() const
+	void Population::validateElitism()
 	{
-		static SolutionPtr pbs = nullptr; // previous best solution
-		static SolutionPtr bs = nullptr; // best solution
-
-		static double pbsf = 0.0;
-		static double bsf = 0.0;
-
-		if (parameters.currentGeneration == 1)
+		// Nothing to compare against yet -- previousBestSolution/previousBestFitness
+		// only hold meaningful state once hasFitnessImprovedOverTheLastGenerations()
+		// has recorded a first improvement. Guarding on currentGeneration instead
+		// would be off-by-one: it increments in updateGenerationAndAges(), which runs
+		// after this check within the same upkeep() call, so currentGeneration == 1
+		// is already the *second* generation's check, not the first.
+		if (previousBestSolution == nullptr)
 		{
-			pbs = nullptr;
-			bs = bestSolution;
-			pbsf = 0.0;
-			bsf = bestSolution->getFitness();
 			return;
 		}
 
-		bs = bestSolution;
-		bsf = bs->getFitness();
-
-		static constexpr double epsilon = 0.000;
-		const bool bsDecreased = bsf < pbsf - epsilon;
-		bool pbsInPopulation = false;
-
-		if (bsDecreased)
+		const double bestFitness = bestSolution->getFitness();
+		if (bestFitness >= previousBestFitness - PopulationConstants::elitismFitnessEpsilon)
 		{
-			for (const auto& solution : solutions)
-			{
-				if (solution == pbs)
-				{
-
-					std::stringstream addr_bs;
-					addr_bs << bs.get();
-					std::stringstream addr_npbs;
-					addr_npbs << solution.get();
-					std::stringstream addr_opbs;
-					addr_opbs << pbs.get();
-
-					log(tools::logger::LogLevel::WARNING, "Fitness decreased but previous best solution is in the population.");
-
-					if (bs == pbs)
-					{
-						log(tools::logger::LogLevel::WARNING, "Best solution is the same as previous best solution.");
-					}
-					else
-					{
-						log(tools::logger::LogLevel::WARNING, "Best solution is not the same as previous best solution.");
-					}
-
-					//log(tools::logger::LogLevel::FATAL, "Best solution address: " + addr_bs.str() + " Fitness: " + std::to_string(bsf));
-					//log(tools::logger::LogLevel::FATAL, "New previous best solution address: " + addr_npbs.str() + " Fitness: " + std::to_string(npbsf));
-					//log(tools::logger::LogLevel::FATAL, "Old previous best solution address: " + addr_opbs.str() + " Fitness: " + std::to_string(opbsf));
-
-					pbsInPopulation = true;
-					break;
-				}
-			}
+			return;
 		}
 
-		if (bsDecreased && !pbsInPopulation)
+		// Fitness dropped beyond jitter tolerance, which the DNF simulation's
+		// noise can cause on its own (e.g. a bump forming or not near a
+		// solution's decision boundary swings a partial-fitness term far more
+		// than typical re-evaluation jitter). What elitism actually guarantees
+		// is that the previous best genome itself survives reproduction, not
+		// that its re-measured fitness stays within a fixed tolerance -- so
+		// this is only a genuine violation if that genome is gone.
+		const bool previousBestStillPresent = std::ranges::any_of(solutions,
+			[this](const SolutionPtr& solution) { return solution == previousBestSolution; });
+		if (previousBestStillPresent)
 		{
-			std::stringstream addr_bs;
-			addr_bs << bs.get();
-			std::stringstream addr_opbs;
-			addr_opbs << pbs.get();
-			log(tools::logger::LogLevel::WARNING, "Fitness decreased and previous best solution is not in the population.");
-			log(tools::logger::LogLevel::WARNING, std::format("Best solution address: {} Fitness: {}", addr_bs.str(), bsf));
-			log(tools::logger::LogLevel::WARNING, std::format("Previous best solution address: {} Fitness: {}", addr_opbs.str(), pbsf));
-			//throw std::runtime_error("Best solution decreased and previous best solution not in population.");
+			return;
 		}
 
-		pbs = bs;
-		pbsf = bsf;
+		reportViolation(ValidationCheck::Elitism, std::format(
+			"Best fitness decreased and the previous best solution was lost. previous={} current={}",
+			previousBestFitness, bestFitness));
 	}
 
-	void Population::validateUniqueSolutions() const
+	void Population::validateUniqueSolutions()
 	{
 		int counter = 0;
 		for (size_t i = 0; i < solutions.size(); ++i)
@@ -797,26 +841,28 @@ namespace neat_dnfs
 		}
 		if(counter > 0)
 		{
-			log(tools::logger::LogLevel::FATAL, "Duplicate solutions found.");
+			reportViolation(ValidationCheck::UniqueSolutions,
+				std::format("Duplicate solutions found. count={}", counter));
 		}
 	}
 
-	void Population::validatePopulationSize() const
+	void Population::validatePopulationSize()
 	{
 		if (solutions.size() != parameters.size)
 		{
-			log(tools::logger::LogLevel::FATAL, "Population size does not match parameters.");
+			reportViolation(ValidationCheck::PopulationSize, "Population size does not match parameters.");
 		}
 	}
 
-	void Population::validateUniqueGenesInGenomes() const
+	void Population::validateUniqueGenesInGenomes()
 	{
 		for (const auto& solution : solutions)
 		{
 			const auto genome = solution->getGenome();
-			for (auto const& connectionGene1 : genome.getConnectionGenes())
+			const auto& connectionGenes = genome.getConnectionGenes();
+			for (auto const& connectionGene1 : connectionGenes)
 			{
-				for (auto const& connectionGene2 : genome.getConnectionGenes())
+				for (auto const& connectionGene2 : connectionGenes)
 				{
 					if (connectionGene1 != connectionGene2)
 					{
@@ -827,11 +873,9 @@ namespace neat_dnfs
 							const auto inFieldGeneId = connectionGene1.getInFieldGeneId();
 							const auto outFieldGeneId = connectionGene1.getOutFieldGeneId();
 							const auto innovationNumber = connectionGene1.getInnovationNumber();
-							log(tools::logger::LogLevel::FATAL, "Connection genes are the same.");
-							log(tools::logger::LogLevel::FATAL, std::format("InFieldGeneId: {} OutFieldGeneId: {} InnovationNumber: {}", 
-                                                        inFieldGeneId, 
-                                                        outFieldGeneId, 
-                                                        innovationNumber));
+							reportViolation(ValidationCheck::UniqueGenesInGenomes, std::format(
+								"Connection genes are the same. InFieldGeneId: {} OutFieldGeneId: {} InnovationNumber: {}",
+								inFieldGeneId, outFieldGeneId, innovationNumber));
 						}
 					}
 				}
@@ -839,10 +883,14 @@ namespace neat_dnfs
 		}
 	}
 
-	void Population::validateUniqueKernelAndNeuralFieldPtrs() const
+	void Population::validateUniqueKernelAndNeuralFieldPtrs()
 	{
 		for (const auto& solution_a : solutions)
 		{
+			const auto genome_a = solution_a->getGenome();
+			const auto& connectionGenes_a = genome_a.getConnectionGenes();
+			const auto& fieldGenes_a = genome_a.getFieldGenes();
+
 			for (const auto& solution_b : solutions)
 			{
 				if (solution_a == solution_b)
@@ -850,12 +898,9 @@ namespace neat_dnfs
 					continue;
 				}
 
-				const auto genome_a = solution_a->getGenome();
 				const auto genome_b = solution_b->getGenome();
-				const auto connectionGenes_a = genome_a.getConnectionGenes();
-				const auto connectionGenes_b = genome_b.getConnectionGenes();
-				const auto fieldGenes_a = genome_a.getFieldGenes();
-				const auto fieldGenes_b = genome_b.getFieldGenes();
+				const auto& connectionGenes_b = genome_b.getConnectionGenes();
+				const auto& fieldGenes_b = genome_b.getFieldGenes();
 
 				for (const auto& connectionGene_a : connectionGenes_a)
 				{
@@ -865,7 +910,7 @@ namespace neat_dnfs
 						const auto kernel_b = connectionGene_b.getKernel();
 						if (kernel_a == kernel_b)
 						{
-							log(tools::logger::LogLevel::FATAL, "Kernels are the same.");
+							reportViolation(ValidationCheck::UniqueKernelAndNeuralFieldPtrs, "Kernels are the same.");
 						}
 					}
 				}
@@ -878,7 +923,7 @@ namespace neat_dnfs
 						const auto neuralField_b = fieldGene_b.getNeuralField();
 						if (neuralField_a == neuralField_b)
 						{
-							log(tools::logger::LogLevel::FATAL, "Neural fields are the same.");
+							reportViolation(ValidationCheck::UniqueKernelAndNeuralFieldPtrs, "Neural fields are the same.");
 						}
 					}
 				}
@@ -887,7 +932,7 @@ namespace neat_dnfs
 		}
 	}
 
-	void Population::validateIfSpeciesHaveUniqueRepresentative() const
+	void Population::validateIfSpeciesHaveUniqueRepresentative()
 	{
 		for (const auto& species_a : speciesList)
 		{
@@ -907,15 +952,15 @@ namespace neat_dnfs
 
 				if (representative_a == representative_b)
 				{
-					log(tools::logger::LogLevel::FATAL, "Species have the same representative.");
-					log(tools::logger::LogLevel::FATAL, std::format("Species a id: {} Representative a id: {}", species_a->getId(), representative_a));
-					log(tools::logger::LogLevel::FATAL, std::format("Species b id: {} Representative b id: {}", species_b->getId(), representative_b));
+					reportViolation(ValidationCheck::SpeciesHaveUniqueRepresentative, std::format(
+						"Species have the same representative. Species a id: {} Representative a id: {} Species b id: {} Representative b id: {}",
+						species_a->getId(), representative_a, species_b->getId(), representative_b));
 				}
 			}
 		}
 	}
 
-	void Population::validateAssignmentIntoSpecies() const
+	void Population::validateAssignmentIntoSpecies()
 	{
 		std::vector<SolutionPtr> speciesSolutions;
 		speciesSolutions.reserve(parameters.size);
@@ -926,6 +971,14 @@ namespace neat_dnfs
 				speciesSolutions.emplace_back(member);
 			}
 		}
+
+		if (speciesSolutions.size() != static_cast<size_t>(parameters.size))
+		{
+			reportViolation(ValidationCheck::AssignmentIntoSpecies, std::format(
+				"Species membership count does not match population size. expected={} actual={}",
+				parameters.size, speciesSolutions.size()));
+		}
+
 		int counter = 0;
 		for (size_t i = 0; i < speciesSolutions.size(); ++i)
 		{
@@ -939,7 +992,8 @@ namespace neat_dnfs
 		}
 		if (counter > 0)
 		{
-			log(tools::logger::LogLevel::FATAL, "Duplicate solutions found after speciation.");
+			reportViolation(ValidationCheck::AssignmentIntoSpecies,
+				std::format("Duplicate solutions found after speciation. count={}", counter));
 		}
 	}
 

@@ -28,6 +28,12 @@ set(NEAT_DNFS_ADDITIONAL_FILES_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/${CMAK
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# MSVC defaults to the system codepage for non-BOM source files, which mangles
+# non-ASCII characters (e.g. em dashes in Catch2 test names) at compile time.
+if(MSVC)
+    add_compile_options(/utf-8)
+endif()
+
 # Sanitizers
 set(NEAT_DNFS_SANITIZER "" CACHE STRING "Sanitizer: '' | address (ASan+UBSan) | thread (TSan)")
 if(NEAT_DNFS_SANITIZER STREQUAL "address")
@@ -129,6 +135,9 @@ endif()
 find_package(imgui-platform-kit REQUIRED)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE imgui-platform-kit)
 
+# Setup FFTW3 (transitive dependency of dynamic-neural-field-composer's spectral convolution path)
+find_package(FFTW3 CONFIG REQUIRED)
+
 # Setup dynamic-neural-field-composer
 find_package(dynamic-neural-field-composer REQUIRED)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE dynamic-neural-field-composer)
@@ -172,7 +181,7 @@ install(EXPORT ${CMAKE_PROJECT_NAME}Targets DESTINATION ${NEAT_DNFS_CMAKE_CONFIG
 
 # Main executable
 set(EXE_PROJECT_EXAMPLE neat-dnfs-evol)
-add_executable(${EXE_PROJECT_EXAMPLE} "examples/tabula_rasa_evolution.cpp")
+add_executable(${EXE_PROJECT_EXAMPLE} "examples/neat_dnfs_evol.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
 target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         imgui::imgui
@@ -183,7 +192,7 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
 
 # Incremental evolution executable
 set(EXE_PROJECT_EXAMPLE neat-dnfs-inc-evol)
-add_executable(${EXE_PROJECT_EXAMPLE} "examples/incremental_evolution.cpp")
+add_executable(${EXE_PROJECT_EXAMPLE} "examples/neat_dnfs_incremental_evolution.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
 target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         imgui::imgui
@@ -194,7 +203,7 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
 
 # Solution evaluation executable
 set(EXE_PROJECT_EXAMPLE neat-dnfs-sol-eval)
-add_executable(${EXE_PROJECT_EXAMPLE} "examples/solution_evaluation.cpp")
+add_executable(${EXE_PROJECT_EXAMPLE} "examples/neat_dnfs_solution_evaluation.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
 target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         imgui::imgui
@@ -202,6 +211,24 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         dynamic-neural-field-composer
         ${CMAKE_PROJECT_NAME}
 )
+
+# Solution executables
+foreach(SOLUTION_SRC
+        evol_detection_instability
+        evol_memory_instability
+        evol_selection_instability
+        evol_and
+        evol_xor)
+    set(EXE_PROJECT_EXAMPLE neat-dnfs-${SOLUTION_SRC})
+    add_executable(${EXE_PROJECT_EXAMPLE} "examples/solutions/${SOLUTION_SRC}.cpp")
+    target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
+    target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
+            imgui::imgui
+            imgui-platform-kit
+            dynamic-neural-field-composer
+            ${CMAKE_PROJECT_NAME}
+    )
+endforeach()
 
 # Setup Catch2
 enable_testing()
@@ -224,9 +251,22 @@ add_executable(${TEST_PROJECT}
     "tests/test_population.cpp"
     "tests/test_population_file_manager.cpp"
     "tests/test_speciation.cpp"
+    "tests/test_evolution_helpers.h"
+    "tests/solutions/evol_detection_instability.cpp"
+    "tests/solutions/evol_memory_instability.cpp"
+    "tests/solutions/evol_selection_instability.cpp"
+    "tests/solutions/evol_memory_trace.cpp"
+    "tests/solutions/evol_inhibition_of_return.cpp"
+    "tests/solutions/evol_and.cpp"
+    "tests/solutions/evol_xor.cpp"
 )
 target_include_directories(${TEST_PROJECT} PRIVATE include tests)
 target_link_libraries(${TEST_PROJECT} PRIVATE Catch2::Catch2 Catch2::Catch2WithMain imgui-platform-kit  dynamic-neural-field-composer ${CMAKE_PROJECT_NAME})
-target_compile_definitions(${TEST_PROJECT} PRIVATE NEAT_DNFS_TEST=1)
-# Automatically discover and add tests
-catch_discover_tests(${TEST_PROJECT})
+# Automatically discover and add tests, split into a fast default lane and a
+# slow lane (the [Evolution] tier runs real Population::evolve() at
+# populationSize=50/numGenerations=10/numRuns=5 per solution -- tens of
+# seconds, versus ~2.6s for everything else). `ctest -LE slow` stays fast;
+# `ctest -L slow` runs the evolution tier.
+catch_discover_tests(${TEST_PROJECT} TEST_SPEC "~[Evolution]" TEST_PREFIX "fast.")
+catch_discover_tests(${TEST_PROJECT} TEST_SPEC "[Evolution]" TEST_PREFIX "slow."
+    PROPERTIES LABELS "slow" TIMEOUT 600)

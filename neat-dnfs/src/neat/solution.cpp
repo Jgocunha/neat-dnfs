@@ -1,7 +1,9 @@
 #include <utility>
 
 #include "neat/solution.h"
-#include <format> 
+#include <format>
+#include <limits>
+#include <cmath>
 
 namespace neat_dnfs
 {
@@ -46,7 +48,27 @@ namespace neat_dnfs
 	void Solution::evaluate()
 	{
 		buildPhenotype();
-		testPhenotype();
+		try
+		{
+			testPhenotype();
+		}
+		catch (...)
+		{
+			// Preserve the original evaluation failure -- it's the actionable
+			// diagnostic (e.g. which field name was wrong). A cleanup failure on
+			// top of it is secondary; log it rather than let it replace the
+			// exception the caller actually needs to see.
+			try
+			{
+				clearPhenotype();
+			}
+			catch (const std::exception& cleanupError)
+			{
+				log(tools::logger::LogLevel::ERROR, std::format(
+					"clearPhenotype() failed while handling an evaluation exception: {}", cleanupError.what()));
+			}
+			throw;
+		}
 		clearPhenotype();
 	}
 
@@ -754,24 +776,36 @@ namespace neat_dnfs
 		gaussStimulus->setParameters(parameters);
 	}
 
+	std::shared_ptr<dnf_composer::element::NeuralField> Solution::getNeuralFieldOrThrow(const std::string& fieldName, const std::string& callerName) const
+	{
+		using namespace dnf_composer::element;
+		auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		if (neuralField == nullptr)
+		{
+			throw std::invalid_argument(std::format(
+				"{}: field '{}' does not exist in the phenotype or is not a NeuralField.", callerName, fieldName));
+		}
+		return neuralField;
+	}
+
 	double Solution::closenessToRestingLevel(const std::string& fieldName) const
 	{
 		// the highest value of activation should be equal to the resting level
 		// the farther it is from the resting level, the lower the fitness (0.0)
 		// the closer it is to the resting level, the higher the fitness (1.0)
-		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "closenessToRestingLevel");
 
 		const double highestActivationValue = neuralField->getHighestActivation();
 		const double restingLevel = neuralField->getParameters().startingRestingLevel;
+		const double result = 1.0 / (1.0 + std::abs(highestActivationValue - restingLevel));
 
-		return 1.0 / (1.0 + std::abs(highestActivationValue - restingLevel));
+		return result;
 	}
 
 	double Solution::noBumps(const std::string& fieldName) const
 	{
-		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "noBumps");
+
 		const double highestActivation = neuralField->getHighestActivation();
 
 		// If activation is below 0, return maximum fitness of 1.0
@@ -784,13 +818,13 @@ namespace neat_dnfs
 		// The decay rate can be adjusted with the constant (5.0 here)
 		// A larger value will make it decline more steeply
 		static constexpr double decayRate = 10.0;
-		return exp(-decayRate * highestActivation);
+		const double result = exp(-decayRate * highestActivation);
+		return result;
 	}
 
 	double Solution::iterationsUntilBump(const std::string& fieldName, const double targetIterations, const double maxIterations, const double tolerance)
 	{
-		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "iterationsUntilBump");
 		int it = 0;
 		do
 		{
@@ -814,8 +848,7 @@ namespace neat_dnfs
 
 	double Solution::iterationsUntilNoBump(const std::string& fieldName, const double targetIterations, const double maxIterations, const double tolerance)
 	{
-		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "iterationsUntilNoBump");
 
 		int it = 0;
 		do
@@ -841,7 +874,7 @@ namespace neat_dnfs
 	double Solution::justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName, const std::vector<double>& positions, const double& amplitude, const double& width) const
 	{
 		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth");
 
 		static constexpr double wBumps  = 0.55;
 		static constexpr double wPos    = 0.35;
@@ -905,7 +938,8 @@ namespace neat_dnfs
 		double fitness = 0.0;
 
 		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "oneBumpAtPositionWithAmplitudeAndWidth");
+
 		const auto& bumps = neuralField->getBumps();
 		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
 		if (numberOfBumps == 0)
@@ -950,7 +984,8 @@ namespace neat_dnfs
 
 		using namespace dnf_composer::element;
 
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "twoBumpsAtPositionWithAmplitudeAndWidth");
+
 		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
 		fitness += weightBumps / (1.0 + std::abs(targetNumberOfBumps - numberOfBumps));
 
@@ -999,7 +1034,8 @@ namespace neat_dnfs
 
 		using namespace dnf_composer::element;
 
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "threeBumpsAtPositionWithAmplitudeAndWidth");
+
 		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
 		fitness += weightBumps / (1.0 + std::abs(targetNumberOfBumps - numberOfBumps));
 
@@ -1085,8 +1121,7 @@ namespace neat_dnfs
 
 	double Solution::preShapednessAtPosition(const std::string& fieldName, double position) const
 	{
-		using namespace dnf_composer::element;
-		const auto nf = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const auto nf = getNeuralFieldOrThrow(fieldName, "preShapednessAtPosition");
 
 		const int idx = static_cast<int>(position / nf->getElementCommonParameters().dimensionParameters.d_x);
 		const double u = nf->getComponent("activation")[idx];
@@ -1115,8 +1150,7 @@ namespace neat_dnfs
 
 	double Solution::negativePreShapednessAtPosition(const std::string& fieldName, const double& position) const
 	{
-		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "negativePreShapednessAtPosition");
 
 		const int pos = static_cast<int>(position/neuralField->getElementCommonParameters().dimensionParameters.d_x);
 		const double u_pos = neuralField->getComponent("activation")[pos];
@@ -1144,7 +1178,8 @@ namespace neat_dnfs
 		const double u_target = u_baseline + u_baseline / 2.0;
 		constexpr double width = 10.0;// std::abs(u_baseline / 8.0);
 
-		return tools::utils::normalizeWithGaussian(u_pos, u_target, width);
+		const double result = tools::utils::normalizeWithGaussian(u_pos, u_target, width);
+		return result;
 
 		// using namespace dnf_composer::element;
 		// const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
@@ -1198,15 +1233,16 @@ namespace neat_dnfs
 
 	double Solution::negativeBaseline(const std::string& fieldName) const
 	{
-		using namespace dnf_composer::element;
-		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "negativeBaseline");
+
 		const double startingRestingLevel = neuralField->getParameters().startingRestingLevel;
 		const double maxActivation = neuralField->getHighestActivation();
 
 		const double targetBaseline = startingRestingLevel * 2;
 		const double width = std::abs(maxActivation / 8);
 
-		return tools::utils::normalizeWithGaussian(maxActivation, targetBaseline, width);
+		const double result = tools::utils::normalizeWithGaussian(maxActivation, targetBaseline, width);
+		return result;
 	}
 
 }

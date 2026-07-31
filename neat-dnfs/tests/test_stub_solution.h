@@ -145,4 +145,92 @@ private:
     void createPhenotypeEnvironment() override {}
 };
 
+// Stand-in whose testPhenotype() calls a fitness helper with a field name
+// that doesn't exist in its own topology, used to verify that the shared
+// null-field guard (Solution::getNeuralFieldOrThrow) raises an indicative
+// error instead of silently treating a configuration bug as a fitness score.
+class MissingFieldSolution final : public Solution
+{
+public:
+    explicit MissingFieldSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "MissingField";
+    }
+
+    MissingFieldSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "MissingField";
+    }
+
+    SolutionPtr clone() const override
+    {
+        MissingFieldSolution solution(initialTopology);
+        return std::make_shared<MissingFieldSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        MissingFieldSolution solution(initialTopology, phenotype);
+        return std::make_shared<MissingFieldSolution>(solution);
+    }
+
+private:
+    void testPhenotype() override
+    {
+        initSimulation();
+        parameters.fitness = closenessToRestingLevel("this field does not exist");
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
+// Stand-in whose testPhenotype() calls a fitness helper with the name of a
+// real phenotype element that exists but isn't a NeuralField (a GaussStimulus),
+// used to verify Solution::getNeuralFieldOrThrow rejects a wrong-type element
+// the same way it rejects a missing one, rather than only guarding against
+// phenotype.getElement() returning null.
+class WrongElementTypeSolution final : public Solution
+{
+public:
+    explicit WrongElementTypeSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "WrongElementType";
+    }
+
+    WrongElementTypeSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "WrongElementType";
+    }
+
+    SolutionPtr clone() const override
+    {
+        WrongElementTypeSolution solution(initialTopology);
+        return std::make_shared<WrongElementTypeSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        WrongElementTypeSolution solution(initialTopology, phenotype);
+        return std::make_shared<WrongElementTypeSolution>(solution);
+    }
+
+private:
+    void testPhenotype() override
+    {
+        initSimulation();
+        addGaussianStimulus("nf 1",
+            dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+                GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+            dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+
+        parameters.fitness = closenessToRestingLevel("gs nf 1 50");
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
 } // namespace neat_dnfs::test

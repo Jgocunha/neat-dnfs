@@ -44,6 +44,14 @@ namespace neat_dnfs
         [[nodiscard]] bool isExtinct() const;
         [[nodiscard]] bool hasFitnessImprovedOverTheLastGenerations() const;
         void incrementAge();
+        void extinguish()
+        {
+            extinct = true;
+            representative = nullptr;
+            champion = nullptr;
+            members.clear();
+            offspring.clear();
+        }
         static void resetUniqueIdentifier()
         {
 			currentSpeciesId = 0;

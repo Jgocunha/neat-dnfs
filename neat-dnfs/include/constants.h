@@ -216,14 +216,15 @@ namespace neat_dnfs
 		static constexpr int generationsWithoutImprovementThresholdInPopulation = 10;
 		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 7;
 		static constexpr bool elitism											= true;
-
-		static constexpr bool validateUniqueSolutions					= false;
-		static constexpr bool validatePopulationSize					= false;
-		static constexpr bool validateElitism							= false;
-		static constexpr bool validateUniqueGenesInGenomes				= false;
-		static constexpr bool validateUniqueKernelAndNeuralFieldPtrs	= false;
-		static constexpr bool validateIfSpeciesHaveUniqueRepresentative = false;
-		static constexpr bool validateAssignmentIntoSpecies				= false;
+		// Tolerance for the elitism validation check. The DNF simulation is
+		// stochastic (see NoiseConstants::amplitude), so re-evaluating the same
+		// preserved elite yields a fitness that drifts rather than being
+		// bit-identical -- and near a solution's bump-formation boundary, that
+		// drift can be much larger than typical jitter (a bump forming or not
+		// swings a partial-fitness term by ~0.1). This covers that drift for
+		// the common case; a drop beyond it is still fine as long as the
+		// previous best solution itself is still present (see validateElitism).
+		static constexpr double elitismFitnessEpsilon							= 0.05;
 
 		static constexpr bool logSolutions				= false;
 		static constexpr bool logOverview				= true;

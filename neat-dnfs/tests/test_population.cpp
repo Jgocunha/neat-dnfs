@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <thread>
+#include <set>
 
 #include "neat/population.h"
 #include "solutions/detection_instability.h"
@@ -77,7 +78,7 @@ TEST_CASE("Population::evolve runs without error and respects generation limit",
     REQUIRE(validEndCondition);
 }
 
-TEST_CASE("Population::evolve — all solutions have non-negative fitness", "[Population]")
+TEST_CASE("Population::evolve - all solutions have non-negative fitness", "[Population]")
 {
     const PopulationParameters parameters(10, 2, 0.9);
     const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
@@ -89,7 +90,7 @@ TEST_CASE("Population::evolve — all solutions have non-negative fitness", "[Po
         REQUIRE(solution->getFitness() >= 0.0);
 }
 
-TEST_CASE("Population::evolve — best solution fitness is monotonically non-decreasing", "[Population]")
+TEST_CASE("Population::evolve - best solution fitness is monotonically non-decreasing", "[Population]")
 {
     const PopulationParameters parameters(10, 5, 1.1); // target > 1.0 forces full run
     const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
@@ -104,7 +105,74 @@ TEST_CASE("Population::evolve — best solution fitness is monotonically non-dec
         REQUIRE(solution->getFitness() <= best->getFitness() + 1e-9);
 }
 
-TEST_CASE("Population::evolve — speciation produces at least one species", "[Population]")
+// Regression test for missing global elitism: bestSolution was recomputed
+// from scratch each generation with nothing guaranteeing the previous best
+// genome survived reproduction, so the recorded best fitness could and did
+// decrease across generations (observed drops up to ~13% relative). A larger
+// population with more generations gives speciation more room to fragment,
+// which is when the bug was empirically observed to manifest.
+TEST_CASE("Population::evolve - best fitness history never decreases across generations", "[Population]")
+{
+    const PopulationParameters parameters(50, 15, 1.1); // target > 1.0 forces full run
+    const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    Population population(parameters, initialSolution, false);
+    population.initialize();
+    population.evolve();
+
+    const auto& history = population.getBestFitnessHistory();
+    REQUIRE(history.size() > 1);
+    for (size_t i = 1; i < history.size(); ++i)
+    {
+        INFO("generation " << i << ": " << history[i - 1] << " -> " << history[i]);
+        CHECK(history[i] >= history[i - 1] - PopulationConstants::elitismFitnessEpsilon);
+    }
+}
+
+// Regression test for missing global elitism (see the fitness-history test
+// above): the recorded best genome each generation must always be one that
+// has previously held the "best" title, never a fresh genome appearing below
+// the previous best's fitness. Re-evaluation jitter means the current top
+// spot can legitimately swap between two previously-seen contenders (both
+// re-evaluated with noise, whichever drifts less that generation ranks
+// first) -- so this does not require the *same* id every generation, only
+// that preserveGlobalBestSolution() keeps every past-best genome alive
+// (unmutated) somewhere in the population rather than letting it get
+// dropped by reproduction.
+TEST_CASE("Population::evolve - the recorded best genome each generation was always a previous best", "[Population]")
+{
+    const PopulationParameters parameters(50, 15, 1.1); // target > 1.0 forces full run
+    const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    Population population(parameters, initialSolution, false);
+    population.initialize();
+    population.evolve();
+
+    const auto& fitnessHistory = population.getBestFitnessHistory();
+    const auto& idHistory = population.getBestSolutionIdHistory();
+    const auto& genomeHistory = population.getBestSolutionGenomeHistory();
+    REQUIRE(fitnessHistory.size() > 1);
+    REQUIRE(idHistory.size() == fitnessHistory.size());
+    REQUIRE(genomeHistory.size() == fitnessHistory.size());
+
+    double reigningBestFitness = fitnessHistory[0];
+    std::vector<Genome> everRecordedAsBest{ genomeHistory[0] };
+    for (size_t i = 1; i < fitnessHistory.size(); ++i)
+    {
+        INFO("generation " << i << ": " << reigningBestFitness << " -> " << fitnessHistory[i]);
+        if (fitnessHistory[i] > reigningBestFitness)
+        {
+            reigningBestFitness = fitnessHistory[i];
+        }
+        else
+        {
+            const bool wasPreviouslyBest = std::ranges::any_of(everRecordedAsBest,
+                [&genomeHistory, i](const Genome& g) { return g == genomeHistory[i]; });
+            CHECK(wasPreviouslyBest);
+        }
+        everRecordedAsBest.push_back(genomeHistory[i]);
+    }
+}
+
+TEST_CASE("Population::evolve - speciation produces at least one species", "[Population]")
 {
     const PopulationParameters parameters(20, 2, 1.1);
     const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
@@ -115,7 +183,7 @@ TEST_CASE("Population::evolve — speciation produces at least one species", "[P
     REQUIRE(!population.getSpeciesList().empty());
 }
 
-TEST_CASE("PopulationParameters — parallelEvolution defaults to true", "[Population]")
+TEST_CASE("PopulationParameters - parallelEvolution defaults to true", "[Population]")
 {
     const PopulationParameters parameters(10, 5, 0.9);
     REQUIRE(parameters.parallelEvolution);
@@ -136,7 +204,7 @@ TEST_CASE("PopulationParameters — parallelEvolution defaults to true", "[Popul
 // self-throttles new work near hardware_concurrency even in the unfixed
 // code — so this assertion is a weaker pre-fix red locally, but is still a
 // real, deterministic bound on the fixed implementation either way.
-TEST_CASE("Population::evaluate — parallel evaluation concurrency is bounded by hardware_concurrency", "[Population]")
+TEST_CASE("Population::evaluate - parallel evaluation concurrency is bounded by hardware_concurrency", "[Population]")
 {
     CountingSolution::live = 0;
     CountingSolution::peak = 0;
@@ -157,7 +225,7 @@ TEST_CASE("Population::evaluate — parallel evaluation concurrency is bounded b
     REQUIRE(peak <= hardwareConcurrency);
 }
 
-TEST_CASE("Population::evolve — exceptions from parallel evaluation propagate", "[Population]")
+TEST_CASE("Population::evolve - exceptions from parallel evaluation propagate", "[Population]")
 {
     const PopulationParameters parameters(20, 1, 1.1); // parallelEvolution defaults true
     const auto initialSolution = std::make_shared<ThrowingSolution>(makeTopology(1, 1));
@@ -167,7 +235,7 @@ TEST_CASE("Population::evolve — exceptions from parallel evaluation propagate"
     REQUIRE_THROWS_AS(population.evolve(), std::runtime_error);
 }
 
-TEST_CASE("Population::evolve — exceptions from serial evaluation propagate", "[Population]")
+TEST_CASE("Population::evolve - exceptions from serial evaluation propagate", "[Population]")
 {
     const PopulationParameters parameters(20, 1, 1.1, false); // parallelEvolution explicitly disabled
     const auto initialSolution = std::make_shared<ThrowingSolution>(makeTopology(1, 1));
@@ -282,4 +350,76 @@ TEST_CASE("Population of size 1 evolves without throwing", "[Population]")
 
     REQUIRE_NOTHROW(population.evolve());
     REQUIRE(population.getSolutions().size() == 1);
+}
+
+// Regression test for the Release-mode SIGSEGV in parallel Population::evaluate()
+// (see .claude/issues/release-parallel-eval-sigsegv.md). Root cause:
+// dnf_composer::element::ElementIdentifiers::uniqueIdentifierCounter is a plain
+// `static inline int`, incremented unguarded by every element constructor.
+// Population::evaluate() constructs elements (NeuralField, kernels, noise) from
+// hardware_concurrency() worker threads concurrently, racing on that non-atomic
+// increment. Two threads reading the same counter value produce two elements
+// with the same uniqueName; Simulation::addElement() silently drops the second
+// one, and getElement() later returns nullptr for it, which is dereferenced
+// without a null check on the fitness-evaluation path -> SIGSEGV in Release.
+// This test constructs ElementIdentifiers concurrently from many threads and
+// asserts every id and every generated name is unique.
+TEST_CASE("ElementIdentifiers::uniqueIdentifierCounter is unique under concurrent construction", "[Population][thread-safety]")
+{
+    using dnf_composer::element::ElementIdentifiers;
+    using dnf_composer::element::ElementLabel;
+
+    const unsigned hardwareConcurrency = std::max(4U, std::thread::hardware_concurrency());
+    constexpr int perThread = 500;
+
+    std::vector<std::vector<int>> idsByThread(hardwareConcurrency);
+    std::vector<std::vector<std::string>> namesByThread(hardwareConcurrency);
+    std::vector<std::thread> threads;
+    threads.reserve(hardwareConcurrency);
+
+    for (unsigned t = 0; t < hardwareConcurrency; ++t)
+    {
+        idsByThread[t].reserve(perThread);
+        namesByThread[t].reserve(perThread);
+        threads.emplace_back([t, &idsByThread, &namesByThread]()
+            {
+                for (int i = 0; i < perThread; ++i)
+                {
+                    const ElementIdentifiers identifiers(ElementLabel::NEURAL_FIELD);
+                    idsByThread[t].push_back(identifiers.uniqueIdentifier);
+                    namesByThread[t].push_back(identifiers.uniqueName);
+                }
+            });
+    }
+    for (auto& thread : threads)
+        thread.join();
+
+    std::set<int> allIds;
+    std::set<std::string> allNames;
+    for (unsigned t = 0; t < hardwareConcurrency; ++t)
+    {
+        allIds.insert(idsByThread[t].begin(), idsByThread[t].end());
+        allNames.insert(namesByThread[t].begin(), namesByThread[t].end());
+    }
+
+    const size_t expectedCount = static_cast<size_t>(hardwareConcurrency) * perThread;
+    REQUIRE(allIds.size() == expectedCount);
+    REQUIRE(allNames.size() == expectedCount);
+}
+
+// End-to-end regression test: runs a real Population::evolve() with parallel
+// evaluation (the default) using a real DNF-simulating solution. Runs several
+// times because the underlying races this guards against are non-deterministic.
+TEST_CASE("Population::evolve with parallel evaluation and a real solution does not crash", "[Population][thread-safety]")
+{
+    for (int attempt = 0; attempt < 5; ++attempt)
+    {
+        const PopulationParameters parameters(10, 3, 0.9); // parallelEvolution defaults to true
+        const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+        Population population(parameters, initialSolution, false);
+        population.initialize();
+
+        REQUIRE_NOTHROW(population.evolve());
+        REQUIRE(population.getBestSolution() != nullptr);
+    }
 }

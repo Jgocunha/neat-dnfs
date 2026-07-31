@@ -85,3 +85,73 @@ TEST_CASE("Speciation: identical solutions are compatible with their species", "
 
     REQUIRE(species.isCompatible(sol));
 }
+
+// Regression test for a bug where two Species objects ended up with the same
+// representative Solution: removeSolution() erased a departing member from
+// `members` but left `representative` pointing at it if it happened to be the
+// representative, even though that solution could no longer belong to this
+// species (an individual can only represent the species it is a member of).
+// Population::assignToSpecies() calls removeSolution() on a solution's old
+// species every time speciation moves it elsewhere, so this is not an edge
+// case -- it is the normal path every generation.
+TEST_CASE("Speciation: removing the representative from a species invalidates it", "[Speciation]")
+{
+    const auto topology = makeTopology(3, 1);
+    const auto representative = std::make_shared<DetectionInstability>(topology);
+    const auto otherMember = std::make_shared<DetectionInstability>(topology);
+
+    Species species;
+    species.addSolution(representative);
+    species.addSolution(otherMember);
+    species.setRepresentative(representative);
+
+    species.removeSolution(representative);
+
+    const auto newRepresentative = species.getRepresentative();
+    REQUIRE(newRepresentative != representative);
+    REQUIRE(species.contains(newRepresentative));
+}
+
+// Same scenario, but the removed representative was the species' only member:
+// there is nothing left to reassign from, so the representative must not be
+// left dangling on a solution that just left the species.
+TEST_CASE("Speciation: removing the sole representative from a species clears it", "[Speciation]")
+{
+    const auto topology = makeTopology(3, 1);
+    const auto representative = std::make_shared<DetectionInstability>(topology);
+
+    Species species;
+    species.addSolution(representative);
+    species.setRepresentative(representative);
+
+    species.removeSolution(representative);
+
+    REQUIRE(species.size() == 0);
+    REQUIRE(species.getRepresentative() != representative);
+}
+
+// Reproduces the exact cross-species collision: a solution transferring from
+// speciesA to speciesB (as Population::assignToSpecies does every generation)
+// must not leave speciesA's representative pointing at a solution that no
+// longer belongs to speciesA -- even though the very same solution is now a
+// legitimate member/representative of speciesB.
+TEST_CASE("Speciation: a solution moving between species does not leave two species sharing a representative", "[Speciation]")
+{
+    const auto topology = makeTopology(3, 1);
+    const auto migrating = std::make_shared<DetectionInstability>(topology);
+    const auto otherMember = std::make_shared<DetectionInstability>(topology);
+
+    Species speciesA;
+    speciesA.addSolution(migrating);
+    speciesA.addSolution(otherMember);
+    speciesA.setRepresentative(migrating);
+
+    Species speciesB;
+    speciesA.removeSolution(migrating); // migrating leaves A for B, as assignToSpecies() does
+    speciesB.addSolution(migrating);
+    speciesB.setRepresentative(migrating);
+
+    const auto repA = speciesA.getRepresentative();
+    const auto repB = speciesB.getRepresentative();
+    REQUIRE(repA != repB);
+}
