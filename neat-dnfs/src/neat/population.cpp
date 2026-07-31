@@ -332,6 +332,8 @@ namespace neat_dnfs
 		// best fitness
 		perGenStatistics.bestFitness = bestSolution->getFitness();
 		bestFitnessHistory.push_back(perGenStatistics.bestFitness);
+		bestSolutionIdHistory.push_back(bestSolution->getId());
+		bestSolutionGenomeHistory.push_back(bestSolution->getGenome());
 
 		// number of species
 		perGenStatistics.numberOfSpecies = static_cast<int>(speciesList.size());

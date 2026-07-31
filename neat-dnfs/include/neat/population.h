@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include "genome.h"
 #include "solution.h"
 #include "species.h"
 
@@ -136,6 +137,8 @@ namespace neat_dnfs
 		double previousBestFitness = 0.0;
 		SolutionPtr previousBestSolution;
 		std::vector<double> bestFitnessHistory;
+		std::vector<int> bestSolutionIdHistory;
+		std::vector<Genome> bestSolutionGenomeHistory;
 		std::unique_ptr<PopulationFileManager> fileManager;
 		ValidationReport validationReport;
 		ValidationPolicy validationPolicy = defaultValidationPolicy;
@@ -164,6 +167,8 @@ namespace neat_dnfs
 		[[nodiscard]] int getNumGenerations() const { return parameters.numGenerations; }
 		[[nodiscard]] bool isInitialized() const { return !solutions.empty(); }
 		[[nodiscard]] const std::vector<double>& getBestFitnessHistory() const { return bestFitnessHistory; }
+		[[nodiscard]] const std::vector<int>& getBestSolutionIdHistory() const { return bestSolutionIdHistory; }
+		[[nodiscard]] const std::vector<Genome>& getBestSolutionGenomeHistory() const { return bestSolutionGenomeHistory; }
 
 		[[nodiscard]] const ValidationReport& getValidationReport() const { return validationReport; }
 		void setValidationPolicy(ValidationPolicy policy) { validationPolicy = policy; }
