@@ -780,6 +780,12 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+
+		if (neuralField == nullptr)
+		{
+			return 0.0;
+		}
+
 		const double highestActivation = neuralField->getHighestActivation();
 
 		// If activation is below 0, return maximum fitness of 1.0
@@ -852,6 +858,11 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
 
+		if (neuralField == nullptr)
+		{
+			return 0.0;
+		}
+
 		static constexpr double wBumps  = 0.55;
 		static constexpr double wPos    = 0.35;
 		static constexpr double wAmp    = 0.05;
@@ -915,6 +926,12 @@ namespace neat_dnfs
 
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+
+		if (neuralField == nullptr)
+		{
+			return fitness;
+		}
+
 		const auto& bumps = neuralField->getBumps();
 		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
 		if (numberOfBumps == 0)
@@ -960,6 +977,12 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+
+		if (neuralField == nullptr)
+		{
+			return fitness;
+		}
+
 		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
 		fitness += weightBumps / (1.0 + std::abs(targetNumberOfBumps - numberOfBumps));
 
@@ -1009,6 +1032,12 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+
+		if (neuralField == nullptr)
+		{
+			return fitness;
+		}
+
 		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
 		fitness += weightBumps / (1.0 + std::abs(targetNumberOfBumps - numberOfBumps));
 
@@ -1097,6 +1126,11 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		const auto nf = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
 
+		if (nf == nullptr)
+		{
+			return 0.0;
+		}
+
 		const int idx = static_cast<int>(position / nf->getElementCommonParameters().dimensionParameters.d_x);
 		const double u = nf->getComponent("activation")[idx];
 		const double h = nf->getParameters().startingRestingLevel;
@@ -1126,6 +1160,11 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+
+		if (neuralField == nullptr)
+		{
+			return 0.0;
+		}
 
 		const int pos = static_cast<int>(position/neuralField->getElementCommonParameters().dimensionParameters.d_x);
 		const double u_pos = neuralField->getComponent("activation")[pos];
@@ -1210,6 +1249,12 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer::element;
 		const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
+
+		if (neuralField == nullptr)
+		{
+			return 0.0;
+		}
+
 		const double startingRestingLevel = neuralField->getParameters().startingRestingLevel;
 		const double maxActivation = neuralField->getHighestActivation();
 
