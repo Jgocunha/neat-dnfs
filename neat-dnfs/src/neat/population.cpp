@@ -723,6 +723,44 @@ namespace neat_dnfs
 			const auto speciesSolutions = species->getMembers();
 			solutions.insert(solutions.end(), speciesSolutions.begin(), speciesSolutions.end());
 		}
+
+		preserveGlobalBestSolution();
+	}
+
+	void Population::preserveGlobalBestSolution()
+	{
+		if (!PopulationConstants::elitism || previousBestSolution == nullptr)
+		{
+			return;
+		}
+		if (std::ranges::find(solutions, previousBestSolution) != solutions.end())
+		{
+			return; // already survived reproduction on its own
+		}
+
+		// Find and evict the current worst solution to make room, keeping
+		// solutions.size() == parameters.size (validatePopulationSize enforces this).
+		auto worstIt = std::ranges::min_element(solutions,
+			[](const SolutionPtr& a, const SolutionPtr& b) { return a->getFitness() < b->getFitness(); });
+		if (worstIt == solutions.end())
+		{
+			return;
+		}
+		const SolutionPtr worst = *worstIt;
+
+		const auto worstSpecies = findSpecies(worst);
+		if (worstSpecies != nullptr)
+		{
+			worstSpecies->removeSolution(worst);
+		}
+		solutions.erase(worstIt);
+
+		// Route through the same compatibility-based placement every other
+		// solution uses -- never insert into a species by positional
+		// convenience, since that would corrupt that species' genetic
+		// coherence and its adjusted-fitness-based offspring allocation.
+		solutions.push_back(previousBestSolution);
+		assignToSpecies(previousBestSolution);
 	}
 
 	void Population::mutate()

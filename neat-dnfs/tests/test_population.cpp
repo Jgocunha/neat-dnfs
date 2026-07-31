@@ -105,6 +105,29 @@ TEST_CASE("Population::evolve - best solution fitness is monotonically non-decre
         REQUIRE(solution->getFitness() <= best->getFitness() + 1e-9);
 }
 
+// Regression test for missing global elitism: bestSolution was recomputed
+// from scratch each generation with nothing guaranteeing the previous best
+// genome survived reproduction, so the recorded best fitness could and did
+// decrease across generations (observed drops up to ~13% relative). A larger
+// population with more generations gives speciation more room to fragment,
+// which is when the bug was empirically observed to manifest.
+TEST_CASE("Population::evolve - best fitness history never decreases across generations", "[Population]")
+{
+    const PopulationParameters parameters(50, 15, 1.1); // target > 1.0 forces full run
+    const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    Population population(parameters, initialSolution, false);
+    population.initialize();
+    population.evolve();
+
+    const auto& history = population.getBestFitnessHistory();
+    REQUIRE(history.size() > 1);
+    for (size_t i = 1; i < history.size(); ++i)
+    {
+        INFO("generation " << i << ": " << history[i - 1] << " -> " << history[i]);
+        CHECK(history[i] >= history[i - 1] - PopulationConstants::elitismFitnessEpsilon);
+    }
+}
+
 TEST_CASE("Population::evolve - speciation produces at least one species", "[Population]")
 {
     const PopulationParameters parameters(20, 2, 1.1);

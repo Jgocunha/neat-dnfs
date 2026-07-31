@@ -211,6 +211,7 @@ namespace neat_dnfs
 
 		void pruneWorsePreformingSolutions() const;
 		void replaceEntirePopulationWithOffspring();
+		void preserveGlobalBestSolution();
 		void mutate();
 
 		void upkeepBestSolution();

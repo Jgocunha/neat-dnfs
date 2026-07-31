@@ -216,10 +216,11 @@ namespace neat_dnfs
 		static constexpr int generationsWithoutImprovementThresholdInPopulation = 10;
 		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 7;
 		static constexpr bool elitism											= true;
-		// Tolerance for the elitism validation check: re-evaluating the same champion
-		// solution can yield a fitness that differs slightly, which would otherwise
-		// look like a fitness decrease.
-		static constexpr double elitismFitnessEpsilon							= 5e-3;
+		// Tolerance for the elitism validation check. The DNF simulation is
+		// stochastic (see NoiseConstants::amplitude), so re-evaluating the same
+		// preserved elite yields a fitness that drifts slightly rather than being
+		// bit-identical; this covers that drift without masking a real regression.
+		static constexpr double elitismFitnessEpsilon							= 2e-3;
 
 		static constexpr bool logSolutions				= false;
 		static constexpr bool logOverview				= true;
