@@ -122,20 +122,16 @@ TEST_CASE("DelayedMatchToSample contract", "[Solutions][DelayedMatchToSample]")
     checkSolutionContract<DelayedMatchToSample>(makeTopology(1, 1));
 }
 
-// KNOWN BUG (issue #47): DelayedMatchToSample::testPhenotype() hardcodes a
-// second stimulus position of 100.0 (src/solutions/delayed_match_to_sample.cpp:73)
-// against a field of DimensionConstants::xSize == 100. Position 100 is out of
-// the valid [0, size) range for a 100-element field, so evaluate() always
-// throws dnf_composer::Exception regardless of genome/topology. This is not a
-// test setup issue -- it reproduces unconditionally on an unmutated solution.
-// Update this test once #47 is fixed.
-TEST_CASE("DelayedMatchToSample evaluate throws due to an out-of-range stimulus position (known bug)", "[Solutions][DelayedMatchToSample]")
+TEST_CASE("DelayedMatchToSample evaluate produces a bounded fitness", "[Solutions][DelayedMatchToSample]")
 {
     resetGlobalState();
     DelayedMatchToSample solution(makeTopology(1, 1));
     solution.initialize();
 
-    REQUIRE_THROWS_AS(solution.evaluate(), dnf_composer::Exception);
+    REQUIRE_NOTHROW(solution.evaluate());
+    REQUIRE(solution.getFitness() >= 0.0);
+    REQUIRE(solution.getFitness() <= 1.0);
+    REQUIRE(solution.getParameters().partialFitness.size() == 6);
 }
 
 TEST_CASE("InhibitionOfReturn contract", "[Solutions][InhibitionOfReturn]")
