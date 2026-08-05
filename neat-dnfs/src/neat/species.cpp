@@ -186,7 +186,8 @@ namespace neat_dnfs
 	void Species::pruneWorsePerformingMembers(double ratio)
 	{
 		sortMembersByFitness();
-		for (size_t i = 0; i < static_cast<size_t>(static_cast<double>(members.size()) * ratio); ++i)
+		const size_t toRemove = static_cast<size_t>(static_cast<double>(members.size()) * ratio);
+		for (size_t i = 0; i < toRemove && !members.empty(); ++i)
 		{
 			members.pop_back();
 		}
