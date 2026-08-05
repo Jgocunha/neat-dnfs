@@ -1,7 +1,8 @@
 #pragma once
 
 #include "genome.h"
-#include <format> 
+#include <format>
+#include <optional>
 
 namespace neat_dnfs
 {
@@ -142,7 +143,26 @@ namespace neat_dnfs
 		/// std::invalid_argument if it doesn't exist or isn't a NeuralField --
 		/// fitness helpers are always called with field names from the
 		/// solution's own topology, so a miss means a genuine configuration bug.
+		/// @param fieldName   Unique name of the phenotype element to look up.
+		/// @param callerName  Name of the calling fitness helper, included in the
+		///                    exception message to identify which computation failed.
+		/// @return The field, guaranteed non-null.
+		/// @throws std::invalid_argument if no element named @p fieldName exists in
+		///         the phenotype, or if it exists but isn't a NeuralField.
 		std::shared_ptr<dnf_composer::element::NeuralField> getNeuralFieldOrThrow(const std::string& fieldName, const std::string& callerName) const;
+
+		/// @brief Finds the bump in @p candidates closest to @p targetPosition and
+		/// removes it from @p candidates.
+		/// @details Used by the multi-bump fitness helpers to match target positions
+		/// to bumps injectively: once a bump is matched to one target slot, it is no
+		/// longer available to be matched -- and credited -- against another target
+		/// slot (see issue #53).
+		/// @param candidates      Pool of not-yet-matched bumps; the matched bump, if
+		///                        any, is erased from this vector.
+		/// @param targetPosition  Spatial position to match against.
+		/// @return The matched bump, or std::nullopt if @p candidates was empty.
+		static std::optional<dnf_composer::element::NeuralFieldBump> matchClosestBump(
+			std::vector<dnf_composer::element::NeuralFieldBump>& candidates, double targetPosition);
 
 	protected:
 		/// @brief Run the simulation and write the result into @c parameters.fitness. Called by @c evaluate().
