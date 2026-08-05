@@ -147,6 +147,26 @@ TEST_CASE("Species::pruneWorsePerformingMembers", "[Species]")
     REQUIRE(species.size() > 0);
 }
 
+TEST_CASE("Species::pruneWorsePerformingMembers removes exactly ratio * size members", "[Species]")
+{
+    Species species;
+    for (int i = 0; i < 10; ++i)
+    {
+        auto sol = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+        sol->initialize();
+        sol->evaluate();
+        species.addSolution(sol);
+    }
+
+    REQUIRE(species.size() == 10);
+
+    species.pruneWorsePerformingMembers(0.8);
+
+    // 10 members pruned at ratio 0.8 must leave exactly 2, not
+    // floor(10 * 0.8 / (1 + 0.8)) = 4 as a shrinking-size-during-loop bug would produce.
+    REQUIRE(species.size() == 2);
+}
+
 TEST_CASE("Species::replaceMembersWithOffspring", "[Species]")
 {
     Species species;
