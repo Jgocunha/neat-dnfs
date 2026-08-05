@@ -151,6 +151,18 @@ namespace neat_dnfs
 		///         the phenotype, or if it exists but isn't a NeuralField.
 		std::shared_ptr<dnf_composer::element::NeuralField> getNeuralFieldOrThrow(const std::string& fieldName, const std::string& callerName) const;
 
+		/// @brief Converts a spatial position into a valid index into @p neuralField's
+		/// component vectors (e.g. "activation"), clamping to the field's sample range.
+		/// @details Positions passed to fitness helpers come from genome-derived
+		/// stimulus parameters and task definitions, and can legitimately fall on or
+		/// beyond a field's upper spatial bound (e.g. position == field size * d_x,
+		/// the field's own extent). Clamping keeps component lookups well-defined at
+		/// that boundary instead of indexing past the end of the underlying buffer.
+		/// @param neuralField  Field whose spatial resolution (d_x) and sample count bound the index.
+		/// @param position     Spatial position to convert.
+		/// @return An index in [0, neuralField->getSize() - 1].
+		static int clampedIndexForPosition(const std::shared_ptr<dnf_composer::element::NeuralField>& neuralField, double position);
+
 		/// @brief Finds the bump in @p candidates closest to @p targetPosition and
 		/// removes it from @p candidates.
 		/// @details Used by the multi-bump fitness helpers to match target positions

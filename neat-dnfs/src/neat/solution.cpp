@@ -789,6 +789,14 @@ namespace neat_dnfs
 		return neuralField;
 	}
 
+	int Solution::clampedIndexForPosition(const std::shared_ptr<dnf_composer::element::NeuralField>& neuralField, const double position)
+	{
+		const double d_x = neuralField->getElementCommonParameters().dimensionParameters.d_x;
+		const int rawIndex = static_cast<int>(position / d_x);
+		const int lastValidIndex = neuralField->getSize() - 1;
+		return std::clamp(rawIndex, 0, lastValidIndex);
+	}
+
 	std::optional<dnf_composer::element::NeuralFieldBump> Solution::matchClosestBump(
 		std::vector<dnf_composer::element::NeuralFieldBump>& candidates, const double targetPosition)
 	{
@@ -1136,7 +1144,7 @@ namespace neat_dnfs
 	{
 		const auto nf = getNeuralFieldOrThrow(fieldName, "preShapednessAtPosition");
 
-		const int idx = static_cast<int>(position / nf->getElementCommonParameters().dimensionParameters.d_x);
+		const int idx = clampedIndexForPosition(nf, position);
 		const double u = nf->getComponent("activation")[idx];
 		const double h = nf->getParameters().startingRestingLevel;
 		const double u_tar =  h / 2.0;
@@ -1165,7 +1173,7 @@ namespace neat_dnfs
 	{
 		const auto neuralField = getNeuralFieldOrThrow(fieldName, "negativePreShapednessAtPosition");
 
-		const int pos = static_cast<int>(position/neuralField->getElementCommonParameters().dimensionParameters.d_x);
+		const int pos = clampedIndexForPosition(neuralField, position);
 		const double u_pos = neuralField->getComponent("activation")[pos];
 
 		// activation of field at position should be lower than the resting level
