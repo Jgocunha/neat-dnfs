@@ -2,6 +2,7 @@
 
 #include "neat/population_file_manager.h"
 #include <algorithm>
+#include <cassert>
 #include <format>
 #include <atomic>
 #include <thread>
@@ -321,6 +322,18 @@ namespace neat_dnfs
 
 	void Population::upkeepPerGenerationStatistics()
 	{
+		// A Population constructed with parameters.size == 0 (nothing rejects
+		// that) leaves `solutions` empty; upkeepBestSolution(), which always
+		// runs immediately before this in upkeep(), only ever assigns
+		// bestSolution from `solutions`, so bestSolution is null in exactly
+		// that same case. Guard both here: the averages below would otherwise
+		// divide by zero, and bestSolution->getFitness() would dereference a
+		// null pointer.
+		if (solutions.empty())
+		{
+			return;
+		}
+
 		// average fitness
 		perGenStatistics.averageFitness = 0.0F;
 		for (const auto& solution : solutions)
@@ -488,6 +501,16 @@ namespace neat_dnfs
 		for (const auto& solution : solutions)
 		{
 			const std::shared_ptr<Species> species = findSpecies(solution);
+			// Invariant: calculateAdjustedFitness() only runs from speciate(),
+			// right after its loop has called assignToSpecies(solution) for
+			// every solution in `solutions` -- placing each one into either an
+			// existing compatible species or a brand-new one. The empty-species
+			// extinguish pass that follows only removes species with zero
+			// members, never the one that was just given this solution, so
+			// findSpecies() cannot return nullptr here. A null result would
+			// mean that invariant was broken elsewhere, not that this is a
+			// normal, recoverable state.
+			assert(species != nullptr && "solution must belong to a species when adjusted fitness is calculated");
 			const size_t speciesSize = species->size();
 			const double adjustedFitness = solution->getFitness() / static_cast<double>(speciesSize);
 			if (std::isnan (adjustedFitness))
@@ -1022,7 +1045,13 @@ namespace neat_dnfs
 
 	void Population::resetGenerationalInnovations() const
 	{
-		bestSolution->clearGenerationalInnovations();
+		// clearGenerationalInnovations() clears static, per-generation
+		// innovation bookkeeping shared by every Genome -- it is not instance
+		// data, so it belongs on the class, not routed through bestSolution
+		// (which can be null, e.g. for an empty population). Calling a static
+		// method through an instance pointer is misleading regardless of
+		// nullness, so this always goes through the class directly now.
+		Genome::clearGenerationalInnovations();
 	}
 
 	void Population::clearLastMutations() const
