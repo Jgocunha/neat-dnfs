@@ -394,14 +394,30 @@ namespace neat_dnfs
 			return { 0, 0 };
 		}
 
+		// Bounded retry: if the only {HIDDEN, OUTPUT} candidate happens to be
+		// geneIndex1 itself, the draw below would keep returning geneIndex1
+		// forever. Cap the attempts and fall back to the sentinel instead of
+		// spinning indefinitely (see issue #57).
+		constexpr int maxGeneIndex2Attempts = 8;
 		int geneIndex2 = -1;
-		do {
+		bool foundDistinctGeneIndex2 = false;
+		for (int attempt = 0; attempt < maxGeneIndex2Attempts; ++attempt)
+		{
 			geneIndex2 = getRandomGeneIdByTypes({ FieldGeneType::HIDDEN, FieldGeneType::OUTPUT });
 			if (geneIndex2 == -1)
 			{
 				return { 0, 0 };
 			}
-		} while (geneIndex2 == geneIndex1);
+			if (geneIndex2 != geneIndex1)
+			{
+				foundDistinctGeneIndex2 = true;
+				break;
+			}
+		}
+		if (!foundDistinctGeneIndex2)
+		{
+			return { 0, 0 };
+		}
 
 		if (std::ranges::find_if(connectionGenes, [geneIndex1, geneIndex2](const ConnectionGene& connectionGene)
 			{
