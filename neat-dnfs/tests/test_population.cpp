@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <cmath>
 #include <thread>
 #include <set>
 
@@ -179,6 +180,41 @@ TEST_CASE("Population::evolve - speciation produces at least one species", "[Pop
     Population population(parameters, initialSolution, false);
     population.initialize();
     population.evolve();
+
+    REQUIRE(!population.getSpeciesList().empty());
+}
+
+// Regression test for issue #58 (null-pointer and empty-container hazards in
+// Population): calculateAdjustedFitness(), resetGenerationalInnovations(),
+// and upkeepPerGenerationStatistics() all run every generation of evolve().
+// This pins down that their corrected forms -- an asserted (not dereferenced
+// without checking) species lookup, a static Genome::clearGenerationalInnovations()
+// call instead of one routed through the possibly-null bestSolution instance
+// pointer, and a guarded per-generation statistics pass -- keep producing
+// sane, non-NaN statistics with a history entry per generation actually run.
+//
+// A population constructed with size 0 would exercise the empty/null branch
+// of these three sites directly, but doing so crashes on an unrelated,
+// pre-existing, unguarded null dereference in
+// Population::hasFitnessImprovedOverTheLastGenerations() (it unconditionally
+// calls bestSolution->getFitness()), which runs later in the same evolve()
+// iteration and is out of scope for this issue. So the empty/null path for
+// these three hazards cannot be driven through the public API without also
+// tripping that separate bug; this test instead locks down the normal
+// (non-empty) path that these fixes must not regress.
+TEST_CASE("Population::evolve - per-generation statistics stay finite and history matches generations run", "[Population]")
+{
+    const PopulationParameters parameters(30, 10, 1.1); // target > 1.0 forces a full run
+    const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    Population population(parameters, initialSolution, false);
+    population.initialize();
+
+    REQUIRE_NOTHROW(population.evolve());
+
+    const auto& fitnessHistory = population.getBestFitnessHistory();
+    REQUIRE(fitnessHistory.size() == static_cast<size_t>(population.getCurrentGeneration()));
+    for (const double fitness : fitnessHistory)
+        REQUIRE_FALSE(std::isnan(fitness));
 
     REQUIRE(!population.getSpeciesList().empty());
 }
