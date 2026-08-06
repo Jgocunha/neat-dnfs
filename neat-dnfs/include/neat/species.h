@@ -63,6 +63,9 @@ namespace neat_dnfs
         [[nodiscard]] bool isCompatible(const SolutionPtr& solution) const;
         [[nodiscard]] bool contains(const SolutionPtr& solution) const;
         void sortMembersByFitness();
+        /// @brief Sorts members by fitness and removes the floor(size() * ratio) worst-performing members.
+        /// Reassigns the representative if it was among those removed.
+        /// @param ratio Fraction of the current membership to remove, in [0, 1].
         void pruneWorsePerformingMembers(double ratio);
     	void crossover();
         void replaceMembersWithOffspring();

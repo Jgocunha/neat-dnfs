@@ -186,9 +186,19 @@ namespace neat_dnfs
 	void Species::pruneWorsePerformingMembers(double ratio)
 	{
 		sortMembersByFitness();
-		for (size_t i = 0; i < static_cast<size_t>(static_cast<double>(members.size()) * ratio); ++i)
+		const auto toRemove = static_cast<size_t>(static_cast<double>(members.size()) * ratio);
+		for (size_t i = 0; i < toRemove && !members.empty(); ++i)
 		{
 			members.pop_back();
+		}
+		// A pruned representative must not linger: isCompatible() would keep
+		// measuring genetic distance against a solution this species no longer
+		// holds. randomlyAssignRepresentative() no-ops on an empty members list,
+		// so clear explicitly first to cover a full prune.
+		if (representative != nullptr && !contains(representative))
+		{
+			representative = nullptr;
+			randomlyAssignRepresentative();
 		}
 	}
  
