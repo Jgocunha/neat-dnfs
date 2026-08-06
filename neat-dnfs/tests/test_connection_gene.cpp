@@ -213,14 +213,22 @@ TEST_CASE("ConnectionGene Gauss kernel amplitude mutation preserves inhibitory m
 
         connectionGene.mutate();
 
+        // mutate() picks one of three branches; only the Gauss amplitude *step*
+        // is what this regression pins down. mutateKernelType() re-rolls the
+        // kernel independently and can land on Gauss again with a fresh random
+        // amplitude -- still negative, still != startingAmplitude -- so a value
+        // heuristic cannot tell the two apart. Filter on the recorded mutation.
+        // "(cg gk amp. glob. ...)" (the separate amplitudeGlobal mutation) is a
+        // superstring of the "(cg gk amp. " tag, so it must be excluded explicitly.
+        const std::string mutations = connectionGene.getMutationsInLastGeneration();
+        if (mutations.find("(cg gk amp. ") == std::string::npos ||
+            mutations.find("(cg gk amp. glob. ") != std::string::npos)
+            continue;
+
         const auto kernel = std::dynamic_pointer_cast<GaussKernel>(connectionGene.getKernel());
-        if (!kernel)
-            continue; // kernel type mutated away from Gauss this trial
+        REQUIRE(kernel != nullptr);
 
         const double newAmplitude = kernel->getParameters().amplitude;
-        if (newAmplitude == startingAmplitude || newAmplitude >= 0.0)
-            continue; // amplitude untouched this trial, or a sign-flip mutation occurred
-
         foundMutatedAmplitude = true;
 
         REQUIRE(newAmplitude <= -GaussKernelConstants::ampMinVal);
@@ -246,14 +254,19 @@ TEST_CASE("ConnectionGene Mexican hat kernel amplitudeExc mutation preserves inh
 
         connectionGene.mutate();
 
+        // mutate() picks one of three branches; only the MexicanHat amplitudeExc
+        // *step* is what this regression pins down. mutateKernelType() re-rolls
+        // the kernel independently and can land on MexicanHat again with a fresh
+        // random amplitudeExc -- still negative, still != startingAmplitudeExc --
+        // so a value heuristic cannot tell the two apart. Filter on the recorded
+        // mutation.
+        if (connectionGene.getMutationsInLastGeneration().find("(cg mhk amp. exc. ") == std::string::npos)
+            continue;
+
         const auto kernel = std::dynamic_pointer_cast<MexicanHatKernel>(connectionGene.getKernel());
-        if (!kernel)
-            continue; // kernel type mutated away from MexicanHat this trial
+        REQUIRE(kernel != nullptr);
 
         const double newAmplitudeExc = kernel->getParameters().amplitudeExc;
-        if (newAmplitudeExc == startingAmplitudeExc || newAmplitudeExc >= 0.0)
-            continue; // amplitudeExc untouched this trial, or a sign-flip mutation occurred
-
         foundMutatedAmplitude = true;
 
         REQUIRE(newAmplitudeExc <= -MexicanHatKernelConstants::ampExcMinVal);
