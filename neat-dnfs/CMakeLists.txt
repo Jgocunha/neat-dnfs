@@ -255,6 +255,7 @@ add_executable(${TEST_PROJECT}
     "tests/test_population.cpp"
     "tests/test_population_file_manager.cpp"
     "tests/test_speciation.cpp"
+    "tests/test_key_listener.cpp"
     "tests/test_evolution_helpers.h"
     "tests/solutions/evol_detection_instability.cpp"
     "tests/solutions/evol_memory_instability.cpp"
