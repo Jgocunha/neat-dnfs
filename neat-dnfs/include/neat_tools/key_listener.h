@@ -33,10 +33,10 @@ namespace neat_dnfs
 / / /    / / // / /_______\/ / /_       __\ \_\/_/ /                 \ \___\/ // / /    / / // / /      \ \/___/ /
 \/_/     \/_/ \/__________/\_\___\     /____/_/\_\/                   \/_____/ \/_/     \/_/ \/_/        \_____\/
 
-)"			<< std::endl;
-			std::cout << "Press 's' and 'Enter' to stop the current run." << std::endl;
-			std::cout << "Press 'p' and 'Enter' to pause the current run." << std::endl;
-			std::cout << "Press 'r' and 'Enter' to resume the current run." << std::endl << std::endl;
+)"			<< '\n';
+			std::cout << "Press 's' and 'Enter' to stop the current run." << '\n';
+			std::cout << "Press 'p' and 'Enter' to pause the current run." << '\n';
+			std::cout << "Press 'r' and 'Enter' to resume the current run." << "\n\n" << std::flush;
 
 			worker = std::thread([this]() {
 				while (!done)

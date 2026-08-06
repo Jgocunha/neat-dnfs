@@ -26,6 +26,32 @@ TEST_CASE("Population::initialize", "[Population]")
         REQUIRE(!solution->getGenome().getFieldGenes().empty());
 }
 
+// Regression test for issue #66: ~Population used to reset the process-global
+// Species/Genome/Solution id and innovation counters, so destroying one
+// Population corrupted the numbering of anything else still alive (or
+// constructed afterwards). Population::resetGlobalCounters() now exists as
+// an explicit opt-in, and destruction alone must not touch that state.
+TEST_CASE("Population::~Population does not reset global Solution/Species/Genome counters", "[Population]")
+{
+    resetGlobalState();
+
+    const PopulationParameters parameters(5, 1, 0.99);
+    const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    // Constructing initialSolution consumed Solution id 0.
+
+    {
+        const Population population(parameters, initialSolution);
+        // Population's constructor eagerly clones parameters.size solutions,
+        // consuming ids 1..parameters.size.
+        REQUIRE(population.getSolutions().size() == static_cast<size_t>(parameters.size));
+    } // ~Population runs here.
+
+    // A Solution constructed after ~Population must continue the global id
+    // sequence rather than restart at 0.
+    const auto nextSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    REQUIRE(nextSolution->getId() == parameters.size + 1);
+}
+
 TEST_CASE("Population::isInitialized", "[Population]")
 {
     const PopulationParameters parameters(10, 5, 0.9);

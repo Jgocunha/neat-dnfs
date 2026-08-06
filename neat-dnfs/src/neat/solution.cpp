@@ -871,7 +871,7 @@ namespace neat_dnfs
 
 		} while (it < maxIterations);
 
-		return 0.0F;
+		return 0.0;
 	}
 
 	double Solution::iterationsUntilNoBump(const std::string& fieldName, const double targetIterations, const double maxIterations, const double tolerance)
@@ -896,7 +896,7 @@ namespace neat_dnfs
 
 		} while (it < maxIterations);
 
-		return 0.0F;
+		return 0.0;
 	}
 
 	double Solution::justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName, const std::vector<double>& positions, const double& amplitude, const double& width) const

@@ -1,11 +1,19 @@
 #pragma once
 
+// <windows.h> (pulled in transitively via deps on this platform) leaks the
+// max/min/ERROR macros, which collide with std::max/std::min calls in this
+// header and with LogLevel::ERROR elsewhere in the codebase. Undefine them
+// defensively wherever this header may be the first to include windows.h.
 #ifdef max
 #undef max
 #endif
 
 #ifdef min
 #undef min
+#endif
+
+#ifdef ERROR
+#undef ERROR
 #endif
 
 #include <iostream>

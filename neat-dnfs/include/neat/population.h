@@ -101,16 +101,16 @@ namespace neat_dnfs
 	/// @brief Per-generation snapshot of population health metrics.
 	struct PerGenerationStatistics
 	{
-		double averageFitness = 0.0F;
-		// double stdDevFitness = 0.0f;
-		double bestFitness = 0.0F;
+		double averageFitness = 0.0;
+		// double stdDevFitness = 0.0;
+		double bestFitness = 0.0;
 		int numberOfSpecies = 0;
 		int numberOfActiveSpecies = 0;
 		// double averageCompatibilityDistance;
 		int innovationNumber = 0;
-		double averageGenomeSize = 0.0F;
-		double averageConnectionGenes = 0.0F;
-		double averageFieldGenes = 0.0F;
+		double averageGenomeSize = 0.0;
+		double averageConnectionGenes = 0.0;
+		double averageFieldGenes = 0.0;
 
 		PerGenerationStatistics() = default;
 	};
@@ -155,6 +155,18 @@ namespace neat_dnfs
 		Population(Population&& other) = delete;
 		Population& operator=(const Population& other) = delete;
 		Population& operator=(Population&& other) = delete;
+
+		/// @brief Resets the process-global Species/Genome/Solution id and innovation
+		/// counters to zero.
+		/// @details These counters are static state shared by every Species, Genome,
+		/// and Solution in the process, not per-Population data -- resetting them
+		/// while another Population (or any Solution/Genome/Species it owns) is still
+		/// alive will renumber new instances into ids already in use by that survivor.
+		/// Call this only when no such survivor exists, e.g. between fully independent
+		/// runs in the same process, or from test setup. Never called automatically by
+		/// Population itself (in particular, not from the destructor -- destroying one
+		/// Population must not corrupt another's numbering).
+		static void resetGlobalCounters();
 
 		void initialize() const;
 		void evolve();
