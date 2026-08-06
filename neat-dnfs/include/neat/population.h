@@ -102,11 +102,9 @@ namespace neat_dnfs
 	struct PerGenerationStatistics
 	{
 		double averageFitness = 0.0F;
-		// double stdDevFitness = 0.0f;
 		double bestFitness = 0.0F;
 		int numberOfSpecies = 0;
 		int numberOfActiveSpecies = 0;
-		// double averageCompatibilityDistance;
 		int innovationNumber = 0;
 		double averageGenomeSize = 0.0F;
 		double averageConnectionGenes = 0.0F;
