@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <chrono>
 #include <thread>
 #include <vector>
 #include <algorithm>
@@ -359,6 +360,47 @@ TEST_CASE("Genome::clearLastMutations empties getMutationsInLastGeneration", "[G
     genome.clearLastMutations();
 
     REQUIRE(genome.getMutationsInLastGeneration().empty());
+}
+
+// Regression test for issue #57: getNewRandomConnectionGeneTuple's
+// do/while retry loop drew geneIndex2 from {HIDDEN, OUTPUT} and only exited
+// early on a -1 sentinel, then looped `while (geneIndex2 == geneIndex1)`.
+// If the ONLY {HIDDEN, OUTPUT} candidate is the very gene already chosen as
+// geneIndex1, geneIndex2 is never -1 and never differs from geneIndex1, so
+// the loop spun forever.
+//
+// Topology below (1 INPUT + 1 HIDDEN, 0 OUTPUT) forces exactly that:
+//   - geneIndex1 pool {HIDDEN, INPUT} = {INPUT, HIDDEN}
+//   - geneIndex2 pool {HIDDEN, OUTPUT} = {HIDDEN} only
+// Whenever geneIndex1's random draw lands on the HIDDEN gene, geneIndex2's
+// only possible draw is that same HIDDEN gene, hitting the hazard on every
+// retry attempt. getNewRandomConnectionGeneTuple() is private, so this is
+// exercised indirectly through the public mutate() -> addConnectionGene()
+// path; addConnectionGeneProbability (0.15) combined with the ~50% chance
+// per attempt of drawing the HIDDEN gene as geneIndex1 makes it
+// overwhelmingly likely (>99.9999%) that 300 mutate() calls hit the hazard
+// at least once. Pre-fix this hangs the loop indefinitely; post-fix the
+// bounded retry returns the {0,0} sentinel promptly, so this test's real
+// assertion is that the whole loop completes quickly.
+TEST_CASE("Genome::mutate does not hang when the only HIDDEN/OUTPUT gene coincides with geneIndex1", "[Genome]")
+{
+    resetGlobalState();
+    Genome genome;
+    genome.addInputGene(kDim);
+    genome.addHiddenGene(FieldGene({ FieldGeneType::HIDDEN, 2 }));
+
+    const auto start = std::chrono::steady_clock::now();
+    constexpr int attempts = 300;
+    for (int i = 0; i < attempts; ++i)
+    {
+        REQUIRE_NOTHROW(genome.mutate());
+    }
+    const auto elapsed = std::chrono::steady_clock::now() - start;
+
+    // A bounded retry resolves in microseconds; an unbounded spin would never
+    // reach this line at all, so any comfortably-small bound here is a valid
+    // "did not hang" proxy.
+    REQUIRE(elapsed < std::chrono::seconds(2));
 }
 
 TEST_CASE("Genome::mutate over many iterations always produces valid gene ids", "[Genome]")
