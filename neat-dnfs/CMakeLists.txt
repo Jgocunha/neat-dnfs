@@ -265,7 +265,7 @@ add_executable(${TEST_PROJECT}
     "tests/solutions/evol_xor.cpp"
 )
 target_include_directories(${TEST_PROJECT} PRIVATE include tests)
-target_link_libraries(${TEST_PROJECT} PRIVATE Catch2::Catch2 Catch2::Catch2WithMain imgui-platform-kit  dynamic-neural-field-composer ${CMAKE_PROJECT_NAME})
+target_link_libraries(${TEST_PROJECT} PRIVATE Catch2::Catch2WithMain imgui-platform-kit  dynamic-neural-field-composer ${CMAKE_PROJECT_NAME})
 # Automatically discover and add tests, split into a fast default lane and a
 # slow lane (the [Evolution] tier runs real Population::evolve() at
 # populationSize=50/numGenerations=10/numRuns=5 per solution -- tens of
