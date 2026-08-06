@@ -191,6 +191,15 @@ namespace neat_dnfs
 		{
 			members.pop_back();
 		}
+		// A pruned representative must not linger: isCompatible() would keep
+		// measuring genetic distance against a solution this species no longer
+		// holds. randomlyAssignRepresentative() no-ops on an empty members list,
+		// so clear explicitly first to cover a full prune.
+		if (representative != nullptr && !contains(representative))
+		{
+			representative = nullptr;
+			randomlyAssignRepresentative();
+		}
 	}
  
 	void Species::crossover()

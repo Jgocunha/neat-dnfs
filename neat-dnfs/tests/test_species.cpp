@@ -167,6 +167,52 @@ TEST_CASE("Species::pruneWorsePerformingMembers removes exactly ratio * size mem
     REQUIRE(species.size() == 2);
 }
 
+TEST_CASE("Species::pruneWorsePerformingMembers reassigns a pruned representative", "[Species]")
+{
+    // FixedFitnessSolution makes the worst member deterministic, so the test can
+    // point the representative at a solution it knows pruning will remove.
+    Species species;
+    const auto worst = std::make_shared<FixedFitnessSolution>(makeTopology(1, 1), 0.1);
+    const auto best = std::make_shared<FixedFitnessSolution>(makeTopology(1, 1), 0.9);
+    worst->initialize();
+    best->initialize();
+    worst->evaluate();
+    best->evaluate();
+
+    species.addSolution(worst);
+    species.addSolution(best);
+    species.setRepresentative(worst);
+
+    species.pruneWorsePerformingMembers(0.5);
+
+    // The representative was pruned, so it must not survive as a stale pointer;
+    // isCompatible() would otherwise measure against a non-member.
+    const auto members = species.getMembers();
+    REQUIRE(members.size() == 1);
+    REQUIRE(members[0] == best);
+    REQUIRE(species.getRepresentative() == best);
+}
+
+TEST_CASE("Species::pruneWorsePerformingMembers keeps a surviving representative", "[Species]")
+{
+    Species species;
+    const auto worst = std::make_shared<FixedFitnessSolution>(makeTopology(1, 1), 0.1);
+    const auto best = std::make_shared<FixedFitnessSolution>(makeTopology(1, 1), 0.9);
+    worst->initialize();
+    best->initialize();
+    worst->evaluate();
+    best->evaluate();
+
+    species.addSolution(worst);
+    species.addSolution(best);
+    species.setRepresentative(best);
+
+    species.pruneWorsePerformingMembers(0.5);
+
+    // A representative that survived pruning must be left untouched.
+    REQUIRE(species.getRepresentative() == best);
+}
+
 TEST_CASE("Species::replaceMembersWithOffspring", "[Species]")
 {
     Species species;
