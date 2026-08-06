@@ -451,7 +451,7 @@ namespace neat_dnfs
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneGaussKernelAmplitudeProbability)
 		{
-			gkp.amplitude = amp_sign * std::clamp(gkp.amplitude + GaussKernelConstants::ampStep * signal,
+			gkp.amplitude = amp_sign * std::clamp(std::abs(gkp.amplitude) + GaussKernelConstants::ampStep * signal,
 				GaussKernelConstants::ampMinVal,
 				GaussKernelConstants::ampMaxVal);
 			mutationsInLastGeneration += std::format("(cg gk amp. {})", GaussKernelConstants::ampStep * signal);
@@ -480,7 +480,7 @@ namespace neat_dnfs
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability)
 		{
-			mhkp.amplitudeExc = amp_sign * std::clamp(mhkp.amplitudeExc + MexicanHatKernelConstants::ampExcStep * signal,
+			mhkp.amplitudeExc = amp_sign * std::clamp(std::abs(mhkp.amplitudeExc) + MexicanHatKernelConstants::ampExcStep * signal,
 				MexicanHatKernelConstants::ampExcMinVal,
 				MexicanHatKernelConstants::ampExcMaxVal);
 				mutationsInLastGeneration += std::format("(cg mhk amp. exc. {})", MexicanHatKernelConstants::ampExcStep * signal);
