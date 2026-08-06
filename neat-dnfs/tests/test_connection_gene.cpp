@@ -196,3 +196,71 @@ TEST_CASE("ConnectionGene Multiple Mutations Consistency", "[ConnectionGene]")
     const bool isMH    = std::dynamic_pointer_cast<MexicanHatKernel>(connectionGene.getKernel()) != nullptr;
     REQUIRE((isGauss || isMH));
 }
+
+TEST_CASE("ConnectionGene Gauss kernel amplitude mutation preserves inhibitory magnitude", "[ConnectionGene]")
+{
+    // Regression test for issue #50: a positive-only clamp applied to a signed
+    // amplitude used to collapse any negative (inhibitory) amplitude straight
+    // to -ampMinVal (-3.0), regardless of its prior magnitude.
+    constexpr double startingAmplitude = -20.0;
+    bool foundMutatedAmplitude = false;
+
+    for (int trial = 0; trial < 200 && !foundMutatedAmplitude; ++trial)
+    {
+        const ConnectionTuple connectionTuple(1, 2);
+        const GaussKernelParameters gkp{ 10.0, startingAmplitude, 0.0, true, true };
+        ConnectionGene connectionGene(connectionTuple, 0, gkp);
+
+        connectionGene.mutate();
+
+        const auto kernel = std::dynamic_pointer_cast<GaussKernel>(connectionGene.getKernel());
+        if (!kernel)
+            continue; // kernel type mutated away from Gauss this trial
+
+        const double newAmplitude = kernel->getParameters().amplitude;
+        if (newAmplitude == startingAmplitude || newAmplitude >= 0.0)
+            continue; // amplitude untouched this trial, or a sign-flip mutation occurred
+
+        foundMutatedAmplitude = true;
+
+        REQUIRE(newAmplitude <= -GaussKernelConstants::ampMinVal);
+        REQUIRE(newAmplitude >= -GaussKernelConstants::ampMaxVal);
+        // The magnitude should move by roughly one step, not collapse to ampMinVal.
+        REQUIRE(std::abs(newAmplitude - startingAmplitude) <= GaussKernelConstants::ampStep + 1e-9);
+    }
+
+    REQUIRE(foundMutatedAmplitude);
+}
+
+TEST_CASE("ConnectionGene Mexican hat kernel amplitudeExc mutation preserves inhibitory magnitude", "[ConnectionGene]")
+{
+    // Regression test for issue #50 (mutateMexicanHatKernel copy of the same bug).
+    constexpr double startingAmplitudeExc = -20.0;
+    bool foundMutatedAmplitude = false;
+
+    for (int trial = 0; trial < 200 && !foundMutatedAmplitude; ++trial)
+    {
+        const ConnectionTuple connectionTuple(1, 2);
+        const MexicanHatKernelParameters mhkp{ 2.5, startingAmplitudeExc, 5.0, 15.0, 0.0, true, true };
+        ConnectionGene connectionGene(connectionTuple, 0, mhkp);
+
+        connectionGene.mutate();
+
+        const auto kernel = std::dynamic_pointer_cast<MexicanHatKernel>(connectionGene.getKernel());
+        if (!kernel)
+            continue; // kernel type mutated away from MexicanHat this trial
+
+        const double newAmplitudeExc = kernel->getParameters().amplitudeExc;
+        if (newAmplitudeExc == startingAmplitudeExc || newAmplitudeExc >= 0.0)
+            continue; // amplitudeExc untouched this trial, or a sign-flip mutation occurred
+
+        foundMutatedAmplitude = true;
+
+        REQUIRE(newAmplitudeExc <= -MexicanHatKernelConstants::ampExcMinVal);
+        REQUIRE(newAmplitudeExc >= -MexicanHatKernelConstants::ampExcMaxVal);
+        // The magnitude should move by roughly one step, not collapse to ampExcMinVal.
+        REQUIRE(std::abs(newAmplitudeExc - startingAmplitudeExc) <= MexicanHatKernelConstants::ampExcStep + 1e-9);
+    }
+
+    REQUIRE(foundMutatedAmplitude);
+}
