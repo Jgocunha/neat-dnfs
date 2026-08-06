@@ -4,6 +4,7 @@
 #include <format>
 #include <limits>
 #include <cmath>
+#include <algorithm>
 
 namespace neat_dnfs
 {
@@ -788,6 +789,33 @@ namespace neat_dnfs
 		return neuralField;
 	}
 
+	int Solution::clampedIndexForPosition(const std::shared_ptr<dnf_composer::element::NeuralField>& neuralField, const double position)
+	{
+		const double d_x = neuralField->getElementCommonParameters().dimensionParameters.d_x;
+		const int rawIndex = static_cast<int>(position / d_x);
+		const int lastValidIndex = neuralField->getSize() - 1;
+		return std::clamp(rawIndex, 0, lastValidIndex);
+	}
+
+	std::optional<dnf_composer::element::NeuralFieldBump> Solution::matchClosestBump(
+		std::vector<dnf_composer::element::NeuralFieldBump>& candidates, const double targetPosition)
+	{
+		if (candidates.empty())
+		{
+			return std::nullopt;
+		}
+
+		const auto closestIt = std::ranges::min_element(candidates, {},
+			[targetPosition](const dnf_composer::element::NeuralFieldBump& bump)
+			{
+				return std::abs(bump.centroid - targetPosition);
+			});
+
+		const dnf_composer::element::NeuralFieldBump closest = *closestIt;
+		candidates.erase(closestIt);
+		return closest;
+	}
+
 	double Solution::closenessToRestingLevel(const std::string& fieldName) const
 	{
 		// the highest value of activation should be equal to the resting level
@@ -922,8 +950,8 @@ namespace neat_dnfs
 	double Solution::oneBumpAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position, const double& 
 		amplitude, const double& width) const
 	{
-		// if the field name is not in the phenotype, throw exception
-		// ... .containsElement(name);
+		// Field existence and type are validated by getNeuralFieldOrThrow() below,
+		// which throws std::invalid_argument on a missing/wrong-type field name.
 		static constexpr double weightBumps = 0.45;
 		static constexpr double weightPos = 0.45;
 		static constexpr double weightAmp = 0.05;
@@ -967,9 +995,6 @@ namespace neat_dnfs
 
 	double Solution::twoBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position1, const double& amplitude1, const double& width1, const double& position2, const double& amplitude2, const double& width2) const
 	{
-		// can select the same bump twice (closest to position1 and closest to position2 might be
-		// the same bump). That can inflate fitness even with only one real bump.
-
 		static constexpr int targetNumberOfBumps = 2;
 		static constexpr double weightBumps = 0.70;
 		static constexpr double weightPos = 0.20 / targetNumberOfBumps;
@@ -987,34 +1012,36 @@ namespace neat_dnfs
 		const auto neuralField = getNeuralFieldOrThrow(fieldName, "twoBumpsAtPositionWithAmplitudeAndWidth");
 
 		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
+		if (numberOfBumps == 0)
+		{
+			return fitness;
+		}
+
 		fitness += weightBumps / (1.0 + std::abs(targetNumberOfBumps - numberOfBumps));
 
-		NeuralFieldBump closestBump1;
-		for (const auto& bump : neuralField->getBumps())
-		{
-			if (std::abs(bump.centroid - position1) < std::abs(closestBump1.centroid - position1))
-			{
-				closestBump1 = bump;
-			}
-		}
-		fitness += weightPos / (1.0 + std::abs(closestBump1.centroid - position1));
-		fitness += weightAmp / (1.0 + std::abs(closestBump1.amplitude - amplitude1));
-		fitness += weightWidth / (1.0 + std::abs(closestBump1.width - width1));
+		// Match each target position to its closest bump injectively: once a bump
+		// is matched to one target slot it is removed from the pool, so a single
+		// real bump cannot also be credited as satisfying a different target
+		// position (see issue #53). If the pool runs out before every slot is
+		// matched, the remaining slot(s) simply contribute no position/amplitude/
+		// width credit, same as the zero-bump case above.
+		std::vector<NeuralFieldBump> candidates = neuralField->getBumps();
 
-		NeuralFieldBump closestBump2;
-		for (const auto& bump : neuralField->getBumps())
+		if (const auto bump1 = matchClosestBump(candidates, position1))
 		{
-			if (std::abs(bump.centroid - position2) < std::abs(closestBump2.centroid - position2))
-			{
-				closestBump2 = bump;
-			}
+			fitness += weightPos / (1.0 + std::abs(bump1->centroid - position1));
+			fitness += weightAmp / (1.0 + std::abs(bump1->amplitude - amplitude1));
+			fitness += weightWidth / (1.0 + std::abs(bump1->width - width1));
 		}
-		fitness += weightPos / (1.0 + std::abs(closestBump2.centroid - position2));
-		fitness += weightAmp / (1.0 + std::abs(closestBump2.amplitude - amplitude2));
-		fitness += weightWidth / (1.0 + std::abs(closestBump2.width - width2));
+
+		if (const auto bump2 = matchClosestBump(candidates, position2))
+		{
+			fitness += weightPos / (1.0 + std::abs(bump2->centroid - position2));
+			fitness += weightAmp / (1.0 + std::abs(bump2->amplitude - amplitude2));
+			fitness += weightWidth / (1.0 + std::abs(bump2->width - width2));
+		}
 
 		return fitness;
-
 	}
 
 	double Solution::threeBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position1, const double& amplitude1, const double& width1, const double& position2, const double& amplitude2, const double& width2, const double& position3, const double& amplitude3, const double& width3) const
@@ -1037,43 +1064,37 @@ namespace neat_dnfs
 		const auto neuralField = getNeuralFieldOrThrow(fieldName, "threeBumpsAtPositionWithAmplitudeAndWidth");
 
 		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
+		if (numberOfBumps == 0)
+		{
+			return fitness;
+		}
+
 		fitness += weightBumps / (1.0 + std::abs(targetNumberOfBumps - numberOfBumps));
 
-		NeuralFieldBump closestBump1;
-		for (const auto& bump : neuralField->getBumps())
-		{
-			if (std::abs(bump.centroid - position1) < std::abs(closestBump1.centroid - position1))
-			{
-				closestBump1 = bump;
-			}
-		}
-		fitness += weightPos / (1.0 + std::abs(closestBump1.centroid - position1));
-		fitness += weightAmp / (1.0 + std::abs(closestBump1.amplitude - amplitude1));
-		fitness += weightWidth / (1.0 + std::abs(closestBump1.width - width1));
+		// Injective matching -- see the identical comment in
+		// twoBumpsAtPositionWithAmplitudeAndWidth (issue #53).
+		std::vector<NeuralFieldBump> candidates = neuralField->getBumps();
 
-		NeuralFieldBump closestBump2;
-		for (const auto& bump : neuralField->getBumps())
+		if (const auto bump1 = matchClosestBump(candidates, position1))
 		{
-			if (std::abs(bump.centroid - position2) < std::abs(closestBump2.centroid - position2))
-			{
-				closestBump2 = bump;
-			}
+			fitness += weightPos / (1.0 + std::abs(bump1->centroid - position1));
+			fitness += weightAmp / (1.0 + std::abs(bump1->amplitude - amplitude1));
+			fitness += weightWidth / (1.0 + std::abs(bump1->width - width1));
 		}
-		fitness += weightPos / (1.0 + std::abs(closestBump2.centroid - position2));
-		fitness += weightAmp / (1.0 + std::abs(closestBump2.amplitude - amplitude2));
-		fitness += weightWidth / (1.0 + std::abs(closestBump2.width - width2));
 
-		NeuralFieldBump closestBump3;
-		for (const auto& bump : neuralField->getBumps())
+		if (const auto bump2 = matchClosestBump(candidates, position2))
 		{
-			if (std::abs(bump.centroid - position3) < std::abs(closestBump3.centroid - position3))
-			{
-				closestBump3 = bump;
-			}
+			fitness += weightPos / (1.0 + std::abs(bump2->centroid - position2));
+			fitness += weightAmp / (1.0 + std::abs(bump2->amplitude - amplitude2));
+			fitness += weightWidth / (1.0 + std::abs(bump2->width - width2));
 		}
-		fitness += weightPos / (1.0 + std::abs(closestBump3.centroid - position3));
-		fitness += weightAmp / (1.0 + std::abs(closestBump3.amplitude - amplitude3));
-		fitness += weightWidth / (1.0 + std::abs(closestBump3.width - width3));
+
+		if (const auto bump3 = matchClosestBump(candidates, position3))
+		{
+			fitness += weightPos / (1.0 + std::abs(bump3->centroid - position3));
+			fitness += weightAmp / (1.0 + std::abs(bump3->amplitude - amplitude3));
+			fitness += weightWidth / (1.0 + std::abs(bump3->width - width3));
+		}
 
 		return fitness;
 	}
@@ -1123,7 +1144,7 @@ namespace neat_dnfs
 	{
 		const auto nf = getNeuralFieldOrThrow(fieldName, "preShapednessAtPosition");
 
-		const int idx = static_cast<int>(position / nf->getElementCommonParameters().dimensionParameters.d_x);
+		const int idx = clampedIndexForPosition(nf, position);
 		const double u = nf->getComponent("activation")[idx];
 		const double h = nf->getParameters().startingRestingLevel;
 		const double u_tar =  h / 2.0;
@@ -1152,7 +1173,7 @@ namespace neat_dnfs
 	{
 		const auto neuralField = getNeuralFieldOrThrow(fieldName, "negativePreShapednessAtPosition");
 
-		const int pos = static_cast<int>(position/neuralField->getElementCommonParameters().dimensionParameters.d_x);
+		const int pos = clampedIndexForPosition(neuralField, position);
 		const double u_pos = neuralField->getComponent("activation")[pos];
 
 		// activation of field at position should be lower than the resting level
