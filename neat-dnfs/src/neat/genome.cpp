@@ -398,7 +398,14 @@ namespace neat_dnfs
 		// geneIndex1 itself, the draw below would keep returning geneIndex1
 		// forever. Cap the attempts and fall back to the sentinel instead of
 		// spinning indefinitely (see issue #57).
-		constexpr int maxGeneIndex2Attempts = 8;
+		//
+		// The two pools overlap only on HIDDEN genes, so a collision needs
+		// geneIndex1 to have drawn a HIDDEN gene. Each further draw then repeats
+		// it with probability 1/(hidden + output), making a spurious give-up
+		// 2^-32 in the tightest genome that still has an escape route (one
+		// HIDDEN, one OUTPUT) -- small enough to never cost a real mutation,
+		// while still bounding the loop for the zero-OUTPUT genome that hangs.
+		constexpr int maxGeneIndex2Attempts = 32;
 		int geneIndex2 = -1;
 		bool foundDistinctGeneIndex2 = false;
 		for (int attempt = 0; attempt < maxGeneIndex2Attempts; ++attempt)
