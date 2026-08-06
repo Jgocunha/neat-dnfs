@@ -190,18 +190,8 @@ TEST_CASE("Population::evolve - speciation produces at least one species", "[Pop
 // This pins down that their corrected forms -- an asserted (not dereferenced
 // without checking) species lookup, a static Genome::clearGenerationalInnovations()
 // call instead of one routed through the possibly-null bestSolution instance
-// pointer, and a guarded per-generation statistics pass -- keep producing
-// sane, non-NaN statistics with a history entry per generation actually run.
-//
-// A population constructed with size 0 would exercise the empty/null branch
-// of these three sites directly, but doing so crashes on an unrelated,
-// pre-existing, unguarded null dereference in
-// Population::hasFitnessImprovedOverTheLastGenerations() (it unconditionally
-// calls bestSolution->getFitness()), which runs later in the same evolve()
-// iteration and is out of scope for this issue. So the empty/null path for
-// these three hazards cannot be driven through the public API without also
-// tripping that separate bug; this test instead locks down the normal
-// (non-empty) path that these fixes must not regress.
+// pointer, and an asserted per-generation statistics pass -- keep producing
+// sane, finite statistics with a history entry per generation actually run.
 TEST_CASE("Population::evolve - per-generation statistics stay finite and history matches generations run", "[Population]")
 {
     const PopulationParameters parameters(30, 10, 1.1); // target > 1.0 forces a full run
@@ -214,7 +204,7 @@ TEST_CASE("Population::evolve - per-generation statistics stay finite and histor
     const auto& fitnessHistory = population.getBestFitnessHistory();
     REQUIRE(fitnessHistory.size() == static_cast<size_t>(population.getCurrentGeneration()));
     for (const double fitness : fitnessHistory)
-        REQUIRE_FALSE(std::isnan(fitness));
+        REQUIRE(std::isfinite(fitness));
 
     REQUIRE(!population.getSpeciesList().empty());
 }
@@ -386,6 +376,18 @@ TEST_CASE("Population of size 1 evolves without throwing", "[Population]")
 
     REQUIRE_NOTHROW(population.evolve());
     REQUIRE(population.getSolutions().size() == 1);
+}
+
+// Regression test for the null-bestSolution crash reachable through the public
+// evolve() path: a Population built with size <= 0 created no solutions, so
+// upkeepBestSolution() left bestSolution null and endConditionMet() dereferenced
+// it. A population with no individuals is not a degenerate run but a category
+// error, so it is rejected at the boundary rather than tolerated at each use site.
+TEST_CASE("PopulationParameters rejects non-positive sizes", "[Population]")
+{
+    REQUIRE_THROWS_AS(PopulationParameters(0, 3, 1.1, false), std::invalid_argument);
+    REQUIRE_THROWS_AS(PopulationParameters(-1, 3, 1.1, false), std::invalid_argument);
+    REQUIRE_NOTHROW(PopulationParameters(1, 3, 1.1, false));
 }
 
 // Regression test for the Release-mode SIGSEGV in parallel Population::evaluate()

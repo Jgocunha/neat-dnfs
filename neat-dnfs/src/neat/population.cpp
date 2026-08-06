@@ -51,7 +51,19 @@ namespace neat_dnfs
 
 	PopulationParameters::PopulationParameters(const int size, const int numGenerations, const double targetFitness, const bool parallelEvolution)
 		: size(size), numGenerations(numGenerations), targetFitness(targetFitness), parallelEvolution(parallelEvolution)
-	{}
+	{
+		// A population with no individuals is a category error, not a degenerate
+		// run: Population::createInitialSolutions() would leave `solutions` empty,
+		// so upkeepBestSolution() would leave bestSolution null and evolve() would
+		// dereference it in endConditionMet() and in
+		// hasFitnessImprovedOverTheLastGenerations(). Rejecting here keeps
+		// bestSolution non-null for the whole lifetime of any Population that
+		// exists at all, instead of guarding every use site.
+		if (size <= 0)
+		{
+			throw std::invalid_argument("Population size must be greater than 0");
+		}
+	}
 
 	PopulationControl::PopulationControl(bool pause, bool stop)
 		: pause(pause), stop(stop)
@@ -322,17 +334,12 @@ namespace neat_dnfs
 
 	void Population::upkeepPerGenerationStatistics()
 	{
-		// A Population constructed with parameters.size == 0 (nothing rejects
-		// that) leaves `solutions` empty; upkeepBestSolution(), which always
-		// runs immediately before this in upkeep(), only ever assigns
-		// bestSolution from `solutions`, so bestSolution is null in exactly
-		// that same case. Guard both here: the averages below would otherwise
-		// divide by zero, and bestSolution->getFitness() would dereference a
-		// null pointer.
-		if (solutions.empty())
-		{
-			return;
-		}
+		// PopulationParameters rejects size <= 0, so `solutions` is never empty,
+		// and upkeepBestSolution() -- which always runs immediately before this in
+		// upkeep() -- only ever assigns bestSolution from `solutions`, so it is
+		// non-null here. A violation would mean that invariant broke elsewhere,
+		// not that this is a normal, recoverable state.
+		assert(!solutions.empty() && "population must have solutions when statistics are computed");
 
 		// average fitness
 		perGenStatistics.averageFitness = 0.0F;

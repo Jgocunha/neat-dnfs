@@ -32,6 +32,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # non-ASCII characters (e.g. em dashes in Catch2 test names) at compile time.
 if(MSVC)
     add_compile_options(/utf-8)
+    # Windows.h reaches nearly every TU transitively via imgui-platform-kit and
+    # defines function-like min/max macros that break std::numeric_limits<T>::max()
+    # and std::min/std::max at their call sites.
+    add_compile_definitions(NOMINMAX)
 endif()
 
 # Sanitizers
