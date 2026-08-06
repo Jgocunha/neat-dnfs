@@ -70,10 +70,10 @@ TEST_CASE("Solution Mutate Method", "[Solution]")
         auto topology = makeTopology(1, 1);
         DetectionInstability solution(topology);
         solution.initialize();
-        const size_t initialGenomeSize = solution.getGenomeSize();
+        const size_t initialNumConnectionGenes = solution.getNumConnectionGenes();
 
         REQUIRE_NOTHROW(solution.mutate());
-        REQUIRE(solution.getGenomeSize() >= initialGenomeSize);
+        REQUIRE(solution.getNumConnectionGenes() >= initialNumConnectionGenes);
     }
 }
 
@@ -85,7 +85,7 @@ TEST_CASE("Solution Getters", "[Solution]")
     REQUIRE(solution.getGenome().getFieldGenes().empty());
     REQUIRE(solution.getGenome().getConnectionGenes().empty());
     REQUIRE(solution.getFitness() == 0.0);
-    REQUIRE(solution.getGenomeSize() == 0);
+    REQUIRE(solution.getNumConnectionGenes() == 0);
     REQUIRE(solution.getInnovationNumbers().empty());
 }
 
@@ -421,12 +421,12 @@ TEST_CASE("Solution::clearGenome", "[Solution]")
     const auto topology = makeTopology(1, 1);
     DetectionInstability solution(topology);
     solution.initialize();
-    // getGenomeSize() counts connection genes only; a freshly initialized
+    // getNumConnectionGenes() counts connection genes only; a freshly initialized
     // solution has field genes but no connections yet, so check field genes.
     REQUIRE(!solution.getGenome().getFieldGenes().empty());
 
     solution.clearGenome();
-    REQUIRE(solution.getGenomeSize() == 0);
+    REQUIRE(solution.getNumConnectionGenes() == 0);
     REQUIRE(solution.getGenome().getFieldGenes().empty());
     REQUIRE(solution.getGenome().getConnectionGenes().empty());
 }

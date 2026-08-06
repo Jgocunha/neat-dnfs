@@ -58,11 +58,11 @@ namespace neat_dnfs
 
 		//std::string gs = "gs nf 3";
 		//gs += " " + std::to_string(50.0);
-		//moveGaussianStimulusContinously(gs, 80.0, 0.2);
+		//moveGaussianStimulusContinuously(gs, 80.0, 0.2);
 		//const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0 }, out_amp, out_width);
 		//parameters.partialFitness.emplace_back(f2);
 
-		//moveGaussianStimulusContinously(gs, 20.0, -0.2);
+		//moveGaussianStimulusContinuously(gs, 20.0, -0.2);
 		//const double f3 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 80.0 }, out_amp, out_width);
 		//parameters.partialFitness.emplace_back(f3);
 
@@ -103,31 +103,31 @@ namespace neat_dnfs
 		// nf 4 - output - target action field (taf)
 
 		// stage 1 - intra-field interactions
-		static constexpr double wf1 = 1 / 4.f; // sof multi bump
-		static constexpr double wf2 = 1 / 4.f; // lof single bump
-		static constexpr double wf3 = 1 / 4.f; // hpf single bump
-		static constexpr double wf4 = 1 / 4.f; // taf selective bump
-		static constexpr double wf_1_2_3_4 = 1 / 4.f;
+		static constexpr double weightSofMultiBump = 1 / 4.f; // sof multi bump
+		static constexpr double weightLofSingleBump = 1 / 4.f; // lof single bump
+		static constexpr double weightHpfSingleBump = 1 / 4.f; // hpf single bump
+		static constexpr double weightTafSelectiveBump = 1 / 4.f; // taf selective bump
+		static constexpr double weightStage1 = 1 / 4.f;
 		// stage 2 - inter-field interactions (two-field interactions)
-		static constexpr double wf5 = 1 / 3.f; // sof (20, 80), -> taf (20 || 80)
-		static constexpr double wf6 = 1 / 3.f; // lof (50) pre-shapes taf
-		static constexpr double wf7 = 1 / 3.f; // hpf (50) -> no bump in taf
-		static constexpr double wf_5_6_7 = 1 / 4.f;
+		static constexpr double weightSofToTafBump = 1 / 3.f; // sof (20, 80), -> taf (20 || 80)
+		static constexpr double weightLofPreShapesTaf = 1 / 3.f; // lof (50) pre-shapes taf
+		static constexpr double weightHpfNoBumpInTaf = 1 / 3.f; // hpf (50) -> no bump in taf
+		static constexpr double weightStage2 = 1 / 4.f;
 		// stage 3 - inter-field interactions (three-field interactions)
-		static constexpr double wf8_1 = 1 / 2.f; // sof (20, 80) + hpf(80) -> taf (20)
-		static constexpr double wf8_2 = 1 / 2.f; // sof (20, 80) + hpf(20) -> taf (80)
-		static constexpr double wf8 = 0.35f; // f8_1 and f8_2
-		static constexpr double wf9 = 0.45f; // lof (50) + hpf(50) -> taf (50)
-		static constexpr double wf10_1 = 1 / 2.f; // sof(20) + hpf (20) -> taf no bump
-		static constexpr double wf10_2 = 1 / 2.f; // sof(80) + hpf (80) -> taf no bump
-		static constexpr double wf10 = 0.20f; // f10_1 and f10_2
-		static constexpr double wf_8_9_10 = 1 / 4.f;
+		static constexpr double weightSofHpf80ToTaf20 = 1 / 2.f; // sof (20, 80) + hpf(80) -> taf (20)
+		static constexpr double weightSofHpf20ToTaf80 = 1 / 2.f; // sof (20, 80) + hpf(20) -> taf (80)
+		static constexpr double weightSofHpfToTaf = 0.35f; // sofHpf80ToTaf20Fitness and sofHpf20ToTaf80Fitness
+		static constexpr double weightLofHpfToTaf = 0.45f; // lof (50) + hpf(50) -> taf (50)
+		static constexpr double weightSofHpf20NoBump = 1 / 2.f; // sof(20) + hpf (20) -> taf no bump
+		static constexpr double weightSofHpf80NoBump = 1 / 2.f; // sof(80) + hpf (80) -> taf no bump
+		static constexpr double weightSofHpfNoBump = 0.20f; // sofHpf20NoBumpFitness and sofHpf80NoBumpFitness
+		static constexpr double weightStage3 = 1 / 4.f;
 		// stage 4 - inter-field interactions (four-field interactions)
-		static constexpr double wf11 = 1 / 2.f; // lof(50) + hpf(50) + sof(20, 80) -> taf(50)
-		static constexpr double wf12_1 = 1 / 2.f; // lof(50) + hpf(20) + sof(20, 80) -> taf(80)
-		static constexpr double wf12_2 = 1 / 2.f; // lof(50) + hpf(80) + sof(20, 80) -> taf(20)
-		static constexpr double wf12 = 1 / 2.f; // f12_1 and f12_2
-		static constexpr double wf_11_12 = 1 / 4.f;
+		static constexpr double weightLofHpfSofToTaf50 = 1 / 2.f; // lof(50) + hpf(50) + sof(20, 80) -> taf(50)
+		static constexpr double weightLofHpfSofToTaf80 = 1 / 2.f; // lof(50) + hpf(20) + sof(20, 80) -> taf(80)
+		static constexpr double weightLofHpfSofToTaf20 = 1 / 2.f; // lof(50) + hpf(80) + sof(20, 80) -> taf(20)
+		static constexpr double weightLofHpfSofToTaf = 1 / 2.f; // lofHpfSofToTaf80Fitness and lofHpfSofToTaf20Fitness
+		static constexpr double weightStage4 = 1 / 4.f;
 
 
 		// stage 1 - intra-field interactions
@@ -140,10 +140,10 @@ namespace neat_dnfs
 			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f1 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1",
+		const double sofMultiBumpFitness = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1",
 			20.0, in_amp, in_width,
 			80.0, in_amp, in_width);
-		parameters.partialFitness.emplace_back(f1);
+		parameters.partialFitness.emplace_back(sofMultiBumpFitness);
 
 		removeGaussianStimuli();
 		initSimulation();
@@ -151,8 +151,8 @@ namespace neat_dnfs
 			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, in_amp, in_width);
-		parameters.partialFitness.emplace_back(f2);
+		const double lofSingleBumpFitness = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, in_amp, in_width);
+		parameters.partialFitness.emplace_back(lofSingleBumpFitness);
 
 		removeGaussianStimuli();
 		initSimulation();
@@ -160,8 +160,8 @@ namespace neat_dnfs
 			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 50.0, in_amp, in_width);
-		parameters.partialFitness.emplace_back(f3);
+		const double hpfSingleBumpFitness = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 50.0, in_amp, in_width);
+		parameters.partialFitness.emplace_back(hpfSingleBumpFitness);
 
 		removeGaussianStimuli();
 		addGaussianStimulus("nf 4",
@@ -172,10 +172,11 @@ namespace neat_dnfs
 			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f4 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0, 80.0 }, out_amp, out_width);
-		parameters.partialFitness.emplace_back(f4);
+		const double tafSelectiveBumpFitness = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0, 80.0 }, out_amp, out_width);
+		parameters.partialFitness.emplace_back(tafSelectiveBumpFitness);
 
-		parameters.fitness = wf_1_2_3_4 * (wf1 * f1 + wf2 * f2 + wf3 * f3 + wf4 * f4);
+		parameters.fitness = weightStage1 * (weightSofMultiBump * sofMultiBumpFitness + weightLofSingleBump * lofSingleBumpFitness
+			+ weightHpfSingleBump * hpfSingleBumpFitness + weightTafSelectiveBump * tafSelectiveBumpFitness);
 
 		
 		// stage 2 - inter-field interactions (two-field interactions)
@@ -189,8 +190,8 @@ namespace neat_dnfs
 			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f5 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0, 80.0 }, out_amp, out_width);
-		parameters.partialFitness.emplace_back(f5);
+		const double sofToTafBumpFitness = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0, 80.0 }, out_amp, out_width);
+		parameters.partialFitness.emplace_back(sofToTafBumpFitness);
 
 		removeGaussianStimuli();
 		initSimulation();
@@ -198,8 +199,8 @@ namespace neat_dnfs
 			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f6 = preShapedness("nf 4");
-		parameters.partialFitness.emplace_back(f6);
+		const double lofPreShapesTafFitness = preShapedness("nf 4");
+		parameters.partialFitness.emplace_back(lofPreShapesTafFitness);
 
 		removeGaussianStimuli();
 		initSimulation();
@@ -207,10 +208,11 @@ namespace neat_dnfs
 			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f7 = closenessToRestingLevel("nf 4");
-		parameters.partialFitness.emplace_back(f7);
+		const double hpfNoBumpInTafFitness = closenessToRestingLevel("nf 4");
+		parameters.partialFitness.emplace_back(hpfNoBumpInTafFitness);
 
-		parameters.fitness += wf_5_6_7 * (wf5 * f5 + wf6 * f6 + wf7 * f7);
+		parameters.fitness += weightStage2 * (weightSofToTafBump * sofToTafBumpFitness + weightLofPreShapesTaf * lofPreShapesTafFitness
+			+ weightHpfNoBumpInTaf * hpfNoBumpInTafFitness);
 
 		// stage 3 - inter-field interactions (three-field interactions)
 		removeGaussianStimuli();
@@ -227,8 +229,8 @@ namespace neat_dnfs
 			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f8_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 20.0, out_amp, out_width);
-		parameters.partialFitness.emplace_back(f8_1);
+		const double sofHpf80ToTaf20Fitness = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 20.0, out_amp, out_width);
+		parameters.partialFitness.emplace_back(sofHpf80ToTaf20Fitness);
 
 		/*removeGaussianStimuli();
 		initSimulation();
@@ -245,12 +247,12 @@ namespace neat_dnfs
 		//	dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		std::string gs = "gs nf 3";
 		gs += std::format(" {}", 80.0);
-		moveGaussianStimulusContinously(gs, 20.0, -0.2);
+		moveGaussianStimulusContinuously(gs, 20.0, -0.2);
 		//runSimulation(iterations);
-		const double f8_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 80.0, out_amp, out_width);
-		parameters.partialFitness.emplace_back(f8_2);
+		const double sofHpf20ToTaf80Fitness = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 80.0, out_amp, out_width);
+		parameters.partialFitness.emplace_back(sofHpf20ToTaf80Fitness);
 
-		const double f8 = f8_1 * wf8_1 + f8_2 * wf8_2;
+		const double sofHpfToTafFitness = sofHpf80ToTaf20Fitness * weightSofHpf80ToTaf20 + sofHpf20ToTaf80Fitness * weightSofHpf20ToTaf80;
 
 		removeGaussianStimuli();
 		initSimulation();
@@ -262,8 +264,8 @@ namespace neat_dnfs
 			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f9 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 50.0, out_amp, out_width);
-		parameters.partialFitness.emplace_back(f9);
+		const double lofHpfToTafFitness = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 50.0, out_amp, out_width);
+		parameters.partialFitness.emplace_back(lofHpfToTafFitness);
 
 		removeGaussianStimuli();
 		initSimulation();
@@ -275,8 +277,8 @@ namespace neat_dnfs
 			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f10_1 = noBumps("nf 4");
-		parameters.partialFitness.emplace_back(f10_1);
+		const double sofHpf20NoBumpFitness = noBumps("nf 4");
+		parameters.partialFitness.emplace_back(sofHpf20NoBumpFitness);
 
 		//removeGaussianStimuli();
 		//initSimulation();
@@ -286,20 +288,21 @@ namespace neat_dnfs
 		//runSimulation(iterations);
 		std::string gs2 = "gs nf 1";
 		gs2 += std::format(" {}", 20.0);
-		moveGaussianStimulusContinously(gs2, 80.0, 0.2);
+		moveGaussianStimulusContinuously(gs2, 80.0, 0.2);
 		//addGaussianStimulus("nf 3",
 		//	dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
 		//	dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		//runSimulation(iterations);
 		std::string gs3 = "gs nf 3";
-		gs3 += std::format(" {}", 20.0); 
-		moveGaussianStimulusContinously(gs3, 80.0, 0.2);
-		const double f10_2 = noBumps("nf 4");
-		parameters.partialFitness.emplace_back(f10_2);
+		gs3 += std::format(" {}", 20.0);
+		moveGaussianStimulusContinuously(gs3, 80.0, 0.2);
+		const double sofHpf80NoBumpFitness = noBumps("nf 4");
+		parameters.partialFitness.emplace_back(sofHpf80NoBumpFitness);
 
-		const double f10 = f10_1 * wf10_1 + f10_2 * wf10_2;
+		const double sofHpfNoBumpFitness = sofHpf20NoBumpFitness * weightSofHpf20NoBump + sofHpf80NoBumpFitness * weightSofHpf80NoBump;
 
-		parameters.fitness += wf_8_9_10 * (wf8 * f8 + wf9 * f9 + wf10 * f10);
+		parameters.fitness += weightStage3 * (weightSofHpfToTaf * sofHpfToTafFitness + weightLofHpfToTaf * lofHpfToTafFitness
+			+ weightSofHpfNoBump * sofHpfNoBumpFitness);
 
 		// stage 4 - inter-field interactions (four-field interactions)
 		removeGaussianStimuli();
@@ -320,8 +323,8 @@ namespace neat_dnfs
 			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f11 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 50.0, out_amp, in_width);
-		parameters.partialFitness.emplace_back(f11);
+		const double lofHpfSofToTaf50Fitness = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 50.0, out_amp, in_width);
+		parameters.partialFitness.emplace_back(lofHpfSofToTaf50Fitness);
 
 		//removeGaussianStimuli();
 		//initSimulation();
@@ -342,11 +345,11 @@ namespace neat_dnfs
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);*/
 		std::string gs4 = "gs nf 3";
-		gs4 += std::format(" {}", 50.0); 
-		moveGaussianStimulusContinously(gs4, 20.0, -0.2);
-		const double f12_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 80.0, out_amp, in_width);
-		parameters.partialFitness.emplace_back(f12_1);
- 
+		gs4 += std::format(" {}", 50.0);
+		moveGaussianStimulusContinuously(gs4, 20.0, -0.2);
+		const double lofHpfSofToTaf80Fitness = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 80.0, out_amp, in_width);
+		parameters.partialFitness.emplace_back(lofHpfSofToTaf80Fitness);
+
 		/*removeGaussianStimuli();
 		initSimulation();
 		addGaussianStimulus("nf 2",
@@ -365,15 +368,15 @@ namespace neat_dnfs
 			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);*/
-		moveGaussianStimulusContinously(gs4, 80.0, 0.2);
-		const double f12_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 20.0, out_amp, in_width);
-		parameters.partialFitness.emplace_back(f12_2);
+		moveGaussianStimulusContinuously(gs4, 80.0, 0.2);
+		const double lofHpfSofToTaf20Fitness = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", 20.0, out_amp, in_width);
+		parameters.partialFitness.emplace_back(lofHpfSofToTaf20Fitness);
 
-		const double f12 = f12_1 * wf12_1 + f12_2 * wf12_2;
+		const double lofHpfSofToTafFitness = lofHpfSofToTaf80Fitness * weightLofHpfSofToTaf80 + lofHpfSofToTaf20Fitness * weightLofHpfSofToTaf20;
 
-		parameters.fitness += wf_11_12 * (wf11 * f11 + wf12 * f12);
+		parameters.fitness += weightStage4 * (weightLofHpfSofToTaf50 * lofHpfSofToTaf50Fitness + weightLofHpfSofToTaf * lofHpfSofToTafFitness);
 
-		static constexpr double totalProbability = wf_1_2_3_4 + wf_5_6_7 + wf_8_9_10 + wf_11_12;
+		static constexpr double totalProbability = weightStage1 + weightStage2 + weightStage3 + weightStage4;
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(totalProbability - 1.0) > epsilon)

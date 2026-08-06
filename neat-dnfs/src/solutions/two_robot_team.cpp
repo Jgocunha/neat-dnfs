@@ -63,13 +63,13 @@ namespace neat_dnfs
 		parameters.partialFitness.emplace_back(f1);
 		parameters.partialFitness.emplace_back(f2);
 
-		moveGaussianStimulusContinously(std::format("gs nf 3 {}", 50.0), 20.0, -0.5);
+		moveGaussianStimulusContinuously(std::format("gs nf 3 {}", 50.0), 20.0, -0.5);
 		const double f3 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 80.0 }, out_amp, out_width);
 		const double f4 = preShapedness("nf 5", { 20.0, 50.0 });
 		parameters.partialFitness.emplace_back(f3);
 		parameters.partialFitness.emplace_back(f4);
 
-		moveGaussianStimulusContinously(std::format("gs nf 3 {}", 50.0), 80.0, +0.5); 
+		moveGaussianStimulusContinuously(std::format("gs nf 3 {}", 50.0), 80.0, +0.5);
 		const double f5 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0 }, out_amp, out_width);
 		const double f6 = preShapedness("nf 5", { 80.0, 50.0 });
 		parameters.partialFitness.emplace_back(f5);
@@ -168,7 +168,7 @@ namespace neat_dnfs
 		//runSimulation(iterations);
 		//const double f8_1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 80.0 }, out_amp, out_width);
 
-		//moveGaussianStimulusContinously("gs nf 3 " + std::to_string(20.0), 80.0, 0.5);
+		//moveGaussianStimulusContinuously("gs nf 3 " + std::to_string(20.0), 80.0, 0.5);
 		//const double f8_2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0 }, out_amp, out_width);
 		//const double f8 = 0.5f * f8_1 + 0.5f * f8_2;
 		//parameters.partialFitness.push_back(f8);
@@ -193,7 +193,7 @@ namespace neat_dnfs
 		//const double f11 = noBumps("nf 4");
 		//parameters.partialFitness.push_back(f11);
 
-		//moveGaussianStimulusContinously("gs nf 3 " + std::to_string(50.0), 80.0, 0.5);
+		//moveGaussianStimulusContinuously("gs nf 3 " + std::to_string(50.0), 80.0, 0.5);
 		//const double f12 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 4", { 20.0 }, out_amp, out_width);
 		//parameters.partialFitness.push_back(f12);
 

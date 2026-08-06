@@ -5,9 +5,6 @@
 
 namespace neat_dnfs
 {
-    class Species;
-    using SpeciesPtr = std::unique_ptr<Species>;
-
     class Species
     {
     private:

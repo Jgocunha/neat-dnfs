@@ -41,7 +41,7 @@ namespace neat_dnfs
 		}
 
 		if (tools::utils::generateRandomDouble(0.0, 1.0) <
-			GenomeMutationConstants::mutateFieldGenesProbability)
+			GenomeMutationConstants::mutateFieldGenesPerGenomeProbability)
 		{
 			mutateGene();
 		}
@@ -625,7 +625,7 @@ namespace neat_dnfs
 	{
 		for (auto& gene : fieldGenes)
 		{
-			if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::mutateFieldGeneProbability)
+			if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::mutateFieldGenePerGeneProbability)
 			{
 				gene.mutate();
 				mutationsInLastGeneration +=  "[fg " + std::to_string(gene.getParameters().id) + " " +
