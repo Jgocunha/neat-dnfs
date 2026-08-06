@@ -71,7 +71,7 @@ namespace neat_dnfs
 	/// @brief Configuration for a NEAT population run.
 	struct PopulationParameters
 	{
-		int size;
+		int size; ///< Number of solutions per generation; must be greater than 0.
 		int currentGeneration{0};
 		int numGenerations;
 		double targetFitness; ///< Evolution stops early when the best solution reaches this fitness.
@@ -233,7 +233,7 @@ namespace neat_dnfs
 
 		void print() const;
 
-		void resetGenerationalInnovations() const;
+		static void resetGenerationalInnovations();
 		void clearLastMutations() const;
 
 		void logSolutions() const;

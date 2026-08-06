@@ -2,6 +2,7 @@
 
 #include "neat/population_file_manager.h"
 #include <algorithm>
+#include <cassert>
 #include <format>
 #include <atomic>
 #include <thread>
@@ -50,7 +51,19 @@ namespace neat_dnfs
 
 	PopulationParameters::PopulationParameters(const int size, const int numGenerations, const double targetFitness, const bool parallelEvolution)
 		: size(size), numGenerations(numGenerations), targetFitness(targetFitness), parallelEvolution(parallelEvolution)
-	{}
+	{
+		// A population with no individuals is a category error, not a degenerate
+		// run: Population::createInitialSolutions() would leave `solutions` empty,
+		// so upkeepBestSolution() would leave bestSolution null and evolve() would
+		// dereference it in endConditionMet() and in
+		// hasFitnessImprovedOverTheLastGenerations(). Rejecting here keeps
+		// bestSolution non-null for the whole lifetime of any Population that
+		// exists at all, instead of guarding every use site.
+		if (size <= 0)
+		{
+			throw std::invalid_argument("Population size must be greater than 0");
+		}
+	}
 
 	PopulationControl::PopulationControl(bool pause, bool stop)
 		: pause(pause), stop(stop)
@@ -321,6 +334,13 @@ namespace neat_dnfs
 
 	void Population::upkeepPerGenerationStatistics()
 	{
+		// PopulationParameters rejects size <= 0, so `solutions` is never empty,
+		// and upkeepBestSolution() -- which always runs immediately before this in
+		// upkeep() -- only ever assigns bestSolution from `solutions`, so it is
+		// non-null here. A violation would mean that invariant broke elsewhere,
+		// not that this is a normal, recoverable state.
+		assert(!solutions.empty() && "population must have solutions when statistics are computed");
+
 		// average fitness
 		perGenStatistics.averageFitness = 0.0F;
 		for (const auto& solution : solutions)
@@ -488,6 +508,16 @@ namespace neat_dnfs
 		for (const auto& solution : solutions)
 		{
 			const std::shared_ptr<Species> species = findSpecies(solution);
+			// Invariant: calculateAdjustedFitness() only runs from speciate(),
+			// right after its loop has called assignToSpecies(solution) for
+			// every solution in `solutions` -- placing each one into either an
+			// existing compatible species or a brand-new one. The empty-species
+			// extinguish pass that follows only removes species with zero
+			// members, never the one that was just given this solution, so
+			// findSpecies() cannot return nullptr here. A null result would
+			// mean that invariant was broken elsewhere, not that this is a
+			// normal, recoverable state.
+			assert(species != nullptr && "solution must belong to a species when adjusted fitness is calculated");
 			const size_t speciesSize = species->size();
 			const double adjustedFitness = solution->getFitness() / static_cast<double>(speciesSize);
 			if (std::isnan (adjustedFitness))
@@ -1020,9 +1050,15 @@ namespace neat_dnfs
 		log(tools::logger::LogLevel::INFO, result);
 	}
 
-	void Population::resetGenerationalInnovations() const
+	void Population::resetGenerationalInnovations()
 	{
-		bestSolution->clearGenerationalInnovations();
+		// clearGenerationalInnovations() clears static, per-generation
+		// innovation bookkeeping shared by every Genome -- it is not instance
+		// data, so it belongs on the class, not routed through bestSolution
+		// (which can be null, e.g. for an empty population). Calling a static
+		// method through an instance pointer is misleading regardless of
+		// nullness, so this always goes through the class directly now.
+		Genome::clearGenerationalInnovations();
 	}
 
 	void Population::clearLastMutations() const
