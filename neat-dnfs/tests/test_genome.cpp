@@ -5,6 +5,7 @@
 #include <vector>
 #include <algorithm>
 #include <map>
+#include <type_traits>
 
 #include "neat/genome.h"
 #include "test_helpers.h"
@@ -14,6 +15,20 @@ using namespace neat_dnfs::test;
 using namespace dnf_composer::element;
 
 static const ElementDimensions kDim{100, 1.0};
+
+TEST_CASE("Genome is movable and its gene accessors return references, not copies", "[Genome]")
+{
+    // Locks in move semantics: a user-declared no-op destructor would suppress
+    // the implicit move ctor/assign and silently downgrade Genome to copy-only.
+    static_assert(std::is_move_constructible_v<Genome>);
+    static_assert(std::is_move_assignable_v<Genome>);
+
+    // Locks in that the hot-path accessors bind to the existing member vectors
+    // instead of deep-copying them on every call.
+    static_assert(std::is_reference_v<decltype(std::declval<const Genome&>().getFieldGenes())>);
+    static_assert(std::is_reference_v<decltype(std::declval<const Genome&>().getConnectionGenes())>);
+    SUCCEED();
+}
 
 TEST_CASE("Genome Initialization", "[Genome]")
 {

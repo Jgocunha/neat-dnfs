@@ -2,6 +2,7 @@
 #include <catch2/catch_approx.hpp>
 
 #include <cmath>
+#include <type_traits>
 
 #include "neat/solution.h"
 #include "solutions/detection_instability.h"
@@ -11,6 +12,16 @@
 using namespace neat_dnfs;
 using namespace neat_dnfs::test;
 using namespace dnf_composer::element;
+
+TEST_CASE("Solution::getGenome and getPhenotype return references, not copies", "[Solution]")
+{
+    // Locks in that these hot-path accessors bind to the existing genome/phenotype
+    // members instead of deep-copying a Genome (and its gene vectors) or a whole
+    // dnf_composer::Simulation on every call in the O(n^2) evolutionary loop.
+    static_assert(std::is_reference_v<decltype(std::declval<const Solution&>().getGenome())>);
+    static_assert(std::is_reference_v<decltype(std::declval<const Solution&>().getPhenotype())>);
+    SUCCEED();
+}
 
 TEST_CASE("Solution Initialization", "[Solution]")
 {
