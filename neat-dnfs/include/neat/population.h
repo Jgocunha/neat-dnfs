@@ -233,7 +233,7 @@ namespace neat_dnfs
 
 		void print() const;
 
-		void resetGenerationalInnovations() const;
+		static void resetGenerationalInnovations();
 		void clearLastMutations() const;
 
 		void logSolutions() const;

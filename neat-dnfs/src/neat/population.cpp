@@ -1043,7 +1043,7 @@ namespace neat_dnfs
 		log(tools::logger::LogLevel::INFO, result);
 	}
 
-	void Population::resetGenerationalInnovations() const
+	void Population::resetGenerationalInnovations()
 	{
 		// clearGenerationalInnovations() clears static, per-generation
 		// innovation bookkeeping shared by every Genome -- it is not instance
