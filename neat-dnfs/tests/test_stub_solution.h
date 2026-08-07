@@ -444,8 +444,16 @@ private:
         using namespace dnf_composer::element;
 
         initSimulation();
+        // Amplitude comes from GaussStimulusConstants (20.0) rather than a
+        // hardcoded 15.0: the field gene randomizes its own self-excitation
+        // kernel on every construction, so a stimulus close to the bump-forming
+        // threshold sometimes settles with no bump at all. Measured over 2000
+        // constructions, amplitude 15.0 yielded zero bumps ~1.9% of the time
+        // (which is what made this test flaky in CI); 20.0 yielded exactly one
+        // bump in 2000/2000. Keep this at or above the shared constant.
         addGaussianStimulus("nf 1",
-            GaussStimulusParameters{ 5.0, 15.0, targetPosition, true, false },
+            GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude,
+                targetPosition, true, false },
             ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
         runSimulation(SimulationConstants::maxSimulationSteps);
 

@@ -85,7 +85,10 @@ namespace neat_dnfs
 		speciesList.clear();
 		champions.clear();
 		solutions.clear();
+	}
 
+	void Population::resetGlobalCounters()
+	{
 		Species::resetUniqueIdentifier();
 		Genome::resetGlobalInnovationNumber();
 		Solution::resetUniqueIdentifier();
@@ -342,7 +345,7 @@ namespace neat_dnfs
 		assert(!solutions.empty() && "population must have solutions when statistics are computed");
 
 		// average fitness
-		perGenStatistics.averageFitness = 0.0F;
+		perGenStatistics.averageFitness = 0.0;
 		for (const auto& solution : solutions)
 		{
 			perGenStatistics.averageFitness += solution->getFitness();
@@ -386,7 +389,7 @@ namespace neat_dnfs
 		}
 
 		// average genome size
-		perGenStatistics.averageGenomeSize = 0.0F;
+		perGenStatistics.averageGenomeSize = 0.0;
 		for (const auto& solution : solutions)
 		{
 			perGenStatistics.averageGenomeSize += static_cast<double>(solution->getNumConnectionGenes() + solution->getNumFieldGenes());
@@ -394,7 +397,7 @@ namespace neat_dnfs
 		perGenStatistics.averageGenomeSize /= static_cast<double>(solutions.size());
 
 		// average connection genes
-		perGenStatistics.averageConnectionGenes = 0.0F;
+		perGenStatistics.averageConnectionGenes = 0.0;
 		for (const auto& solution : solutions)
 		{
 			perGenStatistics.averageConnectionGenes += static_cast<double>(solution->getNumConnectionGenes());
@@ -402,7 +405,7 @@ namespace neat_dnfs
 		perGenStatistics.averageConnectionGenes /= static_cast<double>(solutions.size());
 
 		// average field genes
-		perGenStatistics.averageFieldGenes = 0.0F;
+		perGenStatistics.averageFieldGenes = 0.0;
 		for (const auto& solution : solutions)
 		{
 			perGenStatistics.averageFieldGenes += static_cast<double>(solution->getNumFieldGenes());
@@ -446,7 +449,12 @@ namespace neat_dnfs
 						species->addSolution(solution);
 					}
 					solution->setSpeciesId(species->getId());
-					species->randomlyAssignRepresentative();
+					// The representative must stay fixed for the whole
+					// assignment pass -- standard NEAT measures compatibility
+					// against the previous generation's representative, not
+					// one that drifts as more solutions join this species
+					// during the same pass. A brand-new species still picks
+					// its initial representative below.
 					assigned = true;
 					break;
 				}
@@ -749,6 +757,17 @@ namespace neat_dnfs
 				}
 			}
 		}
+		// A species that lost all its members -- whether speciate() extinguished
+		// it earlier this generation or crossover() just found it empty -- is
+		// done for good: it produces no offspring and assignToSpecies() never
+		// reassigns into an extinct species. Erasing it here, right after every
+		// species has had its one crossover() pass, keeps speciesList (and the
+		// per-generation species count derived from it) reflecting only species
+		// that are still alive, instead of accumulating dead ones for the rest
+		// of the run (issue #59).
+		std::erase_if(speciesList, [](const std::shared_ptr<Species>& species)
+			{ return species->isExtinct(); });
+
 		solutions.clear();
 		for (const auto& species : speciesList)
 		{
