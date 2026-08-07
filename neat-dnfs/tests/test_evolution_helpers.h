@@ -25,6 +25,9 @@ struct EvolutionRunResult
     int finalPopulationSize = 0;
     int validationViolations = 0;
     std::vector<std::string> validationMessages;
+    std::vector<double> bestFitnessHistory;
+    int numGenerations = 0;
+    double targetFitness = 0.0;
 };
 
 // Runs settings.numRuns independent Population::evolve() calls for SolutionType
@@ -36,6 +39,20 @@ struct EvolutionRunResult
 // targetFitness is Population's early-stop condition (endConditionMet()), not
 // something these tests expect to reach at populationSize=50/numGenerations=10 --
 // do not turn it into a "reached target" assertion.
+//
+// These runs are deliberately not seeded, and cannot be made reproducible:
+// every FieldGene carries a NormalNoise whose per-step draws come from a
+// thread-local engine in an anonymous namespace inside dnf_composer
+// (src/tools/math.cpp), with no seed hook, and evaluation is spread across
+// std::async workers that each get their own engine. Near a bump-formation
+// boundary that noise swings a partial-fitness term by ~0.1 -- the same effect
+// PopulationConstants::elitismFitnessEpsilon exists to absorb.
+//
+// So assert only on properties that hold for *every* realization: invariants,
+// bounds, and internal consistency. Do not assert that fitness improved, or
+// that any particular fitness is reached -- that is a property of the search
+// algorithm on a noisy landscape, not of the code, and it makes the suite
+// flaky without detecting anything a deterministic assertion would miss.
 template <typename SolutionType>
 std::vector<EvolutionRunResult> runEvolution(const SolutionTopology& topology,
     const EvolutionRunSettings& settings = {})
@@ -63,6 +80,9 @@ std::vector<EvolutionRunResult> runEvolution(const SolutionTopology& topology,
         const auto& report = population.getValidationReport();
         result.validationViolations = report.total();
         result.validationMessages = report.messages;
+        result.bestFitnessHistory = history;
+        result.numGenerations = settings.numGenerations;
+        result.targetFitness = settings.targetFitness;
 
         results.push_back(std::move(result));
     }
