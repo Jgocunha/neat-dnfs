@@ -253,6 +253,11 @@ TEST_CASE("Population::reproduceAndSelect erases extinct species from the specie
 
     PopulationTestAccess::reproduceAndSelect(population);
 
+    // Assert the healthy species is still there, not just that nothing extinct
+    // remains -- the loop below passes vacuously on an empty speciesList, so it
+    // would not catch a regression that erased every species indiscriminately.
+    REQUIRE(PopulationTestAccess::speciesList(population).size() == 1);
+    REQUIRE(PopulationTestAccess::speciesList(population).front() == healthySpecies);
     for (const auto& species : PopulationTestAccess::speciesList(population))
         REQUIRE_FALSE(species->isExtinct());
 }
