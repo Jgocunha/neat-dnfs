@@ -26,9 +26,9 @@ namespace neat_dnfs
         Species();
 		~Species() = default;
 		Species(const Species& other) = default;
-		Species(Species&& other) = default;
+		Species(Species&& other) noexcept = default;
 		Species& operator=(const Species& other) = default;
-		Species& operator=(Species&& other) = default;
+		Species& operator=(Species&& other) noexcept = default;
         void setRepresentative(const SolutionPtr& newRepresentative);
         void randomlyAssignRepresentative();
         void assignChampion();

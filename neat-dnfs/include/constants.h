@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 #include <elements/element_factory.h>
 
 #include "neat_tools/logger.h"
@@ -15,7 +17,7 @@ namespace neat_dnfs
 	/// @brief Global simulation timing and step-count limits.
 	struct SimulationConstants
 	{
-		inline static std::string name				= "solution ";
+		static constexpr std::string_view name			= "solution ";
 		static constexpr double deltaT				= 1;
 		static constexpr size_t maxSimulationSteps	= 500;
 	};
@@ -28,13 +30,13 @@ namespace neat_dnfs
 
 	struct NoiseConstants
 	{
-		inline static std::string namePrefix	= "nn ";
+		static constexpr std::string_view namePrefix	= "nn ";
 		static constexpr double amplitude		= 0.010;
 	};
 
 	struct GaussStimulusConstants
 	{
-		inline static std::string namePrefix	= "gs ";
+		static constexpr std::string_view namePrefix	= "gs ";
 		static constexpr double width			= 5.0;
 		static constexpr double amplitude		= 20.0;
 		static constexpr bool circularity		= true;
@@ -43,10 +45,10 @@ namespace neat_dnfs
 
 	struct NeuralFieldConstants
 	{
-		inline static std::string namePrefix		= "nf ";
+		static constexpr std::string_view namePrefix	= "nf ";
 		static constexpr double tau					= 100;
 		static constexpr double restingLevel		= -10;
-		inline static dnf_composer::element::SigmoidFunction activationFunction{0.0F, 5.0F};
+		inline static const dnf_composer::element::SigmoidFunction activationFunction{0.0, 5.0};
 
 		static constexpr double tauMinVal			= 1.0;
 		static constexpr double tauMaxVal			= 200.0;
@@ -65,8 +67,8 @@ namespace neat_dnfs
 
 	struct GaussKernelConstants
 	{
-		inline static std::string namePrefix				= "gk ";
-		inline static std::string namePrefixConnectionGene	= "gk cg ";
+		static constexpr std::string_view namePrefix				= "gk ";
+		static constexpr std::string_view namePrefixConnectionGene	= "gk cg ";
 
 		static constexpr double width			= 2.00;
 		static constexpr double amplitude		= 8.00;
@@ -87,8 +89,8 @@ namespace neat_dnfs
 
 	struct MexicanHatKernelConstants
 	{
-		inline static std::string namePrefix				= "mhk ";
-		inline static std::string namePrefixConnectionGene	= "mhk cg ";
+		static constexpr std::string_view namePrefix				= "mhk ";
+		static constexpr std::string_view namePrefixConnectionGene	= "mhk cg ";
 
 		static constexpr double widthExc		= 2.50;
 		static constexpr double widthInh		= 5.00;

@@ -85,7 +85,10 @@ namespace neat_dnfs
 		speciesList.clear();
 		champions.clear();
 		solutions.clear();
+	}
 
+	void Population::resetGlobalCounters()
+	{
 		Species::resetUniqueIdentifier();
 		Genome::resetGlobalInnovationNumber();
 		Solution::resetUniqueIdentifier();
@@ -342,7 +345,7 @@ namespace neat_dnfs
 		assert(!solutions.empty() && "population must have solutions when statistics are computed");
 
 		// average fitness
-		perGenStatistics.averageFitness = 0.0F;
+		perGenStatistics.averageFitness = 0.0;
 		for (const auto& solution : solutions)
 		{
 			perGenStatistics.averageFitness += solution->getFitness();
@@ -386,7 +389,7 @@ namespace neat_dnfs
 		}
 
 		// average genome size
-		perGenStatistics.averageGenomeSize = 0.0F;
+		perGenStatistics.averageGenomeSize = 0.0;
 		for (const auto& solution : solutions)
 		{
 			perGenStatistics.averageGenomeSize += static_cast<double>(solution->getNumConnectionGenes() + solution->getNumFieldGenes());
@@ -394,7 +397,7 @@ namespace neat_dnfs
 		perGenStatistics.averageGenomeSize /= static_cast<double>(solutions.size());
 
 		// average connection genes
-		perGenStatistics.averageConnectionGenes = 0.0F;
+		perGenStatistics.averageConnectionGenes = 0.0;
 		for (const auto& solution : solutions)
 		{
 			perGenStatistics.averageConnectionGenes += static_cast<double>(solution->getNumConnectionGenes());
@@ -402,7 +405,7 @@ namespace neat_dnfs
 		perGenStatistics.averageConnectionGenes /= static_cast<double>(solutions.size());
 
 		// average field genes
-		perGenStatistics.averageFieldGenes = 0.0F;
+		perGenStatistics.averageFieldGenes = 0.0;
 		for (const auto& solution : solutions)
 		{
 			perGenStatistics.averageFieldGenes += static_cast<double>(solution->getNumFieldGenes());

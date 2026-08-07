@@ -102,19 +102,19 @@ namespace neat_dnfs
 		void mutate();
 		void setSpeciesId(int speciesId);
 		void setParents(int parent1, int parent2);
-		int getSpeciesId() const { return parameters.speciesId; }
-		std::tuple<int, int> getParents() const { return parents; }
-		dnf_composer::Simulation getPhenotype() const;
-		Genome getGenome() const;
-		SolutionParameters getParameters() const;
-		std::string getName() const { return name; }
-		std::string getAddress() const;
-		double getFitness() const;
-		size_t getGenomeSize() const;
-		size_t getNumFieldGenes() const { return genome.getFieldGenes().size(); }
-		size_t getNumConnectionGenes() const { return genome.getConnectionGenes().size(); }
-		std::vector<int> getInnovationNumbers() const;
-		int getId() const { return id; }
+		[[nodiscard]] int getSpeciesId() const { return parameters.speciesId; }
+		[[nodiscard]] std::tuple<int, int> getParents() const { return parents; }
+		[[nodiscard]] dnf_composer::Simulation getPhenotype() const;
+		[[nodiscard]] Genome getGenome() const;
+		[[nodiscard]] SolutionParameters getParameters() const;
+		[[nodiscard]] std::string getName() const { return name; }
+		[[nodiscard]] std::string getAddress() const;
+		[[nodiscard]] double getFitness() const;
+		[[nodiscard]] size_t getGenomeSize() const;
+		[[nodiscard]] size_t getNumFieldGenes() const { return genome.getFieldGenes().size(); }
+		[[nodiscard]] size_t getNumConnectionGenes() const { return genome.getConnectionGenes().size(); }
+		[[nodiscard]] std::vector<int> getInnovationNumbers() const;
+		[[nodiscard]] int getId() const { return id; }
 		static void clearGenerationalInnovations();
 		void incrementAge();
 		void setAdjustedFitness(double adjustedFitness);
@@ -122,12 +122,12 @@ namespace neat_dnfs
 		void clearPhenotype();
 		void addFieldGene(const FieldGene& gene);
 		void addConnectionGene(const ConnectionGene& gene);
-		bool containsConnectionGene(const ConnectionGene& gene) const;
-		bool containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const;
-		bool hasTheSameTopology(const SolutionPtr& other) const;
-		bool hasTheSameParameters(const SolutionPtr& other) const;
-		bool hasTheSameGenome(const SolutionPtr& other) const;
-		std::string toString() const;
+		[[nodiscard]] bool containsConnectionGene(const ConnectionGene& gene) const;
+		[[nodiscard]] bool containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const;
+		[[nodiscard]] bool hasTheSameTopology(const SolutionPtr& other) const;
+		[[nodiscard]] bool hasTheSameParameters(const SolutionPtr& other) const;
+		[[nodiscard]] bool hasTheSameGenome(const SolutionPtr& other) const;
+		[[nodiscard]] std::string toString() const;
 		void print() const;
 		virtual void createPhenotypeEnvironment() = 0;
 		static void resetUniqueIdentifier();
