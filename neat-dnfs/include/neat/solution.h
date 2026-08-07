@@ -209,9 +209,6 @@ namespace neat_dnfs
 									const double& position1, const double& amplitude1, const double& width1,
 									const double& position2, const double& amplitude2, const double& width2,
 									const double& position3, const double& amplitude3, const double& width3) const;
-		// not validated
-		//double preShapedness(const std::string& fieldName) const;
-		//double preShapedness(const std::string& fieldName, const std::vector<double>& positions);
 		double preShapednessAtPosition(const std::string& fieldName, double position ) const;
 		double negativePreShapednessAtPosition(const std::string& fieldName, const double& position) const;
 		double justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName,

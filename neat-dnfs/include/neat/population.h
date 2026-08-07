@@ -103,12 +103,10 @@ namespace neat_dnfs
 	/// @brief Per-generation snapshot of population health metrics.
 	struct PerGenerationStatistics
 	{
-		double averageFitness = 0.0;
-		// double stdDevFitness = 0.0;
-		double bestFitness = 0.0;
+		double averageFitness = 0.0F;
+		double bestFitness = 0.0F;
 		int numberOfSpecies = 0;
 		int numberOfActiveSpecies = 0;
-		// double averageCompatibilityDistance;
 		int innovationNumber = 0;
 		double averageGenomeSize = 0.0;
 		double averageConnectionGenes = 0.0;
