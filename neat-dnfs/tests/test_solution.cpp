@@ -308,8 +308,9 @@ TEST_CASE("Solution twoBumpsAtPositionWithAmplitudeAndWidth does not credit the 
     // A single, sufficiently strong, well-localized stimulus reliably forms
     // exactly one bump -- this is the same "one stimulus -> one bump" premise
     // oneBumpAtPositionWithAmplitudeAndWidth's production callers rely on
-    // (e.g. DetectionInstability). If this ever legitimately varies, the
-    // stimulus parameters below need revisiting, not this assertion.
+    // (e.g. DetectionInstability). The stimulus amplitude backing this is set
+    // in SingleBumpTwoBumpsSolution; if this ever fails again, retune there
+    // rather than weakening this assertion.
     REQUIRE(solution.observedBumps.size() == 1);
 
     // Same weights as Solution::twoBumpsAtPositionWithAmplitudeAndWidth.

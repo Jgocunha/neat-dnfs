@@ -449,7 +449,12 @@ namespace neat_dnfs
 						species->addSolution(solution);
 					}
 					solution->setSpeciesId(species->getId());
-					species->randomlyAssignRepresentative();
+					// The representative must stay fixed for the whole
+					// assignment pass -- standard NEAT measures compatibility
+					// against the previous generation's representative, not
+					// one that drifts as more solutions join this species
+					// during the same pass. A brand-new species still picks
+					// its initial representative below.
 					assigned = true;
 					break;
 				}
@@ -752,6 +757,17 @@ namespace neat_dnfs
 				}
 			}
 		}
+		// A species that lost all its members -- whether speciate() extinguished
+		// it earlier this generation or crossover() just found it empty -- is
+		// done for good: it produces no offspring and assignToSpecies() never
+		// reassigns into an extinct species. Erasing it here, right after every
+		// species has had its one crossover() pass, keeps speciesList (and the
+		// per-generation species count derived from it) reflecting only species
+		// that are still alive, instead of accumulating dead ones for the rest
+		// of the run (issue #59).
+		std::erase_if(speciesList, [](const std::shared_ptr<Species>& species)
+			{ return species->isExtinct(); });
+
 		solutions.clear();
 		for (const auto& species : speciesList)
 		{

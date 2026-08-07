@@ -16,6 +16,8 @@ namespace neat_dnfs
 {
 	class PopulationFileManager;
 
+	namespace test { class PopulationTestAccess; }
+
 	/// @brief Identifies which internal invariant check reported a violation.
 	enum class ValidationCheck
 	{
@@ -123,6 +125,9 @@ namespace neat_dnfs
 	class Population
 	{
 		friend class PopulationFileManager;
+		// Test-only accessor for issue #59's regression tests -- see
+		// tests/test_population_access.h for why direct access is needed.
+		friend class test::PopulationTestAccess;
 	private:
 		PopulationParameters parameters;
 		std::vector<SolutionPtr> solutions;

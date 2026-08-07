@@ -7,6 +7,7 @@
 #include "neat/population.h"
 #include "solutions/detection_instability.h"
 #include "test_helpers.h"
+#include "test_population_access.h"
 #include "test_stub_solution.h"
 
 using namespace neat_dnfs;
@@ -232,6 +233,59 @@ TEST_CASE("Population::evolve - per-generation statistics stay finite and histor
         REQUIRE(std::isfinite(fitness));
 
     REQUIRE(!population.getSpeciesList().empty());
+}
+
+// Regression test for issue #59 (extinct species leak): Species::crossover()
+// and Population::speciate()'s extinguish() pass both flag a species
+// extinct=true, but nothing ever erased it from Population::speciesList --
+// so a species that lost all its members lingered in the list forever, and
+// every per-generation species count kept counting it. This drives the exact
+// scenario directly: a species already extinguished this generation (as
+// speciate() does when a reassignment pass leaves it with no members) must
+// be gone from getSpeciesList() once reproduceAndSelect() -- which runs
+// crossover() for every species -- has processed it.
+TEST_CASE("Population::reproduceAndSelect erases extinct species from the species list", "[Population]")
+{
+    resetGlobalState();
+    const auto topology = makeTopology(1, 1);
+    const PopulationParameters parameters(1, 5, 1.1, false);
+    Population population(parameters, std::make_shared<DetectionInstability>(topology), false);
+    population.initialize();
+
+    auto& speciesList = PopulationTestAccess::speciesList(population);
+    speciesList.clear();
+
+    // A species that already went extinct this generation (exactly what
+    // Population::speciate() does when a reassignment pass leaves it with no
+    // members) -- this is the state speciesList must not keep around forever.
+    const auto extinctSpecies = std::make_shared<Species>();
+    extinctSpecies->extinguish();
+    speciesList.push_back(extinctSpecies);
+
+    // A healthy species that must survive and keep reproducing normally.
+    const auto healthySolution = std::make_shared<DetectionInstability>(topology);
+    healthySolution->initialize();
+    healthySolution->setAdjustedFitness(1.0);
+    const auto healthySpecies = std::make_shared<Species>();
+    healthySpecies->addSolution(healthySolution);
+    healthySpecies->setRepresentative(healthySolution);
+    speciesList.push_back(healthySpecies);
+
+    // hasFitnessImprovedOverTheLastGenerations(), called from
+    // assignOffspringToSpecies() every reproduceAndSelect(), dereferences
+    // bestSolution -- normally set by upkeep(), which this test bypasses to
+    // drive reproduceAndSelect() directly and deterministically.
+    PopulationTestAccess::setBestSolution(population, healthySolution);
+
+    PopulationTestAccess::reproduceAndSelect(population);
+
+    // Assert the healthy species is still there, not just that nothing extinct
+    // remains -- the loop below passes vacuously on an empty speciesList, so it
+    // would not catch a regression that erased every species indiscriminately.
+    REQUIRE(PopulationTestAccess::speciesList(population).size() == 1);
+    REQUIRE(PopulationTestAccess::speciesList(population).front() == healthySpecies);
+    for (const auto& species : PopulationTestAccess::speciesList(population))
+        REQUIRE_FALSE(species->isExtinct());
 }
 
 TEST_CASE("PopulationParameters - parallelEvolution defaults to true", "[Population]")
