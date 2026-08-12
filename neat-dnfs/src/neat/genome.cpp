@@ -1,5 +1,23 @@
 #include "neat/genome.h"
 
+namespace
+{
+	const std::vector<neat_dnfs::FieldGeneType> legalConnectionSourceTypes{
+		neat_dnfs::FieldGeneType::HIDDEN, neat_dnfs::FieldGeneType::INPUT };
+	const std::vector<neat_dnfs::FieldGeneType> legalConnectionTargetTypes{
+		neat_dnfs::FieldGeneType::HIDDEN, neat_dnfs::FieldGeneType::OUTPUT };
+
+	bool isLegalConnectionSource(neat_dnfs::FieldGeneType type)
+	{
+		return std::ranges::find(legalConnectionSourceTypes, type) != legalConnectionSourceTypes.end();
+	}
+
+	bool isLegalConnectionTarget(neat_dnfs::FieldGeneType type)
+	{
+		return std::ranges::find(legalConnectionTargetTypes, type) != legalConnectionTargetTypes.end();
+	}
+}
+
 namespace neat_dnfs
 {
 	std::map<ConnectionTuple, int> Genome::connectionTupleAndInnovationNumberWithinGeneration;
@@ -23,6 +41,12 @@ namespace neat_dnfs
 			static_cast<int>(index)}, dimensions ));
 	}
 
+	void Genome::addHiddenGene(const dnf_composer::element::ElementDimensions& dimensions)
+	{
+		const auto index = fieldGenes.size() + 1;
+		fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN, static_cast<int>(index) }, dimensions));
+	}
+
 	void Genome::addHiddenGene(const FieldGene& gene)
 	{
 		const auto index = fieldGenes.size() + 1;
@@ -32,11 +56,13 @@ namespace neat_dnfs
 
 	void Genome::mutate()
 	{
-		if (tools::utils::generateRandomDouble(0.0, 1.0) <
+		if (!AblationConstants::disableToggleConnectionGene &&
+			tools::utils::generateRandomDouble(0.0, 1.0) <
 			GenomeMutationConstants::toggleConnectionGeneProbability)
 			toggleConnectionGene();
 
-		if (tools::utils::generateRandomDouble(0.0, 1.0) <
+		if (!AblationConstants::disableAddFieldGene &&
+			tools::utils::generateRandomDouble(0.0, 1.0) <
 			GenomeMutationConstants::addFieldGeneProbability)
 			addGene();
 
@@ -44,7 +70,8 @@ namespace neat_dnfs
 			GenomeMutationConstants::mutateFieldGenesProbability)
 			mutateGene();
 
-		if (tools::utils::generateRandomDouble(0.0, 1.0) <
+		if (!AblationConstants::disableAddConnectionGene &&
+			tools::utils::generateRandomDouble(0.0, 1.0) <
 			GenomeMutationConstants::addConnectionGeneProbability)
 			addConnectionGene();
 
@@ -258,6 +285,31 @@ namespace neat_dnfs
 		connectionGenes.push_back(connectionGene);
 	}
 
+	void Genome::seedAllLegalConnections()
+	{
+		for (const auto& src : fieldGenes)
+		{
+			if (!isLegalConnectionSource(src.getParameters().type))
+				continue;
+			for (const auto& tgt : fieldGenes)
+			{
+				if (!isLegalConnectionTarget(tgt.getParameters().type))
+					continue;
+				const int a = src.getParameters().id;
+				const int b = tgt.getParameters().id;
+				if (a == b)
+					continue;
+				addConnectionGene(ConnectionTuple{ a, b });
+			}
+		}
+	}
+
+	void Genome::seedRandomConnections(int count)
+	{
+		for (int i = 0; i < count; ++i)
+			addConnectionGene();
+	}
+
 	bool Genome::containsConnectionGene(const ConnectionGene& connectionGene) const
 	{
 		return std::ranges::find(connectionGenes, connectionGene) != connectionGenes.end();
@@ -345,13 +397,13 @@ namespace neat_dnfs
 		if (fieldGenes.size() < 2)
 			return { 0, 0 };
 
-		int geneIndex1 = getRandomGeneIdByTypes({ FieldGeneType::HIDDEN, FieldGeneType::INPUT });
+		int geneIndex1 = getRandomGeneIdByTypes(legalConnectionSourceTypes);
 		if (geneIndex1 == -1)
 			return { 0, 0 };
 
 		int geneIndex2;
 		do {
-			geneIndex2 = getRandomGeneIdByTypes({ FieldGeneType::HIDDEN, FieldGeneType::OUTPUT });
+			geneIndex2 = getRandomGeneIdByTypes(legalConnectionTargetTypes);
 			if (geneIndex2 == -1)
 				return { 0, 0 };
 		} while (geneIndex2 == geneIndex1);

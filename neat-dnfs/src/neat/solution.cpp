@@ -54,6 +54,8 @@ namespace neat_dnfs
 		{
 			createInputGenes();
 			createOutputGenes();
+			createSeededHiddenGenes();
+			createSeededConnectionGenes();
 		}
 	}
 
@@ -132,6 +134,31 @@ namespace neat_dnfs
 		for (const auto& gene : initialTopology.geneTopology)
 			if (gene.first == FieldGeneType::OUTPUT)
 				genome.addOutputGene(gene.second);
+	}
+
+	void Solution::createSeededHiddenGenes()
+	{
+		if (!AblationConstants::seedRandomHiddenFields)
+			return;
+
+		const auto dimensions = initialTopology.geneTopology.front().second;
+		const int count = tools::utils::generateRandomInt(
+			AblationConstants::seedHiddenFieldsMin, AblationConstants::seedHiddenFieldsMax);
+		for (int i = 0; i < count; ++i)
+			genome.addHiddenGene(dimensions);
+	}
+
+	void Solution::createSeededConnectionGenes()
+	{
+		if (AblationConstants::seedAllLegalConnections)
+			genome.seedAllLegalConnections();
+
+		if (AblationConstants::seedRandomConnections)
+		{
+			const int count = tools::utils::generateRandomInt(
+				AblationConstants::seedConnectionsMin, AblationConstants::seedConnectionsMax);
+			genome.seedRandomConnections(count);
+		}
 	}
 
 	void Solution::translateGenesToPhenotype()
@@ -1113,7 +1140,7 @@ namespace neat_dnfs
 		{
 			const auto position = gaussStimulus->getParameters().position;
 			newPosition = position + step;
-			gaussStimulus->setParameters({ gaussStimulus->getParameters().width, gaussStimulus->getParameters().amplitude, newPosition });
+			gaussStimulus->setParameters(dnf_composer::element::GaussStimulusParameters{ gaussStimulus->getParameters().width, gaussStimulus->getParameters().amplitude, newPosition });
 
 			for (int i = 0; i < steps_t; i++)
 				phenotype.step();

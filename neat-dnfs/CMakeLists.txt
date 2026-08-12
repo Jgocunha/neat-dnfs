@@ -4,6 +4,15 @@ project(neat-dnfs
         DESCRIPTION "Dynamic Neural Field Evolution with NEAT for Robotics"
         LANGUAGES CXX)
 
+# The installed dynamic-neural-field-composer package only exports Debug/Release
+# import locations. Multi-config generators (Visual Studio, Ninja Multi-Config)
+# default to also requesting MinSizeRel/RelWithDebInfo, which fails the generate
+# step with "IMPORTED_LOCATION not set". Restrict to the two configs that exist.
+get_property(NEAT_DNFS_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(NEAT_DNFS_IS_MULTI_CONFIG)
+    set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
+endif()
+
 # Define library version
 set(NEAT_DNFS_VERSION_MAJOR 1 CACHE STRING "major version" FORCE)
 set(NEAT_DNFS_VERSION_MINOR 0 CACHE STRING "minor version" FORCE)
@@ -112,7 +121,25 @@ find_package(imgui-platform-kit REQUIRED)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE imgui-platform-kit)
 
 # Setup dynamic-neural-field-composer
+find_package(FFTW3 CONFIG REQUIRED)
+
+# Prefer the locally vendored install: the system-wide install under
+# "Program Files" only registers a complete import location for Debug,
+# so linking Release against it mixes debug/release CRTs (LNK2038).
+# The local install is split into single-config release/ and debug/ trees;
+# find it via the release tree, then backfill Debug below.
+list(PREPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/deps/dnfc-install/release")
 find_package(dynamic-neural-field-composer REQUIRED)
+
+set(NEAT_DNFS_DNFC_DEBUG_LIB "${CMAKE_SOURCE_DIR}/deps/dnfc-install/debug/lib/debug/dynamic-neural-field-composer-2.9.4.lib")
+get_target_property(NEAT_DNFS_DNFC_CONFIGS dynamic-neural-field-composer IMPORTED_CONFIGURATIONS)
+if(NOT "DEBUG" IN_LIST NEAT_DNFS_DNFC_CONFIGS AND EXISTS "${NEAT_DNFS_DNFC_DEBUG_LIB}")
+    set_property(TARGET dynamic-neural-field-composer APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
+    set_target_properties(dynamic-neural-field-composer PROPERTIES
+        IMPORTED_LOCATION_DEBUG "${NEAT_DNFS_DNFC_DEBUG_LIB}"
+    )
+endif()
+
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE dynamic-neural-field-composer)
 
 
@@ -163,6 +190,61 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         ${CMAKE_PROJECT_NAME}
 )
 
+# Ablation "no growth, I/O only" executable
+set(EXE_PROJECT_EXAMPLE neat-dnfs-evol-ablation-no-growth-io-only)
+add_executable(${EXE_PROJECT_EXAMPLE} "examples/ablation_no_growth_io_only.cpp")
+target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
+target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
+        imgui::imgui
+        imgui-platform-kit
+        dynamic-neural-field-composer
+        ${CMAKE_PROJECT_NAME}
+)
+
+# Ablation "no growth, one hidden" executable
+set(EXE_PROJECT_EXAMPLE neat-dnfs-evol-ablation-no-growth-one-hidden)
+add_executable(${EXE_PROJECT_EXAMPLE} "examples/ablation_no_growth_one_hidden.cpp")
+target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
+target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
+        imgui::imgui
+        imgui-platform-kit
+        dynamic-neural-field-composer
+        ${CMAKE_PROJECT_NAME}
+)
+
+# Ablation "no crossover" executable
+set(EXE_PROJECT_EXAMPLE neat-dnfs-evol-ablation-no-crossover)
+add_executable(${EXE_PROJECT_EXAMPLE} "examples/ablation_no_crossover.cpp")
+target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
+target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
+        imgui::imgui
+        imgui-platform-kit
+        dynamic-neural-field-composer
+        ${CMAKE_PROJECT_NAME}
+)
+
+# Ablation "no speciation" executable
+set(EXE_PROJECT_EXAMPLE neat-dnfs-evol-ablation-no-speciation)
+add_executable(${EXE_PROJECT_EXAMPLE} "examples/ablation_no_speciation.cpp")
+target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
+target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
+        imgui::imgui
+        imgui-platform-kit
+        dynamic-neural-field-composer
+        ${CMAKE_PROJECT_NAME}
+)
+
+# Ablation "random initial topology" executable
+set(EXE_PROJECT_EXAMPLE neat-dnfs-evol-ablation-random-initial-topology)
+add_executable(${EXE_PROJECT_EXAMPLE} "examples/ablation_random_initial_topology.cpp")
+target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
+target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
+        imgui::imgui
+        imgui-platform-kit
+        dynamic-neural-field-composer
+        ${CMAKE_PROJECT_NAME}
+)
+
 # Incremental evolution executable
 set(EXE_PROJECT_EXAMPLE neat-dnfs-inc-evol)
 add_executable(${EXE_PROJECT_EXAMPLE} "examples/incremental_evolution.cpp")
@@ -204,6 +286,8 @@ add_executable(${TEST_PROJECT}
     #"tests/test_population.cpp"
     #"tests/test_single_bump.cpp"
     "tests/test_speciation.cpp"
+    "tests/test_ablations.cpp"
+    "tests/test_population_end_condition.cpp"
 )
 target_include_directories(${TEST_PROJECT} PRIVATE include)
 target_link_libraries(${TEST_PROJECT} PRIVATE Catch2::Catch2 Catch2::Catch2WithMain imgui-platform-kit  dynamic-neural-field-composer ${CMAKE_PROJECT_NAME})

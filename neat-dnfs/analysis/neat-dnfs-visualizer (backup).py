@@ -123,125 +123,21 @@ def find_runs_with_overview(base_dir: Path):
 # Parsing helpers: partial fitness (statistics/)
 # =========================
 
-# Pre-compiled at module scope: these run once per line across every
-# statistics/generation_X.txt line in a run (hundreds of thousands of lines),
-# so avoiding re-compilation per call matters.
-_PARTIAL_FIT_RE = re.compile(r"fit\.\:\s*([0-9eE\.\+\-]+).*?part\.\:\s*\(([^)]*)\)")
-_SOL_ID_RE = re.compile(r"solution\s+(\d+)\s+\[")
-_STRUCT_TOGGLE_RE = re.compile(r"(toggle cg[^.\}]+\.)")
-_STRUCT_ADDED_FG_RE = re.compile(r"\((added fg [^)]*)\)")
-_STRUCT_ADDED_CG_RE = re.compile(r"\((added cg [^)]*)\)")
-_GENE_MUT_BLOCK_RE = re.compile(r"\[([^\]]+)\]")
-_GENE_HEAD_RE = re.compile(r"(?P<gene_type>[fc]g)\s+(?P<ref>[^\s(]+)\s*(?P<rest>.*)")
-_INNER_MUT_RE = re.compile(r"\(([^)]+)\)")
-_NOOP_MUT_RE = re.compile(r"(fg|cg)\s+\S+$")
-
-
-def _extract_mutation_events(g: int, sol_id: int, fit: float, muts_block: str, records: list):
-    """Parse one solution's 'last mutations{...}' block into individual mutation-event
-    records, appended in place to `records`. Mirrors the taxonomy in categorize_mutation."""
-    for s in _STRUCT_TOGGLE_RE.findall(muts_block):
-        mut_inner = s.strip()
-        records.append(
-            {
-                "generation": g,
-                "solution_id": sol_id,
-                "fitness": fit,
-                "gene_type": "cg",
-                "gene_ref": "",
-                "mutation_inner": mut_inner,
-                "mutation_raw": mut_inner,
-                "category": categorize_mutation(mut_inner, gene_type="cg"),
-            }
-        )
-
-    for inner, gtype in [
-        *[(x, "fg") for x in _STRUCT_ADDED_FG_RE.findall(muts_block)],
-        *[(x, "cg") for x in _STRUCT_ADDED_CG_RE.findall(muts_block)],
-    ]:
-        mut_inner = inner.strip()
-        records.append(
-            {
-                "generation": g,
-                "solution_id": sol_id,
-                "fitness": fit,
-                "gene_type": gtype,
-                "gene_ref": "",
-                "mutation_inner": mut_inner,
-                "mutation_raw": mut_inner,
-                "category": categorize_mutation(mut_inner, gene_type=gtype),
-            }
-        )
-
-    for gm in _GENE_MUT_BLOCK_RE.findall(muts_block):
-        gm = gm.strip()
-        if not gm:
-            continue
-
-        m_head = _GENE_HEAD_RE.match(gm)
-        if m_head:
-            gene_type = m_head.group("gene_type")
-            gene_ref = m_head.group("ref")
-            rest = m_head.group("rest") or ""
-        else:
-            gene_type = ""
-            gene_ref = ""
-            rest = gm
-
-        inners = _INNER_MUT_RE.findall(rest)
-        if not inners:
-            mut_inner = (rest.strip() or gm).strip()
-            if _NOOP_MUT_RE.fullmatch(mut_inner):
-                continue
-            records.append(
-                {
-                    "generation": g,
-                    "solution_id": sol_id,
-                    "fitness": fit,
-                    "gene_type": gene_type,
-                    "gene_ref": gene_ref,
-                    "mutation_inner": mut_inner,
-                    "mutation_raw": gm,
-                    "category": categorize_mutation(mut_inner, gene_type=gene_type),
-                }
-            )
-        else:
-            for inner in inners:
-                mut_inner = inner.strip()
-                mut_full = f"{gene_type} {gene_ref}: {mut_inner}".strip()
-                records.append(
-                    {
-                        "generation": g,
-                        "solution_id": sol_id,
-                        "fitness": fit,
-                        "gene_type": gene_type,
-                        "gene_ref": gene_ref,
-                        "mutation_inner": mut_inner,
-                        "mutation_raw": mut_full,
-                        "category": categorize_mutation(mut_inner, gene_type=gene_type),
-                    }
-                )
-
-
 @st.cache_data
-def _scan_run_statistics(run_dir_str: str, generations: tuple):
-    """Single pass over statistics/generation_X.txt that extracts BOTH the
-    per-generation partial-fitness vectors and the per-solution mutation events.
-
-    compute_partial_fitness and compute_mutation_events used to each independently
-    re-read and re-regex the same (often 100+ MB) statistics/ text; every solution
-    line carries both the 'part.: (...)' and 'last mutations{...}' data, so one pass
-    is enough. Returns (partial_df, mut_df) matching what those two functions used
-    to build directly.
+def compute_partial_fitness(run_dir_str: str, generations: tuple):
+    """
+    For each generation, read statistics/generation_X.txt and compute:
+      - best partial fitness vector (from best total fitness individual)
+      - average partial fitness over all individuals
+    Returns a DataFrame with columns:
+      generation, best_p1..N, avg_p1..N
     """
     run_dir = Path(run_dir_str)
     stats_dir = run_dir / "statistics"
     if not stats_dir.exists():
-        return None, pd.DataFrame()
+        return None
 
-    partial_records = []
-    mut_records = []
-
+    records = []
     for g in generations:
         stats_path = stats_dir / f"generation_{g + 1}.txt"
         if not stats_path.exists():
@@ -254,13 +150,17 @@ def _scan_run_statistics(run_dir_str: str, generations: tuple):
 
         with stats_path.open("r") as f:
             for line in f:
-                m = _PARTIAL_FIT_RE.search(line)
+                m = re.search(
+                    r"fit\.\:\s*([0-9eE\.\+\-]+).*?part\.\:\s*\(([^)]*)\)",
+                    line,
+                )
                 if not m:
                     continue
 
                 fit = float(m.group(1))
+                parts_str = m.group(2)
                 parts = []
-                for token in m.group(2).split(","):
+                for token in parts_str.split(","):
                     token = token.strip()
                     if token:
                         try:
@@ -268,101 +168,58 @@ def _scan_run_statistics(run_dir_str: str, generations: tuple):
                         except ValueError:
                             pass
 
-                if parts:
-                    if sum_parts is None:
-                        sum_parts = [0.0] * len(parts)
-                    for i, v in enumerate(parts):
-                        sum_parts[i] += v
-                    count += 1
-                    if fit > best_fit:
-                        best_fit = fit
-                        best_parts = parts
-
-                # ---- mutation events ----
-                # str.find instead of a backtracking regex: the previous single regex
-                # for this (solution ... .*? last mutations\{...\}\]) had to scan across
-                # the genome/field/connection-gene text on every line and dominated
-                # parse time.
-                idx = line.find("last mutations{")
-                if idx == -1:
-                    continue
-                end = line.find("}]", idx)
-                if end == -1:
-                    continue
-                muts_block = line[idx + len("last mutations{") : end].strip()
-                if not muts_block:
+                if not parts:
                     continue
 
-                sol_m = _SOL_ID_RE.search(line)
-                if not sol_m:
-                    continue
-                sol_id = int(sol_m.group(1))
+                if sum_parts is None:
+                    sum_parts = [0.0] * len(parts)
 
-                _extract_mutation_events(g, sol_id, fit, muts_block, mut_records)
+                for i, v in enumerate(parts):
+                    sum_parts[i] += v
 
-        if count and best_parts is not None:
-            avg_parts = [s / count for s in sum_parts]
-            rec = {"generation": g}
-            for i, v in enumerate(best_parts, start=1):
-                rec[f"best_p{i}"] = v
-            for i, v in enumerate(avg_parts, start=1):
-                rec[f"avg_p{i}"] = v
-            partial_records.append(rec)
+                count += 1
 
-    partial_df = None
-    if partial_records:
-        partial_df = pd.DataFrame(partial_records)
-        partial_df.sort_values("generation", inplace=True)
-        partial_df.reset_index(drop=True, inplace=True)
+                if fit > best_fit:
+                    best_fit = fit
+                    best_parts = parts
 
-    if mut_records:
-        mut_df = pd.DataFrame(mut_records)
-        mut_df.sort_values(["generation", "solution_id"], inplace=True)
-        mut_df.reset_index(drop=True, inplace=True)
-        mut_df["gene_type"] = mut_df["gene_type"].astype("category")
-        mut_df["category"] = mut_df["category"].astype("category")
-    else:
-        mut_df = pd.DataFrame()
+        if count == 0 or best_parts is None:
+            continue
 
-    return partial_df, mut_df
+        avg_parts = [s / count for s in sum_parts]
+        rec = {"generation": g}
+        for i, v in enumerate(best_parts, start=1):
+            rec[f"best_p{i}"] = v
+        for i, v in enumerate(avg_parts, start=1):
+            rec[f"avg_p{i}"] = v
 
+        records.append(rec)
 
-@st.cache_data
-def compute_partial_fitness(run_dir_str: str, generations: tuple):
-    """
-    For each generation, read statistics/generation_X.txt and compute:
-      - best partial fitness vector (from best total fitness individual)
-      - average partial fitness over all individuals
-    Returns a DataFrame with columns:
-      generation, best_p1..N, avg_p1..N
-    """
-    partial_df, _ = _scan_run_statistics(run_dir_str, generations)
-    return partial_df
+    if not records:
+        return None
+
+    df = pd.DataFrame(records)
+    df.sort_values("generation", inplace=True)
+    df.reset_index(drop=True, inplace=True)
+    return df
 
 
-def generations_meeting_targets(
-    generations: list, partial_vectors: list, partial_targets: dict
-) -> list[int]:
-    """Return 1-based generations where all partial targets are met, given raw
-    per-generation partial-fitness vectors (e.g. from per_generation_overview.txt).
-
-    Same semantics as generations_all_partial_meet_targets (missing/NaN partials
-    count as NOT meeting the target), but works directly on in-memory vectors so
-    callers don't need to re-parse statistics/generation_X.txt to get a DataFrame.
-    """
-    if not partial_targets:
+def generations_all_partial_meet_targets(partial_df: pd.DataFrame, partial_targets: dict) -> list[int]:
+    """Return 1-based generations where all partial best components meet targets."""
+    if partial_df is None or partial_df.empty or not partial_targets:
         return []
 
     gens_ok: list[int] = []
-    for g0, parts in zip(generations, partial_vectors):
+    for _, row in partial_df.iterrows():
         ok = True
         for comp, thr in partial_targets.items():
-            idx = int(comp) - 1
-            if idx < 0 or idx >= len(parts):
+            col = f"best_p{int(comp)}"
+            if col not in partial_df.columns:
                 ok = False
                 break
             try:
-                val = float(parts[idx])
+                val = float(row[col])
+                # Treat missing/NaN partials as NOT meeting the target.
                 if math.isnan(val) or val < float(thr):
                     ok = False
                     break
@@ -372,26 +229,9 @@ def generations_meeting_targets(
 
         if ok:
             # stored generation is overview generation (0-based); display is 1-based
-            gens_ok.append(int(g0) + 1)
+            gens_ok.append(int(row["generation"]) + 1)
 
     return gens_ok
-
-
-def generations_all_partial_meet_targets(partial_df: pd.DataFrame, partial_targets: dict) -> list[int]:
-    """Return 1-based generations where all partial best components meet targets."""
-    if partial_df is None or partial_df.empty or not partial_targets:
-        return []
-
-    max_comp = max(int(c) for c in partial_targets.keys())
-    generations = partial_df["generation"].tolist()
-    partial_vectors = [
-        [
-            float(row[f"best_p{i}"]) if f"best_p{i}" in partial_df.columns else float("nan")
-            for i in range(1, max_comp + 1)
-        ]
-        for _, row in partial_df.iterrows()
-    ]
-    return generations_meeting_targets(generations, partial_vectors, partial_targets)
 
 
 # =========================
@@ -1564,8 +1404,147 @@ def compute_mutation_events(run_dir_str: str, generations: tuple):
       mutation_raw   (gene + inner, e.g. 'fg 2: fg gk width -1.0'),
       category       (fine-grained category from categorize_mutation).
     """
-    _, mut_df = _scan_run_statistics(run_dir_str, generations)
-    return mut_df
+    run_dir = Path(run_dir_str)
+    stats_dir = run_dir / "statistics"
+    if not stats_dir.exists():
+        return pd.DataFrame()
+
+    records = []
+
+    # solution line pattern with last mutations{...}
+    sol_pattern = re.compile(
+        r"solution\s+(?P<id>\d+)\s+\[\s*fit\.\:\s*(?P<fit>[0-9eE\.\+\-]+).*?"
+        r"last mutations\{(?P<muts>.*?)\}\]",
+        re.UNICODE,
+    )
+
+    for g in generations:
+        path = stats_dir / f"generation_{g + 1}.txt"
+        if not path.exists():
+            continue
+
+        with path.open("r") as f:
+            for line in f:
+                m = sol_pattern.search(line)
+                if not m:
+                    continue
+
+                sol_id = int(m.group("id"))
+                fit = float(m.group("fit"))
+                muts_block = m.group("muts").strip()
+                if not muts_block:
+                    continue
+
+                # ---------- structural: toggle cg / added fg / added cg ----------
+                # toggle cg ... to enabled/disabled.
+                for s in re.findall(r"(toggle cg[^.\}]+\.)", muts_block):
+                    mut_inner = s.strip()
+                    category = categorize_mutation(mut_inner, gene_type="cg")
+                    records.append(
+                        {
+                            "generation": g,
+                            "solution_id": sol_id,
+                            "fitness": fit,
+                            "gene_type": "cg",
+                            "gene_ref": "",
+                            "mutation_inner": mut_inner,
+                            "mutation_raw": mut_inner,
+                            "category": category,
+                        }
+                    )
+
+                # (added fg ...), (added cg ...)
+                for inner, gtype in [
+                    *[(x, "fg") for x in re.findall(r"\((added fg [^)]*)\)", muts_block)],
+                    *[(x, "cg") for x in re.findall(r"\((added cg [^)]*)\)", muts_block)],
+                ]:
+                    mut_inner = inner.strip()
+                    category = categorize_mutation(mut_inner, gene_type=gtype)
+                    records.append(
+                        {
+                            "generation": g,
+                            "solution_id": sol_id,
+                            "fitness": fit,
+                            "gene_type": gtype,
+                            "gene_ref": "",
+                            "mutation_inner": mut_inner,
+                            "mutation_raw": mut_inner,
+                            "category": category,
+                        }
+                    )
+
+                # ---------- parameter / type mutations inside [...] ----------
+                # first split into [ ... ] blocks -> one per gene mutation
+                gene_mutations = re.findall(r"\[([^\]]+)\]", muts_block)
+
+                for gm in gene_mutations:
+                    gm = gm.strip()
+                    if not gm:
+                        continue
+
+                    # gm looks like: "fg 2 (fg gk width -0.5)(fg gk amp.-0.5)"
+                    m_head = re.match(
+                        r"(?P<gene_type>[fc]g)\s+(?P<ref>[^\s(]+)\s*(?P<rest>.*)", gm
+                    )
+                    if m_head:
+                        gene_type = m_head.group("gene_type")  # 'fg' or 'cg'
+                        gene_ref = m_head.group("ref")
+                        rest = m_head.group("rest") or ""
+                    else:
+                        gene_type = ""
+                        gene_ref = ""
+                        rest = gm
+
+                    # extract each (...) as one sub-mutation
+                    inners = re.findall(r"\(([^)]+)\)", rest)
+                    if not inners:
+                        # fallback: treat the whole string as one mutation *only if*
+                        # it isn't just "fg 2" / "cg 1-3" etc. (no-op selection)
+                        mut_inner = (rest.strip() or gm).strip()
+
+                        # pattern: just "fg <id>" or "cg <id>" -> ignore, no actual mutation
+                        if re.fullmatch(r"(fg|cg)\s+\S+$", mut_inner):
+                            continue
+
+                        mut_full = gm
+                        category = categorize_mutation(mut_inner, gene_type=gene_type)
+                        records.append(
+                            {
+                                "generation": g,
+                                "solution_id": sol_id,
+                                "fitness": fit,
+                                "gene_type": gene_type,
+                                "gene_ref": gene_ref,
+                                "mutation_inner": mut_inner,
+                                "mutation_raw": mut_full,
+                                "category": category,
+                            }
+                        )
+                    else:
+                        for inner in inners:
+                            mut_inner = inner.strip()
+                            mut_full = f"{gene_type} {gene_ref}: {mut_inner}".strip()
+                            category = categorize_mutation(mut_inner, gene_type=gene_type)
+                            records.append(
+                                {
+                                    "generation": g,
+                                    "solution_id": sol_id,
+                                    "fitness": fit,
+                                    "gene_type": gene_type,
+                                    "gene_ref": gene_ref,
+                                    "mutation_inner": mut_inner,
+                                    "mutation_raw": mut_full,
+                                    "category": category,
+                                }
+                            )
+
+    if not records:
+        return pd.DataFrame()
+
+    df_mut = pd.DataFrame(records)
+    df_mut.sort_values(["generation", "solution_id"], inplace=True)
+    df_mut.reset_index(drop=True, inplace=True)
+    return df_mut
 
 
 
@@ -2114,14 +2093,7 @@ def _format_duration_human(duration_seconds: int | None) -> str | None:
     return f"{mins}m"
 
 
-def _parse_run_overview(stats_file: Path):
-    """Parse per_generation_overview.txt into target-independent run metrics.
-
-    This does NOT depend on partial_targets and does NOT touch statistics/ at all
-    (the per-generation best partial-fitness vector is already in this file). Keeping
-    it target-independent lets callers cache the parse once per run and cheaply
-    re-evaluate success/failure against different targets (see _evaluate_run_targets).
-    """
+def _analyze_single_run_convergence(stats_file: Path, partial_targets: dict):
     txt = stats_file.read_text()
 
     # NOTE: generations in per_generation_overview.txt are 0-based (actual generation = g + 1).
@@ -2210,6 +2182,33 @@ def _parse_run_overview(stats_file: Path):
     conn_states = re.findall(r"enabled: (true|false)", conn_genes_strs[last_idx])
     enabled_connections_count = conn_states.count("true")
 
+# which partial targets the BEST solution failed (based on partial_targets only)
+    failed_partials = []
+    for p_num, thr in sorted(partial_targets.items()):
+        # Partial fitness targets are specified as p1, p2, ... (1-based indexing).
+        if p_num <= 0:
+            continue
+        idx = p_num - 1  # convert to 0-based index into the partial vector
+        if idx >= len(best_solution_partials):
+            failed_partials.append(f"p{p_num}=NA<{thr:.3f}")
+            continue
+        val = best_solution_partials[idx]
+        # Treat missing/NaN values as failures.
+        if val is None or (isinstance(val, float) and math.isnan(val)) or float(val) < float(thr):
+            try:
+                failed_partials.append(f"p{p_num}={float(val):.3f}<{thr:.3f}")
+            except Exception:
+                failed_partials.append(f"p{p_num}=NA<{thr:.3f}")
+            
+    failed_partials_str = ", ".join(failed_partials) if failed_partials else "(none)"
+
+    # Success is based on partial fitness targets being met simultaneously (any generation).
+    run_dir = str(stats_file.parent)
+    partial_df = compute_partial_fitness(run_dir, tuple(generations))
+    gens_ok = generations_all_partial_meet_targets(partial_df, partial_targets)
+    success = len(gens_ok) > 0
+    generation_to_threshold = gens_ok[0] if success else None  # 1-based, per helper
+
     # duration (from evolution_timestamps.txt, if available)
     ts_metrics = _parse_evolution_timestamps(stats_file.parent / "evolution_timestamps.txt")
     duration_seconds = ts_metrics.get("duration_seconds")
@@ -2230,12 +2229,15 @@ def _parse_run_overview(stats_file: Path):
     )
 
     return {
+        # run-level success
+        "success": success,
+        "generation_to_threshold": generation_to_threshold,  # 1-based or None
         # best-solution diagnostics
         "best_solution_generation": best_g0 + 1,  # display (1-based)
         "best_solution_id": best_solution_id,
         "best_solution_species_id": best_solution_species_id,
         "best_solution_fitness": best_solution_fitness,
-        "best_solution_partials": best_solution_partials,
+        "best_solution_failed_partials": failed_partials_str,
         # reference stats
         "max_fitness": max_fitness,
         "min_fitness": min_fitness,
@@ -2243,7 +2245,6 @@ def _parse_run_overview(stats_file: Path):
         "avg_improvement_per_gen": avg_improvement,
         "generations": generations,
         "fitness_values": fitness_values,
-        "partial_vectors": partial_vectors,
         "fitness_improvements": fitness_improvements,
         # final run state
         "final_species_total": final_species_total,
@@ -2256,46 +2257,6 @@ def _parse_run_overview(stats_file: Path):
         "duration_human": duration_human,
         # we fill run_dir higher up
     }
-
-
-def _evaluate_run_targets(parsed: dict, partial_targets: dict) -> dict:
-    """Combine a target-independent parsed run (see _parse_run_overview) with a set
-    of partial-fitness targets to compute success/threshold/failed-partials.
-
-    Cheap: works entirely on already-parsed in-memory data, no file I/O.
-    """
-    gens_ok = generations_meeting_targets(
-        parsed["generations"], parsed["partial_vectors"], partial_targets
-    )
-    success = len(gens_ok) > 0
-    generation_to_threshold = gens_ok[0] if success else None  # 1-based, per helper
-
-    # which partial targets the BEST solution failed (based on partial_targets only)
-    best_solution_partials = parsed["best_solution_partials"]
-    failed_partials = []
-    for p_num, thr in sorted(partial_targets.items()):
-        # Partial fitness targets are specified as p1, p2, ... (1-based indexing).
-        if p_num <= 0:
-            continue
-        idx = p_num - 1  # convert to 0-based index into the partial vector
-        if idx >= len(best_solution_partials):
-            failed_partials.append(f"p{p_num}=NA<{thr:.3f}")
-            continue
-        val = best_solution_partials[idx]
-        # Treat missing/NaN values as failures.
-        if val is None or (isinstance(val, float) and math.isnan(val)) or float(val) < float(thr):
-            try:
-                failed_partials.append(f"p{p_num}={float(val):.3f}<{thr:.3f}")
-            except Exception:
-                failed_partials.append(f"p{p_num}=NA<{thr:.3f}")
-
-    failed_partials_str = ", ".join(failed_partials) if failed_partials else "(none)"
-
-    out = dict(parsed)
-    out["success"] = success
-    out["generation_to_threshold"] = generation_to_threshold
-    out["best_solution_failed_partials"] = failed_partials_str
-    return out
 
 def _aggregate_convergence_metrics(all_metrics: list):
     total_runs = len(all_metrics)
@@ -2405,39 +2366,29 @@ def _aggregate_convergence_metrics(all_metrics: list):
 
 
 @st.cache_data
-def _load_experiment_runs_parsed(base_dir_str: str):
-    """Target-independent parse of every run's per_generation_overview.txt in base_dir.
-
-    Cached on the directory alone, so changing partial-fitness targets in the UI
-    never re-parses (that used to also re-scan every statistics/generation_X.txt,
-    which for a 33-run experiment is ~2.5 GB of I/O per target tweak).
+def compute_experiment_convergence(base_dir_str: str, partial_targets_items: tuple):
+    """
+    Go through all run folders (subdirs with per_generation_overview.txt)
+    and compute convergence/architecture statistics.
     """
     base = Path(base_dir_str)
-    parsed_runs = []
+    all_metrics = []
+
+    # convert cached tuple back to dict
+    partial_targets = {int(k): float(v) for k, v in partial_targets_items}
+
     for rd in base.iterdir():
         if not rd.is_dir():
             continue
         stats_file = rd / "per_generation_overview.txt"
         if not stats_file.exists():
             continue
-        m = _parse_run_overview(stats_file)
+
+        m = _analyze_single_run_convergence(stats_file, partial_targets)
         if m is None:
             continue
         m["run_dir"] = rd.name
-        parsed_runs.append(m)
-    return parsed_runs
-
-
-def compute_experiment_convergence(base_dir_str: str, partial_targets_items: tuple):
-    """
-    Go through all run folders (subdirs with per_generation_overview.txt)
-    and compute convergence/architecture statistics.
-    """
-    # convert cached tuple back to dict
-    partial_targets = {int(k): float(v) for k, v in partial_targets_items}
-
-    parsed_runs = _load_experiment_runs_parsed(base_dir_str)
-    all_metrics = [_evaluate_run_targets(parsed, partial_targets) for parsed in parsed_runs]
+        all_metrics.append(m)
 
     if not all_metrics:
         return {}

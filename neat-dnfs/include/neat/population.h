@@ -2,6 +2,7 @@
 
 #include <future>
 
+#include <dnf_composer/tools/logger.h>
 #include <dnf_composer/simulation/simulation_file_manager.h>
 
 #include "solution.h"

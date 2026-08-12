@@ -23,6 +23,7 @@ namespace neat_dnfs
 		void addInputGene(const dnf_composer::element::ElementDimensions& dimensions);
 		void addOutputGene(const dnf_composer::element::ElementDimensions& dimensions);
 		void addHiddenGene(const FieldGene& gene);
+		void addHiddenGene(const dnf_composer::element::ElementDimensions& dimensions);
 
 		void mutate();
 		void checkForDuplicateConnectionGenes() const;
@@ -43,6 +44,8 @@ namespace neat_dnfs
 
 		void addFieldGene(const FieldGene& fieldGene);
 		void addConnectionGene(const ConnectionGene& connectionGene);
+		void seedAllLegalConnections();
+		void seedRandomConnections(int count);
 		[[nodiscard]] bool containsConnectionGene(const ConnectionGene& connectionGene) const;
 		[[nodiscard]] bool containsFieldGene(const FieldGene& fieldGene) const;
 		[[nodiscard]] bool containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const;

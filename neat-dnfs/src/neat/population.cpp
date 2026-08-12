@@ -603,7 +603,10 @@ namespace neat_dnfs
 
 	bool Population::endConditionMet() const
 	{
-		const bool fitnessCondition = bestSolution->getFitness() > parameters.targetFitness;
+		const auto& partialFitness = bestSolution->getParameters().partialFitness;
+		const bool fitnessCondition = !partialFitness.empty() &&
+			std::ranges::all_of(partialFitness, [this](const double fitness)
+				{ return fitness > parameters.targetFitness; });
 		const bool generationCondition = parameters.currentGeneration >= parameters.numGenerations;
 		return fitnessCondition || generationCondition || control.stop;
 	}

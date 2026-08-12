@@ -66,9 +66,9 @@ namespace neat_dnfs
 		initSimulation();
 
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, weakAmp, pos,
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, weakAmp, pos,
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		runSimulation(iterations);
 
@@ -82,9 +82,9 @@ namespace neat_dnfs
 		runSimulation(iterations); // Reset the simulation to resting level
 
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, strongAmp, pos,
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, strongAmp, pos,
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		// Reward fast bump onset in the output field
 		const double fB_speed = iterationsUntilBump("nf 2", targetIt, targetIt*1.25f, targetIt/10.0f);
@@ -123,8 +123,8 @@ namespace neat_dnfs
 	void DetectionInstability::createPhenotypeEnvironment()
 	{
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-				{ DimensionConstants::xSize, DimensionConstants::dx });
+				dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 }

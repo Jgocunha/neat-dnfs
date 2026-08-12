@@ -129,6 +129,9 @@ namespace neat_dnfs
 			return false;
 		}
 
+		if (AblationConstants::disableSpeciation)
+			return true;
+
 		int N = static_cast<int>(std::max(representative->getGenomeSize(), solution->getGenomeSize()));
 		if (N < 20) N = 1; // Normalize for small genomes
 
@@ -202,7 +205,9 @@ namespace neat_dnfs
 			for (size_t i = 0; i < offspringCount; ++i)
 			{
 				const SolutionPtr parent1 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
-				const SolutionPtr parent2 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
+				const SolutionPtr parent2 = AblationConstants::disableCrossover
+					? parent1
+					: members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
 				const SolutionPtr son = parent1->crossover(parent2);
 				if (son->getId() == parent1->getId() || son->getId() == parent2->getId())
 					std::cout << "When crossing over id's are the same " << parent1->getId() << " or " << parent2->getId() << " is equal to " << son->getId() << std::endl;

@@ -41,9 +41,9 @@ namespace neat_dnfs
 		// sample representation
 		initSimulation();
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-			{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations); // enough to encode the memory of the sample
 		const double f1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 1", {50.0}, 15.0, 12.0);
 		const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 2", {50.0}, 9.0, 12.0);
@@ -66,13 +66,13 @@ namespace neat_dnfs
 
 		// test with two samples
 		addGaussianStimulus("nf 1",
-					{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+					dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
 						GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-					{ DimensionConstants::xSize, DimensionConstants::dx });
+					dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 1",
-					{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 100.0,
+					dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 100.0,
 						GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-					{ DimensionConstants::xSize, DimensionConstants::dx });
+					dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 		const double f5 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1", 50, 15, 12,
 																					100, 15, 12);
@@ -93,12 +93,12 @@ namespace neat_dnfs
 	void DelayedMatchToSample::createPhenotypeEnvironment()
 	{
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-				{ DimensionConstants::xSize, DimensionConstants::dx });
+				dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, 0.0, 100.0,
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, 0.0, 100.0,
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-				{ DimensionConstants::xSize, DimensionConstants::dx });
+				dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 }

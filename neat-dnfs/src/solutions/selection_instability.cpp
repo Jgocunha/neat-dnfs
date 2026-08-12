@@ -51,14 +51,14 @@ namespace neat_dnfs
 
 	    // Phase 1: two competing stimuli
 	    addGaussianStimulus("nf 1",
-	        { GaussStimulusConstants::width, GaussStimulusConstants::amplitude, p1,
+	        dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, p1,
 	          GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-	        { DimensionConstants::xSize, DimensionConstants::dx });
+	        dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 
 	    addGaussianStimulus("nf 1",
-	        { GaussStimulusConstants::width, GaussStimulusConstants::amplitude, p2,
+	        dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, p2,
 	          GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-	        { DimensionConstants::xSize, DimensionConstants::dx });
+	        dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 
 	    runSimulation(iterations);
 
@@ -105,13 +105,13 @@ namespace neat_dnfs
 	void SelectionInstability::createPhenotypeEnvironment()
 	{
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0,
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0,
 		GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-		{ DimensionConstants::xSize, DimensionConstants::dx });
+		dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		addGaussianStimulus("nf 1",
-			{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0,
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0,
 	GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-{ DimensionConstants::xSize, DimensionConstants::dx });
+dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 }

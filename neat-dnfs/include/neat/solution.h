@@ -127,6 +127,8 @@ namespace neat_dnfs
 	private:
 		void createInputGenes();
 		void createOutputGenes();
+		void createSeededHiddenGenes();
+		void createSeededConnectionGenes();
 		void translateGenesToPhenotype();
 		void translateConnectionGenesToPhenotype();
 
