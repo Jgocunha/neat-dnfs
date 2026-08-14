@@ -1,11 +1,12 @@
 """Shared visual theme for the analysis dashboard.
 
-Color tokens, figure-size constants, and the single place matplotlib styling is configured, so
-plots.py and Altair charts both read from one source instead of hardcoding their own colors/sizes.
+Color tokens, figure-size constants, and the single place matplotlib/Altair styling is configured,
+so plots.py's charts all read from one source instead of hardcoding their own colors/sizes.
 Leaf module: no imports from other viz/ modules.
 """
 from pathlib import Path
 
+import altair as alt
 import matplotlib as mpl
 import matplotlib.font_manager as font_manager
 import streamlit as st
@@ -37,7 +38,20 @@ FIG_HALF = (8, 3)
 FIG_SQUARE = (7, 5)
 FIG_GRID_CELL = (4, 3)
 
-SIDEBAR_LOGO_HEIGHT_REM = 10.5
+# Altair chart heights (px). Charts set width via st.altair_chart(..., width="stretch") instead,
+# so every chart shares a height but adapts to the column it's placed in.
+CHART_HEIGHT = 260
+CHART_HEIGHT_TALL = 380
+
+# Sidebar logo: sized by width (not height) so it keeps its aspect ratio and can't crop against
+# stSidebarHeader's fixed height -- see app.py's CSS injection.
+SIDEBAR_LOGO_WIDTH_PCT = 100
+SIDEBAR_LOGO_PAD_TOP_REM = 1.75
+SIDEBAR_LOGO_PAD_X_REM = 1.25
+SIDEBAR_LOGO_PAD_BOTTOM_REM = 1.0
+
+# Cap main-panel width so charts stop stretching to unreadable widths on wide monitors.
+MAX_CONTENT_WIDTH_PX = 1400
 
 _FONTS_DIR = Path(__file__).resolve().parents[2] / "resources" / "fonts"
 _FONT_FAMILY_NAME = "JetBrains Mono"
@@ -82,3 +96,30 @@ def theme_type() -> str:
     available yet (first script run, mid theme-switch, or under AppTest)."""
     t = st.context.theme.type
     return t if t in ("light", "dark") else "light"
+
+
+def register_altair_theme() -> None:
+    """Register and enable a global Altair theme so every chart_*() in plots.py shares category
+    colors and axis/legend/view styling without each chart calling .configure_*() itself (which
+    raises on layered/concatenated charts). Called once at plots.py's import time.
+
+    Deliberately doesn't set a font: Vega-Lite renders client-side in the browser, and the
+    JetBrains Mono TTFs registered for matplotlib in apply_plot_style() are never loaded there as
+    a web font, so naming that family here would silently no-op. Leaving font unset lets charts
+    inherit Streamlit's own UI font instead, which is what's actually loaded on the page."""
+
+    @alt.theme.register("neat_dnfs", enable=True)
+    def _neat_dnfs_theme():
+        return {
+            "config": {
+                "title": {"fontSize": 13},
+                "axis": {
+                    "gridOpacity": 0.3,
+                    "domainColor": "#888888",
+                    "tickColor": "#888888",
+                },
+                "legend": {"orient": "right"},
+                "range": {"category": CATEGORICAL_CYCLE},
+                "view": {"height": CHART_HEIGHT, "strokeWidth": 0},
+            },
+        }

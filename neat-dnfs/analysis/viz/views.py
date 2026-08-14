@@ -5,7 +5,7 @@ import streamlit as st
 
 from .genome import build_topology_graph, compute_kernel_usage_stats, summarize_best_solution_genome
 from .stats import compute_fitness_stats, compute_partial_component_failure_rates, compute_species_stats, compute_topology_frequency, compute_topology_stats, display_gen, find_invariant_violations, mann_whitney_u, spearman_correlation, topology_distance
-from .plots import chart_all_runs_overlay, chart_partial_fitness_grid, chart_species_membership, chart_topology_trajectory, chart_total_fitness, plot_architecture_complexity_scatter, plot_best_mutation_timeline, plot_convergence_generations_histogram, plot_cross_experiment_boxplot, plot_first_crossing_per_component, plot_genome_topology_curves, plot_innovation_growth, plot_kernel_usage_time, plot_lineage_fitness, plot_mutation_categories, plot_mutation_effectiveness, plot_mutations_per_generation, plot_partial_component_failure_rates, plot_partial_component_heatmap, plot_population_distribution, plot_run_duration_histogram, plot_seconds_per_generation_histogram, plot_species_champion_trajectory, plot_species_counts, plot_species_lifespans, plot_topology_frequency_heatmap, plot_topology_graph, show_fig
+from .plots import chart_all_runs_overlay, chart_architecture_complexity_scatter, chart_best_mutation_timeline, chart_convergence_generations_histogram, chart_cross_experiment_boxplot, chart_first_crossing_per_component, chart_genome_topology_curves, chart_innovation_growth, chart_kernel_usage_time, chart_lineage_fitness, chart_mutation_categories, chart_mutation_effectiveness, chart_mutations_per_generation, chart_partial_component_failure_rates, chart_partial_component_heatmap, chart_partial_fitness_grid, chart_population_distribution, chart_run_duration_histogram, chart_seconds_per_generation_histogram, chart_species_champion_trajectory, chart_species_counts, chart_species_lifespans, chart_species_membership, chart_topology_frequency_heatmap, chart_topology_trajectory, chart_total_fitness, plot_topology_graph, show_fig
 from .parsing import _sample_evenly, compute_mutation_events, compute_partial_fitness, compute_per_generation_best_mutation, compute_population_distributions, compute_population_kernel_usage, compute_population_parameter_distributions, compute_species_meta, compute_target_crossing_mutations, compute_topology_trajectory, find_experiment_dirs, first_crossing_per_component, generations_all_partial_meet_targets, get_best_solution_id, get_species_for_generation, list_champion_generations, load_best_solution_architecture, load_champion_architecture, species_champion_fitness_trajectory, trace_lineage
 from .experiment import _load_experiment_runs_parsed, compute_experiment_convergence, compute_experiment_totals, compute_partial_fitness_best_only
 from .solution_record import parse_solution_blob
@@ -212,7 +212,7 @@ def render_experiment_totals(agg: dict, df: pd.DataFrame):
     # duration
     if "duration_hours" in df.columns:
         with plot_cols[0]:
-            show_fig(plot_run_duration_histogram(df["duration_hours"]))
+            st.altair_chart(chart_run_duration_histogram(df["duration_hours"]), width="stretch")
             st.caption(
                 "How long each run took from start to end. This shows whether some runs "
                 "are much slower or faster than others."
@@ -221,7 +221,7 @@ def render_experiment_totals(agg: dict, df: pd.DataFrame):
     # seconds per generation
     if "seconds_per_generation" in df.columns:
         with plot_cols[1]:
-            show_fig(plot_seconds_per_generation_histogram(df["seconds_per_generation"]))
+            st.altair_chart(chart_seconds_per_generation_histogram(df["seconds_per_generation"]), width="stretch")
             st.caption(
                 "Average wall-clock time needed to compute one generation in each run. "
                 "Useful for spotting performance regressions."
@@ -305,7 +305,7 @@ def render_experiment_convergence(conv: dict, partial_targets: dict):
         # --- Convergence generations histogram ---
         with col1:
             gens = [m["generation_to_threshold"] for m in successful]
-            show_fig(plot_convergence_generations_histogram(gens))
+            st.altair_chart(chart_convergence_generations_histogram(gens), width="stretch")
             st.caption(
                 "Each bar shows how many runs first met all partial targets "
                 "in a given generation range. Left = faster convergence."
@@ -317,7 +317,7 @@ def render_experiment_convergence(conv: dict, partial_targets: dict):
             conns = [m["enabled_connections_count"] for m in successful]
             labels = [m["run_dir"] for m in successful]
 
-            show_fig(plot_architecture_complexity_scatter(hidden, conns, labels))
+            st.altair_chart(chart_architecture_complexity_scatter(hidden, conns, labels), width="stretch")
             st.caption(
                 "Each dot is one successful run. The x-axis is the number of hidden "
                 "fields in the final best solution, the y-axis is the number of "
@@ -583,17 +583,14 @@ def render_fitness_view(df: pd.DataFrame, gens_tuple: tuple, selected_run_path: 
     st.altair_chart(chart_total, width="stretch")
 
     st.divider()
-    stats_col, partial_col = st.columns([1, 3])
+    render_fitness_stats(
+        df,
+        st.session_state["target_fitness"],
+        partial_threshold_generation=first_ok,
+    )
 
-    with stats_col:
-        render_fitness_stats(
-            df,
-            st.session_state["target_fitness"],
-            partial_threshold_generation=first_ok,
-        )
-
-    with partial_col:
-        chart_partial_fitness_grid(partial_df, st.session_state["partial_targets"])
+    st.divider()
+    chart_partial_fitness_grid(partial_df, st.session_state["partial_targets"])
 
     if partial_targets and partial_df is not None and not partial_df.empty:
         st.divider()
@@ -611,14 +608,15 @@ def render_partial_component_bottlenecks(partial_df: pd.DataFrame, partial_targe
         "reconstructed here."
     )
 
-    fig_heat = plot_partial_component_heatmap(partial_df, partial_targets)
-    show_fig(fig_heat)
+    heat_col, cross_col = st.columns(2)
+    with heat_col:
+        st.altair_chart(chart_partial_component_heatmap(partial_df, partial_targets), width="stretch")
 
     generations = partial_df["generation"].tolist()
     partial_vectors = _partial_vectors_from_df(partial_df, partial_targets)
     crossing = first_crossing_per_component(generations, partial_vectors, partial_targets)
-    fig_cross = plot_first_crossing_per_component(crossing)
-    show_fig(fig_cross)
+    with cross_col:
+        st.altair_chart(chart_first_crossing_per_component(crossing), width="stretch")
 
 
 def _partial_vectors_from_df(partial_df: pd.DataFrame, partial_targets: dict) -> list:
@@ -814,13 +812,13 @@ def render_population_kernel_usage(df: pd.DataFrame, selected_run_path: str):
     if df_kernel_usage is not None and not df_kernel_usage.empty:
         col_a, col_b = st.columns(2)
         with col_a:
-            fig_fu = plot_kernel_usage_time(df_kernel_usage, kind="field")
-            if fig_fu is not None:
-                show_fig(fig_fu)
+            chart_fu = chart_kernel_usage_time(df_kernel_usage, kind="field")
+            if chart_fu is not None:
+                st.altair_chart(chart_fu, width="stretch")
         with col_b:
-            fig_iu = plot_kernel_usage_time(df_kernel_usage, kind="inter")
-            if fig_iu is not None:
-                show_fig(fig_iu)
+            chart_iu = chart_kernel_usage_time(df_kernel_usage, kind="inter")
+            if chart_iu is not None:
+                st.altair_chart(chart_iu, width="stretch")
 
         # Overall summary across entire run
         st.caption(
@@ -871,8 +869,8 @@ def render_parameter_distributions(df: pd.DataFrame, selected_run_path: str):
 
     filtered = param_df[param_df["parameter"] == param_name].rename(columns={"value": param_name})
     sampled_generations = sorted(filtered["generation"].unique().tolist())
-    fig = plot_population_distribution(filtered, param_name, sampled_generations)
-    show_fig(fig)
+    chart = chart_population_distribution(filtered, param_name, sampled_generations)
+    st.altair_chart(chart, width="stretch")
     st.caption(f"{len(filtered)} values sampled across {len(sampled_generations)} generations.")
 
 
@@ -948,22 +946,16 @@ def render_species_view(df: pd.DataFrame, gens_tuple: tuple, selected_run_path: 
 
     top_left, top_right = st.columns(2)
     with top_left:
-        fig_sc = plot_species_counts(df)
-        show_fig(fig_sc)
+        st.altair_chart(chart_species_counts(df), width="stretch")
     with top_right:
-        fig_innov = plot_innovation_growth(df)
-        show_fig(fig_innov)
+        st.altair_chart(chart_innovation_growth(df), width="stretch")
 
     st.divider()
-    bottom_left, bottom_right = st.columns([1, 3])
-
     species_meta = compute_species_meta(selected_run_path, gens_tuple)
+    render_species_stats(df, species_meta)
 
-    with bottom_left:
-        render_species_stats(df, species_meta)
-
-    with bottom_right:
-        render_species_genome_inspector(df, selected_run_path)
+    st.divider()
+    render_species_genome_inspector(df, selected_run_path)
 
     st.divider()
     render_species_dynamics(species_meta, gens_tuple, selected_run_path)
@@ -980,8 +972,7 @@ def render_species_dynamics(species_meta: dict, gens_tuple: tuple, selected_run_
     with top_left:
         st.altair_chart(chart_species_membership(species_meta), width="stretch")
     with top_right:
-        fig_lifespans = plot_species_lifespans(species_meta)
-        show_fig(fig_lifespans)
+        st.altair_chart(chart_species_lifespans(species_meta), width="stretch")
 
     species_ids = sorted(species_meta.keys())
     default_id = max(species_meta.keys(), key=lambda sid: species_meta[sid]["max_members"])
@@ -995,8 +986,7 @@ def render_species_dynamics(species_meta: dict, gens_tuple: tuple, selected_run_
     if traj_df.empty:
         st.info(f"No champion fitness records found for species {selected_sid}.")
     else:
-        fig_champ = plot_species_champion_trajectory(traj_df, selected_sid)
-        show_fig(fig_champ)
+        st.altair_chart(chart_species_champion_trajectory(traj_df, selected_sid), width="stretch")
 
 
 @st.fragment
@@ -1009,8 +999,7 @@ def render_topology_view(df: pd.DataFrame, selected_run_path: str):
         # Top: genome topology curves + stats
         top_left, top_right = st.columns(2)
         with top_left:
-            fig_gen = plot_genome_topology_curves(df)
-            show_fig(fig_gen)
+            st.altair_chart(chart_genome_topology_curves(df), width="stretch")
         with top_right:
             render_topology_stats(df)
 
@@ -1167,8 +1156,8 @@ def render_population_distributions(df: pd.DataFrame, selected_run_path: str):
         return
 
     sampled_generations = _sample_evenly(sorted(dist_df["generation"].unique().tolist()), int(len(gens_tuple) / gen_step) or 1)
-    fig = plot_population_distribution(dist_df, value_col, sampled_generations)
-    show_fig(fig)
+    chart = chart_population_distribution(dist_df, value_col, sampled_generations)
+    st.altair_chart(chart, width="stretch")
     st.caption(
         f"{len(sampled_generations)} of {dist_df['generation'].nunique()} generations shown "
         f"({len(dist_df)} individual records scanned in total)."
@@ -1219,8 +1208,7 @@ def render_lineage_tracer(df: pd.DataFrame, selected_run_path: str):
         f"to its bootstrap root at generation {root_gen}."
     )
 
-    fig_lineage = plot_lineage_fitness(lineage_df)
-    show_fig(fig_lineage)
+    st.altair_chart(chart_lineage_fitness(lineage_df), width="stretch")
 
     display_df = lineage_df.copy()
     display_df["generation"] = display_df["generation"].apply(display_gen)
@@ -1247,23 +1235,19 @@ def render_mutations_view(df: pd.DataFrame, gens_tuple: tuple, selected_run_path
         )
         return
 
-    # --- Top row: activity + category breakdown ---
-    top_row_left, top_row_right = st.columns(2)
-    with top_row_left:
-        fig_muts = plot_mutations_per_generation(mut_events)
-        show_fig(fig_muts)
-        st.caption("Total number of mutation events applied in each generation.")
+    # --- Top: activity over time ---
+    st.altair_chart(chart_mutations_per_generation(mut_events), width="stretch")
+    st.caption("Total number of mutation events applied in each generation.")
 
-    with top_row_right:
-        fig_cat = plot_mutation_categories(mut_events)
-        show_fig(fig_cat)
-        st.caption("How mutation events are distributed across high-level categories.")
+    # --- Category breakdown: full width, horizontal bars (category names can be long) ---
+    st.altair_chart(chart_mutation_categories(mut_events), width="stretch")
+    st.caption("How mutation events are distributed across categories.")
 
-    # --- Middle: most beneficial mutations (bar plot) ---
+    # --- Middle: most beneficial mutations (bar chart) ---
     st.divider()
-    fig_eff = plot_mutation_effectiveness(mut_events)
-    if fig_eff is not None:
-        show_fig(fig_eff)
+    chart_eff = chart_mutation_effectiveness(mut_events)
+    if chart_eff is not None:
+        st.altair_chart(chart_eff, width="stretch")
         st.caption(
             "Mutations that, on average, appear in higher-fitness individuals "
             "compared to the global mean. Bar length shows the improvement."
@@ -1312,8 +1296,7 @@ def render_mutations_view(df: pd.DataFrame, gens_tuple: tuple, selected_run_path
             "advantage over that generation's average fitness."
         )
 
-        fig_pg = plot_best_mutation_timeline(per_gen_best)
-        show_fig(fig_pg)
+        st.altair_chart(chart_best_mutation_timeline(per_gen_best), width="stretch")
 
         st.markdown("Top generations by mutation impact:")
         timeline_column_config = {
@@ -1342,8 +1325,7 @@ def render_topology_frequency(all_run_metrics: list):
         st.info("No successful runs to build a topology-frequency map from.")
         return
 
-    fig = plot_topology_frequency_heatmap(freq_df)
-    show_fig(fig)
+    st.altair_chart(chart_topology_frequency_heatmap(freq_df), width="stretch")
 
     top_row = freq_df.loc[freq_df["count"].idxmax()]
     st.caption(
@@ -1418,8 +1400,7 @@ def render_partial_component_failure_rates(all_run_metrics: list, partial_target
     if rates_df.empty:
         st.info("No partial-component failure data available.")
         return
-    fig = plot_partial_component_failure_rates(rates_df)
-    show_fig(fig)
+    st.altair_chart(chart_partial_component_failure_rates(rates_df), width="stretch")
     rates_column_config = {
         "component": st.column_config.NumberColumn("component", format="%d"),
         "failure_count": st.column_config.NumberColumn("failures", format="%d"),
@@ -1601,7 +1582,7 @@ def render_cross_experiment_view(data_root_str: str):
 
     plottable = {name: vals for name, vals in gens_by_experiment.items() if vals}
     if plottable:
-        show_fig(plot_cross_experiment_boxplot(plottable))
+        st.altair_chart(chart_cross_experiment_boxplot(plottable), width="stretch")
 
     if len(plottable) >= 2:
         st.markdown("#### Mann-Whitney U vs. reference")
