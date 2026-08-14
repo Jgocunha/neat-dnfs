@@ -8,6 +8,7 @@
 #include <dnf_composer/tools/logger.h>
 
 #include "neat/population.h"
+#include "neat/ablation_presets.h"
 #include "tools/logger.h"
 #include "solutions/hri_packaging_task.h"
 
@@ -18,16 +19,10 @@ int main(int argc, char* argv[])
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
 
-		// Condition: random initial topology. initialize() seeds Nh ~ U[0,5]
-		// hidden fields and Nc ~ U[1,8] random legal connections. Growth, crossover
-		// and speciation all stay enabled.
-		AblationConstants::label = " Random Initial Topology";
-		AblationConstants::seedRandomHiddenFields = true;
-		AblationConstants::seedHiddenFieldsMin = 0;
-		AblationConstants::seedHiddenFieldsMax = 5;
-		AblationConstants::seedRandomConnections = true;
-		AblationConstants::seedConnectionsMin = 1;
-		AblationConstants::seedConnectionsMax = 8;
+		// Condition: random initial topology. initialize() seeds Nh ~ U[1,5]
+		// hidden fields and Nc ~ U[1, maxLegalConnectionCount(Nh)] random legal
+		// connections. Growth, crossover and speciation all stay enabled.
+		AblationPresets::randomInitialTopology();
 
 		// select the type of solution here and in the population init.
 		const dnf_composer::element::ElementDimensions dims{ DimensionConstants::xSize, DimensionConstants::dx };
@@ -41,15 +36,10 @@ int main(int argc, char* argv[])
 			},
 		};
 
-		constexpr size_t number_runs = 30;
-
-		for (int i = 0; i < number_runs; i++)
+		for (int i = 0; i < AblationProtocol::numberRuns; i++)
 		{
-			constexpr size_t population_size	= 1000;
-			constexpr size_t number_generations = 200;
-			constexpr double target_fitness		= 0.95;
-
-			const PopulationParameters parameters{ population_size, number_generations, target_fitness };
+			const PopulationParameters parameters{
+				AblationProtocol::populationSize, AblationProtocol::numberGenerations, AblationProtocol::targetFitness };
 			Population population{ parameters, std::make_unique<HRIPackagingTask>(solution) };
 
 			population.initialize();

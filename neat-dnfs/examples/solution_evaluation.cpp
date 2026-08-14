@@ -35,12 +35,13 @@
 		const dnf_composer::Simulation& template_solution = *previous_solution;
 
 		// select the type of solution here
+		const dnf_composer::element::ElementDimensions dims{ DimensionConstants::xSize, DimensionConstants::dx };
 		HRIPackagingTask solution{
 			SolutionTopology{ {
-				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-					{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				{FieldGeneType::INPUT, dims},
+				{FieldGeneType::INPUT, dims},
+					{FieldGeneType::INPUT, dims},
+				{FieldGeneType::OUTPUT, dims},
 			}
 			},
 			template_solution // load a previous solution

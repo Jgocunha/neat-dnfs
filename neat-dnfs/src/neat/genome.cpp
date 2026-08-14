@@ -1,5 +1,8 @@
 #include "neat/genome.h"
 
+#include <algorithm>
+#include <iterator>
+
 namespace
 {
 	const std::vector<neat_dnfs::FieldGeneType> legalConnectionSourceTypes{
@@ -285,8 +288,9 @@ namespace neat_dnfs
 		connectionGenes.push_back(connectionGene);
 	}
 
-	void Genome::seedAllLegalConnections()
+	std::vector<ConnectionTuple> Genome::legalConnectionTuples() const
 	{
+		std::vector<ConnectionTuple> tuples;
 		for (const auto& src : fieldGenes)
 		{
 			if (!isLegalConnectionSource(src.getParameters().type))
@@ -299,15 +303,35 @@ namespace neat_dnfs
 				const int b = tgt.getParameters().id;
 				if (a == b)
 					continue;
-				addConnectionGene(ConnectionTuple{ a, b });
+				tuples.emplace_back(a, b);
 			}
 		}
+		return tuples;
+	}
+
+	int Genome::maxLegalConnectionCount() const
+	{
+		return static_cast<int>(legalConnectionTuples().size());
+	}
+
+	void Genome::seedAllLegalConnections()
+	{
+		for (const auto& tuple : legalConnectionTuples())
+			addConnectionGene(tuple);
 	}
 
 	void Genome::seedRandomConnections(int count)
 	{
-		for (int i = 0; i < count; ++i)
-			addConnectionGene();
+		auto tuples = legalConnectionTuples();
+		count = std::min(count, static_cast<int>(tuples.size()));
+
+		std::vector<ConnectionTuple> sampled;
+		sampled.reserve(count);
+		std::sample(tuples.begin(), tuples.end(), std::back_inserter(sampled),
+			count, std::mt19937{ std::random_device{}() });
+
+		for (const auto& tuple : sampled)
+			addConnectionGene(tuple);
 	}
 
 	bool Genome::containsConnectionGene(const ConnectionGene& connectionGene) const

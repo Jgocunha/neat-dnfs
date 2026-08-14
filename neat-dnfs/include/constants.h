@@ -218,13 +218,26 @@ namespace neat_dnfs
 		inline static bool seedRandomHiddenFields   = false;   // No Growth One Hidden (min=max=1), Random Initial Topology (0..5)
 		inline static int  seedHiddenFieldsMin      = 0;
 		inline static int  seedHiddenFieldsMax      = 0;
-		inline static bool seedRandomConnections    = false;   // Random Initial Topology
-		inline static int  seedConnectionsMin       = 1;
-		inline static int  seedConnectionsMax       = 8;
+		inline static bool seedRandomConnections    = false;   // Random Initial Topology; count drawn as U[1, maxLegalConnectionCount()]
 
 		// mechanism ablations (No Speciation, No Crossover)
 		inline static bool disableSpeciation = false;
 		inline static bool disableCrossover  = false;
+
+		static void reset()
+		{
+			label = "";
+			disableAddFieldGene = false;
+			disableAddConnectionGene = false;
+			disableToggleConnectionGene = false;
+			seedAllLegalConnections = false;
+			seedRandomHiddenFields = false;
+			seedHiddenFieldsMin = 0;
+			seedHiddenFieldsMax = 0;
+			seedRandomConnections = false;
+			disableSpeciation = false;
+			disableCrossover = false;
+		}
 	};
 
 	struct PopulationConstants

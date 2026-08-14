@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "constants.h"
+#include "neat/ablation_presets.h"
 #include "neat/genome.h"
 #include "neat/species.h"
 #include "solutions/hri_packaging_task.h"
@@ -16,19 +17,7 @@ namespace
     {
         ~AblationFlagGuard()
         {
-            AblationConstants::label = "";
-            AblationConstants::disableAddFieldGene = false;
-            AblationConstants::disableAddConnectionGene = false;
-            AblationConstants::disableToggleConnectionGene = false;
-            AblationConstants::seedAllLegalConnections = false;
-            AblationConstants::seedRandomHiddenFields = false;
-            AblationConstants::seedHiddenFieldsMin = 0;
-            AblationConstants::seedHiddenFieldsMax = 0;
-            AblationConstants::seedRandomConnections = false;
-            AblationConstants::seedConnectionsMin = 1;
-            AblationConstants::seedConnectionsMax = 8;
-            AblationConstants::disableSpeciation = false;
-            AblationConstants::disableCrossover = false;
+            AblationConstants::reset();
         }
     };
 
@@ -52,37 +41,25 @@ namespace
         } };
     }
 
-    void setNoGrowthIOOnlyFlags()
-    {
-        AblationConstants::disableAddFieldGene = true;
-        AblationConstants::disableAddConnectionGene = true;
-        AblationConstants::disableToggleConnectionGene = true;
-        AblationConstants::seedAllLegalConnections = true;
-    }
-
-    void setNoGrowthOneHiddenFlags()
-    {
-        setNoGrowthIOOnlyFlags();
-        AblationConstants::seedRandomHiddenFields = true;
-        AblationConstants::seedHiddenFieldsMin = 1;
-        AblationConstants::seedHiddenFieldsMax = 1;
-    }
-
-    void setRandomInitialTopologyFlags()
-    {
-        AblationConstants::seedRandomHiddenFields = true;
-        AblationConstants::seedHiddenFieldsMin = 0;
-        AblationConstants::seedHiddenFieldsMax = 5;
-        AblationConstants::seedRandomConnections = true;
-        AblationConstants::seedConnectionsMin = 1;
-        AblationConstants::seedConnectionsMax = 8;
-    }
-
     // sources = 3 inputs + hiddenCount; targets = hiddenCount + 1 output;
     // hiddenCount self-loops (hidden id as both source and target) are illegal.
     int maxLegalConnectionsFor(int hiddenCount)
     {
         return (3 + hiddenCount) * (hiddenCount + 1) - hiddenCount;
+    }
+
+    Genome buildGenomeWithHidden(int hiddenCount)
+    {
+        using namespace dnf_composer::element;
+        const ElementDimensions dims{ DimensionConstants::xSize, DimensionConstants::dx };
+        Genome genome;
+        genome.addInputGene(dims);
+        genome.addInputGene(dims);
+        genome.addInputGene(dims);
+        genome.addOutputGene(dims);
+        for (int i = 0; i < hiddenCount; ++i)
+            genome.addHiddenGene(dims);
+        return genome;
     }
 
     std::set<std::pair<int, int>> connectionTupleSet(const Genome& genome)
@@ -105,6 +82,64 @@ namespace
 TEST_CASE("Ablation test harness is wired up", "[ablations]")
 {
     REQUIRE(true);
+}
+
+TEST_CASE("Genome::legalConnectionTuples() enumerates every legal src->tgt pair exactly once", "[genome][legal_connections]")
+{
+    for (int hiddenCount = 0; hiddenCount <= 5; ++hiddenCount)
+    {
+        resetGlobals();
+        const Genome genome = buildGenomeWithHidden(hiddenCount);
+        const auto tuples = genome.legalConnectionTuples();
+
+        REQUIRE(static_cast<int>(tuples.size()) == maxLegalConnectionsFor(hiddenCount));
+        REQUIRE(genome.maxLegalConnectionCount() == maxLegalConnectionsFor(hiddenCount));
+
+        std::set<std::pair<int, int>> seen;
+        for (const auto& tuple : tuples)
+        {
+            REQUIRE(tuple.inFieldGeneId != tuple.outFieldGeneId);
+
+            const auto srcType = genome.getFieldGeneById(tuple.inFieldGeneId).getParameters().type;
+            const auto tgtType = genome.getFieldGeneById(tuple.outFieldGeneId).getParameters().type;
+            REQUIRE((srcType == FieldGeneType::HIDDEN || srcType == FieldGeneType::INPUT));
+            REQUIRE((tgtType == FieldGeneType::HIDDEN || tgtType == FieldGeneType::OUTPUT));
+
+            REQUIRE(seen.insert({ tuple.inFieldGeneId, tuple.outFieldGeneId }).second);
+        }
+    }
+}
+
+TEST_CASE("Seeded random connections reach both the minimum and the full legal maximum", "[genome][seed_connections]")
+{
+    AblationFlagGuard guard;
+    AblationConstants::seedRandomHiddenFields = true;
+    AblationConstants::seedHiddenFieldsMin = 3;
+    AblationConstants::seedHiddenFieldsMax = 3;
+    AblationConstants::seedRandomConnections = true;
+
+    const int legalMax = maxLegalConnectionsFor(3);
+    std::set<int> observedCounts;
+
+    for (int trial = 0; trial < 200; ++trial)
+    {
+        resetGlobals();
+        HRIPackagingTask solution{ hriTopology() };
+        solution.initialize();
+
+        REQUIRE(solution.getNumFieldGenes() == 7); // 3 inputs + 1 output + 3 hidden
+        const int count = solution.getNumConnectionGenes();
+        REQUIRE(count >= 1);
+        REQUIRE(count <= legalMax);
+        observedCounts.insert(count);
+
+        std::set<std::pair<int, int>> seen;
+        for (const auto& cg : solution.getGenome().getConnectionGenes())
+            REQUIRE(seen.insert({ cg.getInFieldGeneId(), cg.getOutFieldGeneId() }).second);
+    }
+
+    REQUIRE(observedCounts.contains(1));
+    REQUIRE(observedCounts.contains(legalMax));
 }
 
 TEST_CASE("Baseline parity: default flags leave initialize() and mutate() unchanged", "[ablations][baseline]")
@@ -137,7 +172,7 @@ TEST_CASE("No Growth IO Only: initialize() seeds exactly the 3 legal I/O connect
 {
     AblationFlagGuard guard;
     resetGlobals();
-    setNoGrowthIOOnlyFlags();
+    AblationPresets::noGrowthIOOnly();
 
     HRIPackagingTask solution{ hriTopology() };
     solution.initialize();
@@ -154,7 +189,7 @@ TEST_CASE("No Growth IO Only: rule agreement - exhaustive seeder and mutation le
 {
     AblationFlagGuard guard;
     resetGlobals();
-    setNoGrowthIOOnlyFlags();
+    AblationPresets::noGrowthIOOnly();
     AblationConstants::disableAddConnectionGene = false; // leave the rule live
 
     HRIPackagingTask solution{ hriTopology() };
@@ -171,24 +206,33 @@ TEST_CASE("No Growth IO Only: full flags freeze structure across 1000 mutations"
 {
     AblationFlagGuard guard;
     resetGlobals();
-    setNoGrowthIOOnlyFlags();
+    AblationPresets::noGrowthIOOnly();
 
     HRIPackagingTask solution{ hriTopology() };
     solution.initialize();
 
-    for (int i = 0; i < 1000; ++i)
+    // solution.mutate() appends to an internal per-gene mutation-log string on every
+    // call, unbounded here since nothing clears it outside a real generational cycle.
+    // getGenome() deep-copies that string, so sample state every 100th mutation
+    // instead of every mutation - checking every iteration turns this loop O(n^2).
+    bool sawDisabledConnection = false;
+    for (int i = 0; i < 3000; ++i)
+    {
         solution.mutate();
+        if (!sawDisabledConnection && i % 100 == 0)
+            sawDisabledConnection = !allConnectionsEnabled(solution.getGenome());
+    }
 
     REQUIRE(solution.getNumFieldGenes() == 4);
     REQUIRE(solution.getNumConnectionGenes() == 3);
-    REQUIRE(allConnectionsEnabled(solution.getGenome()));
+    REQUIRE(sawDisabledConnection); // gene count is frozen, but toggle can still prune a connection
 }
 
 TEST_CASE("No Growth IO Only: parameters still evolve while structure is frozen", "[ablations][no_growth_io_only]")
 {
     AblationFlagGuard guard;
     resetGlobals();
-    setNoGrowthIOOnlyFlags();
+    AblationPresets::noGrowthIOOnly();
 
     HRIPackagingTask solution{ hriTopology() };
     solution.initialize();
@@ -225,7 +269,7 @@ TEST_CASE("No Growth One Hidden: initialize() seeds one hidden field and exactly
 {
     AblationFlagGuard guard;
     resetGlobals();
-    setNoGrowthOneHiddenFlags();
+    AblationPresets::noGrowthOneHidden();
 
     HRIPackagingTask solution{ hriTopology() };
     solution.initialize();
@@ -242,26 +286,31 @@ TEST_CASE("No Growth One Hidden: rule agreement and structure freeze across 1000
 {
     AblationFlagGuard guard;
     resetGlobals();
-    setNoGrowthOneHiddenFlags();
+    AblationPresets::noGrowthOneHidden();
     AblationConstants::disableAddConnectionGene = false; // leave the rule live
 
     HRIPackagingTask solution{ hriTopology() };
     solution.initialize();
     REQUIRE(solution.getNumConnectionGenes() == 7);
 
-    for (int i = 0; i < 1000; ++i)
+    bool sawDisabledConnection = false;
+    for (int i = 0; i < 3000; ++i)
+    {
         solution.mutate();
+        if (!sawDisabledConnection && i % 100 == 0)
+            sawDisabledConnection = !allConnectionsEnabled(solution.getGenome());
+    }
 
     REQUIRE(solution.getNumFieldGenes() == 5);
     REQUIRE(solution.getNumConnectionGenes() == 7);
-    REQUIRE(allConnectionsEnabled(solution.getGenome()));
+    REQUIRE(sawDisabledConnection); // gene count is frozen, but toggle can still prune a connection
 }
 
 TEST_CASE("No Growth One Hidden: field ordering - inputs, then output, then hidden", "[ablations][no_growth_one_hidden]")
 {
     AblationFlagGuard guard;
     resetGlobals();
-    setNoGrowthOneHiddenFlags();
+    AblationPresets::noGrowthOneHidden();
 
     HRIPackagingTask solution{ hriTopology() };
     solution.initialize();
@@ -278,7 +327,7 @@ TEST_CASE("No Crossover: crossover disabled - every offspring is an exact single
 {
     AblationFlagGuard guard;
     resetGlobals();
-    AblationConstants::disableCrossover = true;
+    AblationPresets::noCrossover();
 
     const auto parentA = std::make_shared<HRIPackagingTask>(hriTopology());
     parentA->initialize();
@@ -376,10 +425,34 @@ TEST_CASE("No Speciation: isCompatible() ignores genetic distance when speciatio
     REQUIRE(species.isCompatible(divergent));
 }
 
-TEST_CASE("Random Initial Topology: initialize() seeds hidden field count within [0,5] and it varies across trials", "[ablations][random_initial_topology]")
+TEST_CASE("No Speciation: initialize() starts from a random population, not a minimal one", "[ablations][no_speciation]")
+{
+    // Paper (Stanley & Miikkulainen 2002, S5.5): nonspeciated NEAT must start from a
+    // random initial population, or no structural innovation survives and the
+    // population is stuck in minimal form. Random start and single-species pooling
+    // must hold simultaneously.
+    AblationFlagGuard guard;
+    resetGlobals();
+    AblationPresets::noSpeciation();
+
+    HRIPackagingTask solutionA{ hriTopology() };
+    solutionA.initialize();
+    REQUIRE(solutionA.getNumFieldGenes() > 4);
+    REQUIRE(solutionA.getNumConnectionGenes() > 0);
+
+    resetGlobals();
+    HRIPackagingTask solutionB{ hriTopology() };
+    solutionB.initialize();
+
+    Species species;
+    species.setRepresentative(std::make_shared<HRIPackagingTask>(solutionA));
+    REQUIRE(species.isCompatible(std::make_shared<HRIPackagingTask>(solutionB)));
+}
+
+TEST_CASE("Random Initial Topology: initialize() seeds hidden field count within [1,5] and it varies across trials", "[ablations][random_initial_topology]")
 {
     AblationFlagGuard guard;
-    setRandomInitialTopologyFlags();
+    AblationPresets::randomInitialTopology();
 
     std::set<int> observedHiddenCounts;
     for (int trial = 0; trial < 200; ++trial)
@@ -389,7 +462,7 @@ TEST_CASE("Random Initial Topology: initialize() seeds hidden field count within
         solution.initialize();
 
         const int hiddenCount = solution.getNumFieldGenes() - 4;
-        REQUIRE(hiddenCount >= 0);
+        REQUIRE(hiddenCount >= 1);
         REQUIRE(hiddenCount <= 5);
         observedHiddenCounts.insert(hiddenCount);
     }
@@ -400,9 +473,8 @@ TEST_CASE("Random Initial Topology: initialize() seeds hidden field count within
 TEST_CASE("Random Initial Topology: seeded connections are legal, non-duplicate, and within count bounds", "[ablations][random_initial_topology]")
 {
     AblationFlagGuard guard;
-    setRandomInitialTopologyFlags();
+    AblationPresets::randomInitialTopology();
 
-    bool sawNonZeroConnections = false;
     for (int trial = 0; trial < 200; ++trial)
     {
         resetGlobals();
@@ -413,11 +485,8 @@ TEST_CASE("Random Initial Topology: seeded connections are legal, non-duplicate,
         const int hiddenCount = solution.getNumFieldGenes() - 4;
         const int legalMax = maxLegalConnectionsFor(hiddenCount);
 
-        REQUIRE(solution.getNumConnectionGenes() >= 0);
-        REQUIRE(solution.getNumConnectionGenes() <= AblationConstants::seedConnectionsMax);
+        REQUIRE(solution.getNumConnectionGenes() >= 1);
         REQUIRE(solution.getNumConnectionGenes() <= legalMax);
-        if (solution.getNumConnectionGenes() > 0)
-            sawNonZeroConnections = true;
 
         std::set<std::pair<int, int>> seen;
         for (const auto& cg : genome.getConnectionGenes())
@@ -435,15 +504,13 @@ TEST_CASE("Random Initial Topology: seeded connections are legal, non-duplicate,
         }
         REQUIRE(allConnectionsEnabled(genome));
     }
-
-    REQUIRE(sawNonZeroConnections);
 }
 
 TEST_CASE("Random Initial Topology: field ordering - inputs, then output, then hidden, regardless of hidden count", "[ablations][random_initial_topology]")
 {
     AblationFlagGuard guard;
     resetGlobals();
-    setRandomInitialTopologyFlags();
+    AblationPresets::randomInitialTopology();
 
     HRIPackagingTask solution{ hriTopology() };
     solution.initialize();
@@ -461,7 +528,7 @@ TEST_CASE("Random Initial Topology: structure is not frozen - mutate() can still
 {
     AblationFlagGuard guard;
     resetGlobals();
-    setRandomInitialTopologyFlags();
+    AblationPresets::randomInitialTopology();
 
     HRIPackagingTask solution{ hriTopology() };
     solution.initialize();

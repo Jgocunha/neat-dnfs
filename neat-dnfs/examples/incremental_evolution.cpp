@@ -32,13 +32,14 @@
 		const dnf_composer::Simulation& template_solution = *previous_solution;
 
 		// select the type of solution here and in the population init.
+		const dnf_composer::element::ElementDimensions dims{ DimensionConstants::xSize, DimensionConstants::dx };
 		DelayedMatchToSample solution{
 			SolutionTopology{ {
-				{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::INPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::OUTPUT, {DimensionConstants::xSize, DimensionConstants::dx}},
+				{FieldGeneType::INPUT, dims},
+				//{FieldGeneType::INPUT, dims},
+				//{FieldGeneType::INPUT, dims},
+				{FieldGeneType::OUTPUT, dims},
+				//{FieldGeneType::OUTPUT, dims},
 			}
 			},
 			template_solution // load a previous solution
@@ -50,7 +51,7 @@
 		{
 			constexpr size_t population_size	= 200;
 			constexpr size_t number_generations = 100;
-			constexpr double target_fitness		= 0.95;
+			constexpr double target_fitness		= 0.9;
 
 			const PopulationParameters parameters{ population_size, number_generations, target_fitness };
 			Population population{ parameters, std::make_unique<DelayedMatchToSample>(solution) };

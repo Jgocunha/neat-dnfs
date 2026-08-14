@@ -46,6 +46,8 @@ namespace neat_dnfs
 		void addConnectionGene(const ConnectionGene& connectionGene);
 		void seedAllLegalConnections();
 		void seedRandomConnections(int count);
+		[[nodiscard]] std::vector<ConnectionTuple> legalConnectionTuples() const;
+		[[nodiscard]] int maxLegalConnectionCount() const;
 		[[nodiscard]] bool containsConnectionGene(const ConnectionGene& connectionGene) const;
 		[[nodiscard]] bool containsFieldGene(const FieldGene& fieldGene) const;
 		[[nodiscard]] bool containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const;

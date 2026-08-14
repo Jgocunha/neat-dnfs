@@ -53,6 +53,7 @@ add_compile_definitions(OUTPUT_DIRECTORY="${OUTPUT_DIRECTORY}")
 
 # Header and source files
 set(header 
+        "include/neat/ablation_presets.h"
         "include/neat/connection_gene.h"
         "include/neat/field_gene.h"
         "include/neat/genome.h"
@@ -76,6 +77,7 @@ set(header
         "include/constants.h"
 )
 set(src 
+        "src/neat/ablation_presets.cpp"
         "src/neat/connection_gene.cpp"
         "src/neat/field_gene.cpp"
         "src/neat/genome.cpp"

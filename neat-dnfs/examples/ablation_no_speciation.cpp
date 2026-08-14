@@ -8,6 +8,7 @@
 #include <dnf_composer/tools/logger.h>
 
 #include "neat/population.h"
+#include "neat/ablation_presets.h"
 #include "tools/logger.h"
 #include "solutions/hri_packaging_task.h"
 
@@ -18,10 +19,13 @@ int main(int argc, char* argv[])
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
 
-		// Condition: no speciation. Whole population in a single species,
-		// no compatibility partitioning. Growth and crossover stay enabled.
-		AblationConstants::label = " No Speciation";
-		AblationConstants::disableSpeciation = true;
+		// Condition: no speciation. Whole population in a single species, no
+		// compatibility partitioning. initialize() also seeds a random initial
+		// topology (Nh ~ U[1,5] hidden fields, random legal connections) - per
+		// Stanley & Miikkulainen S5.5, a minimal start plus no speciation is
+		// degenerate (no structural innovation survives). Growth and crossover
+		// stay enabled.
+		AblationPresets::noSpeciation();
 
 		// select the type of solution here and in the population init.
 		const dnf_composer::element::ElementDimensions dims{ DimensionConstants::xSize, DimensionConstants::dx };
@@ -35,15 +39,10 @@ int main(int argc, char* argv[])
 			},
 		};
 
-		constexpr size_t number_runs = 30;
-
-		for (int i = 0; i < number_runs; i++)
+		for (int i = 0; i < AblationProtocol::numberRuns; i++)
 		{
-			constexpr size_t population_size	= 1000;
-			constexpr size_t number_generations = 200;
-			constexpr double target_fitness		= 0.95;
-
-			const PopulationParameters parameters{ population_size, number_generations, target_fitness };
+			const PopulationParameters parameters{
+				AblationProtocol::populationSize, AblationProtocol::numberGenerations, AblationProtocol::targetFitness };
 			Population population{ parameters, std::make_unique<HRIPackagingTask>(solution) };
 
 			population.initialize();

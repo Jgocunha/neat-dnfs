@@ -155,8 +155,7 @@ namespace neat_dnfs
 
 		if (AblationConstants::seedRandomConnections)
 		{
-			const int count = tools::utils::generateRandomInt(
-				AblationConstants::seedConnectionsMin, AblationConstants::seedConnectionsMax);
+			const int count = tools::utils::generateRandomInt(1, genome.maxLegalConnectionCount());
 			genome.seedRandomConnections(count);
 		}
 	}

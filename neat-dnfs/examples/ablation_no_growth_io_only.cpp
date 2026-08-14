@@ -8,6 +8,7 @@
 #include <dnf_composer/tools/logger.h>
 
 #include "neat/population.h"
+#include "neat/ablation_presets.h"
 #include "tools/logger.h"
 #include "solutions/hri_packaging_task.h"
 
@@ -19,12 +20,9 @@ int main(int argc, char* argv[])
 		using namespace neat_dnfs;
 
 		// Condition: no growth, I/O only. All legal connections seeded at init,
-		// field/connection/toggle mutations disabled. Only parameters evolve.
-		AblationConstants::label = " No Growth IO Only";
-		AblationConstants::disableAddFieldGene = true;
-		AblationConstants::disableAddConnectionGene = true;
-		AblationConstants::disableToggleConnectionGene = true;
-		AblationConstants::seedAllLegalConnections = true;
+		// field/connection mutations disabled. Toggle stays live as the only way
+		// to prune a connection; parameters evolve throughout.
+		AblationPresets::noGrowthIOOnly();
 
 		// select the type of solution here and in the population init.
 		const dnf_composer::element::ElementDimensions dims{ DimensionConstants::xSize, DimensionConstants::dx };
@@ -38,15 +36,10 @@ int main(int argc, char* argv[])
 			},
 		};
 
-		constexpr size_t number_runs = 30;
-
-		for (int i = 0; i < number_runs; i++)
+		for (int i = 0; i < AblationProtocol::numberRuns; i++)
 		{
-			constexpr size_t population_size	= 1000;
-			constexpr size_t number_generations = 200;
-			constexpr double target_fitness		= 0.95;
-
-			const PopulationParameters parameters{ population_size, number_generations, target_fitness };
+			const PopulationParameters parameters{
+				AblationProtocol::populationSize, AblationProtocol::numberGenerations, AblationProtocol::targetFitness };
 			Population population{ parameters, std::make_unique<HRIPackagingTask>(solution) };
 
 			population.initialize();

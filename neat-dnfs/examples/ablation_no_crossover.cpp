@@ -8,6 +8,7 @@
 #include <dnf_composer/tools/logger.h>
 
 #include "neat/population.h"
+#include "neat/ablation_presets.h"
 #include "tools/logger.h"
 #include "solutions/hri_packaging_task.h"
 
@@ -20,8 +21,7 @@ int main(int argc, char* argv[])
 
 		// Condition: no crossover. Offspring are asexual copies of one parent,
 		// mutation supplies all variation. Growth and speciation stay enabled.
-		AblationConstants::label = " No Crossover";
-		AblationConstants::disableCrossover = true;
+		AblationPresets::noCrossover();
 
 		// select the type of solution here and in the population init.
 		const dnf_composer::element::ElementDimensions dims{ DimensionConstants::xSize, DimensionConstants::dx };
@@ -35,15 +35,10 @@ int main(int argc, char* argv[])
 			},
 		};
 
-		constexpr size_t number_runs = 30;
-
-		for (int i = 0; i < number_runs; i++)
+		for (int i = 0; i < AblationProtocol::numberRuns; i++)
 		{
-			constexpr size_t population_size	= 1000;
-			constexpr size_t number_generations = 200;
-			constexpr double target_fitness		= 0.95;
-
-			const PopulationParameters parameters{ population_size, number_generations, target_fitness };
+			const PopulationParameters parameters{
+				AblationProtocol::populationSize, AblationProtocol::numberGenerations, AblationProtocol::targetFitness };
 			Population population{ parameters, std::make_unique<HRIPackagingTask>(solution) };
 
 			population.initialize();
