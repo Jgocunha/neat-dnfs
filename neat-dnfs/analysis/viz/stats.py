@@ -122,8 +122,8 @@ def display_gen(gen0: int) -> int:
 
 def compute_topology_frequency(all_metrics: list) -> pd.DataFrame:
     """How many successful runs converged to each (hidden_fields, enabled_connections)
-    topology -- the data behind a topology-frequency heatmap (RAS paper Fig. 4). Failed runs
-    are excluded, matching the paper's own figure, which counts only successful runs.
+    topology -- the data behind a topology-frequency heatmap. Failed runs are excluded, so
+    only successful runs are counted.
 
     Returns a DataFrame with columns: hidden_fields, enabled_connections, count.
     """
@@ -189,9 +189,8 @@ def mann_whitney_u(x: list, y: list) -> tuple[float, float]:
 
 def compute_partial_component_failure_rates(all_metrics: list, partial_targets: dict) -> pd.DataFrame:
     """For each partial-fitness component, the fraction of runs where that component was among
-    the best solution's failed targets -- the RAS paper's "f4/f5/f6 remained below threshold"
-    failure attribution, generalised across every run in an experiment instead of 3 hand-picked
-    ones. Reads the `failed_partial_components` list already computed per run by
+    the best solution's failed targets -- a per-component failure attribution across every run
+    in an experiment. Reads the `failed_partial_components` list already computed per run by
     viz.experiment._evaluate_run_targets.
 
     Returns a DataFrame with columns: component, failure_count, total_runs, failure_rate.
@@ -215,8 +214,7 @@ def compute_partial_component_failure_rates(all_metrics: list, partial_targets: 
 
 def topology_distance(hidden: int, connections: int, ref_hidden: int, ref_connections: int) -> int:
     """Manhattan distance from (hidden, connections) to a reference architecture -- used both
-    to rank runs by closeness to a paper's reported minimal architecture and, at distance 0, to
-    identify exact matches."""
+    to rank runs by closeness to that reference and, at distance 0, to identify exact matches."""
     return abs(hidden - ref_hidden) + abs(connections - ref_connections)
 
 

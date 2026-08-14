@@ -524,9 +524,8 @@ def first_crossing_per_component(
     generations_meeting_targets, which requires all components simultaneously). A component
     that never crosses maps to None.
 
-    This is the RAS paper's failure-attribution analysis ("the cooperative and complementary
-    responses (f4, f5, f6) remained below threshold") generalised to any run: which components
-    gate success, not just whether the run succeeded overall.
+    This is a per-component failure-attribution analysis: which components gate success, not
+    just whether the run succeeded overall.
     """
     result = {int(comp): None for comp in partial_targets}
     if not partial_targets:

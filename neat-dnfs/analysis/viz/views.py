@@ -600,11 +600,9 @@ def render_fitness_view(df: pd.DataFrame, gens_tuple: tuple, selected_run_path: 
 def render_partial_component_bottlenecks(partial_df: pd.DataFrame, partial_targets: dict):
     st.markdown("#### Partial-component bottleneck analysis")
     st.caption(
-        "Which of the partial-fitness components gates success in this run -- generalises the "
-        "RAS paper's per-component failure attribution ('f4/f5/f6 remained below threshold') "
-        "to every component automatically. Values are the 12 (or however many) logged "
-        "components, shown flat and independently weighted -- the paper's f1-f4 grouping and "
-        "its internal weights are computed in C++ but never written to disk, so they can't be "
+        "Which of the partial-fitness components gates success in this run, shown flat and "
+        "independently weighted across all logged components -- any higher-level grouping and "
+        "internal weights are computed in C++ but never written to disk, so they can't be "
         "reconstructed here."
     )
 
@@ -1349,8 +1347,8 @@ def render_topology_frequency(all_run_metrics: list):
 
     st.markdown("##### Distance to a reference architecture")
     st.caption(
-        "Compare every successful run's final topology against a reference (e.g. a paper's "
-        "reported minimal architecture, or an ablation condition's expected topology)."
+        "Compare every successful run's final topology against a reference, e.g. an ablation "
+        "condition's expected topology."
     )
     rc1, rc2 = st.columns(2)
     with rc1:
@@ -1520,8 +1518,8 @@ def render_cross_experiment_view(data_root_str: str):
     st.markdown("### Cross-experiment comparison")
     st.caption(
         "Compare success rate, convergence speed, and architecture across several experiment "
-        "folders under data/ -- e.g. different tasks (GECCO Table 1) or different ablation "
-        "conditions. Uses the data root selected in the sidebar."
+        "folders under data/ -- e.g. different tasks or different ablation conditions. Uses the "
+        "data root selected in the sidebar."
     )
 
     data_root = Path(data_root_str).expanduser()

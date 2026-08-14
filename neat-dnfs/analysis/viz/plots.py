@@ -402,11 +402,10 @@ def chart_species_membership(species_meta: dict, top_n: int = 15):
 
 
 def chart_topology_frequency_heatmap(freq_df: pd.DataFrame):
-    """Topology-frequency map (RAS paper Fig. 4): hidden-field count x enabled-connection
-    count, marker size/annotation = number of successful runs converging to that exact
-    topology. A sized scatter reads better than a dense grid heatmap at the run counts this
-    tool typically has on disk (tens, not the paper's 97) -- most cells would otherwise be
-    empty."""
+    """Topology-frequency map: hidden-field count x enabled-connection count, marker
+    size/annotation = number of successful runs converging to that exact topology. A sized
+    scatter reads better than a dense grid heatmap at the run counts this tool typically has on
+    disk (tens) -- most cells would otherwise be empty."""
     if freq_df is None or freq_df.empty:
         return alt.Chart(pd.DataFrame({"x": [], "y": []})).mark_circle().properties(title="Topology-frequency map (no successful runs)", height=theme.CHART_HEIGHT)
 
