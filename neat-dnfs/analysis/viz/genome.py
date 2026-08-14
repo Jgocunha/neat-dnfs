@@ -272,6 +272,41 @@ def compute_kernel_usage_stats(elements):
     return field_counts, field_perc, inter_counts, inter_perc
 
 
+def collect_parameter_values(elements) -> dict:
+    """Every numeric field/kernel parameter present in a genome's elements list, keyed by
+    parameter name -- the raw material for population-level parameter-distribution charts.
+    A neural field contributes tau/restingLevel; a Gaussian kernel contributes
+    amplitude/width/amplitudeGlobal; a Mexican-hat kernel contributes
+    amplitudeExc/widthExc/amplitudeInh/widthInh/amplitudeGlobal. Stimulus/noise elements have no
+    field/kernel parameters of interest and are skipped.
+
+    Returns dict[str, list[float]].
+    """
+    values: dict = {}
+
+    def add(name, val):
+        if val is not None:
+            values.setdefault(name, []).append(float(val))
+
+    for el in elements or []:
+        label = get_element_label(el)
+        if label == "neural field":
+            add("tau", el.get("tau"))
+            add("restingLevel", el.get("restingLevel"))
+        elif label == "gauss kernel":
+            add("amplitude", el.get("amplitude"))
+            add("width", el.get("width"))
+            add("amplitudeGlobal", el.get("amplitudeGlobal"))
+        elif label == "mexican hat kernel":
+            add("amplitudeExc", el.get("amplitudeExc"))
+            add("widthExc", el.get("widthExc"))
+            add("amplitudeInh", el.get("amplitudeInh"))
+            add("widthInh", el.get("widthInh"))
+            add("amplitudeGlobal", el.get("amplitudeGlobal"))
+
+    return values
+
+
 def kernel_kinds_for_solution(elements):
     """
     Helper used by compute_population_kernel_usage.

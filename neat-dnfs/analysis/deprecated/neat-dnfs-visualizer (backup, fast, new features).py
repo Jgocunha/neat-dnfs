@@ -6,7 +6,6 @@ plotting, and view logic). This file stays a thin shim so
 launch-visualizer.bat and `streamlit run` keep working unchanged, and so
 tools that load this file directly (e.g. via importlib.util.spec_from_file_
 location) still find export_run_markdown/export_experiment_markdown here.
-launch-visualizer.sh mirrors the .bat file for macOS/Linux.
 """
 import sys
 from pathlib import Path

@@ -255,6 +255,43 @@ def _parse_run_overview(stats_file: Path):
     }
 
 
+@st.cache_data
+def compute_partial_fitness_best_only(run_dir_str: str, generations: tuple) -> pd.DataFrame:
+    """best_p* for every generation, read directly from per_generation_overview.txt's embedded
+    'part.: (...)' field -- no statistics/ scan at all. Thin wrapper around _parse_run_overview
+    (already used by the experiment-aggregation path), reshaped into the same best_p*-columned
+    DataFrame shape viz.parsing.compute_partial_fitness produces, so it's a drop-in for any
+    caller that only needs best_p* -- avg_p* genuinely requires the full statistics/ scan and
+    has no fast-path equivalent (there is no cheaper source for a population-wide average).
+    """
+    run_dir = Path(run_dir_str)
+    overview_path = run_dir / "per_generation_overview.txt"
+    if not overview_path.exists():
+        return pd.DataFrame()
+
+    parsed = _parse_run_overview(overview_path)
+    if parsed is None:
+        return pd.DataFrame()
+
+    gen_set = set(generations) if generations else None
+    rows = []
+    for g0, parts in zip(parsed["generations"], parsed["partial_vectors"]):
+        if gen_set is not None and g0 not in gen_set:
+            continue
+        rec = {"generation": g0}
+        for i, v in enumerate(parts, start=1):
+            rec[f"best_p{i}"] = v
+        rows.append(rec)
+
+    if not rows:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(rows)
+    df.sort_values("generation", inplace=True)
+    df.reset_index(drop=True, inplace=True)
+    return df
+
+
 def _evaluate_run_targets(parsed: dict, partial_targets: dict) -> dict:
     """Combine a target-independent parsed run (see _parse_run_overview) with a set
     of partial-fitness targets to compute success/threshold/failed-partials.
@@ -270,6 +307,7 @@ def _evaluate_run_targets(parsed: dict, partial_targets: dict) -> dict:
     # which partial targets the BEST solution failed (based on partial_targets only)
     best_solution_partials = parsed["best_solution_partials"]
     failed_partials = []
+    failed_components = []  # structured sibling of failed_partials_str, for aggregation
     for p_num, thr in sorted(partial_targets.items()):
         # Partial fitness targets are specified as p1, p2, ... (1-based indexing).
         if p_num <= 0:
@@ -277,10 +315,12 @@ def _evaluate_run_targets(parsed: dict, partial_targets: dict) -> dict:
         idx = p_num - 1  # convert to 0-based index into the partial vector
         if idx >= len(best_solution_partials):
             failed_partials.append(f"p{p_num}=NA<{thr:.3f}")
+            failed_components.append(p_num)
             continue
         val = best_solution_partials[idx]
         # Treat missing/NaN values as failures.
         if val is None or (isinstance(val, float) and math.isnan(val)) or float(val) < float(thr):
+            failed_components.append(p_num)
             try:
                 failed_partials.append(f"p{p_num}={float(val):.3f}<{thr:.3f}")
             except Exception:
@@ -292,6 +332,7 @@ def _evaluate_run_targets(parsed: dict, partial_targets: dict) -> dict:
     out["success"] = success
     out["generation_to_threshold"] = generation_to_threshold
     out["best_solution_failed_partials"] = failed_partials_str
+    out["failed_partial_components"] = failed_components
     return out
 
 

@@ -1,4 +1,4 @@
-from viz.genome import build_genome_graph
+from viz.genome import build_genome_graph, collect_parameter_values
 
 # A minimal synthetic genome: field_in --(k1)--> field_out, plus a self-loop
 # kernel on field_out, plus a stimulus element that only exists to exercise
@@ -44,3 +44,53 @@ def test_build_genome_graph_exclude_stimuli_drops_stimulus_elements():
 def test_build_genome_graph_empty_input():
     assert build_genome_graph(None, exclude_stimuli=False).by_name == {}
     assert build_genome_graph([], exclude_stimuli=False).by_name == {}
+
+
+PARAM_ELEMENTS = [
+    {
+        "uniqueName": "nf1",
+        "label": ["Neural field", "neural field"],
+        "inputs": [],
+        "tau": 40.0,
+        "restingLevel": -5.0,
+    },
+    {
+        "uniqueName": "gk1",
+        "label": ["Gaussian kernel", "gauss kernel"],
+        "inputs": [["nf1", 0]],
+        "amplitude": 10.0,
+        "width": 3.0,
+        "amplitudeGlobal": -0.1,
+    },
+    {
+        "uniqueName": "mhk1",
+        "label": ["Mexican hat kernel", "mexican hat kernel"],
+        "inputs": [["nf1", 0]],
+        "amplitudeExc": 12.0,
+        "widthExc": 2.0,
+        "amplitudeInh": 6.0,
+        "widthInh": 4.0,
+        "amplitudeGlobal": -0.05,
+    },
+    {"uniqueName": "gs1", "label": [2, "gauss stimulus"], "inputs": None, "amplitude": 6.0},
+]
+
+
+def test_collect_parameter_values_by_element_kind():
+    values = collect_parameter_values(PARAM_ELEMENTS)
+
+    assert values["tau"] == [40.0]
+    assert values["restingLevel"] == [-5.0]
+    assert values["amplitude"] == [10.0]  # only the Gaussian kernel's, not the stimulus's
+    assert values["width"] == [3.0]
+    assert values["amplitudeExc"] == [12.0]
+    assert values["widthExc"] == [2.0]
+    assert values["amplitudeInh"] == [6.0]
+    assert values["widthInh"] == [4.0]
+    # amplitudeGlobal is shared by both kernel kinds -- both contribute
+    assert sorted(values["amplitudeGlobal"]) == [-0.1, -0.05]
+
+
+def test_collect_parameter_values_empty_input():
+    assert collect_parameter_values(None) == {}
+    assert collect_parameter_values([]) == {}

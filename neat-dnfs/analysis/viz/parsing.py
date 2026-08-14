@@ -1,3 +1,4 @@
+import datetime
 import math
 import os
 import re
@@ -8,7 +9,8 @@ import pandas as pd
 import streamlit as st
 
 from .cache import _disk_cache_read_df, _disk_cache_read_json, _disk_cache_write_df, _disk_cache_write_json, _fingerprint_dir, _run_cache_dir
-from .genome import kernel_kinds_for_solution
+from .genome import collect_parameter_values, kernel_kinds_for_solution
+from .solution_record import _AGE_PARENTS_RE, _extract_mutation_events, _GENOME_SIZE_RE, categorize_mutation, find_solution_blob, parse_solution_blob  # noqa: F401  (_extract_mutation_events, categorize_mutation re-exported)
 
 def parse_overview_line(line: str):
     pattern = (
@@ -79,6 +81,129 @@ def load_overview(run_dir_str: str) -> pd.DataFrame:
     return df
 
 
+@st.cache_data
+def compute_topology_trajectory(run_dir_str: str) -> pd.DataFrame:
+    """Per-generation topology of that generation's best solution: hidden-field count and
+    enabled/disabled connection counts. Reads only per_generation_overview.txt (already read by
+    load_overview) -- no statistics/ scan needed, since the best solution's full genome is
+    embedded in every overview line.
+
+    Returns a DataFrame with columns: generation (0-based), hidden_fields, enabled_connections,
+    disabled_connections.
+    """
+    run_dir = Path(run_dir_str)
+    overview_path = run_dir / "per_generation_overview.txt"
+    if not overview_path.exists():
+        raise FileNotFoundError(f"Could not find {overview_path}")
+
+    rows = []
+    with overview_path.open("r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            parsed = parse_overview_line(line)
+            if parsed is None:
+                continue
+
+            blob = find_solution_blob(line)
+            record = parse_solution_blob(blob) if blob else None
+            if record is None:
+                continue
+
+            hidden = sum(1 for fg in record["field_genes"] if fg["type"] == "HIDDEN")
+            enabled = sum(1 for cg in record["connection_genes"] if cg["enabled"])
+            disabled = sum(1 for cg in record["connection_genes"] if not cg["enabled"])
+
+            rows.append(
+                {
+                    "generation": parsed["generation"],
+                    "hidden_fields": hidden,
+                    "enabled_connections": enabled,
+                    "disabled_connections": disabled,
+                }
+            )
+
+    df = pd.DataFrame(rows)
+    if not df.empty:
+        df.sort_values("generation", inplace=True)
+        df.reset_index(drop=True, inplace=True)
+    return df
+
+
+@st.cache_data
+def get_best_solution_id(run_dir_str: str, generation0: int) -> int | None:
+    """The id of the given generation's best-total-fitness individual, read from
+    per_generation_overview.txt's embedded solution blob -- no statistics/ scan."""
+    run_dir = Path(run_dir_str)
+    overview_path = run_dir / "per_generation_overview.txt"
+    if not overview_path.exists():
+        return None
+    with overview_path.open("r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            parsed = parse_overview_line(line)
+            if parsed is None or parsed["generation"] != generation0:
+                continue
+            blob = find_solution_blob(line)
+            record = parse_solution_blob(blob) if blob else None
+            return record["id"] if record else None
+    return None
+
+
+def _find_solution_in_statistics_file(stats_path: Path, sol_id: int) -> dict | None:
+    target_prefix = f"solution {sol_id} ["
+    if not stats_path.exists():
+        return None
+    with stats_path.open("r") as f:
+        for line in f:
+            if line.startswith(target_prefix):
+                blob = find_solution_blob(line)
+                return parse_solution_blob(blob) if blob else None
+    return None
+
+
+@st.cache_data
+def trace_lineage(run_dir_str: str, start_generation0: int, start_solution_id: int, max_depth: int = 500):
+    """Walk a solution's ancestry backward via its `parents (a, b)` tuple, following the first
+    parent at each hop, one statistics/generation_N.txt lookup per generation, until reaching a
+    (0, 0) bootstrap root, generation 0, a missing record, or max_depth hops.
+
+    Returns a list of {"generation": int (0-based), "record": parse_solution_blob(...) dict},
+    ordered oldest (root) first.
+    """
+    run_dir = Path(run_dir_str)
+    stats_dir = run_dir / "statistics"
+
+    chain = []
+    gen0 = start_generation0
+    sol_id = start_solution_id
+    visited = set()
+
+    while len(chain) < max_depth:
+        if (gen0, sol_id) in visited:
+            break
+        visited.add((gen0, sol_id))
+
+        record = _find_solution_in_statistics_file(stats_dir / f"generation_{gen0 + 1}.txt", sol_id)
+        if record is None:
+            break
+
+        chain.append({"generation": gen0, "record": record})
+
+        parent_a, parent_b = record["parent_ids"]
+        if (parent_a, parent_b) == (0, 0) or gen0 == 0:
+            break
+
+        gen0 -= 1
+        sol_id = parent_a
+
+    chain.reverse()
+    return chain
+
+
 def find_runs_with_overview(base_dir: Path):
     runs = []
     for child in sorted(base_dir.iterdir()):
@@ -89,136 +214,93 @@ def find_runs_with_overview(base_dir: Path):
     return runs
 
 
+def find_experiment_dirs(data_root: Path):
+    """One level up from find_runs_with_overview: folders under data_root that themselves
+    contain at least one run (a subfolder with per_generation_overview.txt) -- i.e. experiment
+    folders like data/HRI Packaging Task C, not run folders like data/.../2026-08-11 15h24m05s."""
+    experiments = []
+    if not data_root.exists() or not data_root.is_dir():
+        return experiments
+    for child in sorted(data_root.iterdir()):
+        if not child.is_dir():
+            continue
+        if find_runs_with_overview(child):
+            experiments.append((child.name, child))
+    return experiments
+
+
+_RUN_TIMESTAMP_RE = re.compile(r"^(\d{4})-(\d{2})-(\d{2}) (\d{2})h(\d{2})m(\d{2})s$")
+
+
+def prettify_run_timestamp(dir_name: str) -> str:
+    """Turn a run folder's raw timestamp name ("2026-08-12 19h50m57s") into a friendlier
+    label ("Aug 12, 19:50"). Returns the name unchanged if it doesn't match that format."""
+    m = _RUN_TIMESTAMP_RE.match(dir_name)
+    if not m:
+        return dir_name
+    year, month, day, hour, minute, _second = (int(x) for x in m.groups())
+    try:
+        dt = datetime.datetime(year, month, day, hour, minute)
+    except ValueError:
+        return dir_name
+    return dt.strftime("%b %d, %H:%M")
+
+
+@st.cache_data
+def run_picker_label(run_dir_str: str) -> str:
+    """Cheap per-run label for the run picker: a prettified timestamp plus a signal read from
+    only the LAST line of per_generation_overview.txt (generation count, best fitness) --
+    deliberately not a full load_overview() parse, which would build a DataFrame from every
+    line and be far too slow to call once per run in a dropdown with dozens of runs."""
+    run_dir = Path(run_dir_str)
+    label = prettify_run_timestamp(run_dir.name)
+    overview_path = run_dir / "per_generation_overview.txt"
+    try:
+        text = overview_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return label
+
+    last_line = ""
+    for line in reversed(text.splitlines()):
+        if line.strip():
+            last_line = line
+            break
+    if not last_line:
+        return label
+
+    info = parse_overview_line(last_line)
+    if info is None:
+        return label
+
+    gen_display = info["generation"] + 1
+    return f"{label} · {gen_display} gen · best {info['best_fitness']:.3f}"
+
+
 _PARTIAL_FIT_RE = re.compile(r"fit\.\:\s*([0-9eE\.\+\-]+).*?part\.\:\s*\(([^)]*)\)")
 
 
 _SOL_ID_RE = re.compile(r"solution\s+(\d+)\s+\[")
 
 
-_STRUCT_TOGGLE_RE = re.compile(r"(toggle cg[^.\}]+\.)")
-
-
-_STRUCT_ADDED_FG_RE = re.compile(r"\((added fg [^)]*)\)")
-
-
-_STRUCT_ADDED_CG_RE = re.compile(r"\((added cg [^)]*)\)")
-
-
-_GENE_MUT_BLOCK_RE = re.compile(r"\[([^\]]+)\]")
-
-
-_GENE_HEAD_RE = re.compile(r"(?P<gene_type>[fc]g)\s+(?P<ref>[^\s(]+)\s*(?P<rest>.*)")
-
-
-_INNER_MUT_RE = re.compile(r"\(([^)]+)\)")
-
-
-_NOOP_MUT_RE = re.compile(r"(fg|cg)\s+\S+$")
-
-
-def _extract_mutation_events(g: int, sol_id: int, fit: float, muts_block: str, records: list):
-    """Parse one solution's 'last mutations{...}' block into individual mutation-event
-    records, appended in place to `records`. Mirrors the taxonomy in categorize_mutation."""
-    for s in _STRUCT_TOGGLE_RE.findall(muts_block):
-        mut_inner = s.strip()
-        records.append(
-            {
-                "generation": g,
-                "solution_id": sol_id,
-                "fitness": fit,
-                "gene_type": "cg",
-                "gene_ref": "",
-                "mutation_inner": mut_inner,
-                "mutation_raw": mut_inner,
-                "category": categorize_mutation(mut_inner, gene_type="cg"),
-            }
-        )
-
-    for inner, gtype in [
-        *[(x, "fg") for x in _STRUCT_ADDED_FG_RE.findall(muts_block)],
-        *[(x, "cg") for x in _STRUCT_ADDED_CG_RE.findall(muts_block)],
-    ]:
-        mut_inner = inner.strip()
-        records.append(
-            {
-                "generation": g,
-                "solution_id": sol_id,
-                "fitness": fit,
-                "gene_type": gtype,
-                "gene_ref": "",
-                "mutation_inner": mut_inner,
-                "mutation_raw": mut_inner,
-                "category": categorize_mutation(mut_inner, gene_type=gtype),
-            }
-        )
-
-    for gm in _GENE_MUT_BLOCK_RE.findall(muts_block):
-        gm = gm.strip()
-        if not gm:
-            continue
-
-        m_head = _GENE_HEAD_RE.match(gm)
-        if m_head:
-            gene_type = m_head.group("gene_type")
-            gene_ref = m_head.group("ref")
-            rest = m_head.group("rest") or ""
-        else:
-            gene_type = ""
-            gene_ref = ""
-            rest = gm
-
-        inners = _INNER_MUT_RE.findall(rest)
-        if not inners:
-            mut_inner = (rest.strip() or gm).strip()
-            if _NOOP_MUT_RE.fullmatch(mut_inner):
-                continue
-            records.append(
-                {
-                    "generation": g,
-                    "solution_id": sol_id,
-                    "fitness": fit,
-                    "gene_type": gene_type,
-                    "gene_ref": gene_ref,
-                    "mutation_inner": mut_inner,
-                    "mutation_raw": gm,
-                    "category": categorize_mutation(mut_inner, gene_type=gene_type),
-                }
-            )
-        else:
-            for inner in inners:
-                mut_inner = inner.strip()
-                mut_full = f"{gene_type} {gene_ref}: {mut_inner}".strip()
-                records.append(
-                    {
-                        "generation": g,
-                        "solution_id": sol_id,
-                        "fitness": fit,
-                        "gene_type": gene_type,
-                        "gene_ref": gene_ref,
-                        "mutation_inner": mut_inner,
-                        "mutation_raw": mut_full,
-                        "category": categorize_mutation(mut_inner, gene_type=gene_type),
-                    }
-                )
-
-
 def _scan_run_statistics_uncached(run_dir_str: str, generations: tuple):
-    """Single pass over statistics/generation_X.txt that extracts BOTH the
-    per-generation partial-fitness vectors and the per-solution mutation events.
+    """Single pass over statistics/generation_X.txt that extracts partial-fitness vectors,
+    mutation events, AND per-individual distribution fields (fitness, age, genome size) --
+    everything the various population-level views need, in one read.
 
     compute_partial_fitness and compute_mutation_events used to each independently
     re-read and re-regex the same (often 100+ MB) statistics/ text; every solution
-    line carries both the 'part.: (...)' and 'last mutations{...}' data, so one pass
-    is enough. Returns (partial_df, mut_df) matching what those two functions used
-    to build directly. See _scan_run_statistics for the cached entry point.
+    line carries the 'part.: (...)', 'last mutations{...}', and 'age:'/'genome (...)' data
+    together, so one pass is enough. Returns (partial_df, mut_df, dist_df) matching what
+    those functions build directly. See _scan_run_statistics for the cached entry point.
     """
     run_dir = Path(run_dir_str)
     stats_dir = run_dir / "statistics"
     if not stats_dir.exists():
-        return None, pd.DataFrame()
+        return None, pd.DataFrame(), pd.DataFrame()
 
     partial_records = []
     mut_records = []
+    dist_records = []
 
     for g in generations:
         stats_path = stats_dir / f"generation_{g + 1}.txt"
@@ -255,6 +337,19 @@ def _scan_run_statistics_uncached(run_dir_str: str, generations: tuple):
                     if fit > best_fit:
                         best_fit = fit
                         best_parts = parts
+
+                # ---- distribution fields (age, species, genome size) ----
+                age_m = _AGE_PARENTS_RE.search(line)
+                size_m = _GENOME_SIZE_RE.search(line)
+                if age_m and size_m:
+                    dist_records.append(
+                        {
+                            "generation": g,
+                            "fitness": fit,
+                            "age": int(age_m.group(1)),
+                            "genome_size": int(size_m.group(1)) + int(size_m.group(2)),
+                        }
+                    )
 
                 # ---- mutation events ----
                 # str.find instead of a backtracking regex: the previous single regex
@@ -302,7 +397,14 @@ def _scan_run_statistics_uncached(run_dir_str: str, generations: tuple):
     else:
         mut_df = pd.DataFrame()
 
-    return partial_df, mut_df
+    if dist_records:
+        dist_df = pd.DataFrame(dist_records)
+        dist_df.sort_values("generation", inplace=True)
+        dist_df.reset_index(drop=True, inplace=True)
+    else:
+        dist_df = pd.DataFrame()
+
+    return partial_df, mut_df, dist_df
 
 
 def _scan_run_statistics_disk_cached(run_dir_str: str, generations: tuple):
@@ -324,18 +426,20 @@ def _scan_run_statistics_disk_cached(run_dir_str: str, generations: tuple):
             if meta.get("has_partial")
             else None
         )
-        if mut_df is not None:
-            return partial_df, mut_df
+        dist_df = _disk_cache_read_df(cache_dir / "statistics_scan.dist.parquet")
+        if mut_df is not None and dist_df is not None:
+            return partial_df, mut_df, dist_df
         # cache partially unreadable -> fall through to recompute
 
-    partial_df, mut_df = _scan_run_statistics_uncached(run_dir_str, generations)
+    partial_df, mut_df, dist_df = _scan_run_statistics_uncached(run_dir_str, generations)
 
     _disk_cache_write_df(mut_df, cache_dir / "statistics_scan.mut.parquet")
+    _disk_cache_write_df(dist_df, cache_dir / "statistics_scan.dist.parquet")
     if partial_df is not None:
         _disk_cache_write_df(partial_df, cache_dir / "statistics_scan.partial.parquet")
     _disk_cache_write_json(meta_path, {"fingerprint": fp, "has_partial": partial_df is not None})
 
-    return partial_df, mut_df
+    return partial_df, mut_df, dist_df
 
 
 @st.cache_data
@@ -356,8 +460,22 @@ def compute_partial_fitness(run_dir_str: str, generations: tuple):
     Returns a DataFrame with columns:
       generation, best_p1..N, avg_p1..N
     """
-    partial_df, _ = _scan_run_statistics(run_dir_str, generations)
+    partial_df, _, _ = _scan_run_statistics(run_dir_str, generations)
     return partial_df
+
+
+@st.cache_data
+def compute_population_distributions(run_dir_str: str, generations: tuple) -> pd.DataFrame:
+    """Per-individual fitness, age, and genome size for every solution across the given
+    generations -- the raw material for population-wide distribution plots (violin/box per
+    generation). Reuses the same single statistics/ pass as compute_partial_fitness and
+    compute_mutation_events rather than re-scanning.
+
+    Returns a DataFrame with columns: generation, fitness, age, genome_size (one row per
+    individual).
+    """
+    _, _, dist_df = _scan_run_statistics(run_dir_str, generations)
+    return dist_df
 
 
 def generations_meeting_targets(
@@ -395,6 +513,41 @@ def generations_meeting_targets(
             gens_ok.append(int(g0) + 1)
 
     return gens_ok
+
+
+def first_crossing_per_component(
+    generations: list, partial_vectors: list, partial_targets: dict
+) -> dict:
+    """Per-component first-crossing generation: for each component in partial_targets, the
+    first (1-based) generation where that component alone meets its target -- independent of
+    whether the other components also meet theirs at the same time (contrast with
+    generations_meeting_targets, which requires all components simultaneously). A component
+    that never crosses maps to None.
+
+    This is the RAS paper's failure-attribution analysis ("the cooperative and complementary
+    responses (f4, f5, f6) remained below threshold") generalised to any run: which components
+    gate success, not just whether the run succeeded overall.
+    """
+    result = {int(comp): None for comp in partial_targets}
+    if not partial_targets:
+        return result
+
+    for g0, parts in zip(generations, partial_vectors):
+        for comp, thr in partial_targets.items():
+            comp = int(comp)
+            if result[comp] is not None:
+                continue
+            idx = comp - 1
+            if idx < 0 or idx >= len(parts):
+                continue
+            try:
+                val = float(parts[idx])
+            except Exception:
+                continue
+            if not math.isnan(val) and val >= float(thr):
+                result[comp] = int(g0) + 1
+
+    return result
 
 
 def generations_all_partial_meet_targets(partial_df: pd.DataFrame, partial_targets: dict) -> list[int]:
@@ -488,6 +641,8 @@ def compute_species_meta(run_dir_str: str, generations: tuple):
                         "max_members": parsed["members"],
                         "total_offspring": parsed["offspring"],
                         "last_extinct": parsed["extinct"],
+                        "members_by_gen": {},
+                        "champ_raw_by_gen": {},
                     },
                 )
                 m["first_gen"] = min(m["first_gen"], g)
@@ -496,8 +651,35 @@ def compute_species_meta(run_dir_str: str, generations: tuple):
                 m["total_offspring"] += parsed["offspring"]
                 if g == final_gen:
                     m["last_extinct"] = parsed["extinct"]
+                if parsed["members"] > 0:
+                    m["members_by_gen"][g] = parsed["members"]
+                if parsed["champ_raw"]:
+                    m["champ_raw_by_gen"][g] = parsed["champ_raw"]
 
     return meta
+
+
+@st.cache_data
+def species_champion_fitness_trajectory(run_dir_str: str, generations: tuple, species_id: int) -> pd.DataFrame:
+    """Fitness of the given species' champion across every generation it was active, parsed
+    from the champ.: blob already collected by compute_species_meta. Only parses blobs for the
+    one requested species, not every species (compute_species_meta stores raw text for all of
+    them cheaply, but eagerly parsing every one would be wasted work for species nobody looks at).
+
+    Returns a DataFrame with columns: generation (0-based), fitness.
+    """
+    meta = compute_species_meta(run_dir_str, generations)
+    species = meta.get(species_id)
+    if not species:
+        return pd.DataFrame()
+
+    rows = []
+    for g, champ_raw in sorted(species["champ_raw_by_gen"].items()):
+        record = parse_solution_blob(champ_raw)
+        if record is not None:
+            rows.append({"generation": g, "fitness": record["fitness"]})
+
+    return pd.DataFrame(rows)
 
 
 @st.cache_data
@@ -575,128 +757,58 @@ def load_best_solution_architecture(run_dir_str: str, generation: int):
     return _load_elements(genome_file)
 
 
-def categorize_mutation(mut_str: str, gene_type: str = "") -> str:
+_CHAMPION_DIR_NAME_RE = re.compile(r"generation (\d+) species (\d+) fitness ([0-9eE+\-\.]+)$")
+
+
+@st.cache_data
+def list_champion_generations(run_dir_str: str, species_id: int):
+    """Every generation (0-based) that has a champion genome for the given species, under
+    champions/prev_generations/ -- a directory written every generation for every species'
+    current champion (never touched anywhere else in this app; can hold tens of thousands of
+    entries for a long run with many species, hence @st.cache_data -- avoid re-scanning it on
+    every UI interaction within a session).
+
+    Returns a sorted list of (generation0, champion_dir_path) tuples. If more than one entry
+    somehow exists for the same (species, generation), the highest-fitness one wins, matching
+    load_best_solution_architecture's tie-break convention.
     """
-    Classify a mutation according to the taxonomy:
+    run_dir = Path(run_dir_str)
+    champ_dir = run_dir / "champions" / "prev_generations"
+    if not champ_dir.exists():
+        return []
 
-    Structural
-        - toggle cg to enabled/disabled
-        - added fg
-        - added cg
+    best_by_gen: dict = {}
+    with os.scandir(champ_dir) as it:
+        for entry in it:
+            if not entry.is_dir():
+                continue
+            m = _CHAMPION_DIR_NAME_RE.search(entry.name)
+            if not m:
+                continue
+            gen1, sid = int(m.group(1)), int(m.group(2))
+            if sid != species_id:
+                continue
+            try:
+                fit = float(m.group(3))
+            except ValueError:
+                fit = -1e9
+            gen0 = gen1 - 1
+            existing = best_by_gen.get(gen0)
+            if existing is None or fit > existing[0]:
+                best_by_gen[gen0] = (fit, Path(entry.path))
 
-    Parametrical mutations
-      Field gene mutations
-        Kernel mutations
-            fg gk width
-            fg gk amp
-            fg gk amp glob
-            fg mhk amp exc
-            fg mhk width exc
-            fg mhk amp inh
-            fg mhk width inh
-            fg mhk amp glob
-            Type mutations: mhk to gk / gk to mhk
-        Neural field mutations
-            fg nf tau
-            fg nf resting level
-            fg nf rand
+    return sorted((gen0, path) for gen0, (fit, path) in best_by_gen.items())
 
-      Connection gene mutations
-        Kernel mutations
-            cg gk width
-            cg gk amp
-            cg gk amp glob
-            cg mhk amp exc
-            cg mhk width exc
-            cg mhk amp inh
-            cg mhk width inh
-            cg mhk amp glob
-            Type mutations: cg to gk / cg to mhk
-        Signal mutations
-            cg to excitatory / cg to inhibitory
-    """
-    s = (mut_str or "").lower().strip()
 
-    # ---------- structural mutations ----------
-    if s.startswith("toggle cg"):
-        return "Structural – toggle connection enabled/disabled"
-    if s.startswith("added fg"):
-        return "Structural – add field gene"
-    if s.startswith("added cg"):
-        return "Structural – add connection gene"
-
-    # ---------- field gene mutations ----------
-    if gene_type == "fg":
-        # neural-field parameters
-        if "fg nf tau" in s:
-            return "Field – neural field τ"
-        if "fg nf rest. lvl" in s or "fg nf resting" in s:
-            return "Field – neural field resting level"
-        if "fg nf rand" in s:
-            return "Field – neural field random reset"
-
-        # type changes
-        if "mhk to gk" in s:
-            return "Field kernel – type mhk→gk"
-        if "gk to mhk" in s:
-            return "Field kernel – type gk→mhk"
-
-        # Gaussian kernel params
-        if "fg gk width" in s:
-            return "Field kernel – gk width"
-        if "fg gk amp. glob" in s:
-            return "Field kernel – gk global amplitude"
-        if "fg gk amp" in s:      # keep after "amp. glob" check
-            return "Field kernel – gk amplitude"
-
-        # Mexican-hat kernel params
-        if "fg mhk amp. exc" in s:
-            return "Field kernel – mhk exc amplitude"
-        if "fg mhk width exc" in s:
-            return "Field kernel – mhk exc width"
-        if "fg mhk amp. inh" in s:
-            return "Field kernel – mhk inh amplitude"
-        if "fg mhk width inh" in s:
-            return "Field kernel – mhk inh width"
-        if "fg mhk amp. glob" in s:
-            return "Field kernel – mhk global amplitude"
-
-    # ---------- connection gene mutations ----------
-    if gene_type == "cg":
-        # signal type
-        if "cg to excitatory" in s:
-            return "Connection signal – to excitatory"
-        if "cg to inhibitory" in s:
-            return "Connection signal – to inhibitory"
-
-        # type changes (kernel type)
-        if "cg to gk" in s:
-            return "Connection kernel – type →gk"
-        if "cg to mhk" in s:
-            return "Connection kernel – type →mhk"
-
-        # Gaussian kernel params
-        if "cg gk width" in s:
-            return "Connection kernel – gk width"
-        if "cg gk amp. glob" in s:
-            return "Connection kernel – gk global amplitude"
-        if "cg gk amp" in s:      # keep after "amp. glob" check
-            return "Connection kernel – gk amplitude"
-
-        # Mexican-hat kernel params
-        if "cg mhk amp. exc" in s:
-            return "Connection kernel – mhk exc amplitude"
-        if "cg mhk width exc" in s:
-            return "Connection kernel – mhk exc width"
-        if "cg mhk amp. inh" in s:
-            return "Connection kernel – mhk inh amplitude"
-        if "cg mhk width inh" in s:
-            return "Connection kernel – mhk inh width"
-        if "cg mhk amp. glob" in s:
-            return "Connection kernel – mhk global amplitude"
-    
-    # fallback
-    return "Other / uncategorised"
+@st.cache_data
+def load_champion_architecture(champion_dir_str: str):
+    """Load the JSON architecture from a champion directory returned by
+    list_champion_generations. Returns list of element dicts (DNF composer JSON) or None."""
+    champion_dir = Path(champion_dir_str)
+    genome_file = next(champion_dir.glob("*.dnf"), None) or next(champion_dir.glob("*.json"), None)
+    if genome_file is None:
+        return None
+    return _load_elements(genome_file)
 
 
 @st.cache_data
@@ -816,6 +928,57 @@ def compute_population_kernel_usage(
 
 
 @st.cache_data
+def compute_population_parameter_distributions(
+    run_dir_str: str,
+    generations: tuple,
+    gen_step: int = 10,
+    max_solutions_per_gen: int = 100,
+) -> pd.DataFrame:
+    """Sample genomes across generations (same sampling controls as
+    compute_population_kernel_usage: every gen_step-th generation, up to
+    max_solutions_per_gen evenly-spaced solutions per sampled generation) and collect every
+    numeric field/kernel parameter -- tau, restingLevel, amplitude, width, amplitudeGlobal,
+    amplitudeExc/Inh, widthExc/Inh -- across the sampled population. Currently every one of
+    these is discarded elsewhere in the app; only kernel *kind* (Gaussian/Mexican-hat/Other) is
+    used for the kernel-usage view.
+
+    Returns a long-format DataFrame with columns: generation, parameter, value (one row per
+    parameter instance found in a sampled genome).
+    """
+    run_dir = Path(run_dir_str)
+    solutions_root = run_dir / "solutions"
+
+    rows = []
+    sampled_gens = sorted(generations)[:: max(1, gen_step)]
+
+    for g in sampled_gens:
+        gen_dir = solutions_root / f"gen {g + 1}"
+        if not gen_dir.exists():
+            continue
+
+        with os.scandir(gen_dir) as it:
+            all_dirs = sorted((Path(e.path) for e in it if e.is_dir()), key=lambda p: p.name)
+        solution_dirs = _sample_evenly(all_dirs, max_solutions_per_gen)
+
+        for sol_dir in solution_dirs:
+            genome_file = next(sol_dir.glob("*.dnf"), None) or next(sol_dir.glob("*.json"), None)
+            if genome_file is None:
+                continue
+            elements = _load_elements(genome_file)
+            if elements is None:
+                continue
+
+            for param, values in collect_parameter_values(elements).items():
+                for v in values:
+                    rows.append({"generation": g, "parameter": param, "value": v})
+
+    if not rows:
+        return pd.DataFrame(columns=["generation", "parameter", "value"])
+
+    return pd.DataFrame(rows)
+
+
+@st.cache_data
 def compute_mutation_events(run_dir_str: str, generations: tuple):
     """
     Parse statistics/generation_X.txt files and extract mutation events.
@@ -839,7 +1002,7 @@ def compute_mutation_events(run_dir_str: str, generations: tuple):
       mutation_raw   (gene + inner, e.g. 'fg 2: fg gk width -1.0'),
       category       (fine-grained category from categorize_mutation).
     """
-    _, mut_df = _scan_run_statistics(run_dir_str, generations)
+    _, mut_df, _ = _scan_run_statistics(run_dir_str, generations)
     return mut_df
 
 

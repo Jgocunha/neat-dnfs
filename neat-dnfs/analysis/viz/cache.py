@@ -1,10 +1,11 @@
 import json
+from pathlib import Path
 import pandas as pd
 
 _CACHE_DIRNAME = ".viz_cache"
 
 
-_PARSER_VERSION = 1
+_PARSER_VERSION = 2
 
 
 def _run_cache_dir(dir_path: Path) -> Path:
