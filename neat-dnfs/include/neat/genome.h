@@ -44,8 +44,10 @@ namespace neat_dnfs
 		void clearLastMutations();
 		void removeConnectionGene(int innov);
 
-		[[nodiscard]] std::vector<FieldGene> getFieldGenes() const;
-		[[nodiscard]] std::vector<ConnectionGene> getConnectionGenes() const;
+		/// @return A const reference to this genome's field genes.
+		[[nodiscard]] const std::vector<FieldGene>& getFieldGenes() const;
+		/// @return A const reference to this genome's connection genes.
+		[[nodiscard]] const std::vector<ConnectionGene>& getConnectionGenes() const;
 		[[nodiscard]] std::vector<int> getInnovationNumbers() const;
 		static int getGlobalInnovationNumber();
 		[[nodiscard]] std::string getMutationsInLastGeneration() const;

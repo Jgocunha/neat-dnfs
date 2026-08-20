@@ -97,12 +97,12 @@ namespace neat_dnfs
 		parents = std::make_tuple(parent1, parent2);
 	}
 
-	dnf_composer::Simulation Solution::getPhenotype() const
+	const dnf_composer::Simulation& Solution::getPhenotype() const
 	{
 		return phenotype;
 	}
 
-	Genome Solution::getGenome() const
+	const Genome& Solution::getGenome() const
 	{
 		return genome;
 	}

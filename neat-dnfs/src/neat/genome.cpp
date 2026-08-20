@@ -127,12 +127,12 @@ namespace neat_dnfs
 		connectionGenes.erase(it);
 	}
 
-	std::vector<FieldGene> Genome::getFieldGenes() const
+	const std::vector<FieldGene>& Genome::getFieldGenes() const
 	{
 		return fieldGenes;
 	}
 
-	std::vector<ConnectionGene> Genome::getConnectionGenes() const
+	const std::vector<ConnectionGene>& Genome::getConnectionGenes() const
 	{
 		return connectionGenes;
 	}
@@ -242,8 +242,8 @@ namespace neat_dnfs
 
 	double Genome::averageConnectionDifference(const Genome& other) const
 	{
-		const auto thisConnectionGenes = getConnectionGenes();
-		const auto otherConnectionGenes = other.getConnectionGenes();
+		const auto& thisConnectionGenes = getConnectionGenes();
+		const auto& otherConnectionGenes = other.getConnectionGenes();
 
 		if (thisConnectionGenes.empty() && otherConnectionGenes.empty())
 		{

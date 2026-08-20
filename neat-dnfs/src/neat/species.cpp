@@ -153,8 +153,8 @@ namespace neat_dnfs
 			N = 1; // Normalize for small genomes
 		}
 
-		const auto representativeGenome = representative->getGenome();
-		const auto solutionGenome = solution->getGenome();
+		const auto& representativeGenome = representative->getGenome();
+		const auto& solutionGenome = solution->getGenome();
 
 		const double excessCoefficient = CompatibilityCoefficients::excessGenesCompatibilityWeight
 			* representativeGenome.excessGenes(solutionGenome);

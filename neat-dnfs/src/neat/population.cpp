@@ -907,7 +907,7 @@ namespace neat_dnfs
 	{
 		for (const auto& solution : solutions)
 		{
-			const auto genome = solution->getGenome();
+			const auto& genome = solution->getGenome();
 			const auto& connectionGenes = genome.getConnectionGenes();
 			for (auto const& connectionGene1 : connectionGenes)
 			{
@@ -936,7 +936,7 @@ namespace neat_dnfs
 	{
 		for (const auto& solution_a : solutions)
 		{
-			const auto genome_a = solution_a->getGenome();
+			const auto& genome_a = solution_a->getGenome();
 			const auto& connectionGenes_a = genome_a.getConnectionGenes();
 			const auto& fieldGenes_a = genome_a.getFieldGenes();
 
@@ -947,7 +947,7 @@ namespace neat_dnfs
 					continue;
 				}
 
-				const auto genome_b = solution_b->getGenome();
+				const auto& genome_b = solution_b->getGenome();
 				const auto& connectionGenes_b = genome_b.getConnectionGenes();
 				const auto& fieldGenes_b = genome_b.getFieldGenes();
 
@@ -1055,7 +1055,7 @@ namespace neat_dnfs
 			addr << solution.get();
 			result += "Solution address: " + addr.str() + "\n";
 			result += std::format("Fitness is: {}\n", solution->getFitness());
-			const auto genome = solution->getGenome();
+			const auto& genome = solution->getGenome();
 			for (const auto& nodeGene : genome.getFieldGenes())
 			{
 				result += nodeGene.toString();

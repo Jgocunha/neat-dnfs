@@ -104,8 +104,10 @@ namespace neat_dnfs
 		void setParents(int parent1, int parent2);
 		[[nodiscard]] int getSpeciesId() const { return parameters.speciesId; }
 		[[nodiscard]] std::tuple<int, int> getParents() const { return parents; }
-		[[nodiscard]] dnf_composer::Simulation getPhenotype() const;
-		[[nodiscard]] Genome getGenome() const;
+		/// @return A const reference to this solution's phenotype simulation.
+		[[nodiscard]] const dnf_composer::Simulation& getPhenotype() const;
+		/// @return A const reference to this solution's genome.
+		[[nodiscard]] const Genome& getGenome() const;
 		[[nodiscard]] SolutionParameters getParameters() const;
 		[[nodiscard]] std::string getName() const { return name; }
 		[[nodiscard]] std::string getAddress() const;
