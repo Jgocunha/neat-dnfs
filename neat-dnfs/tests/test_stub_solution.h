@@ -589,6 +589,12 @@ private:
 // just before the fitness call are captured in `observedBumps` so the test
 // can derive the target independently -- evaluate() clears the phenotype on
 // return, so the live NeuralField can't be queried afterwards.
+//
+// Its genes are seeded explicitly with makeFixedFieldGene() rather than left to
+// Solution::initialize(), which would randomize tau, restingLevel, the kernel
+// type and the kernel's parameters -- and roughly 2% of those draws produce a
+// field that never forms a bump (see SingleBumpTwoBumpsSolution), which would
+// make `observedBumps.front()` below undefined behaviour on an empty vector.
 class SingleBumpOneBumpSolution final : public Solution
 {
 public:
@@ -596,12 +602,14 @@ public:
         : Solution(topology)
     {
         name = "SingleBumpOneBump";
+        seedFixedGenes();
     }
 
     SingleBumpOneBumpSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
         : Solution(initialTopology, phenotype)
     {
         name = "SingleBumpOneBump";
+        seedFixedGenes();
     }
 
     SolutionPtr clone() const override
@@ -619,6 +627,20 @@ public:
     std::vector<dnf_composer::element::NeuralFieldBump> observedBumps;
 
 private:
+    // Seeds one INPUT ("nf 1") and one OUTPUT ("nf 2") gene with fixed field and
+    // kernel parameters, so the field this fixture drives is identical on every
+    // construction. Guarded on isEmpty() because the phenotype-taking
+    // constructor is used by copy(), where the genome may already be populated.
+    void seedFixedGenes()
+    {
+        if (!genome.isEmpty())
+        {
+            return;
+        }
+        addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+        addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    }
+
     void testPhenotype() override
     {
         using namespace dnf_composer::element;
@@ -688,6 +710,11 @@ private:
 // Targets equal the bump's own observed values so every matched distance term
 // is exactly zero, making the expected fitness computable independently of
 // simulation jitter.
+//
+// Its genes are seeded explicitly with makeFixedFieldGene() for the same reason
+// as SingleBumpOneBumpSolution above: an unseeded genome draws random field/
+// kernel parameters and roughly 2% of those draws never form a bump, which
+// would make `observedBumps.front()` below undefined behaviour.
 class SingleBumpThreeBumpsSolution final : public Solution
 {
 public:
@@ -695,12 +722,14 @@ public:
         : Solution(topology)
     {
         name = "SingleBumpThreeBumps";
+        seedFixedGenes();
     }
 
     SingleBumpThreeBumpsSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
         : Solution(initialTopology, phenotype)
     {
         name = "SingleBumpThreeBumps";
+        seedFixedGenes();
     }
 
     SolutionPtr clone() const override
@@ -718,6 +747,20 @@ public:
     std::vector<dnf_composer::element::NeuralFieldBump> observedBumps;
 
 private:
+    // Seeds one INPUT ("nf 1") and one OUTPUT ("nf 2") gene with fixed field and
+    // kernel parameters, so the field this fixture drives is identical on every
+    // construction. Guarded on isEmpty() because the phenotype-taking
+    // constructor is used by copy(), where the genome may already be populated.
+    void seedFixedGenes()
+    {
+        if (!genome.isEmpty())
+        {
+            return;
+        }
+        addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+        addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    }
+
     void testPhenotype() override
     {
         using namespace dnf_composer::element;
