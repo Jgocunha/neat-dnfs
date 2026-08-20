@@ -305,11 +305,11 @@ TEST_CASE("Solution twoBumpsAtPositionWithAmplitudeAndWidth does not credit the 
     solution.initialize();
 
     REQUIRE_NOTHROW(solution.evaluate());
-    // A single, sufficiently strong, well-localized stimulus reliably forms
-    // exactly one bump -- this is the same "one stimulus -> one bump" premise
-    // oneBumpAtPositionWithAmplitudeAndWidth's production callers rely on
-    // (e.g. DetectionInstability). If this ever legitimately varies, the
-    // stimulus parameters below need revisiting, not this assertion.
+    // SingleBumpTwoBumpsSolution pins its field and kernel parameters
+    // explicitly (see makeFixedFieldGene), so a single stimulus forms exactly
+    // one bump on every construction rather than ~98% of them. If this ever
+    // fails again it means the fixed regime stopped producing a stable bump --
+    // fix that there, rather than weakening this assertion.
     REQUIRE(solution.observedBumps.size() == 1);
 
     // Same weights as Solution::twoBumpsAtPositionWithAmplitudeAndWidth.

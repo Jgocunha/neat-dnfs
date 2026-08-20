@@ -5,6 +5,7 @@
 #include "neat/population.h"
 #include "solutions/detection_instability.h"
 #include "test_helpers.h"
+#include "test_population_access.h"
 
 using namespace neat_dnfs;
 using namespace neat_dnfs::test;
@@ -154,4 +155,41 @@ TEST_CASE("Speciation: a solution moving between species does not leave two spec
     const auto repA = speciesA.getRepresentative();
     const auto repB = speciesB.getRepresentative();
     REQUIRE(repA != repB);
+}
+
+// Regression test for issue #59 (moving representative): Population::assignToSpecies()
+// called species->randomlyAssignRepresentative() after every addSolution,
+// including when a solution joined an ALREADY EXISTING species -- so the
+// compatibility reference moved mid-pass instead of staying fixed for the
+// whole assignment pass, a departure from standard NEAT (compatibility is
+// measured against the previous generation's representative). A brand-new
+// species may still pick an initial representative; only re-randomizing on
+// top of an existing one is the bug.
+TEST_CASE("Speciation: an existing species' representative stays fixed for the whole assignment pass", "[Speciation][Population]")
+{
+    resetGlobalState();
+    const auto topology = makeTopology(1, 1);
+    // All solutions share the exact same connection-less topology, so every
+    // one of them is mutually compatible (zero excess/disjoint/connection-
+    // difference) -- they must all land in a single species within one
+    // Population::speciate() pass.
+    const PopulationParameters parameters(11, 5, 1.1, false);
+    Population population(parameters, std::make_shared<DetectionInstability>(topology), false);
+    population.initialize();
+
+    PopulationTestAccess::speciate(population);
+
+    const auto speciesList = population.getSpeciesList();
+    REQUIRE(speciesList.size() == 1);
+    REQUIRE(speciesList[0]->size() == 11);
+
+    const auto representative = speciesList[0]->getRepresentative();
+    REQUIRE(representative != nullptr);
+
+    // The first solution processed becomes the new species' initial
+    // representative (picking one when a species is brand-new is fine); it
+    // must not have been re-randomized as the other 10 solutions were folded
+    // into that same, already-existing species during this single pass.
+    const auto solutions = population.getSolutions();
+    REQUIRE(representative == solutions.front());
 }

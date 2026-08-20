@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include "neat/solution.h"
+#include "test_helpers.h"
 
 namespace neat_dnfs::test {
 
@@ -405,6 +406,14 @@ private:
 // the fitness call are captured in the public `observedBumps` member so the
 // test can derive the expected fitness independently -- evaluate() clears the
 // phenotype on return, so the live NeuralField can't be queried afterwards.
+//
+// Its genes are seeded explicitly with makeFixedFieldGene() rather than left to
+// Solution::initialize(), which would randomize tau, restingLevel, the kernel
+// type and the kernel's parameters -- and roughly 2% of those draws produce a
+// field that never forms a bump, which is what made this fixture's test flaky
+// in CI. Solution::initialize() no-ops on a non-empty genome, so seeding here
+// bypasses createInputGenes()/createOutputGenes() entirely and callers can
+// still call initialize() as usual.
 class SingleBumpTwoBumpsSolution final : public Solution
 {
 public:
@@ -412,12 +421,14 @@ public:
         : Solution(topology)
     {
         name = "SingleBumpTwoBumps";
+        seedFixedGenes();
     }
 
     SingleBumpTwoBumpsSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
         : Solution(initialTopology, phenotype)
     {
         name = "SingleBumpTwoBumps";
+        seedFixedGenes();
     }
 
     SolutionPtr clone() const override
@@ -439,11 +450,37 @@ public:
     static constexpr double targetWidth = 3.0;
 
 private:
+    // Seeds one INPUT ("nf 1") and one OUTPUT ("nf 2") gene with fixed field and
+    // kernel parameters, so the field this fixture drives is identical on every
+    // construction. Guarded on isEmpty() because the phenotype-taking
+    // constructor is used by copy(), where the genome may already be populated.
+    void seedFixedGenes()
+    {
+        if (!genome.isEmpty())
+        {
+            return;
+        }
+        addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+        addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    }
+
     void testPhenotype() override
     {
         using namespace dnf_composer::element;
 
         initSimulation();
+        // The field's own parameters are pinned (see seedFixedGenes), so this
+        // stimulus drives a bump that forms well clear of the detection
+        // threshold. That margin is what makes the fixture reliable: the
+        // simulation stays stochastic -- every field carries a NormalNoise
+        // whose RNG lives in dnf_composer with no seed hook -- and bump
+        // detection is a threshold, so a marginal bump would still flip on
+        // noise alone even with the field pinned.
+        //
+        // These values were briefly raised to GaussStimulusConstants (20.0) to
+        // paper over the random-field flake; with the field pinned they are
+        // back to their original 5.0/15.0 and measure 2000/2000, so the margin
+        // now comes from the fixed kernel rather than from an inflated stimulus.
         addGaussianStimulus("nf 1",
             GaussStimulusParameters{ 5.0, 15.0, targetPosition, true, false },
             ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });

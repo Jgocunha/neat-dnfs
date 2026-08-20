@@ -34,7 +34,7 @@ namespace neat_dnfs
 	void InhibitionOfReturn::testPhenotype()
 	{
 		using namespace dnf_composer::element;
-		parameters.fitness = 0.0f;
+		parameters.fitness = 0.0;
 		static constexpr int iterations = SimulationConstants::maxSimulationSteps;
 		parameters.partialFitness.clear();
 

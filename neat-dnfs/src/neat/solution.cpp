@@ -281,7 +281,6 @@ namespace neat_dnfs
 
 		if (phenotype.getElements().empty())
 		{
-			//tools::logger::log(tools::logger::LogLevel::WARNING, "Phenotype is empty. Cannot translate to genome.");
 			return;
 		}
 
@@ -345,7 +344,6 @@ namespace neat_dnfs
 
 					for (const auto& outputInteraction : element->getOutputs())
 					{
-						//const auto targetElement = outputInteraction->;
 						if (outputInteraction->getLabel() == ElementLabel::GAUSS_KERNEL ||
 							outputInteraction->getLabel() == ElementLabel::MEXICAN_HAT_KERNEL ||
 							outputInteraction->getLabel() == ElementLabel::OSCILLATORY_KERNEL)
@@ -353,7 +351,6 @@ namespace neat_dnfs
 							if (outputInteraction->getInputs() ==  outputInteraction->getOutputs())
 							{
 								associatedKernel = std::dynamic_pointer_cast<Kernel>(outputInteraction);
-								//std::cout << "Kernel: " << associatedKernel->toString() << std::endl;
 								break;
 							}
 						}
@@ -361,7 +358,6 @@ namespace neat_dnfs
 
 					for (const auto& inputInteraction : element->getInputs())
 					{
-						//const auto sourceElement = inputInteraction->getSource();
 						if (inputInteraction->getLabel() == ElementLabel::NORMAL_NOISE)
 						{
 							associatedNoise = std::dynamic_pointer_cast<NormalNoise>(inputInteraction);
@@ -405,7 +401,6 @@ namespace neat_dnfs
 				// Find source and target of this connection
 				for (const auto& inputInteraction : element->getInputs())
 				{
-					//const auto sourceElement = inputInteraction->getSource();
 					if (inputInteraction->getLabel() == ElementLabel::NEURAL_FIELD)
 					{
 						sourceName = inputInteraction->getUniqueName();
@@ -414,7 +409,6 @@ namespace neat_dnfs
 
 				for (const auto& outputInteraction : element->getOutputs())
 				{
-					//const auto targetElement = outputInteraction->getTarget();
 					if (outputInteraction->getLabel() == ElementLabel::NEURAL_FIELD)
 					{
 						targetName = outputInteraction->getUniqueName();
@@ -439,7 +433,6 @@ namespace neat_dnfs
 
 					// Create a connection gene with an appropriate innovation number
 					// For reconstructing, we'll use a simple incremental approach
-					//static int innovationCounter = 1;
 
 					// Get the kernel parameters based on type
 					switch (element->getLabel())
@@ -461,8 +454,6 @@ namespace neat_dnfs
 					default:
 						break;
 					}
-
-					//Genome::setNextInnovationNumber(innovationCounter); !!
 				}
 			}
 		}
@@ -871,7 +862,7 @@ namespace neat_dnfs
 
 		} while (it < maxIterations);
 
-		return 0.0F;
+		return 0.0;
 	}
 
 	double Solution::iterationsUntilNoBump(const std::string& fieldName, const double targetIterations, const double maxIterations, const double tolerance)
@@ -896,7 +887,7 @@ namespace neat_dnfs
 
 		} while (it < maxIterations);
 
-		return 0.0F;
+		return 0.0;
 	}
 
 	double Solution::justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName, const std::vector<double>& positions, const double& amplitude, const double& width) const
@@ -1099,47 +1090,6 @@ namespace neat_dnfs
 		return fitness;
 	}
 
-	// double Solution::preShapedness(const std::string& fieldName) const
-	// {
-	// 	using namespace dnf_composer::element;
-	// 	const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-	//
-	// 	const double highestActivationValue = neuralField->getHighestActivation();
-	// 	const double restingLevel = neuralField->getParameters().startingRestingLevel;
-	//
-	// 	// target activation is between the resting level and 0.0 (supra-threshold)
-	// 	const double targetActivation = restingLevel / 2.0;
-	// 	const double width = std::abs(restingLevel / 1.05);
-	//
-	// 	return tools::utils::normalizeWithGaussian(highestActivationValue, targetActivation, width);
-	// }
-	//
-	// double Solution::preShapedness(const std::string& fieldName, const std::vector<double>& positions)
-	// {
-	// 	using namespace dnf_composer::element;
-	// 	const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-	// 	const double restingLevel = neuralField->getParameters().startingRestingLevel;
-	// 	// target activation is between the resting level and 0.0 (sub-threshold)
-	// 	const double targetActivation = restingLevel / 2.0;
-	// 	const double width = std::abs(restingLevel / 6.0);  // Makes both points 3 standard deviations away
-	//
-	// 	// If no positions specified, return 0.0
-	// 	if (positions.empty()) {
-	// 		return 0.0;
-	// 	}
-	//
-	// 	// Calculate the score for each position
-	// 	double totalScore = 0.0;
-	// 	for (const auto& position : positions) {
-	// 		const double activationAtPosition = neuralField->getComponent("activation")[position];
-	// 		double positionScore = tools::utils::normalizeWithGaussian(activationAtPosition, targetActivation, width);
-	// 		totalScore += positionScore;
-	// 	}
-	//
-	// 	// Return average score (will be 1.0 if all positions have perfect sub-threshold peaks)
-	// 	return totalScore / positions.size();
-	// }
-
 	double Solution::preShapednessAtPosition(const std::string& fieldName, double position) const
 	{
 		const auto nf = getNeuralFieldOrThrow(fieldName, "preShapednessAtPosition");
@@ -1184,48 +1134,13 @@ namespace neat_dnfs
 			return 0.0;
 		}
 
-		// static constexpr double epsilon = 0.015;
-		// // activation of field at position should be lower than the rest of the neighboring positions
-		// // I thought this was necessary because of mhk shapes, but apparently it can self-correct
-		// for(const auto& u: neuralField->getComponent("activation"))
-		// {
-		// 	if (u_pos >= u+ epsilon)
-		// 		return 0.0;
-		// }
-
 		const double u_baseline = neuralField->getHighestActivation();
 		// this should not be like this - I am hardcoding the position of the baseline activation
-		//const double u_baseline = std::abs(neuralField->getComponent("activation")[0]);
 		const double u_target = u_baseline + u_baseline / 2.0;
 		constexpr double width = 10.0;// std::abs(u_baseline / 8.0);
 
 		const double result = tools::utils::normalizeWithGaussian(u_pos, u_target, width);
 		return result;
-
-		// using namespace dnf_composer::element;
-		// const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-		//
-		// const int pos = static_cast<int>(position / neuralField->getElementCommonParameters().dimensionParameters.d_x);
-		// const double u_tar_pos = neuralField->getComponent("activation")[pos];
-		//
-		// // activation of field at position should be lower than the resting level
-		// if (u_tar_pos >= neuralField->getParameters().startingRestingLevel)
-		// 	return 0.0;
-		//
-		// static constexpr double epsilon = 0.015;
-		// // activation of field at position should be lower than the rest of the neighboring positions
-		// for (const auto& u_pos : neuralField->getComponent("activation"))
-		// {
-		// 	if (u_tar_pos >= u_pos + epsilon)
-		// 		return 0.0;
-		// }
-		//
-		// // this should not be like this - I am hardcoding the position of the baseline activation
-		// const double u_baseline = std::abs(neuralField->getComponent("activation")[0]);
-		// const double u_target = u_baseline + u_baseline / 2;
-		// const double width = u_baseline / 2;
-		//
-		// return tools::utils::normalizeWithGaussian(std::abs(u_tar_pos), u_target, width);
 	}
 
 

@@ -52,7 +52,6 @@ namespace neat_dnfs
 		parameters.partialFitness.emplace_back(f1_2);
 
 		removeGaussianStimuli();
-		//initSimulation();
 		addGaussianStimulus("nf 2",
 dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
 	GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
