@@ -122,14 +122,16 @@ TEST_CASE("DelayedMatchToSample contract", "[Solutions][DelayedMatchToSample]")
     checkSolutionContract<DelayedMatchToSample>(makeTopology(1, 1));
 }
 
-// KNOWN BUG (issue #47): DelayedMatchToSample::testPhenotype() hardcodes a
-// second stimulus position of 100.0 (src/solutions/delayed_match_to_sample.cpp:73)
-// against a field of DimensionConstants::xSize == 100. Position 100 is out of
-// the valid [0, size) range for a 100-element field, so evaluate() always
-// throws dnf_composer::Exception regardless of genome/topology. This is not a
-// test setup issue -- it reproduces unconditionally on an unmutated solution.
-// Update this test once #47 is fixed.
-TEST_CASE("DelayedMatchToSample evaluate throws due to an out-of-range stimulus position (known bug)", "[Solutions][DelayedMatchToSample]")
+// DelayedMatchToSample is tuned for a 360-wide field: testPhenotype() places the
+// second sample at position 100 (src/solutions/delayed_match_to_sample.cpp:73).
+// DimensionConstants::xSize was lowered 360 -> 100 in fe58ccbbf, when
+// InhibitionOfReturn (positions 20/80) was integrated, without retuning this task.
+// Position 100 is therefore outside the valid [0, size) range and evaluate()
+// throws unconditionally, on any genome or topology. The field size is a single
+// global constexpr, so only one task's geometry can be correct per build -- to
+// evaluate this task, set xSize back to 360 (see examples/solutions/evol_dmts.cpp).
+// This test encodes the default-build behaviour.
+TEST_CASE("DelayedMatchToSample evaluate throws at the default field size", "[Solutions][DelayedMatchToSample]")
 {
     resetGlobalState();
     DelayedMatchToSample solution(makeTopology(1, 1));

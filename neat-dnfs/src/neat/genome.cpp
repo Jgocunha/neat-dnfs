@@ -552,7 +552,6 @@ namespace neat_dnfs
 		const auto outGeneId = randEnabledConnectionGene->getParameters().connectionTuple.outFieldGeneId;
 		const auto kernel = randEnabledConnectionGene->getKernel();
 
-		//addHiddenGene(dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		addHiddenGene(getFieldGeneById(inGeneId));
 
 		// create two new connection genes

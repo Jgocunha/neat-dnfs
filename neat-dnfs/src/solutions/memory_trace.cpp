@@ -38,8 +38,8 @@ namespace neat_dnfs
 	    parameters.partialFitness.clear();
 		static constexpr int iterations = SimulationConstants::maxSimulationSteps;
 
-		static constexpr double posA = 20.0f;
-		static constexpr double posB = 80.0f;
+		static constexpr double posA = 20.0;
+		static constexpr double posB = 80.0;
 
 		// =========================
 		// Phase A: No encoding, no output bump
