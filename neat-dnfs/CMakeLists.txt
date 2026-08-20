@@ -221,6 +221,8 @@ foreach(SOLUTION_SRC
         evol_detection_instability
         evol_memory_instability
         evol_selection_instability
+        evol_dmts
+        evol_ior
         evol_and
         evol_xor)
     set(EXE_PROJECT_EXAMPLE neat-dnfs-${SOLUTION_SRC})
