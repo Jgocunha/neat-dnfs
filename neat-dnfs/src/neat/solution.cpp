@@ -124,11 +124,6 @@ namespace neat_dnfs
 		return parameters.fitness;
 	}
 
-	size_t Solution::getGenomeSize() const
-	{
-		return genome.getConnectionGenes().size();
-	}
-
 	void Solution::clearGenerationalInnovations()
 	{
 		Genome::clearGenerationalInnovations();

@@ -141,10 +141,10 @@ namespace neat_dnfs
 		static constexpr double addFieldGeneProbability			 = 0.0005;
 		static constexpr double addConnectionGeneProbability	 = 0.15;
 		// parametrical mutations
-		static constexpr double mutateFieldGenesProbability		 = 0.800;
+		static constexpr double mutateFieldGenesPerGenomeProbability = 0.800;
 		static constexpr double mutateConnectionGenesProbability = 0.800;
 		// per gene mutation probabilities
-		static constexpr double mutateFieldGeneProbability		 = 0.800;
+		static constexpr double mutateFieldGenePerGeneProbability = 0.800;
 		static constexpr double mutateConnectionGeneProbability  = 0.800;
 
 		static constexpr bool checkForDuplicateConnectionGenesInGenome = false;
@@ -183,8 +183,6 @@ namespace neat_dnfs
 
 	struct ConnectionGeneConstants
 	{
-		static constexpr bool allowInhibitoryConnections = true;
-
 		// connection gene kernel type probability (sum must be 1.0)
 		static constexpr double gaussKernelProbability			= 0.8;
 		static constexpr double mexicanHatKernelProbability		= 0.2;

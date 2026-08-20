@@ -33,10 +33,10 @@ static void checkSolutionContract(const SolutionTopology& topology)
 
     // Independence: mutating the clone must not affect the original's genome,
     // i.e. clone() does not share mutable state with the source solution.
-    const size_t originalSizeBeforeCloneMutation = solution.getGenomeSize();
+    const size_t originalSizeBeforeCloneMutation = solution.getNumConnectionGenes();
     for (int i = 0; i < 20; ++i)
         cloned->mutate();
-    REQUIRE(solution.getGenomeSize() == originalSizeBeforeCloneMutation);
+    REQUIRE(solution.getNumConnectionGenes() == originalSizeBeforeCloneMutation);
 
     solution.buildPhenotype();
     const auto copied = solution.copy();
@@ -45,20 +45,20 @@ static void checkSolutionContract(const SolutionTopology& topology)
     // translatePhenotypeToGenome() rather than copying it directly, so the
     // guarantee is topology + gene count, not byte-for-byte genome equality.
     REQUIRE(copied->hasTheSameTopology(std::make_shared<SolutionType>(solution)));
-    REQUIRE(copied->getGenomeSize() == solution.getGenomeSize());
+    REQUIRE(copied->getNumConnectionGenes() == solution.getNumConnectionGenes());
 
     // Independence: mutating the copy must not affect the original's genome.
-    const size_t originalSizeBeforeCopyMutation = solution.getGenomeSize();
+    const size_t originalSizeBeforeCopyMutation = solution.getNumConnectionGenes();
     for (int i = 0; i < 20; ++i)
         copied->mutate();
-    REQUIRE(solution.getGenomeSize() == originalSizeBeforeCopyMutation);
+    REQUIRE(solution.getNumConnectionGenes() == originalSizeBeforeCopyMutation);
 
-    size_t previousGenomeSize = solution.getGenomeSize();
+    size_t previousNumConnectionGenes = solution.getNumConnectionGenes();
     for (int i = 0; i < 100; ++i)
     {
         solution.mutate();
-        REQUIRE(solution.getGenomeSize() >= previousGenomeSize);
-        previousGenomeSize = solution.getGenomeSize();
+        REQUIRE(solution.getNumConnectionGenes() >= previousNumConnectionGenes);
+        previousNumConnectionGenes = solution.getNumConnectionGenes();
     }
 }
 

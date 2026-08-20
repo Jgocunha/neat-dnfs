@@ -112,8 +112,11 @@ namespace neat_dnfs
 		[[nodiscard]] std::string getName() const { return name; }
 		[[nodiscard]] std::string getAddress() const;
 		[[nodiscard]] double getFitness() const;
-		[[nodiscard]] size_t getGenomeSize() const;
 		[[nodiscard]] size_t getNumFieldGenes() const { return genome.getFieldGenes().size(); }
+		/// @brief Number of connection genes in this solution's genome. Also used
+		/// as the normalization factor N in the NEAT compatibility distance formula
+		/// (see Species::isCompatible) -- using connection-gene count as N is a
+		/// standard NEAT choice, not an approximation of total genome size.
 		[[nodiscard]] size_t getNumConnectionGenes() const { return genome.getConnectionGenes().size(); }
 		[[nodiscard]] std::vector<int> getInnovationNumbers() const;
 		[[nodiscard]] int getId() const { return id; }
