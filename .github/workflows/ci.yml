@@ -209,6 +209,28 @@ jobs:
         run: ctest --output-on-failure --parallel $(sysctl -n hw.logicalcpu)
 
 
+  # ── Analysis tools ────────────────────────────────────────────────────────
+  analysis-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install analysis dependencies
+        working-directory: ./neat-dnfs/analysis
+        run: pip install -r requirements.txt
+
+      - name: Run analysis tests
+        working-directory: ./neat-dnfs/analysis
+        run: python -m pytest
+
+
   # ── Coverage ───────────────────────────────────────────────────────────────
   coverage:
     runs-on: ubuntu-latest

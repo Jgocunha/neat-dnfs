@@ -191,11 +191,16 @@ All data are stored in the `data/` directory.
 
 ### Analysis Tools (`analysis/`)
 
-* **Per-generation fitness and diversity**
-* **Genome and mutation statistics**
-* **Architectural complexity tracking**
+A Streamlit dashboard with six pages, split into two scopes:
 
-Run the `launch-visualizer.bat` to open a Streamlit app, and then select the experiment directory.
+* **Single run** -- Fitness, Species, Topology, Mutations
+* **Across runs** -- Experiment (aggregates every run in one experiment), Compare (several experiments side by side)
+
+Install dependencies once with `pip install -r analysis/requirements.txt`, then run
+`launch-visualizer.bat` (Windows) or `launch-visualizer.sh` (macOS/Linux) to open the app, and
+select the data root and experiment/run from the sidebar. Each run keeps a persisted cache in
+`<run>/.viz_cache/`, safe to delete at any time -- it is rebuilt automatically the next time that
+run is opened.
 
 ---
 
