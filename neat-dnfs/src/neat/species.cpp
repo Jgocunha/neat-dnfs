@@ -144,7 +144,6 @@ namespace neat_dnfs
 	{
 		if (representative == nullptr)
 		{
-			//throw std::runtime_error(std::format("Species {} has no representative.", id));
 			return false;
 		}
 
@@ -156,8 +155,8 @@ namespace neat_dnfs
 			N = 1; // Normalize for small genomes
 		}
 
-		const auto representativeGenome = representative->getGenome();
-		const auto solutionGenome = solution->getGenome();
+		const auto& representativeGenome = representative->getGenome();
+		const auto& solutionGenome = solution->getGenome();
 
 		const double excessCoefficient = CompatibilityCoefficients::excessGenesCompatibilityWeight
 			* representativeGenome.excessGenes(solutionGenome);
@@ -228,8 +227,6 @@ namespace neat_dnfs
 			{
 				const SolutionPtr parent1 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
 				const SolutionPtr son = parent1->crossover(parent1);
-				//if (son->getId() == parent1->getId())
-					//std::cout << "When crossing over with clone parents id's are the same " << parent1->getId() << std::endl;
 				offspring.emplace_back(son);
 			}
 		}

@@ -1,6 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 
+#include <type_traits>
+
 #include "neat/species.h"
 #include "neat/solution.h"
 #include "solutions/detection_instability.h"
@@ -9,6 +11,15 @@
 
 using namespace neat_dnfs;
 using namespace neat_dnfs::test;
+
+TEST_CASE("Species is movable", "[Species]")
+{
+    // Locks in move semantics: a user-declared no-op destructor would suppress
+    // the implicit move ctor/assign and silently downgrade Species to copy-only.
+    static_assert(std::is_move_constructible_v<Species>);
+    static_assert(std::is_move_assignable_v<Species>);
+    SUCCEED();
+}
 
 TEST_CASE("Species::addSolution", "[Species]")
 {

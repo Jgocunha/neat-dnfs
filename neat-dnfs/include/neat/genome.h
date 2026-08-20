@@ -27,9 +27,9 @@ namespace neat_dnfs
 		Genome() = default;
 		~Genome() = default;
 		Genome(const Genome& other) = default;
-		Genome(Genome&& other) = default;
+		Genome(Genome&& other) noexcept = default;
 		Genome& operator=(const Genome& other) = default;
-		Genome& operator=(Genome&& other) = default;
+		Genome& operator=(Genome&& other) noexcept = default;
 
 		void addInputGene(const dnf_composer::element::ElementDimensions& dimensions);
 		void addOutputGene(const dnf_composer::element::ElementDimensions& dimensions);
@@ -44,8 +44,10 @@ namespace neat_dnfs
 		void clearLastMutations();
 		void removeConnectionGene(int innov);
 
-		[[nodiscard]] std::vector<FieldGene> getFieldGenes() const;
-		[[nodiscard]] std::vector<ConnectionGene> getConnectionGenes() const;
+		/// @return A const reference to this genome's field genes.
+		[[nodiscard]] const std::vector<FieldGene>& getFieldGenes() const;
+		/// @return A const reference to this genome's connection genes.
+		[[nodiscard]] const std::vector<ConnectionGene>& getConnectionGenes() const;
 		[[nodiscard]] std::vector<int> getInnovationNumbers() const;
 		static int getGlobalInnovationNumber();
 		[[nodiscard]] std::string getMutationsInLastGeneration() const;

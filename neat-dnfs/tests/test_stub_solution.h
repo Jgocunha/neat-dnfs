@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include "neat/solution.h"
+#include "test_helpers.h"
 
 namespace neat_dnfs::test {
 
@@ -405,6 +406,14 @@ private:
 // the fitness call are captured in the public `observedBumps` member so the
 // test can derive the expected fitness independently -- evaluate() clears the
 // phenotype on return, so the live NeuralField can't be queried afterwards.
+//
+// Its genes are seeded explicitly with makeFixedFieldGene() rather than left to
+// Solution::initialize(), which would randomize tau, restingLevel, the kernel
+// type and the kernel's parameters -- and roughly 2% of those draws produce a
+// field that never forms a bump, which is what made this fixture's test flaky
+// in CI. Solution::initialize() no-ops on a non-empty genome, so seeding here
+// bypasses createInputGenes()/createOutputGenes() entirely and callers can
+// still call initialize() as usual.
 class SingleBumpTwoBumpsSolution final : public Solution
 {
 public:
@@ -412,12 +421,14 @@ public:
         : Solution(topology)
     {
         name = "SingleBumpTwoBumps";
+        seedFixedGenes();
     }
 
     SingleBumpTwoBumpsSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
         : Solution(initialTopology, phenotype)
     {
         name = "SingleBumpTwoBumps";
+        seedFixedGenes();
     }
 
     SolutionPtr clone() const override
@@ -439,11 +450,37 @@ public:
     static constexpr double targetWidth = 3.0;
 
 private:
+    // Seeds one INPUT ("nf 1") and one OUTPUT ("nf 2") gene with fixed field and
+    // kernel parameters, so the field this fixture drives is identical on every
+    // construction. Guarded on isEmpty() because the phenotype-taking
+    // constructor is used by copy(), where the genome may already be populated.
+    void seedFixedGenes()
+    {
+        if (!genome.isEmpty())
+        {
+            return;
+        }
+        addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+        addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    }
+
     void testPhenotype() override
     {
         using namespace dnf_composer::element;
 
         initSimulation();
+        // The field's own parameters are pinned (see seedFixedGenes), so this
+        // stimulus drives a bump that forms well clear of the detection
+        // threshold. That margin is what makes the fixture reliable: the
+        // simulation stays stochastic -- every field carries a NormalNoise
+        // whose RNG lives in dnf_composer with no seed hook -- and bump
+        // detection is a threshold, so a marginal bump would still flip on
+        // noise alone even with the field pinned.
+        //
+        // These values were briefly raised to GaussStimulusConstants (20.0) to
+        // paper over the random-field flake; with the field pinned they are
+        // back to their original 5.0/15.0 and measure 2000/2000, so the margin
+        // now comes from the fixed kernel rather than from an inflated stimulus.
         addGaussianStimulus("nf 1",
             GaussStimulusParameters{ 5.0, 15.0, targetPosition, true, false },
             ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
@@ -455,6 +492,498 @@ private:
         parameters.fitness = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1",
             targetPosition, targetAmplitude, targetWidth,
             targetPosition, targetAmplitude, targetWidth);
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
+// Same idea as EmptyFieldTwoBumpsSolution, but for oneBumpAtPositionWithAmplitudeAndWidth:
+// a field that never receives a stimulus forms zero bumps, so the fitness must be
+// the same zero baseline the multi-bump helpers already guard for (issue #68).
+class EmptyFieldOneBumpSolution final : public Solution
+{
+public:
+    explicit EmptyFieldOneBumpSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "EmptyFieldOneBump";
+    }
+
+    EmptyFieldOneBumpSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "EmptyFieldOneBump";
+    }
+
+    SolutionPtr clone() const override
+    {
+        EmptyFieldOneBumpSolution solution(initialTopology);
+        return std::make_shared<EmptyFieldOneBumpSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        EmptyFieldOneBumpSolution solution(initialTopology, phenotype);
+        return std::make_shared<EmptyFieldOneBumpSolution>(solution);
+    }
+
+private:
+    void testPhenotype() override
+    {
+        initSimulation();
+        parameters.fitness = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 10.0, 10.0);
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
+// Same guard as MissingFieldTwoBumpsSolution, checked directly against
+// oneBumpAtPositionWithAmplitudeAndWidth -- the single-bump fitness primitive
+// named first in issue #68's location list.
+class MissingFieldOneBumpSolution final : public Solution
+{
+public:
+    explicit MissingFieldOneBumpSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "MissingFieldOneBump";
+    }
+
+    MissingFieldOneBumpSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "MissingFieldOneBump";
+    }
+
+    SolutionPtr clone() const override
+    {
+        MissingFieldOneBumpSolution solution(initialTopology);
+        return std::make_shared<MissingFieldOneBumpSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        MissingFieldOneBumpSolution solution(initialTopology, phenotype);
+        return std::make_shared<MissingFieldOneBumpSolution>(solution);
+    }
+
+private:
+    void testPhenotype() override
+    {
+        initSimulation();
+        parameters.fitness = oneBumpAtPositionWithAmplitudeAndWidth("this field does not exist", 50.0, 10.0, 10.0);
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
+// Stand-in whose testPhenotype() drives a single field with one Gaussian
+// stimulus so exactly one real bump forms, then queries
+// oneBumpAtPositionWithAmplitudeAndWidth with position/amplitude/width equal
+// to that bump's own observed values. With the bump count exactly matching
+// the target (1) and all three distance terms exactly zero, every weighted
+// term is credited in full -- this is the theoretical maximum fitness (1.0),
+// so it directly exercises the "exact match scores near the theoretical max"
+// case from issue #68 without depending on how closely a Gaussian stimulus's
+// parameters translate into the field's actual bump shape. The bumps observed
+// just before the fitness call are captured in `observedBumps` so the test
+// can derive the target independently -- evaluate() clears the phenotype on
+// return, so the live NeuralField can't be queried afterwards.
+//
+// Its genes are seeded explicitly with makeFixedFieldGene() rather than left to
+// Solution::initialize(), which would randomize tau, restingLevel, the kernel
+// type and the kernel's parameters -- and roughly 2% of those draws produce a
+// field that never forms a bump (see SingleBumpTwoBumpsSolution), which would
+// make `observedBumps.front()` below undefined behaviour on an empty vector.
+class SingleBumpOneBumpSolution final : public Solution
+{
+public:
+    explicit SingleBumpOneBumpSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "SingleBumpOneBump";
+        seedFixedGenes();
+    }
+
+    SingleBumpOneBumpSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "SingleBumpOneBump";
+        seedFixedGenes();
+    }
+
+    SolutionPtr clone() const override
+    {
+        SingleBumpOneBumpSolution solution(initialTopology);
+        return std::make_shared<SingleBumpOneBumpSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        SingleBumpOneBumpSolution solution(initialTopology, phenotype);
+        return std::make_shared<SingleBumpOneBumpSolution>(solution);
+    }
+
+    std::vector<dnf_composer::element::NeuralFieldBump> observedBumps;
+
+private:
+    // Seeds one INPUT ("nf 1") and one OUTPUT ("nf 2") gene with fixed field and
+    // kernel parameters, so the field this fixture drives is identical on every
+    // construction. Guarded on isEmpty() because the phenotype-taking
+    // constructor is used by copy(), where the genome may already be populated.
+    void seedFixedGenes()
+    {
+        if (!genome.isEmpty())
+        {
+            return;
+        }
+        addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+        addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    }
+
+    void testPhenotype() override
+    {
+        using namespace dnf_composer::element;
+
+        initSimulation();
+        addGaussianStimulus("nf 1",
+            GaussStimulusParameters{ 5.0, 15.0, 50.0, true, false },
+            ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+        runSimulation(SimulationConstants::maxSimulationSteps);
+
+        const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement("nf 1"));
+        observedBumps = neuralField->getBumps();
+
+        const auto& bump = observedBumps.front();
+        parameters.fitness = oneBumpAtPositionWithAmplitudeAndWidth("nf 1",
+            bump.centroid, bump.amplitude, bump.width);
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
+// Same guard as MissingFieldTwoBumpsSolution, checked directly against
+// threeBumpsAtPositionWithAmplitudeAndWidth.
+class MissingFieldThreeBumpsSolution final : public Solution
+{
+public:
+    explicit MissingFieldThreeBumpsSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "MissingFieldThreeBumps";
+    }
+
+    MissingFieldThreeBumpsSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "MissingFieldThreeBumps";
+    }
+
+    SolutionPtr clone() const override
+    {
+        MissingFieldThreeBumpsSolution solution(initialTopology);
+        return std::make_shared<MissingFieldThreeBumpsSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        MissingFieldThreeBumpsSolution solution(initialTopology, phenotype);
+        return std::make_shared<MissingFieldThreeBumpsSolution>(solution);
+    }
+
+private:
+    void testPhenotype() override
+    {
+        initSimulation();
+        parameters.fitness = threeBumpsAtPositionWithAmplitudeAndWidth(
+            "this field does not exist",
+            20.0, 10.0, 10.0, 50.0, 10.0, 10.0, 80.0, 10.0, 10.0);
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
+// Same idea as SingleBumpTwoBumpsSolution, but for the three-bump helper: one
+// real bump is queried against three target slots that all point at that same
+// bump, proving matchClosestBump's injective consumption (issue #53) also
+// prevents a single bump from being triple-counted, not just double-counted.
+// Targets equal the bump's own observed values so every matched distance term
+// is exactly zero, making the expected fitness computable independently of
+// simulation jitter.
+//
+// Its genes are seeded explicitly with makeFixedFieldGene() for the same reason
+// as SingleBumpOneBumpSolution above: an unseeded genome draws random field/
+// kernel parameters and roughly 2% of those draws never form a bump, which
+// would make `observedBumps.front()` below undefined behaviour.
+class SingleBumpThreeBumpsSolution final : public Solution
+{
+public:
+    explicit SingleBumpThreeBumpsSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "SingleBumpThreeBumps";
+        seedFixedGenes();
+    }
+
+    SingleBumpThreeBumpsSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "SingleBumpThreeBumps";
+        seedFixedGenes();
+    }
+
+    SolutionPtr clone() const override
+    {
+        SingleBumpThreeBumpsSolution solution(initialTopology);
+        return std::make_shared<SingleBumpThreeBumpsSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        SingleBumpThreeBumpsSolution solution(initialTopology, phenotype);
+        return std::make_shared<SingleBumpThreeBumpsSolution>(solution);
+    }
+
+    std::vector<dnf_composer::element::NeuralFieldBump> observedBumps;
+
+private:
+    // Seeds one INPUT ("nf 1") and one OUTPUT ("nf 2") gene with fixed field and
+    // kernel parameters, so the field this fixture drives is identical on every
+    // construction. Guarded on isEmpty() because the phenotype-taking
+    // constructor is used by copy(), where the genome may already be populated.
+    void seedFixedGenes()
+    {
+        if (!genome.isEmpty())
+        {
+            return;
+        }
+        addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+        addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    }
+
+    void testPhenotype() override
+    {
+        using namespace dnf_composer::element;
+
+        initSimulation();
+        addGaussianStimulus("nf 1",
+            GaussStimulusParameters{ 5.0, 15.0, 50.0, true, false },
+            ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+        runSimulation(SimulationConstants::maxSimulationSteps);
+
+        const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement("nf 1"));
+        observedBumps = neuralField->getBumps();
+
+        const auto& bump = observedBumps.front();
+        parameters.fitness = threeBumpsAtPositionWithAmplitudeAndWidth("nf 1",
+            bump.centroid, bump.amplitude, bump.width,
+            bump.centroid, bump.amplitude, bump.width,
+            bump.centroid, bump.amplitude, bump.width);
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
+// Same guard as MissingFieldSolution, checked directly against
+// preShapednessAtPosition rather than closenessToRestingLevel.
+class MissingFieldPreShapednessSolution final : public Solution
+{
+public:
+    explicit MissingFieldPreShapednessSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "MissingFieldPreShapedness";
+    }
+
+    MissingFieldPreShapednessSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "MissingFieldPreShapedness";
+    }
+
+    SolutionPtr clone() const override
+    {
+        MissingFieldPreShapednessSolution solution(initialTopology);
+        return std::make_shared<MissingFieldPreShapednessSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        MissingFieldPreShapednessSolution solution(initialTopology, phenotype);
+        return std::make_shared<MissingFieldPreShapednessSolution>(solution);
+    }
+
+private:
+    void testPhenotype() override
+    {
+        initSimulation();
+        parameters.fitness = preShapednessAtPosition("this field does not exist", 50.0);
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
+// Stand-in that queries preShapednessAtPosition against a field that never
+// receives a stimulus, so activation everywhere sits exactly at the field's
+// startingRestingLevel. preShapednessAtPosition requires activation strictly
+// above resting level (u <= h + epsilon returns 0.0), so a field at rest must
+// score exactly 0.0 -- the preShapedness analogue of the zero-bump case the
+// multi-bump helpers are already guarded for.
+class RestingLevelPreShapednessSolution final : public Solution
+{
+public:
+    explicit RestingLevelPreShapednessSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "RestingLevelPreShapedness";
+    }
+
+    RestingLevelPreShapednessSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "RestingLevelPreShapedness";
+    }
+
+    SolutionPtr clone() const override
+    {
+        RestingLevelPreShapednessSolution solution(initialTopology);
+        return std::make_shared<RestingLevelPreShapednessSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        RestingLevelPreShapednessSolution solution(initialTopology, phenotype);
+        return std::make_shared<RestingLevelPreShapednessSolution>(solution);
+    }
+
+private:
+    void testPhenotype() override
+    {
+        initSimulation();
+        parameters.fitness = preShapednessAtPosition("nf 1", 50.0);
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
+// Same guard as MissingFieldSolution, checked directly against
+// negativePreShapednessAtPosition.
+class MissingFieldNegativePreShapednessSolution final : public Solution
+{
+public:
+    explicit MissingFieldNegativePreShapednessSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "MissingFieldNegativePreShapedness";
+    }
+
+    MissingFieldNegativePreShapednessSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "MissingFieldNegativePreShapedness";
+    }
+
+    SolutionPtr clone() const override
+    {
+        MissingFieldNegativePreShapednessSolution solution(initialTopology);
+        return std::make_shared<MissingFieldNegativePreShapednessSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        MissingFieldNegativePreShapednessSolution solution(initialTopology, phenotype);
+        return std::make_shared<MissingFieldNegativePreShapednessSolution>(solution);
+    }
+
+private:
+    void testPhenotype() override
+    {
+        initSimulation();
+        parameters.fitness = negativePreShapednessAtPosition("this field does not exist", 50.0);
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
+// Analogue of RestingLevelPreShapednessSolution for negativePreShapednessAtPosition:
+// with no stimulus, activation at the queried position sits exactly at
+// startingRestingLevel, which fails the "activation must be lower than resting
+// level minus epsilon" guard (u_pos >= restingLevel - epsilon returns 0.0), so
+// the score must be exactly 0.0.
+class RestingLevelNegativePreShapednessSolution final : public Solution
+{
+public:
+    explicit RestingLevelNegativePreShapednessSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "RestingLevelNegativePreShapedness";
+    }
+
+    RestingLevelNegativePreShapednessSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "RestingLevelNegativePreShapedness";
+    }
+
+    SolutionPtr clone() const override
+    {
+        RestingLevelNegativePreShapednessSolution solution(initialTopology);
+        return std::make_shared<RestingLevelNegativePreShapednessSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        RestingLevelNegativePreShapednessSolution solution(initialTopology, phenotype);
+        return std::make_shared<RestingLevelNegativePreShapednessSolution>(solution);
+    }
+
+private:
+    void testPhenotype() override
+    {
+        initSimulation();
+        parameters.fitness = negativePreShapednessAtPosition("nf 1", 50.0);
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
+// Same boundary case as BoundaryPositionPreShapednessSolution, but for
+// negativePreShapednessAtPosition -- it too resolves position to an index via
+// the shared clampedIndexForPosition helper (issue #56), so the upper spatial
+// bound (DimensionConstants::xSize) must not read past the end of the
+// activation component either.
+class BoundaryPositionNegativePreShapednessSolution final : public Solution
+{
+public:
+    explicit BoundaryPositionNegativePreShapednessSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "BoundaryPositionNegativePreShapedness";
+    }
+
+    BoundaryPositionNegativePreShapednessSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "BoundaryPositionNegativePreShapedness";
+    }
+
+    SolutionPtr clone() const override
+    {
+        BoundaryPositionNegativePreShapednessSolution solution(initialTopology);
+        return std::make_shared<BoundaryPositionNegativePreShapednessSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        BoundaryPositionNegativePreShapednessSolution solution(initialTopology, phenotype);
+        return std::make_shared<BoundaryPositionNegativePreShapednessSolution>(solution);
+    }
+
+private:
+    void testPhenotype() override
+    {
+        initSimulation();
+        parameters.fitness = negativePreShapednessAtPosition("nf 1", static_cast<double>(DimensionConstants::xSize));
     }
 
     void createPhenotypeEnvironment() override {}

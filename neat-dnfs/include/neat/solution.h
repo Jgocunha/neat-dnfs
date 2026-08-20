@@ -102,22 +102,24 @@ namespace neat_dnfs
 		void mutate();
 		void setSpeciesId(int speciesId);
 		void setParents(int parent1, int parent2);
-		int getSpeciesId() const { return parameters.speciesId; }
-		std::tuple<int, int> getParents() const { return parents; }
-		dnf_composer::Simulation getPhenotype() const;
-		Genome getGenome() const;
-		SolutionParameters getParameters() const;
-		std::string getName() const { return name; }
-		std::string getAddress() const;
-		double getFitness() const;
-		size_t getNumFieldGenes() const { return genome.getFieldGenes().size(); }
+		[[nodiscard]] int getSpeciesId() const { return parameters.speciesId; }
+		[[nodiscard]] std::tuple<int, int> getParents() const { return parents; }
+		/// @return A const reference to this solution's phenotype simulation.
+		[[nodiscard]] const dnf_composer::Simulation& getPhenotype() const;
+		/// @return A const reference to this solution's genome.
+		[[nodiscard]] const Genome& getGenome() const;
+		[[nodiscard]] SolutionParameters getParameters() const;
+		[[nodiscard]] std::string getName() const { return name; }
+		[[nodiscard]] std::string getAddress() const;
+		[[nodiscard]] double getFitness() const;
+		[[nodiscard]] size_t getNumFieldGenes() const { return genome.getFieldGenes().size(); }
 		/// @brief Number of connection genes in this solution's genome. Also used
 		/// as the normalization factor N in the NEAT compatibility distance formula
 		/// (see Species::isCompatible) -- using connection-gene count as N is a
 		/// standard NEAT choice, not an approximation of total genome size.
-		size_t getNumConnectionGenes() const { return genome.getConnectionGenes().size(); }
-		std::vector<int> getInnovationNumbers() const;
-		int getId() const { return id; }
+		[[nodiscard]] size_t getNumConnectionGenes() const { return genome.getConnectionGenes().size(); }
+		[[nodiscard]] std::vector<int> getInnovationNumbers() const;
+		[[nodiscard]] int getId() const { return id; }
 		static void clearGenerationalInnovations();
 		void incrementAge();
 		void setAdjustedFitness(double adjustedFitness);
@@ -125,12 +127,12 @@ namespace neat_dnfs
 		void clearPhenotype();
 		void addFieldGene(const FieldGene& gene);
 		void addConnectionGene(const ConnectionGene& gene);
-		bool containsConnectionGene(const ConnectionGene& gene) const;
-		bool containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const;
-		bool hasTheSameTopology(const SolutionPtr& other) const;
-		bool hasTheSameParameters(const SolutionPtr& other) const;
-		bool hasTheSameGenome(const SolutionPtr& other) const;
-		std::string toString() const;
+		[[nodiscard]] bool containsConnectionGene(const ConnectionGene& gene) const;
+		[[nodiscard]] bool containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const;
+		[[nodiscard]] bool hasTheSameTopology(const SolutionPtr& other) const;
+		[[nodiscard]] bool hasTheSameParameters(const SolutionPtr& other) const;
+		[[nodiscard]] bool hasTheSameGenome(const SolutionPtr& other) const;
+		[[nodiscard]] std::string toString() const;
 		void print() const;
 		virtual void createPhenotypeEnvironment() = 0;
 		static void resetUniqueIdentifier();
@@ -212,9 +214,6 @@ namespace neat_dnfs
 									const double& position1, const double& amplitude1, const double& width1,
 									const double& position2, const double& amplitude2, const double& width2,
 									const double& position3, const double& amplitude3, const double& width3) const;
-		// not validated
-		//double preShapedness(const std::string& fieldName) const;
-		//double preShapedness(const std::string& fieldName, const std::vector<double>& positions);
 		double preShapednessAtPosition(const std::string& fieldName, double position ) const;
 		double negativePreShapednessAtPosition(const std::string& fieldName, const double& position) const;
 		double justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName,

@@ -34,7 +34,7 @@ namespace neat_dnfs
 	void DelayedMatchToSample::testPhenotype()
 	{
 		using namespace dnf_composer::element;
-		parameters.fitness = 0.0f;
+		parameters.fitness = 0.0;
 		static constexpr int iterations = SimulationConstants::maxSimulationSteps;
 		parameters.partialFitness.clear();
 
@@ -80,12 +80,12 @@ namespace neat_dnfs
 		parameters.partialFitness.emplace_back(f5);
 		parameters.partialFitness.emplace_back(f6);
 
-		static constexpr double wf1 = 0.1f;//1 / 6.f;
-		static constexpr double wf2 = 0.15f;//1 / 6.f;
-		static constexpr double wf3 = 0.1f;//1 / 6.f;
-		static constexpr double wf4 = 0.4f;//1 / 6.f;
-		static constexpr double wf5 = 0.1f;//1 / 6.f;
-		static constexpr double wf6 = 0.15f;//1 / 6.f;
+		static constexpr double wf1 = 0.1f;
+		static constexpr double wf2 = 0.15f;
+		static constexpr double wf3 = 0.1f;
+		static constexpr double wf4 = 0.4f;
+		static constexpr double wf5 = 0.1f;
+		static constexpr double wf6 = 0.15f;
 
 		parameters.fitness = wf1 * f1 + wf2 * f2 + wf3 * f3 + wf4 * f4 + wf5 * f5 + wf6 * f6;
 	}
@@ -97,7 +97,7 @@ namespace neat_dnfs
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 				dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 1",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, 0.0, 100.0,
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, 0.0, 100,
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 				dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 	}

@@ -2,6 +2,7 @@
 #include <catch2/catch_approx.hpp>
 
 #include <cmath>
+#include <type_traits>
 
 #include "neat/solution.h"
 #include "solutions/detection_instability.h"
@@ -11,6 +12,16 @@
 using namespace neat_dnfs;
 using namespace neat_dnfs::test;
 using namespace dnf_composer::element;
+
+TEST_CASE("Solution::getGenome and getPhenotype return references, not copies", "[Solution]")
+{
+    // Locks in that these hot-path accessors bind to the existing genome/phenotype
+    // members instead of deep-copying a Genome (and its gene vectors) or a whole
+    // dnf_composer::Simulation on every call in the O(n^2) evolutionary loop.
+    static_assert(std::is_reference_v<decltype(std::declval<const Solution&>().getGenome())>);
+    static_assert(std::is_reference_v<decltype(std::declval<const Solution&>().getPhenotype())>);
+    SUCCEED();
+}
 
 TEST_CASE("Solution Initialization", "[Solution]")
 {
@@ -305,11 +316,11 @@ TEST_CASE("Solution twoBumpsAtPositionWithAmplitudeAndWidth does not credit the 
     solution.initialize();
 
     REQUIRE_NOTHROW(solution.evaluate());
-    // A single, sufficiently strong, well-localized stimulus reliably forms
-    // exactly one bump -- this is the same "one stimulus -> one bump" premise
-    // oneBumpAtPositionWithAmplitudeAndWidth's production callers rely on
-    // (e.g. DetectionInstability). If this ever legitimately varies, the
-    // stimulus parameters below need revisiting, not this assertion.
+    // SingleBumpTwoBumpsSolution pins its field and kernel parameters
+    // explicitly (see makeFixedFieldGene), so a single stimulus forms exactly
+    // one bump on every construction rather than ~98% of them. If this ever
+    // fails again it means the fixed regime stopped producing a stable bump --
+    // fix that there, rather than weakening this assertion.
     REQUIRE(solution.observedBumps.size() == 1);
 
     // Same weights as Solution::twoBumpsAtPositionWithAmplitudeAndWidth.
@@ -335,6 +346,162 @@ TEST_CASE("Solution twoBumpsAtPositionWithAmplitudeAndWidth does not credit the 
 
     REQUIRE(solution.getFitness() == Catch::Approx(expectedFitness).margin(1e-9));
     REQUIRE(solution.getFitness() < doubleCountedFitness - 1e-9);
+}
+
+// Issue #68: oneBumpAtPositionWithAmplitudeAndWidth's own zero-bump case had
+// never been directly asserted -- only twoBumps/threeBumps had. A field that
+// never receives a stimulus must score 0.0, same as the multi-bump helpers.
+TEST_CASE("Solution oneBumpAtPositionWithAmplitudeAndWidth yields no bump credit for an empty field", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    EmptyFieldOneBumpSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    REQUIRE(solution.getFitness() == 0.0);
+}
+
+// Issue #68: the missing-field-name guard, checked directly against
+// oneBumpAtPositionWithAmplitudeAndWidth rather than only closenessToRestingLevel
+// or twoBumpsAtPositionWithAmplitudeAndWidth.
+TEST_CASE("Solution oneBumpAtPositionWithAmplitudeAndWidth throws on a field name that doesn't exist", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    MissingFieldOneBumpSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
+    REQUIRE(solution.getPhenotype().getNumberOfElements() == 0);
+}
+
+// Issue #68: exact match should score at (or extremely near) the theoretical
+// maximum. SingleBumpOneBumpSolution queries oneBumpAtPositionWithAmplitudeAndWidth
+// with the exact position/amplitude/width of the one real bump that formed, so
+// bump count matches (1 == 1) and every distance term is exactly zero -- every
+// weighted component (0.45 + 0.45 + 0.05 + 0.05) is credited in full.
+TEST_CASE("Solution oneBumpAtPositionWithAmplitudeAndWidth scores the theoretical maximum on an exact match", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    SingleBumpOneBumpSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    REQUIRE(solution.observedBumps.size() == 1);
+    REQUIRE(solution.getFitness() == Catch::Approx(1.0).margin(1e-9));
+}
+
+// Issue #68: the missing-field-name guard, checked directly against
+// threeBumpsAtPositionWithAmplitudeAndWidth.
+TEST_CASE("Solution threeBumpsAtPositionWithAmplitudeAndWidth throws on a field name that doesn't exist", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    MissingFieldThreeBumpsSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
+    REQUIRE(solution.getPhenotype().getNumberOfElements() == 0);
+}
+
+// Issue #68 / #53: the injective-matching fix must also prevent a single real
+// bump from being triple-counted against three identical target slots, not
+// just double-counted against two. Targets equal the bump's own observed
+// values, so only the first matched slot contributes a nonzero distance term;
+// the second and third find an empty candidate pool (matchClosestBump returns
+// std::nullopt) and contribute nothing.
+TEST_CASE("Solution threeBumpsAtPositionWithAmplitudeAndWidth does not credit the same bump for all three target positions", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    SingleBumpThreeBumpsSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    REQUIRE(solution.observedBumps.size() == 1);
+
+    // Same weights as Solution::threeBumpsAtPositionWithAmplitudeAndWidth.
+    static constexpr int targetNumberOfBumps = 3;
+    static constexpr double weightBumps = 0.40;
+    static constexpr double weightPos   = 0.20 / targetNumberOfBumps;
+    static constexpr double weightAmp   = 0.20 / targetNumberOfBumps;
+    static constexpr double weightWidth = 0.20 / targetNumberOfBumps;
+
+    const double bumpsTerm = weightBumps / (1.0 + std::abs(targetNumberOfBumps - 1));
+    // Target equals the observed bump exactly, so every distance term is zero.
+    const double matchedBumpTerm = weightPos + weightAmp + weightWidth;
+
+    const double tripleCountedFitness = bumpsTerm + 3.0 * matchedBumpTerm;
+    const double expectedFitness = bumpsTerm + matchedBumpTerm;
+
+    REQUIRE(solution.getFitness() == Catch::Approx(expectedFitness).margin(1e-9));
+    REQUIRE(solution.getFitness() < tripleCountedFitness - 1e-9);
+}
+
+// Issue #68: the missing-field-name guard, checked directly against
+// preShapednessAtPosition.
+TEST_CASE("Solution preShapednessAtPosition throws on a field name that doesn't exist", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    MissingFieldPreShapednessSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
+    REQUIRE(solution.getPhenotype().getNumberOfElements() == 0);
+}
+
+// Issue #68: preShapednessAtPosition's zero-bump analogue -- a field that
+// never receives a stimulus sits exactly at its startingRestingLevel, which
+// fails the "must be higher than the resting level" guard, so the score must
+// be exactly 0.0, not merely finite/bounded.
+TEST_CASE("Solution preShapednessAtPosition scores zero for a field at its resting level", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    RestingLevelPreShapednessSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    REQUIRE(solution.getFitness() == 0.0);
+}
+
+// Issue #68: the missing-field-name guard, checked directly against
+// negativePreShapednessAtPosition -- the last of the five fitness primitives
+// issue #68 names that previously had no dedicated test at all.
+TEST_CASE("Solution negativePreShapednessAtPosition throws on a field name that doesn't exist", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    MissingFieldNegativePreShapednessSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
+    REQUIRE(solution.getPhenotype().getNumberOfElements() == 0);
+}
+
+// Issue #68: negativePreShapednessAtPosition's zero-bump analogue -- at rest,
+// activation equals startingRestingLevel exactly, which fails the "must be
+// lower than resting level minus epsilon" guard, so the score must be exactly
+// 0.0.
+TEST_CASE("Solution negativePreShapednessAtPosition scores zero for a field at its resting level", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    RestingLevelNegativePreShapednessSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    REQUIRE(solution.getFitness() == 0.0);
+}
+
+// Issue #68 / #56: same boundary-index guard as preShapednessAtPosition
+// (both route through the shared clampedIndexForPosition helper), checked
+// directly against negativePreShapednessAtPosition at the field's own upper
+// spatial bound.
+TEST_CASE("Solution negativePreShapednessAtPosition does not read past the end of the field at the upper boundary", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    BoundaryPositionNegativePreShapednessSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    REQUIRE(std::isfinite(solution.getFitness()));
+    REQUIRE(solution.getFitness() >= 0.0);
+    REQUIRE(solution.getFitness() <= 1.0);
 }
 
 TEST_CASE("Solution Crossover", "[Solution]")
