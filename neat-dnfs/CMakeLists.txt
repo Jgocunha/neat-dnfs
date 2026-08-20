@@ -32,6 +32,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # non-ASCII characters (e.g. em dashes in Catch2 test names) at compile time.
 if(MSVC)
     add_compile_options(/utf-8)
+    # Windows.h reaches nearly every TU transitively via imgui-platform-kit and
+    # defines function-like min/max macros that break std::numeric_limits<T>::max()
+    # and std::min/std::max at their call sites.
+    add_compile_definitions(NOMINMAX)
 endif()
 
 # Sanitizers
@@ -253,6 +257,7 @@ add_executable(${TEST_PROJECT}
     "tests/test_population.cpp"
     "tests/test_population_file_manager.cpp"
     "tests/test_speciation.cpp"
+    "tests/test_key_listener.cpp"
     "tests/test_evolution_helpers.h"
     "tests/solutions/evol_detection_instability.cpp"
     "tests/solutions/evol_memory_instability.cpp"
@@ -263,7 +268,7 @@ add_executable(${TEST_PROJECT}
     "tests/solutions/evol_xor.cpp"
 )
 target_include_directories(${TEST_PROJECT} PRIVATE include tests)
-target_link_libraries(${TEST_PROJECT} PRIVATE Catch2::Catch2 Catch2::Catch2WithMain imgui-platform-kit  dynamic-neural-field-composer ${CMAKE_PROJECT_NAME})
+target_link_libraries(${TEST_PROJECT} PRIVATE Catch2::Catch2WithMain imgui-platform-kit  dynamic-neural-field-composer ${CMAKE_PROJECT_NAME})
 # Automatically discover and add tests, split into a fast default lane and a
 # slow lane (the [Evolution] tier runs real Population::evolve() at
 # populationSize=50/numGenerations=10/numRuns=5 per solution -- tens of

@@ -394,14 +394,37 @@ namespace neat_dnfs
 			return { 0, 0 };
 		}
 
+		// Bounded retry: if the only {HIDDEN, OUTPUT} candidate happens to be
+		// geneIndex1 itself, the draw below would keep returning geneIndex1
+		// forever. Cap the attempts and fall back to the sentinel instead of
+		// spinning indefinitely (see issue #57).
+		//
+		// The two pools overlap only on HIDDEN genes, so a collision needs
+		// geneIndex1 to have drawn a HIDDEN gene. Each further draw then repeats
+		// it with probability 1/(hidden + output), making a spurious give-up
+		// 2^-32 in the tightest genome that still has an escape route (one
+		// HIDDEN, one OUTPUT) -- small enough to never cost a real mutation,
+		// while still bounding the loop for the zero-OUTPUT genome that hangs.
+		constexpr int maxGeneIndex2Attempts = 32;
 		int geneIndex2 = -1;
-		do {
+		bool foundDistinctGeneIndex2 = false;
+		for (int attempt = 0; attempt < maxGeneIndex2Attempts; ++attempt)
+		{
 			geneIndex2 = getRandomGeneIdByTypes({ FieldGeneType::HIDDEN, FieldGeneType::OUTPUT });
 			if (geneIndex2 == -1)
 			{
 				return { 0, 0 };
 			}
-		} while (geneIndex2 == geneIndex1);
+			if (geneIndex2 != geneIndex1)
+			{
+				foundDistinctGeneIndex2 = true;
+				break;
+			}
+		}
+		if (!foundDistinctGeneIndex2)
+		{
+			return { 0, 0 };
+		}
 
 		if (std::ranges::find_if(connectionGenes, [geneIndex1, geneIndex2](const ConnectionGene& connectionGene)
 			{
@@ -529,7 +552,6 @@ namespace neat_dnfs
 		const auto outGeneId = randEnabledConnectionGene->getParameters().connectionTuple.outFieldGeneId;
 		const auto kernel = randEnabledConnectionGene->getKernel();
 
-		//addHiddenGene(dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		addHiddenGene(getFieldGeneById(inGeneId));
 
 		// create two new connection genes

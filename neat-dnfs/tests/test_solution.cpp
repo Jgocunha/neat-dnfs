@@ -1,4 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
+
+#include <cmath>
 
 #include "neat/solution.h"
 #include "solutions/detection_instability.h"
@@ -223,6 +226,115 @@ TEST_CASE("Solution fitness helpers throw when the named element isn't a NeuralF
 
     REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
     REQUIRE(solution.getPhenotype().getNumberOfElements() == 0);
+}
+
+// Same guard, checked directly against twoBumpsAtPositionWithAmplitudeAndWidth
+// -- the multi-bump fitness primitive named explicitly in issue #56's location
+// list -- rather than only closenessToRestingLevel.
+TEST_CASE("Solution twoBumpsAtPositionWithAmplitudeAndWidth throws on a field name that doesn't exist", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    MissingFieldTwoBumpsSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
+    REQUIRE(solution.getPhenotype().getNumberOfElements() == 0);
+}
+
+// Issue #56: preShapednessAtPosition converts a spatial position to an index
+// with `static_cast<int>(position / d_x)` and indexes the "activation"
+// component directly. A position at the field's own upper bound (xSize) --
+// which occurs in practice, e.g. a stimulus placed at the last valid
+// position -- previously produced an index one past the last valid sample.
+// This must not read out of bounds and must produce a well-defined, bounded
+// result instead.
+TEST_CASE("Solution preShapednessAtPosition does not read past the end of the field at the upper boundary", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    BoundaryPositionPreShapednessSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    REQUIRE(std::isfinite(solution.getFitness()));
+    REQUIRE(solution.getFitness() >= 0.0);
+    REQUIRE(solution.getFitness() <= 1.0);
+}
+
+// Issue #53: unlike oneBumpAtPositionWithAmplitudeAndWidth (which returns 0.0
+// immediately when the field has zero bumps), twoBumpsAtPositionWithAmplitudeAndWidth
+// had no such guard -- on an empty field the bump-matching loop never runs and
+// fitness was computed against a default-constructed NeuralFieldBump (position/
+// amplitude/width all 0.0), crediting a bump that was never there. This is a
+// real red/green check: before the fix this asserts a non-zero inflated value;
+// after the fix it must equal the same zero baseline oneBump uses.
+TEST_CASE("Solution twoBumpsAtPositionWithAmplitudeAndWidth yields no bump credit for an empty field", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    EmptyFieldTwoBumpsSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    REQUIRE(solution.getFitness() == 0.0);
+}
+
+// Same as above, for threeBumpsAtPositionWithAmplitudeAndWidth.
+TEST_CASE("Solution threeBumpsAtPositionWithAmplitudeAndWidth yields no bump credit for an empty field", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    EmptyFieldThreeBumpsSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    REQUIRE(solution.getFitness() == 0.0);
+}
+
+// Issue #53 (sibling bug flagged in the author's own comment): twoBumpsAtPositionWithAmplitudeAndWidth
+// independently searched for "the bump closest to position1" and "the bump
+// closest to position2" without removing a matched bump from the candidate
+// pool, so a single real bump could be matched -- and credited -- against
+// both target slots at once, inflating fitness as though two distinct bumps
+// existed. SingleBumpTwoBumpsSolution drives one field with a single Gaussian
+// stimulus (so exactly one real bump forms) and queries the helper with both
+// target positions pointing at that same bump, proving the fix matches
+// injectively (a matched bump is removed from the pool before the next slot
+// is matched) instead of double-counting.
+TEST_CASE("Solution twoBumpsAtPositionWithAmplitudeAndWidth does not credit the same bump for both target positions", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    SingleBumpTwoBumpsSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    // SingleBumpTwoBumpsSolution pins its field and kernel parameters
+    // explicitly (see makeFixedFieldGene), so a single stimulus forms exactly
+    // one bump on every construction rather than ~98% of them. If this ever
+    // fails again it means the fixed regime stopped producing a stable bump --
+    // fix that there, rather than weakening this assertion.
+    REQUIRE(solution.observedBumps.size() == 1);
+
+    // Same weights as Solution::twoBumpsAtPositionWithAmplitudeAndWidth.
+    static constexpr int targetNumberOfBumps = 2;
+    static constexpr double weightBumps = 0.70;
+    static constexpr double weightPos   = 0.20 / targetNumberOfBumps;
+    static constexpr double weightAmp   = 0.05 / targetNumberOfBumps;
+    static constexpr double weightWidth = 0.05 / targetNumberOfBumps;
+
+    const auto& bump = solution.observedBumps.front();
+    const double bumpsTerm = weightBumps / (1.0 + std::abs(targetNumberOfBumps - 1));
+    const double matchedBumpTerm =
+        weightPos / (1.0 + std::abs(bump.centroid - SingleBumpTwoBumpsSolution::targetPosition)) +
+        weightAmp / (1.0 + std::abs(bump.amplitude - SingleBumpTwoBumpsSolution::targetAmplitude)) +
+        weightWidth / (1.0 + std::abs(bump.width - SingleBumpTwoBumpsSolution::targetWidth));
+
+    // Buggy (pre-fix) behaviour: the same closest bump matched -- and
+    // credited -- for both target slots.
+    const double doubleCountedFitness = bumpsTerm + 2.0 * matchedBumpTerm;
+    // Correct (post-fix) behaviour: the bump is consumed by the first target
+    // slot; with no bumps left, the second slot contributes nothing.
+    const double expectedFitness = bumpsTerm + matchedBumpTerm;
+
+    REQUIRE(solution.getFitness() == Catch::Approx(expectedFitness).margin(1e-9));
+    REQUIRE(solution.getFitness() < doubleCountedFitness - 1e-9);
 }
 
 TEST_CASE("Solution Crossover", "[Solution]")

@@ -145,13 +145,12 @@ jobs:
         shell: cmd
         run: scripts\build.bat
 
-      # TODO: re-enable once test suite is set up
-      # - name: Run tests
-      #   working-directory: ./neat-dnfs/build/x64-release
-      #   shell: cmd
-      #   run: |
-      #     set "PATH=%VCPKG_ROOT%/installed/x64-windows/bin;%PATH%"
-      #     ctest -C Release --output-on-failure --parallel
+      - name: Run tests
+        working-directory: ./neat-dnfs/build/x64-release
+        shell: cmd
+        run: |
+          set "PATH=%VCPKG_ROOT%/installed/x64-windows/bin;%PATH%"
+          ctest -C Release --output-on-failure --parallel
 
   # ── macOS ──────────────────────────────────────────────────────────────────
   build-macos:
@@ -204,10 +203,9 @@ jobs:
           chmod +x scripts/build_macos.sh
           ./scripts/build_macos.sh
 
-      # TODO: re-enable once test suite is set up
-      # - name: Run tests
-      #   working-directory: ./neat-dnfs/build/macos-release
-      #   run: ctest --output-on-failure --parallel $(sysctl -n hw.logicalcpu)
+      - name: Run tests
+        working-directory: ./neat-dnfs/build/macos-release
+        run: ctest --output-on-failure --parallel $(sysctl -n hw.logicalcpu)
 
 
   # ── Coverage ───────────────────────────────────────────────────────────────

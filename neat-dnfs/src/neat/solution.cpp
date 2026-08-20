@@ -4,6 +4,7 @@
 #include <format>
 #include <limits>
 #include <cmath>
+#include <algorithm>
 
 namespace neat_dnfs
 {
@@ -280,7 +281,6 @@ namespace neat_dnfs
 
 		if (phenotype.getElements().empty())
 		{
-			//tools::logger::log(tools::logger::LogLevel::WARNING, "Phenotype is empty. Cannot translate to genome.");
 			return;
 		}
 
@@ -344,7 +344,6 @@ namespace neat_dnfs
 
 					for (const auto& outputInteraction : element->getOutputs())
 					{
-						//const auto targetElement = outputInteraction->;
 						if (outputInteraction->getLabel() == ElementLabel::GAUSS_KERNEL ||
 							outputInteraction->getLabel() == ElementLabel::MEXICAN_HAT_KERNEL ||
 							outputInteraction->getLabel() == ElementLabel::OSCILLATORY_KERNEL)
@@ -352,7 +351,6 @@ namespace neat_dnfs
 							if (outputInteraction->getInputs() ==  outputInteraction->getOutputs())
 							{
 								associatedKernel = std::dynamic_pointer_cast<Kernel>(outputInteraction);
-								//std::cout << "Kernel: " << associatedKernel->toString() << std::endl;
 								break;
 							}
 						}
@@ -360,7 +358,6 @@ namespace neat_dnfs
 
 					for (const auto& inputInteraction : element->getInputs())
 					{
-						//const auto sourceElement = inputInteraction->getSource();
 						if (inputInteraction->getLabel() == ElementLabel::NORMAL_NOISE)
 						{
 							associatedNoise = std::dynamic_pointer_cast<NormalNoise>(inputInteraction);
@@ -404,7 +401,6 @@ namespace neat_dnfs
 				// Find source and target of this connection
 				for (const auto& inputInteraction : element->getInputs())
 				{
-					//const auto sourceElement = inputInteraction->getSource();
 					if (inputInteraction->getLabel() == ElementLabel::NEURAL_FIELD)
 					{
 						sourceName = inputInteraction->getUniqueName();
@@ -413,7 +409,6 @@ namespace neat_dnfs
 
 				for (const auto& outputInteraction : element->getOutputs())
 				{
-					//const auto targetElement = outputInteraction->getTarget();
 					if (outputInteraction->getLabel() == ElementLabel::NEURAL_FIELD)
 					{
 						targetName = outputInteraction->getUniqueName();
@@ -438,7 +433,6 @@ namespace neat_dnfs
 
 					// Create a connection gene with an appropriate innovation number
 					// For reconstructing, we'll use a simple incremental approach
-					//static int innovationCounter = 1;
 
 					// Get the kernel parameters based on type
 					switch (element->getLabel())
@@ -460,8 +454,6 @@ namespace neat_dnfs
 					default:
 						break;
 					}
-
-					//Genome::setNextInnovationNumber(innovationCounter); !!
 				}
 			}
 		}
@@ -788,6 +780,33 @@ namespace neat_dnfs
 		return neuralField;
 	}
 
+	int Solution::clampedIndexForPosition(const std::shared_ptr<dnf_composer::element::NeuralField>& neuralField, const double position)
+	{
+		const double d_x = neuralField->getElementCommonParameters().dimensionParameters.d_x;
+		const int rawIndex = static_cast<int>(position / d_x);
+		const int lastValidIndex = neuralField->getSize() - 1;
+		return std::clamp(rawIndex, 0, lastValidIndex);
+	}
+
+	std::optional<dnf_composer::element::NeuralFieldBump> Solution::matchClosestBump(
+		std::vector<dnf_composer::element::NeuralFieldBump>& candidates, const double targetPosition)
+	{
+		if (candidates.empty())
+		{
+			return std::nullopt;
+		}
+
+		const auto closestIt = std::ranges::min_element(candidates, {},
+			[targetPosition](const dnf_composer::element::NeuralFieldBump& bump)
+			{
+				return std::abs(bump.centroid - targetPosition);
+			});
+
+		const dnf_composer::element::NeuralFieldBump closest = *closestIt;
+		candidates.erase(closestIt);
+		return closest;
+	}
+
 	double Solution::closenessToRestingLevel(const std::string& fieldName) const
 	{
 		// the highest value of activation should be equal to the resting level
@@ -843,7 +862,7 @@ namespace neat_dnfs
 
 		} while (it < maxIterations);
 
-		return 0.0F;
+		return 0.0;
 	}
 
 	double Solution::iterationsUntilNoBump(const std::string& fieldName, const double targetIterations, const double maxIterations, const double tolerance)
@@ -868,7 +887,7 @@ namespace neat_dnfs
 
 		} while (it < maxIterations);
 
-		return 0.0F;
+		return 0.0;
 	}
 
 	double Solution::justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName, const std::vector<double>& positions, const double& amplitude, const double& width) const
@@ -922,8 +941,8 @@ namespace neat_dnfs
 	double Solution::oneBumpAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position, const double& 
 		amplitude, const double& width) const
 	{
-		// if the field name is not in the phenotype, throw exception
-		// ... .containsElement(name);
+		// Field existence and type are validated by getNeuralFieldOrThrow() below,
+		// which throws std::invalid_argument on a missing/wrong-type field name.
 		static constexpr double weightBumps = 0.45;
 		static constexpr double weightPos = 0.45;
 		static constexpr double weightAmp = 0.05;
@@ -967,9 +986,6 @@ namespace neat_dnfs
 
 	double Solution::twoBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position1, const double& amplitude1, const double& width1, const double& position2, const double& amplitude2, const double& width2) const
 	{
-		// can select the same bump twice (closest to position1 and closest to position2 might be
-		// the same bump). That can inflate fitness even with only one real bump.
-
 		static constexpr int targetNumberOfBumps = 2;
 		static constexpr double weightBumps = 0.70;
 		static constexpr double weightPos = 0.20 / targetNumberOfBumps;
@@ -987,34 +1003,36 @@ namespace neat_dnfs
 		const auto neuralField = getNeuralFieldOrThrow(fieldName, "twoBumpsAtPositionWithAmplitudeAndWidth");
 
 		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
+		if (numberOfBumps == 0)
+		{
+			return fitness;
+		}
+
 		fitness += weightBumps / (1.0 + std::abs(targetNumberOfBumps - numberOfBumps));
 
-		NeuralFieldBump closestBump1;
-		for (const auto& bump : neuralField->getBumps())
-		{
-			if (std::abs(bump.centroid - position1) < std::abs(closestBump1.centroid - position1))
-			{
-				closestBump1 = bump;
-			}
-		}
-		fitness += weightPos / (1.0 + std::abs(closestBump1.centroid - position1));
-		fitness += weightAmp / (1.0 + std::abs(closestBump1.amplitude - amplitude1));
-		fitness += weightWidth / (1.0 + std::abs(closestBump1.width - width1));
+		// Match each target position to its closest bump injectively: once a bump
+		// is matched to one target slot it is removed from the pool, so a single
+		// real bump cannot also be credited as satisfying a different target
+		// position (see issue #53). If the pool runs out before every slot is
+		// matched, the remaining slot(s) simply contribute no position/amplitude/
+		// width credit, same as the zero-bump case above.
+		std::vector<NeuralFieldBump> candidates = neuralField->getBumps();
 
-		NeuralFieldBump closestBump2;
-		for (const auto& bump : neuralField->getBumps())
+		if (const auto bump1 = matchClosestBump(candidates, position1))
 		{
-			if (std::abs(bump.centroid - position2) < std::abs(closestBump2.centroid - position2))
-			{
-				closestBump2 = bump;
-			}
+			fitness += weightPos / (1.0 + std::abs(bump1->centroid - position1));
+			fitness += weightAmp / (1.0 + std::abs(bump1->amplitude - amplitude1));
+			fitness += weightWidth / (1.0 + std::abs(bump1->width - width1));
 		}
-		fitness += weightPos / (1.0 + std::abs(closestBump2.centroid - position2));
-		fitness += weightAmp / (1.0 + std::abs(closestBump2.amplitude - amplitude2));
-		fitness += weightWidth / (1.0 + std::abs(closestBump2.width - width2));
+
+		if (const auto bump2 = matchClosestBump(candidates, position2))
+		{
+			fitness += weightPos / (1.0 + std::abs(bump2->centroid - position2));
+			fitness += weightAmp / (1.0 + std::abs(bump2->amplitude - amplitude2));
+			fitness += weightWidth / (1.0 + std::abs(bump2->width - width2));
+		}
 
 		return fitness;
-
 	}
 
 	double Solution::threeBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position1, const double& amplitude1, const double& width1, const double& position2, const double& amplitude2, const double& width2, const double& position3, const double& amplitude3, const double& width3) const
@@ -1037,93 +1055,46 @@ namespace neat_dnfs
 		const auto neuralField = getNeuralFieldOrThrow(fieldName, "threeBumpsAtPositionWithAmplitudeAndWidth");
 
 		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
+		if (numberOfBumps == 0)
+		{
+			return fitness;
+		}
+
 		fitness += weightBumps / (1.0 + std::abs(targetNumberOfBumps - numberOfBumps));
 
-		NeuralFieldBump closestBump1;
-		for (const auto& bump : neuralField->getBumps())
-		{
-			if (std::abs(bump.centroid - position1) < std::abs(closestBump1.centroid - position1))
-			{
-				closestBump1 = bump;
-			}
-		}
-		fitness += weightPos / (1.0 + std::abs(closestBump1.centroid - position1));
-		fitness += weightAmp / (1.0 + std::abs(closestBump1.amplitude - amplitude1));
-		fitness += weightWidth / (1.0 + std::abs(closestBump1.width - width1));
+		// Injective matching -- see the identical comment in
+		// twoBumpsAtPositionWithAmplitudeAndWidth (issue #53).
+		std::vector<NeuralFieldBump> candidates = neuralField->getBumps();
 
-		NeuralFieldBump closestBump2;
-		for (const auto& bump : neuralField->getBumps())
+		if (const auto bump1 = matchClosestBump(candidates, position1))
 		{
-			if (std::abs(bump.centroid - position2) < std::abs(closestBump2.centroid - position2))
-			{
-				closestBump2 = bump;
-			}
+			fitness += weightPos / (1.0 + std::abs(bump1->centroid - position1));
+			fitness += weightAmp / (1.0 + std::abs(bump1->amplitude - amplitude1));
+			fitness += weightWidth / (1.0 + std::abs(bump1->width - width1));
 		}
-		fitness += weightPos / (1.0 + std::abs(closestBump2.centroid - position2));
-		fitness += weightAmp / (1.0 + std::abs(closestBump2.amplitude - amplitude2));
-		fitness += weightWidth / (1.0 + std::abs(closestBump2.width - width2));
 
-		NeuralFieldBump closestBump3;
-		for (const auto& bump : neuralField->getBumps())
+		if (const auto bump2 = matchClosestBump(candidates, position2))
 		{
-			if (std::abs(bump.centroid - position3) < std::abs(closestBump3.centroid - position3))
-			{
-				closestBump3 = bump;
-			}
+			fitness += weightPos / (1.0 + std::abs(bump2->centroid - position2));
+			fitness += weightAmp / (1.0 + std::abs(bump2->amplitude - amplitude2));
+			fitness += weightWidth / (1.0 + std::abs(bump2->width - width2));
 		}
-		fitness += weightPos / (1.0 + std::abs(closestBump3.centroid - position3));
-		fitness += weightAmp / (1.0 + std::abs(closestBump3.amplitude - amplitude3));
-		fitness += weightWidth / (1.0 + std::abs(closestBump3.width - width3));
+
+		if (const auto bump3 = matchClosestBump(candidates, position3))
+		{
+			fitness += weightPos / (1.0 + std::abs(bump3->centroid - position3));
+			fitness += weightAmp / (1.0 + std::abs(bump3->amplitude - amplitude3));
+			fitness += weightWidth / (1.0 + std::abs(bump3->width - width3));
+		}
 
 		return fitness;
 	}
-
-	// double Solution::preShapedness(const std::string& fieldName) const
-	// {
-	// 	using namespace dnf_composer::element;
-	// 	const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-	//
-	// 	const double highestActivationValue = neuralField->getHighestActivation();
-	// 	const double restingLevel = neuralField->getParameters().startingRestingLevel;
-	//
-	// 	// target activation is between the resting level and 0.0 (supra-threshold)
-	// 	const double targetActivation = restingLevel / 2.0;
-	// 	const double width = std::abs(restingLevel / 1.05);
-	//
-	// 	return tools::utils::normalizeWithGaussian(highestActivationValue, targetActivation, width);
-	// }
-	//
-	// double Solution::preShapedness(const std::string& fieldName, const std::vector<double>& positions)
-	// {
-	// 	using namespace dnf_composer::element;
-	// 	const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-	// 	const double restingLevel = neuralField->getParameters().startingRestingLevel;
-	// 	// target activation is between the resting level and 0.0 (sub-threshold)
-	// 	const double targetActivation = restingLevel / 2.0;
-	// 	const double width = std::abs(restingLevel / 6.0);  // Makes both points 3 standard deviations away
-	//
-	// 	// If no positions specified, return 0.0
-	// 	if (positions.empty()) {
-	// 		return 0.0;
-	// 	}
-	//
-	// 	// Calculate the score for each position
-	// 	double totalScore = 0.0;
-	// 	for (const auto& position : positions) {
-	// 		const double activationAtPosition = neuralField->getComponent("activation")[position];
-	// 		double positionScore = tools::utils::normalizeWithGaussian(activationAtPosition, targetActivation, width);
-	// 		totalScore += positionScore;
-	// 	}
-	//
-	// 	// Return average score (will be 1.0 if all positions have perfect sub-threshold peaks)
-	// 	return totalScore / positions.size();
-	// }
 
 	double Solution::preShapednessAtPosition(const std::string& fieldName, double position) const
 	{
 		const auto nf = getNeuralFieldOrThrow(fieldName, "preShapednessAtPosition");
 
-		const int idx = static_cast<int>(position / nf->getElementCommonParameters().dimensionParameters.d_x);
+		const int idx = clampedIndexForPosition(nf, position);
 		const double u = nf->getComponent("activation")[idx];
 		const double h = nf->getParameters().startingRestingLevel;
 		const double u_tar =  h / 2.0;
@@ -1152,7 +1123,7 @@ namespace neat_dnfs
 	{
 		const auto neuralField = getNeuralFieldOrThrow(fieldName, "negativePreShapednessAtPosition");
 
-		const int pos = static_cast<int>(position/neuralField->getElementCommonParameters().dimensionParameters.d_x);
+		const int pos = clampedIndexForPosition(neuralField, position);
 		const double u_pos = neuralField->getComponent("activation")[pos];
 
 		// activation of field at position should be lower than the resting level
@@ -1163,48 +1134,13 @@ namespace neat_dnfs
 			return 0.0;
 		}
 
-		// static constexpr double epsilon = 0.015;
-		// // activation of field at position should be lower than the rest of the neighboring positions
-		// // I thought this was necessary because of mhk shapes, but apparently it can self-correct
-		// for(const auto& u: neuralField->getComponent("activation"))
-		// {
-		// 	if (u_pos >= u+ epsilon)
-		// 		return 0.0;
-		// }
-
 		const double u_baseline = neuralField->getHighestActivation();
 		// this should not be like this - I am hardcoding the position of the baseline activation
-		//const double u_baseline = std::abs(neuralField->getComponent("activation")[0]);
 		const double u_target = u_baseline + u_baseline / 2.0;
 		constexpr double width = 10.0;// std::abs(u_baseline / 8.0);
 
 		const double result = tools::utils::normalizeWithGaussian(u_pos, u_target, width);
 		return result;
-
-		// using namespace dnf_composer::element;
-		// const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement(fieldName));
-		//
-		// const int pos = static_cast<int>(position / neuralField->getElementCommonParameters().dimensionParameters.d_x);
-		// const double u_tar_pos = neuralField->getComponent("activation")[pos];
-		//
-		// // activation of field at position should be lower than the resting level
-		// if (u_tar_pos >= neuralField->getParameters().startingRestingLevel)
-		// 	return 0.0;
-		//
-		// static constexpr double epsilon = 0.015;
-		// // activation of field at position should be lower than the rest of the neighboring positions
-		// for (const auto& u_pos : neuralField->getComponent("activation"))
-		// {
-		// 	if (u_tar_pos >= u_pos + epsilon)
-		// 		return 0.0;
-		// }
-		//
-		// // this should not be like this - I am hardcoding the position of the baseline activation
-		// const double u_baseline = std::abs(neuralField->getComponent("activation")[0]);
-		// const double u_target = u_baseline + u_baseline / 2;
-		// const double width = u_baseline / 2;
-		//
-		// return tools::utils::normalizeWithGaussian(std::abs(u_tar_pos), u_target, width);
 	}
 
 

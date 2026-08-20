@@ -27,9 +27,9 @@ namespace neat_dnfs
 		Genome() = default;
 		~Genome() = default;
 		Genome(const Genome& other) = default;
-		Genome(Genome&& other) = default;
+		Genome(Genome&& other) noexcept = default;
 		Genome& operator=(const Genome& other) = default;
-		Genome& operator=(Genome&& other) = default;
+		Genome& operator=(Genome&& other) noexcept = default;
 
 		void addInputGene(const dnf_composer::element::ElementDimensions& dimensions);
 		void addOutputGene(const dnf_composer::element::ElementDimensions& dimensions);
@@ -71,6 +71,11 @@ namespace neat_dnfs
 		[[nodiscard]] std::string toString() const;
 		void print() const;
 	private:
+		/// @brief Draws two distinct field gene ids to form a candidate connection.
+		/// @return The chosen {inFieldGeneId, outFieldGeneId} tuple, or {0, 0} if
+		/// fewer than two field genes exist, no eligible candidate is found, the
+		/// tuple already exists as a connection gene, or no distinct second gene
+		/// could be drawn within the bounded number of retries.
 		[[nodiscard]] ConnectionTuple getNewRandomConnectionGeneTuple() const;
 		[[nodiscard]] int getRandomGeneId() const;
 		[[nodiscard]] int getRandomGeneIdByType(FieldGeneType type) const;

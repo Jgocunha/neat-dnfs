@@ -144,7 +144,6 @@ namespace neat_dnfs
 	{
 		if (representative == nullptr)
 		{
-			//throw std::runtime_error(std::format("Species {} has no representative.", id));
 			return false;
 		}
 
@@ -186,9 +185,19 @@ namespace neat_dnfs
 	void Species::pruneWorsePerformingMembers(double ratio)
 	{
 		sortMembersByFitness();
-		for (size_t i = 0; i < static_cast<size_t>(static_cast<double>(members.size()) * ratio); ++i)
+		const auto toRemove = static_cast<size_t>(static_cast<double>(members.size()) * ratio);
+		for (size_t i = 0; i < toRemove && !members.empty(); ++i)
 		{
 			members.pop_back();
+		}
+		// A pruned representative must not linger: isCompatible() would keep
+		// measuring genetic distance against a solution this species no longer
+		// holds. randomlyAssignRepresentative() no-ops on an empty members list,
+		// so clear explicitly first to cover a full prune.
+		if (representative != nullptr && !contains(representative))
+		{
+			representative = nullptr;
+			randomlyAssignRepresentative();
 		}
 	}
  
@@ -216,8 +225,6 @@ namespace neat_dnfs
 			{
 				const SolutionPtr parent1 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
 				const SolutionPtr son = parent1->crossover(parent1);
-				//if (son->getId() == parent1->getId())
-					//std::cout << "When crossing over with clone parents id's are the same " << parent1->getId() << std::endl;
 				offspring.emplace_back(son);
 			}
 		}

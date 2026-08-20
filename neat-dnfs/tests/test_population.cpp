@@ -1,11 +1,13 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <cmath>
 #include <thread>
 #include <set>
 
 #include "neat/population.h"
 #include "solutions/detection_instability.h"
 #include "test_helpers.h"
+#include "test_population_access.h"
 #include "test_stub_solution.h"
 
 using namespace neat_dnfs;
@@ -23,6 +25,32 @@ TEST_CASE("Population::initialize", "[Population]")
     REQUIRE(solutions.size() == static_cast<size_t>(parameters.size));
     for (const auto& solution : solutions)
         REQUIRE(!solution->getGenome().getFieldGenes().empty());
+}
+
+// Regression test for issue #66: ~Population used to reset the process-global
+// Species/Genome/Solution id and innovation counters, so destroying one
+// Population corrupted the numbering of anything else still alive (or
+// constructed afterwards). Population::resetGlobalCounters() now exists as
+// an explicit opt-in, and destruction alone must not touch that state.
+TEST_CASE("Population::~Population does not reset global Solution/Species/Genome counters", "[Population]")
+{
+    resetGlobalState();
+
+    const PopulationParameters parameters(5, 1, 0.99);
+    const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    // Constructing initialSolution consumed Solution id 0.
+
+    {
+        const Population population(parameters, initialSolution);
+        // Population's constructor eagerly clones parameters.size solutions,
+        // consuming ids 1..parameters.size.
+        REQUIRE(population.getSolutions().size() == static_cast<size_t>(parameters.size));
+    } // ~Population runs here.
+
+    // A Solution constructed after ~Population must continue the global id
+    // sequence rather than restart at 0.
+    const auto nextSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    REQUIRE(nextSolution->getId() == parameters.size + 1);
 }
 
 TEST_CASE("Population::isInitialized", "[Population]")
@@ -129,16 +157,24 @@ TEST_CASE("Population::evolve - best fitness history never decreases across gene
 }
 
 // Regression test for missing global elitism (see the fitness-history test
-// above): the recorded best genome each generation must always be one that
-// has previously held the "best" title, never a fresh genome appearing below
-// the previous best's fitness. Re-evaluation jitter means the current top
-// spot can legitimately swap between two previously-seen contenders (both
-// re-evaluated with noise, whichever drifts less that generation ranks
-// first) -- so this does not require the *same* id every generation, only
-// that preserveGlobalBestSolution() keeps every past-best genome alive
-// (unmutated) somewhere in the population rather than letting it get
-// dropped by reproduction.
-TEST_CASE("Population::evolve - the recorded best genome each generation was always a previous best", "[Population]")
+// above): once a genome sets the fitness high-water mark, elitism must keep
+// it available, so the recorded best never collapses back to a genuinely
+// worse lineage.
+//
+// This deliberately does NOT assert that the genome recorded each generation
+// was itself previously recorded as best. The DNF simulation is stochastic
+// (NoiseConstants::amplitude), so every solution -- the preserved elite
+// included -- re-evaluates to a slightly different fitness each generation
+// (measured spread ~3.5e-4 on an unchanged genome). When the elite drifts
+// down by a fraction of that noise, another solution can legitimately hold
+// the top *measured* spot with a genome never recorded before, which made
+// the previous form of this test fail intermittently on nothing but noise.
+//
+// Tolerating that noise the same way validateElitism() does, via
+// elitismFitnessEpsilon, keeps the real regression covered: the bug this
+// guards against dropped the best genome outright and cost ~13% fitness,
+// orders of magnitude beyond the epsilon.
+TEST_CASE("Population::evolve - the recorded best never falls below the established high-water mark", "[Population]")
 {
     const PopulationParameters parameters(50, 15, 1.1); // target > 1.0 forces full run
     const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
@@ -153,22 +189,13 @@ TEST_CASE("Population::evolve - the recorded best genome each generation was alw
     REQUIRE(idHistory.size() == fitnessHistory.size());
     REQUIRE(genomeHistory.size() == fitnessHistory.size());
 
-    double reigningBestFitness = fitnessHistory[0];
-    std::vector<Genome> everRecordedAsBest{ genomeHistory[0] };
+    double highWaterMark = fitnessHistory[0];
     for (size_t i = 1; i < fitnessHistory.size(); ++i)
     {
-        INFO("generation " << i << ": " << reigningBestFitness << " -> " << fitnessHistory[i]);
-        if (fitnessHistory[i] > reigningBestFitness)
-        {
-            reigningBestFitness = fitnessHistory[i];
-        }
-        else
-        {
-            const bool wasPreviouslyBest = std::ranges::any_of(everRecordedAsBest,
-                [&genomeHistory, i](const Genome& g) { return g == genomeHistory[i]; });
-            CHECK(wasPreviouslyBest);
-        }
-        everRecordedAsBest.push_back(genomeHistory[i]);
+        INFO("generation " << i << ": high-water " << highWaterMark
+            << " -> recorded " << fitnessHistory[i]);
+        CHECK(fitnessHistory[i] >= highWaterMark - PopulationConstants::elitismFitnessEpsilon);
+        highWaterMark = std::max(highWaterMark, fitnessHistory[i]);
     }
 }
 
@@ -181,6 +208,84 @@ TEST_CASE("Population::evolve - speciation produces at least one species", "[Pop
     population.evolve();
 
     REQUIRE(!population.getSpeciesList().empty());
+}
+
+// Regression test for issue #58 (null-pointer and empty-container hazards in
+// Population): calculateAdjustedFitness(), resetGenerationalInnovations(),
+// and upkeepPerGenerationStatistics() all run every generation of evolve().
+// This pins down that their corrected forms -- an asserted (not dereferenced
+// without checking) species lookup, a static Genome::clearGenerationalInnovations()
+// call instead of one routed through the possibly-null bestSolution instance
+// pointer, and an asserted per-generation statistics pass -- keep producing
+// sane, finite statistics with a history entry per generation actually run.
+TEST_CASE("Population::evolve - per-generation statistics stay finite and history matches generations run", "[Population]")
+{
+    const PopulationParameters parameters(30, 10, 1.1); // target > 1.0 forces a full run
+    const auto initialSolution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+    Population population(parameters, initialSolution, false);
+    population.initialize();
+
+    REQUIRE_NOTHROW(population.evolve());
+
+    const auto& fitnessHistory = population.getBestFitnessHistory();
+    REQUIRE(fitnessHistory.size() == static_cast<size_t>(population.getCurrentGeneration()));
+    for (const double fitness : fitnessHistory)
+        REQUIRE(std::isfinite(fitness));
+
+    REQUIRE(!population.getSpeciesList().empty());
+}
+
+// Regression test for issue #59 (extinct species leak): Species::crossover()
+// and Population::speciate()'s extinguish() pass both flag a species
+// extinct=true, but nothing ever erased it from Population::speciesList --
+// so a species that lost all its members lingered in the list forever, and
+// every per-generation species count kept counting it. This drives the exact
+// scenario directly: a species already extinguished this generation (as
+// speciate() does when a reassignment pass leaves it with no members) must
+// be gone from getSpeciesList() once reproduceAndSelect() -- which runs
+// crossover() for every species -- has processed it.
+TEST_CASE("Population::reproduceAndSelect erases extinct species from the species list", "[Population]")
+{
+    resetGlobalState();
+    const auto topology = makeTopology(1, 1);
+    const PopulationParameters parameters(1, 5, 1.1, false);
+    Population population(parameters, std::make_shared<DetectionInstability>(topology), false);
+    population.initialize();
+
+    auto& speciesList = PopulationTestAccess::speciesList(population);
+    speciesList.clear();
+
+    // A species that already went extinct this generation (exactly what
+    // Population::speciate() does when a reassignment pass leaves it with no
+    // members) -- this is the state speciesList must not keep around forever.
+    const auto extinctSpecies = std::make_shared<Species>();
+    extinctSpecies->extinguish();
+    speciesList.push_back(extinctSpecies);
+
+    // A healthy species that must survive and keep reproducing normally.
+    const auto healthySolution = std::make_shared<DetectionInstability>(topology);
+    healthySolution->initialize();
+    healthySolution->setAdjustedFitness(1.0);
+    const auto healthySpecies = std::make_shared<Species>();
+    healthySpecies->addSolution(healthySolution);
+    healthySpecies->setRepresentative(healthySolution);
+    speciesList.push_back(healthySpecies);
+
+    // hasFitnessImprovedOverTheLastGenerations(), called from
+    // assignOffspringToSpecies() every reproduceAndSelect(), dereferences
+    // bestSolution -- normally set by upkeep(), which this test bypasses to
+    // drive reproduceAndSelect() directly and deterministically.
+    PopulationTestAccess::setBestSolution(population, healthySolution);
+
+    PopulationTestAccess::reproduceAndSelect(population);
+
+    // Assert the healthy species is still there, not just that nothing extinct
+    // remains -- the loop below passes vacuously on an empty speciesList, so it
+    // would not catch a regression that erased every species indiscriminately.
+    REQUIRE(PopulationTestAccess::speciesList(population).size() == 1);
+    REQUIRE(PopulationTestAccess::speciesList(population).front() == healthySpecies);
+    for (const auto& species : PopulationTestAccess::speciesList(population))
+        REQUIRE_FALSE(species->isExtinct());
 }
 
 TEST_CASE("PopulationParameters - parallelEvolution defaults to true", "[Population]")
@@ -350,6 +455,18 @@ TEST_CASE("Population of size 1 evolves without throwing", "[Population]")
 
     REQUIRE_NOTHROW(population.evolve());
     REQUIRE(population.getSolutions().size() == 1);
+}
+
+// Regression test for the null-bestSolution crash reachable through the public
+// evolve() path: a Population built with size <= 0 created no solutions, so
+// upkeepBestSolution() left bestSolution null and endConditionMet() dereferenced
+// it. A population with no individuals is not a degenerate run but a category
+// error, so it is rejected at the boundary rather than tolerated at each use site.
+TEST_CASE("PopulationParameters rejects non-positive sizes", "[Population]")
+{
+    REQUIRE_THROWS_AS(PopulationParameters(0, 3, 1.1, false), std::invalid_argument);
+    REQUIRE_THROWS_AS(PopulationParameters(-1, 3, 1.1, false), std::invalid_argument);
+    REQUIRE_NOTHROW(PopulationParameters(1, 3, 1.1, false));
 }
 
 // Regression test for the Release-mode SIGSEGV in parallel Population::evaluate()

@@ -1,4 +1,5 @@
-#define CATCH_CONFIG_MAIN
+// main() is provided by Catch2::Catch2WithMain (see CMakeLists.txt); this
+// translation unit only contributes the global test-environment setup below.
 #include <catch2/catch_test_macros.hpp>
 #include <dnf_composer/tools/logger.h>
 

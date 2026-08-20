@@ -196,3 +196,84 @@ TEST_CASE("ConnectionGene Multiple Mutations Consistency", "[ConnectionGene]")
     const bool isMH    = std::dynamic_pointer_cast<MexicanHatKernel>(connectionGene.getKernel()) != nullptr;
     REQUIRE((isGauss || isMH));
 }
+
+TEST_CASE("ConnectionGene Gauss kernel amplitude mutation preserves inhibitory magnitude", "[ConnectionGene]")
+{
+    // Regression test for issue #50: a positive-only clamp applied to a signed
+    // amplitude used to collapse any negative (inhibitory) amplitude straight
+    // to -ampMinVal (-3.0), regardless of its prior magnitude.
+    constexpr double startingAmplitude = -20.0;
+    bool foundMutatedAmplitude = false;
+
+    for (int trial = 0; trial < 200 && !foundMutatedAmplitude; ++trial)
+    {
+        const ConnectionTuple connectionTuple(1, 2);
+        const GaussKernelParameters gkp{ 10.0, startingAmplitude, 0.0, true, true };
+        ConnectionGene connectionGene(connectionTuple, 0, gkp);
+
+        connectionGene.mutate();
+
+        // mutate() picks one of three branches; only the Gauss amplitude *step*
+        // is what this regression pins down. mutateKernelType() re-rolls the
+        // kernel independently and can land on Gauss again with a fresh random
+        // amplitude -- still negative, still != startingAmplitude -- so a value
+        // heuristic cannot tell the two apart. Filter on the recorded mutation.
+        // "(cg gk amp. glob. ...)" (the separate amplitudeGlobal mutation) is a
+        // superstring of the "(cg gk amp. " tag, so it must be excluded explicitly.
+        const std::string mutations = connectionGene.getMutationsInLastGeneration();
+        if (mutations.find("(cg gk amp. ") == std::string::npos ||
+            mutations.find("(cg gk amp. glob. ") != std::string::npos)
+            continue;
+
+        const auto kernel = std::dynamic_pointer_cast<GaussKernel>(connectionGene.getKernel());
+        REQUIRE(kernel != nullptr);
+
+        const double newAmplitude = kernel->getParameters().amplitude;
+        foundMutatedAmplitude = true;
+
+        REQUIRE(newAmplitude <= -GaussKernelConstants::ampMinVal);
+        REQUIRE(newAmplitude >= -GaussKernelConstants::ampMaxVal);
+        // The magnitude should move by roughly one step, not collapse to ampMinVal.
+        REQUIRE(std::abs(newAmplitude - startingAmplitude) <= GaussKernelConstants::ampStep + 1e-9);
+    }
+
+    REQUIRE(foundMutatedAmplitude);
+}
+
+TEST_CASE("ConnectionGene Mexican hat kernel amplitudeExc mutation preserves inhibitory magnitude", "[ConnectionGene]")
+{
+    // Regression test for issue #50 (mutateMexicanHatKernel copy of the same bug).
+    constexpr double startingAmplitudeExc = -20.0;
+    bool foundMutatedAmplitude = false;
+
+    for (int trial = 0; trial < 200 && !foundMutatedAmplitude; ++trial)
+    {
+        const ConnectionTuple connectionTuple(1, 2);
+        const MexicanHatKernelParameters mhkp{ 2.5, startingAmplitudeExc, 5.0, 15.0, 0.0, true, true };
+        ConnectionGene connectionGene(connectionTuple, 0, mhkp);
+
+        connectionGene.mutate();
+
+        // mutate() picks one of three branches; only the MexicanHat amplitudeExc
+        // *step* is what this regression pins down. mutateKernelType() re-rolls
+        // the kernel independently and can land on MexicanHat again with a fresh
+        // random amplitudeExc -- still negative, still != startingAmplitudeExc --
+        // so a value heuristic cannot tell the two apart. Filter on the recorded
+        // mutation.
+        if (connectionGene.getMutationsInLastGeneration().find("(cg mhk amp. exc. ") == std::string::npos)
+            continue;
+
+        const auto kernel = std::dynamic_pointer_cast<MexicanHatKernel>(connectionGene.getKernel());
+        REQUIRE(kernel != nullptr);
+
+        const double newAmplitudeExc = kernel->getParameters().amplitudeExc;
+        foundMutatedAmplitude = true;
+
+        REQUIRE(newAmplitudeExc <= -MexicanHatKernelConstants::ampExcMinVal);
+        REQUIRE(newAmplitudeExc >= -MexicanHatKernelConstants::ampExcMaxVal);
+        // The magnitude should move by roughly one step, not collapse to ampExcMinVal.
+        REQUIRE(std::abs(newAmplitudeExc - startingAmplitudeExc) <= MexicanHatKernelConstants::ampExcStep + 1e-9);
+    }
+
+    REQUIRE(foundMutatedAmplitude);
+}

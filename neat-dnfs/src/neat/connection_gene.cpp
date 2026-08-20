@@ -340,7 +340,7 @@ namespace neat_dnfs
 		const int amplitude_sign = generateRandomSignal();
 		const double width = generateRandomDouble(GaussKernelConstants::widthMinVal, GaussKernelConstants::widthMaxVal);
 		const double amplitude = amplitude_sign * generateRandomDouble(GaussKernelConstants::ampMinVal, GaussKernelConstants::ampMaxVal);
-		constexpr double amplitudeGlobal = 0.0F;
+		constexpr double amplitudeGlobal = 0.0;
 		const GaussKernelParameters gkp{ width,
 										amplitude,
 											amplitudeGlobal,
@@ -366,7 +366,7 @@ namespace neat_dnfs
 		const double amplitudeExc = amplitude_sign * generateRandomDouble(MexicanHatKernelConstants::ampExcMinVal, MexicanHatKernelConstants::ampExcMaxVal);
 		const double widthInh = generateRandomDouble(MexicanHatKernelConstants::widthInhMinVal, MexicanHatKernelConstants::widthInhMaxVal);
 		const double amplitudeInh = generateRandomDouble(MexicanHatKernelConstants::ampInhMinVal, MexicanHatKernelConstants::ampInhMaxVal);
-		constexpr double amplitudeGlobal = 0.0F;
+		constexpr double amplitudeGlobal = 0.0;
 		const MexicanHatKernelParameters mhkp{ widthExc,
 								amplitudeExc,
 								widthInh,
@@ -451,7 +451,7 @@ namespace neat_dnfs
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneGaussKernelAmplitudeProbability)
 		{
-			gkp.amplitude = amp_sign * std::clamp(gkp.amplitude + GaussKernelConstants::ampStep * signal,
+			gkp.amplitude = amp_sign * std::clamp(std::abs(gkp.amplitude) + GaussKernelConstants::ampStep * signal,
 				GaussKernelConstants::ampMinVal,
 				GaussKernelConstants::ampMaxVal);
 			mutationsInLastGeneration += std::format("(cg gk amp. {})", GaussKernelConstants::ampStep * signal);
@@ -480,7 +480,7 @@ namespace neat_dnfs
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability)
 		{
-			mhkp.amplitudeExc = amp_sign * std::clamp(mhkp.amplitudeExc + MexicanHatKernelConstants::ampExcStep * signal,
+			mhkp.amplitudeExc = amp_sign * std::clamp(std::abs(mhkp.amplitudeExc) + MexicanHatKernelConstants::ampExcStep * signal,
 				MexicanHatKernelConstants::ampExcMinVal,
 				MexicanHatKernelConstants::ampExcMaxVal);
 				mutationsInLastGeneration += std::format("(cg mhk amp. exc. {})", MexicanHatKernelConstants::ampExcStep * signal);

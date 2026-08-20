@@ -1,7 +1,8 @@
 #pragma once
 
 #include "genome.h"
-#include <format> 
+#include <format>
+#include <optional>
 
 namespace neat_dnfs
 {
@@ -101,19 +102,19 @@ namespace neat_dnfs
 		void mutate();
 		void setSpeciesId(int speciesId);
 		void setParents(int parent1, int parent2);
-		int getSpeciesId() const { return parameters.speciesId; }
-		std::tuple<int, int> getParents() const { return parents; }
-		dnf_composer::Simulation getPhenotype() const;
-		Genome getGenome() const;
-		SolutionParameters getParameters() const;
-		std::string getName() const { return name; }
-		std::string getAddress() const;
-		double getFitness() const;
-		size_t getGenomeSize() const;
-		size_t getNumFieldGenes() const { return genome.getFieldGenes().size(); }
-		size_t getNumConnectionGenes() const { return genome.getConnectionGenes().size(); }
-		std::vector<int> getInnovationNumbers() const;
-		int getId() const { return id; }
+		[[nodiscard]] int getSpeciesId() const { return parameters.speciesId; }
+		[[nodiscard]] std::tuple<int, int> getParents() const { return parents; }
+		[[nodiscard]] dnf_composer::Simulation getPhenotype() const;
+		[[nodiscard]] Genome getGenome() const;
+		[[nodiscard]] SolutionParameters getParameters() const;
+		[[nodiscard]] std::string getName() const { return name; }
+		[[nodiscard]] std::string getAddress() const;
+		[[nodiscard]] double getFitness() const;
+		[[nodiscard]] size_t getGenomeSize() const;
+		[[nodiscard]] size_t getNumFieldGenes() const { return genome.getFieldGenes().size(); }
+		[[nodiscard]] size_t getNumConnectionGenes() const { return genome.getConnectionGenes().size(); }
+		[[nodiscard]] std::vector<int> getInnovationNumbers() const;
+		[[nodiscard]] int getId() const { return id; }
 		static void clearGenerationalInnovations();
 		void incrementAge();
 		void setAdjustedFitness(double adjustedFitness);
@@ -121,12 +122,12 @@ namespace neat_dnfs
 		void clearPhenotype();
 		void addFieldGene(const FieldGene& gene);
 		void addConnectionGene(const ConnectionGene& gene);
-		bool containsConnectionGene(const ConnectionGene& gene) const;
-		bool containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const;
-		bool hasTheSameTopology(const SolutionPtr& other) const;
-		bool hasTheSameParameters(const SolutionPtr& other) const;
-		bool hasTheSameGenome(const SolutionPtr& other) const;
-		std::string toString() const;
+		[[nodiscard]] bool containsConnectionGene(const ConnectionGene& gene) const;
+		[[nodiscard]] bool containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const;
+		[[nodiscard]] bool hasTheSameTopology(const SolutionPtr& other) const;
+		[[nodiscard]] bool hasTheSameParameters(const SolutionPtr& other) const;
+		[[nodiscard]] bool hasTheSameGenome(const SolutionPtr& other) const;
+		[[nodiscard]] std::string toString() const;
 		void print() const;
 		virtual void createPhenotypeEnvironment() = 0;
 		static void resetUniqueIdentifier();
@@ -142,7 +143,38 @@ namespace neat_dnfs
 		/// std::invalid_argument if it doesn't exist or isn't a NeuralField --
 		/// fitness helpers are always called with field names from the
 		/// solution's own topology, so a miss means a genuine configuration bug.
+		/// @param fieldName   Unique name of the phenotype element to look up.
+		/// @param callerName  Name of the calling fitness helper, included in the
+		///                    exception message to identify which computation failed.
+		/// @return The field, guaranteed non-null.
+		/// @throws std::invalid_argument if no element named @p fieldName exists in
+		///         the phenotype, or if it exists but isn't a NeuralField.
 		std::shared_ptr<dnf_composer::element::NeuralField> getNeuralFieldOrThrow(const std::string& fieldName, const std::string& callerName) const;
+
+		/// @brief Converts a spatial position into a valid index into @p neuralField's
+		/// component vectors (e.g. "activation"), clamping to the field's sample range.
+		/// @details Positions passed to fitness helpers come from genome-derived
+		/// stimulus parameters and task definitions, and can legitimately fall on or
+		/// beyond a field's upper spatial bound (e.g. position == field size * d_x,
+		/// the field's own extent). Clamping keeps component lookups well-defined at
+		/// that boundary instead of indexing past the end of the underlying buffer.
+		/// @param neuralField  Field whose spatial resolution (d_x) and sample count bound the index.
+		/// @param position     Spatial position to convert.
+		/// @return An index in [0, neuralField->getSize() - 1].
+		static int clampedIndexForPosition(const std::shared_ptr<dnf_composer::element::NeuralField>& neuralField, double position);
+
+		/// @brief Finds the bump in @p candidates closest to @p targetPosition and
+		/// removes it from @p candidates.
+		/// @details Used by the multi-bump fitness helpers to match target positions
+		/// to bumps injectively: once a bump is matched to one target slot, it is no
+		/// longer available to be matched -- and credited -- against another target
+		/// slot (see issue #53).
+		/// @param candidates      Pool of not-yet-matched bumps; the matched bump, if
+		///                        any, is erased from this vector.
+		/// @param targetPosition  Spatial position to match against.
+		/// @return The matched bump, or std::nullopt if @p candidates was empty.
+		static std::optional<dnf_composer::element::NeuralFieldBump> matchClosestBump(
+			std::vector<dnf_composer::element::NeuralFieldBump>& candidates, double targetPosition);
 
 	protected:
 		/// @brief Run the simulation and write the result into @c parameters.fitness. Called by @c evaluate().
@@ -177,9 +209,6 @@ namespace neat_dnfs
 									const double& position1, const double& amplitude1, const double& width1,
 									const double& position2, const double& amplitude2, const double& width2,
 									const double& position3, const double& amplitude3, const double& width3) const;
-		// not validated
-		//double preShapedness(const std::string& fieldName) const;
-		//double preShapedness(const std::string& fieldName, const std::vector<double>& positions);
 		double preShapednessAtPosition(const std::string& fieldName, double position ) const;
 		double negativePreShapednessAtPosition(const std::string& fieldName, const double& position) const;
 		double justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName,
