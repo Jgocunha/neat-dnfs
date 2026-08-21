@@ -79,6 +79,8 @@ namespace neat_dnfs
 		{
 			createInputGenes();
 			createOutputGenes();
+			createSeededHiddenGenes();
+			createSeededConnectionGenes();
 		}
 	}
 
@@ -159,6 +161,36 @@ namespace neat_dnfs
 			{
 				genome.addOutputGene(gene.second);
 			}
+		}
+	}
+
+	void Solution::createSeededHiddenGenes()
+	{
+		if (!AblationConstants::seedRandomHiddenFields)
+		{
+			return;
+		}
+
+		const auto dimensions = initialTopology.geneTopology.front().second;
+		const int count = tools::utils::generateRandomInt(
+			AblationConstants::seedHiddenFieldsMin, AblationConstants::seedHiddenFieldsMax);
+		for (int i = 0; i < count; ++i)
+		{
+			genome.addHiddenGene(dimensions);
+		}
+	}
+
+	void Solution::createSeededConnectionGenes()
+	{
+		if (AblationConstants::seedAllLegalConnections)
+		{
+			genome.seedAllLegalConnections();
+		}
+
+		if (AblationConstants::seedRandomConnections)
+		{
+			const int count = tools::utils::generateRandomInt(1, genome.maxLegalConnectionCount());
+			genome.seedRandomConnections(count);
 		}
 	}
 

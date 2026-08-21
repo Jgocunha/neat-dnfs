@@ -1,0 +1,79 @@
+ // This is a personal academic project. Dear PVS-Studio, please check it.
+
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+
+#include <exception>
+#include <iostream>
+#include "dnf_composer/application/application.h"
+#include <dnf_composer/simulation/simulation_file_manager.h>
+#include <dnf_composer/tools/logger.h>
+
+#include "neat/population.h"
+#include "neat_tools/logger.h"
+#include "solution_registry.h"
+
+int main(int argc, char* argv[])
+{
+	try
+	{
+		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
+		using namespace neat_dnfs;
+		using namespace neat_dnfs::examples;
+
+		const CliOptions opts = parseCliOptions(argc, argv);
+		if (opts.helpRequested)
+		{
+			printUsage(std::cout, "neat-dnfs-sol-eval");
+			return 0;
+		}
+		if (opts.listRequested)
+		{
+			printTaskAndAblationList(std::cout);
+			return 0;
+		}
+
+		const std::string taskSlug = opts.task.value_or("ior");
+		const TaskEntry* task = findTask(taskSlug);
+		if (task == nullptr)
+		{
+			std::cerr << "Unknown task '" << taskSlug << "'.\n";
+			printTaskAndAblationList(std::cerr);
+			return 1;
+		}
+
+		// load a previous solution
+		const std::string templatePath = opts.templateFile.value_or(
+			std::string(PROJECT_DIR) + "/templates/" + std::string(task->templateFile));
+		const auto previousSolution = std::make_shared<dnf_composer::Simulation>();
+		const dnf_composer::SimulationFileManager sfm(previousSolution, templatePath);
+		sfm.loadElementsFromJson();
+		const dnf_composer::Simulation& templateSolution = *previousSolution;
+
+		const SolutionTopology topology = defaultTopologyFor(*task);
+		const std::unique_ptr<Solution> solution = task->makeFromTemplate(topology, templateSolution);
+
+		const int numberEvaluations = opts.evaluations.value_or(20);
+		for (int i = 0; i < numberEvaluations; i++)
+		{
+			solution->evaluate();
+			solution->print();
+		}
+
+		return 0;
+	}
+	catch (const dnf_composer::Exception& ex)
+	{
+		log(neat_dnfs::tools::logger::LogLevel::FATAL, "Exception caught: " + std::string(ex.what()) + ".");
+		return static_cast<int>(ex.getErrorCode());
+	}
+	catch (const std::exception& ex)
+	{
+		log(neat_dnfs::tools::logger::LogLevel::FATAL, "Exception caught: " + std::string(ex.what()) + ".");
+		return 1;
+	}
+	catch (...)
+	{
+		log(neat_dnfs::tools::logger::LogLevel::FATAL, "Unknown exception occurred.");
+		return 1;
+	}
+}

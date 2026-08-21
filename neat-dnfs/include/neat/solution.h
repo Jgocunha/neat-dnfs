@@ -142,6 +142,13 @@ namespace neat_dnfs
 	private:
 		void createInputGenes();
 		void createOutputGenes();
+		/// @brief Ablation seeding: adds AblationConstants::seedHiddenFieldsMin..Max
+		/// random hidden fields. No-op unless AblationConstants::seedRandomHiddenFields.
+		void createSeededHiddenGenes();
+		/// @brief Ablation seeding: adds either every legal connection or a random
+		/// subset per AblationConstants::seedAllLegalConnections /
+		/// seedRandomConnections. No-op with the default (all-false) flags.
+		void createSeededConnectionGenes();
 		void translateGenesToPhenotype();
 		void translateConnectionGenesToPhenotype();
 		/// @brief Casts the named phenotype element to a NeuralField, or throws
