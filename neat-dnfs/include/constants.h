@@ -128,7 +128,7 @@ namespace neat_dnfs
 	/// AblationConstants::reset()) restores every field to its default.
 	struct AblationConstants
 	{
-		inline static std::string label = "";   // appended to solution name -> data/<name>/ folder
+		inline static std::string label;   // appended to solution name -> data/<name>/ folder
 
 		// structural freezes (No Growth IO Only, No Growth One Hidden)
 		inline static bool disableAddFieldGene      = false;

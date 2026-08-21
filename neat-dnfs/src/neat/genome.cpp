@@ -463,15 +463,21 @@ namespace neat_dnfs
 		for (const auto& src : fieldGenes)
 		{
 			if (!isLegalConnectionSource(src.getParameters().type))
+			{
 				continue;
+			}
 			for (const auto& tgt : fieldGenes)
 			{
 				if (!isLegalConnectionTarget(tgt.getParameters().type))
+				{
 					continue;
+				}
 				const int a = src.getParameters().id;
 				const int b = tgt.getParameters().id;
 				if (a == b)
+				{
 					continue;
+				}
 				tuples.emplace_back(a, b);
 			}
 		}
@@ -486,7 +492,9 @@ namespace neat_dnfs
 	void Genome::seedAllLegalConnections()
 	{
 		for (const auto& tuple : legalConnectionTuples())
+		{
 			addConnectionGene(tuple);
+		}
 	}
 
 	void Genome::seedRandomConnections(int count)
@@ -500,7 +508,9 @@ namespace neat_dnfs
 			count, tools::utils::engine());
 
 		for (const auto& tuple : sampled)
+		{
 			addConnectionGene(tuple);
+		}
 	}
 
 	int Genome::getRandomGeneId() const
