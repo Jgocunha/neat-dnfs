@@ -147,6 +147,11 @@ namespace neat_dnfs
 			return false;
 		}
 
+		if (AblationConstants::disableSpeciation)
+		{
+			return true;
+		}
+
 		// N is the NEAT compatibility-distance normalizer: the larger genome's
 		// connection-gene count (a standard NEAT choice, not total genome size).
 		int N = static_cast<int>(std::max(representative->getNumConnectionGenes(), solution->getNumConnectionGenes()));
@@ -235,7 +240,9 @@ namespace neat_dnfs
 			for (size_t i = 0; i < offspringCount; ++i)
 			{
 				const SolutionPtr parent1 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
-				const SolutionPtr parent2 = members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
+				const SolutionPtr parent2 = AblationConstants::disableCrossover
+					? parent1
+					: members[tools::utils::generateRandomInt(0, static_cast<int>(members.size() - 1))];
 				const SolutionPtr son = parent1->crossover(parent2);
 				if (son->getId() == parent1->getId() || son->getId() == parent2->getId())
 				{

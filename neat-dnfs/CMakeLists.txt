@@ -65,7 +65,8 @@ set(OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/data")
 add_compile_definitions(OUTPUT_DIRECTORY="${OUTPUT_DIRECTORY}")
 
 # Header and source files
-set(header 
+set(header
+        "include/neat/ablation_presets.h"
         "include/neat/connection_gene.h"
         "include/neat/field_gene.h"
         "include/neat/genome.h"
@@ -89,7 +90,8 @@ set(header
 
         "include/constants.h"
 )
-set(src 
+set(src
+        "src/neat/ablation_presets.cpp"
         "src/neat/connection_gene.cpp"
         "src/neat/field_gene.cpp"
         "src/neat/genome.cpp"
@@ -185,7 +187,7 @@ install(EXPORT ${CMAKE_PROJECT_NAME}Targets DESTINATION ${NEAT_DNFS_CMAKE_CONFIG
 
 # Main executable
 set(EXE_PROJECT_EXAMPLE neat-dnfs-evol)
-add_executable(${EXE_PROJECT_EXAMPLE} "examples/neat_dnfs_evol.cpp")
+add_executable(${EXE_PROJECT_EXAMPLE} "apps/neat_dnfs_evol.cpp" "apps/solution_registry.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
 target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         imgui::imgui
@@ -196,7 +198,7 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
 
 # Incremental evolution executable
 set(EXE_PROJECT_EXAMPLE neat-dnfs-inc-evol)
-add_executable(${EXE_PROJECT_EXAMPLE} "examples/neat_dnfs_incremental_evolution.cpp")
+add_executable(${EXE_PROJECT_EXAMPLE} "apps/neat_dnfs_incremental_evolution.cpp" "apps/solution_registry.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
 target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         imgui::imgui
@@ -207,7 +209,7 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
 
 # Solution evaluation executable
 set(EXE_PROJECT_EXAMPLE neat-dnfs-sol-eval)
-add_executable(${EXE_PROJECT_EXAMPLE} "examples/neat_dnfs_solution_evaluation.cpp")
+add_executable(${EXE_PROJECT_EXAMPLE} "apps/neat_dnfs_solution_evaluation.cpp" "apps/solution_registry.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
 target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         imgui::imgui
@@ -215,26 +217,6 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         dynamic-neural-field-composer
         ${CMAKE_PROJECT_NAME}
 )
-
-# Solution executables
-foreach(SOLUTION_SRC
-        evol_detection_instability
-        evol_memory_instability
-        evol_selection_instability
-        evol_dmts
-        evol_ior
-        evol_and
-        evol_xor)
-    set(EXE_PROJECT_EXAMPLE neat-dnfs-${SOLUTION_SRC})
-    add_executable(${EXE_PROJECT_EXAMPLE} "examples/solutions/${SOLUTION_SRC}.cpp")
-    target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
-    target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
-            imgui::imgui
-            imgui-platform-kit
-            dynamic-neural-field-composer
-            ${CMAKE_PROJECT_NAME}
-    )
-endforeach()
 
 # Setup Catch2
 enable_testing()
@@ -251,6 +233,7 @@ add_executable(${TEST_PROJECT}
     "tests/test_field_gene.cpp"
     "tests/test_connection_gene.cpp"
     "tests/test_genome.cpp"
+    "tests/test_ablations.cpp"
     "tests/test_solution.cpp"
     "tests/test_solutions_tasks.cpp"
     "tests/test_species.cpp"

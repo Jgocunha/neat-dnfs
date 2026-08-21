@@ -34,6 +34,7 @@ namespace neat_dnfs
 		void addInputGene(const dnf_composer::element::ElementDimensions& dimensions);
 		void addOutputGene(const dnf_composer::element::ElementDimensions& dimensions);
 		void addHiddenGene(const FieldGene& gene);
+		void addHiddenGene(const dnf_composer::element::ElementDimensions& dimensions);
 
 		void mutate();
 		void checkForDuplicateConnectionGenes() const;
@@ -61,6 +62,18 @@ namespace neat_dnfs
 
 		void addFieldGene(const FieldGene& fieldGene);
 		void addConnectionGene(const ConnectionGene& connectionGene);
+		/// @brief Adds every legal (source, target) connection tuple as a new
+		/// connection gene. Used by ablation presets that freeze structure but
+		/// need the genome to start fully connected (see AblationConstants).
+		void seedAllLegalConnections();
+		/// @brief Adds @p count distinct legal connection tuples, sampled uniformly
+		/// without replacement (clamped to the number of legal tuples available).
+		void seedRandomConnections(int count);
+		/// @return Every (source, target) pair allowed by the connection legality
+		/// rule (see isLegalConnectionSource/Target), regardless of whether a
+		/// connection gene for it already exists.
+		[[nodiscard]] std::vector<ConnectionTuple> legalConnectionTuples() const;
+		[[nodiscard]] int maxLegalConnectionCount() const;
 		[[nodiscard]] bool containsConnectionGene(const ConnectionGene& connectionGene) const;
 		[[nodiscard]] bool containsFieldGene(const FieldGene& fieldGene) const;
 		[[nodiscard]] bool containsConnectionGeneWithTheSameInputOutputPair(const ConnectionGene& gene) const;
@@ -79,6 +92,12 @@ namespace neat_dnfs
 		/// tuple already exists as a connection gene, or no distinct second gene
 		/// could be drawn within the bounded number of retries.
 		[[nodiscard]] ConnectionTuple getNewRandomConnectionGeneTuple() const;
+		/// @brief Whether a field gene of @p type may be the source of a connection.
+		/// Shared by getNewRandomConnectionGeneTuple() (mutation path) and
+		/// legalConnectionTuples() (seeding path) so the two cannot drift apart.
+		[[nodiscard]] static bool isLegalConnectionSource(FieldGeneType type);
+		/// @brief Whether a field gene of @p type may be the target of a connection.
+		[[nodiscard]] static bool isLegalConnectionTarget(FieldGeneType type);
 		[[nodiscard]] int getRandomGeneId() const;
 		[[nodiscard]] int getRandomGeneIdByType(FieldGeneType type) const;
 		[[nodiscard]] int getRandomGeneIdByTypes(const std::vector<FieldGeneType>& types) const;

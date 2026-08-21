@@ -176,6 +176,31 @@ void evaluate() override
 }
 ```
 
+### Ablation Studies
+
+`neat-dnfs-evol` and `neat-dnfs-inc-evol` accept `--task NAME` and `--ablation NAME` at runtime, so
+sweeping a task across every mechanism condition is a shell loop, not a rebuild (`--list` prints the
+available tasks and ablations):
+
+```bash
+neat-dnfs-evol --task and --ablation no-crossover --runs 30 --pop 500 --gens 200 --target 0.9
+```
+
+Five conditions are available, each a config-only override applied before `Population::initialize()`
+(see `include/neat/ablation_presets.h`):
+
+| Ablation | What it disables |
+|---|---|
+| `no-growth-io-only` | Structural mutations; genome starts fully connected input/output only |
+| `no-growth-one-hidden` | Same, plus one seeded hidden field |
+| `no-speciation` | Compatibility-distance species assignment; population starts non-minimal |
+| `no-crossover` | Two-parent reproduction; offspring are single-parent clones |
+| `random-initial-topology` | Minimal-start bias; genome seeds 1-5 random hidden fields and connections |
+
+Each ablated run writes to its own `data/<Task> <Ablation>/` folder, alongside the unablated
+`data/<Task>/` control, so the analysis dashboard (see below) lists every arm as a separate
+experiment with no extra setup.
+
 ---
 
 ## Statistics and Analysis
@@ -214,7 +239,7 @@ neat-dnfs/
 │   ├── tools/         # Logging and utilities
 │   └── constants.h    # Hyperparameter definition
 ├── src/
-├── examples/
+├── apps/
 ├── tests/
 ├── data/              # Evolution outputs
 ├── analysis/          # Post-hoc analysis tools

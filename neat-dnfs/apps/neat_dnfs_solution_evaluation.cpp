@@ -10,47 +10,53 @@
 
 #include "neat/population.h"
 #include "neat_tools/logger.h"
-#include "solutions/detection_instability.h"
-#include "solutions/memory_instability.h"
-#include "solutions/and.h"
-#include "solutions/selection_instability.h"
-#include "solutions/memory_trace.h"
-#include "solutions/xor.h"
-#include "solutions/delayed_match_to_sample.h"
-#include "solutions/inhibition_of_return.h"
+#include "solution_registry.h"
 
- int main(int argc, char* argv[])
+int main(int argc, char* argv[])
 {
 	try
 	{
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
+		using namespace neat_dnfs::examples;
+
+		const CliOptions opts = parseCliOptions(argc, argv);
+		if (opts.helpRequested)
+		{
+			printUsage(std::cout, "neat-dnfs-sol-eval");
+			return 0;
+		}
+		if (opts.listRequested)
+		{
+			printTaskAndAblationList(std::cout);
+			return 0;
+		}
+
+		const std::string taskSlug = opts.task.value_or("ior");
+		const TaskEntry* task = findTask(taskSlug);
+		if (task == nullptr)
+		{
+			std::cerr << "Unknown task '" << taskSlug << "'.\n";
+			printTaskAndAblationList(std::cerr);
+			return 1;
+		}
 
 		// load a previous solution
-		const auto previous_solution = std::make_shared<dnf_composer::Simulation>();
-		const dnf_composer::SimulationFileManager sfm(previous_solution,
-			std::string(PROJECT_DIR) + "/templates/inhibition-of-return.json");
-			//std::string(PROJECT_DIR) + "/data/Delayed Match to Sample/2026-01-13 21h39m07s/best_solutions/last_generation/solution 16039 generation 81 species 140 fitness 0.964459.json");
+		const std::string templatePath = opts.templateFile.value_or(
+			std::string(PROJECT_DIR) + "/templates/" + std::string(task->templateFile));
+		const auto previousSolution = std::make_shared<dnf_composer::Simulation>();
+		const dnf_composer::SimulationFileManager sfm(previousSolution, templatePath);
 		sfm.loadElementsFromJson();
-		const dnf_composer::Simulation& template_solution = *previous_solution;
+		const dnf_composer::Simulation& templateSolution = *previousSolution;
 
-		// select the type of solution here
-		InhibitionOfReturn solution{
-			SolutionTopology{ {
-				{FieldGeneType::INPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
-				//	{FieldGeneType::INPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::INPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
-				{FieldGeneType::OUTPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
-			}
-			},
-			template_solution // load a previous solution
-		};
+		const SolutionTopology topology = defaultTopologyFor(*task);
+		const std::unique_ptr<Solution> solution = task->makeFromTemplate(topology, templateSolution);
 
-		constexpr size_t number_evaluations = 20;
-		for (size_t i = 0; i < number_evaluations; i++)
+		const int numberEvaluations = opts.evaluations.value_or(20);
+		for (int i = 0; i < numberEvaluations; i++)
 		{
-			solution.evaluate();
-			solution.print();
+			solution->evaluate();
+			solution->print();
 		}
 
 		return 0;

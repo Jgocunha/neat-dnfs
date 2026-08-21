@@ -72,7 +72,7 @@ namespace neat_dnfs
 			throw std::runtime_error("No solutions in population.");
 		}
 
-		const std::string solutionName = population->solutions[0]->getName();
+		const std::string solutionName = population->solutions[0]->getName() + AblationConstants::label;
 		const auto now = std::time(nullptr);
 		struct tm localTime{};
 #ifdef _WIN32

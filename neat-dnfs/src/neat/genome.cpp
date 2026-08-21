@@ -26,15 +26,23 @@ namespace neat_dnfs
 					static_cast<int>(index) }, gene));
 	}
 
+	void Genome::addHiddenGene(const dnf_composer::element::ElementDimensions& dimensions)
+	{
+		const auto index = fieldGenes.size() + 1;
+		fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN, static_cast<int>(index) }, dimensions));
+	}
+
 	void Genome::mutate()
 	{
-		if (tools::utils::generateRandomDouble(0.0, 1.0) <
+		if (!AblationConstants::disableToggleConnectionGene &&
+			tools::utils::generateRandomDouble(0.0, 1.0) <
 			GenomeMutationConstants::toggleConnectionGeneProbability)
 		{
 			toggleConnectionGene();
 		}
 
-		if (tools::utils::generateRandomDouble(0.0, 1.0) <
+		if (!AblationConstants::disableAddFieldGene &&
+			tools::utils::generateRandomDouble(0.0, 1.0) <
 			GenomeMutationConstants::addFieldGeneProbability)
 		{
 			addGene();
@@ -46,7 +54,8 @@ namespace neat_dnfs
 			mutateGene();
 		}
 
-		if (tools::utils::generateRandomDouble(0.0, 1.0) <
+		if (!AblationConstants::disableAddConnectionGene &&
+			tools::utils::generateRandomDouble(0.0, 1.0) <
 			GenomeMutationConstants::addConnectionGeneProbability)
 		{
 			addConnectionGene();
@@ -380,6 +389,16 @@ namespace neat_dnfs
 		tools::logger::log(tools::logger::INFO, toString());
 	}
 
+	bool Genome::isLegalConnectionSource(const FieldGeneType type)
+	{
+		return type == FieldGeneType::INPUT || type == FieldGeneType::HIDDEN;
+	}
+
+	bool Genome::isLegalConnectionTarget(const FieldGeneType type)
+	{
+		return type == FieldGeneType::HIDDEN || type == FieldGeneType::OUTPUT;
+	}
+
 	ConnectionTuple Genome::getNewRandomConnectionGeneTuple() const
 	{
 		// if there aren't enough genes to create a connection gene
@@ -388,7 +407,7 @@ namespace neat_dnfs
 			return { 0, 0 };
 		}
 
-		int geneIndex1 = getRandomGeneIdByTypes({ FieldGeneType::HIDDEN, FieldGeneType::INPUT });
+		int geneIndex1 = getRandomGeneIdByTypes({ FieldGeneType::INPUT, FieldGeneType::HIDDEN });
 		if (geneIndex1 == -1)
 		{
 			return { 0, 0 };
@@ -436,6 +455,52 @@ namespace neat_dnfs
 		}
 
 		return { geneIndex1, geneIndex2 };
+	}
+
+	std::vector<ConnectionTuple> Genome::legalConnectionTuples() const
+	{
+		std::vector<ConnectionTuple> tuples;
+		for (const auto& src : fieldGenes)
+		{
+			if (!isLegalConnectionSource(src.getParameters().type))
+				continue;
+			for (const auto& tgt : fieldGenes)
+			{
+				if (!isLegalConnectionTarget(tgt.getParameters().type))
+					continue;
+				const int a = src.getParameters().id;
+				const int b = tgt.getParameters().id;
+				if (a == b)
+					continue;
+				tuples.emplace_back(a, b);
+			}
+		}
+		return tuples;
+	}
+
+	int Genome::maxLegalConnectionCount() const
+	{
+		return static_cast<int>(legalConnectionTuples().size());
+	}
+
+	void Genome::seedAllLegalConnections()
+	{
+		for (const auto& tuple : legalConnectionTuples())
+			addConnectionGene(tuple);
+	}
+
+	void Genome::seedRandomConnections(int count)
+	{
+		auto tuples = legalConnectionTuples();
+		count = std::min(count, static_cast<int>(tuples.size()));
+
+		std::vector<ConnectionTuple> sampled;
+		sampled.reserve(count);
+		std::sample(tuples.begin(), tuples.end(), std::back_inserter(sampled),
+			count, tools::utils::engine());
+
+		for (const auto& tuple : sampled)
+			addConnectionGene(tuple);
 	}
 
 	int Genome::getRandomGeneId() const

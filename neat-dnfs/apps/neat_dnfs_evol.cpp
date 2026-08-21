@@ -1,48 +1,65 @@
+ // This is a personal academic project. Dear PVS-Studio, please check it.
+
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+
 #include <exception>
 #include <iostream>
 #include "dnf_composer/application/application.h"
 #include <dnf_composer/tools/logger.h>
 
 #include "neat/population.h"
+#include "neat/ablation_presets.h"
 #include "neat_tools/logger.h"
 #include "neat_tools/key_listener.h"
-#include "solutions/detection_instability.h"
-#include "solutions/memory_instability.h"
-#include "solutions/and.h"
-#include "solutions/delayed_match_to_sample.h"
-#include "solutions/inhibition_of_return.h"
-#include "solutions/selection_instability.h"
-#include "solutions/memory_trace.h"
-#include "solutions/xor.h"
+#include "solution_registry.h"
 
- int main(int argc, char* argv[])
+int main(int argc, char* argv[])
 {
 	try
 	{
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
+		using namespace neat_dnfs::examples;
 
-		// select the type of solution here and in the population init.
-		SelectionInstability solution{
-			SolutionTopology{ {
-				{FieldGeneType::INPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::INPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
-				{FieldGeneType::OUTPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
-				//{FieldGeneType::OUTPUT, dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx}},
-			}
-			},
-		};
-
-		constexpr size_t number_runs = 50;
-
-		for (int i = 0; i < number_runs; i++)
+		const CliOptions opts = parseCliOptions(argc, argv);
+		if (opts.helpRequested)
 		{
-			constexpr size_t population_size	= 1000;
-			constexpr size_t number_generations = 200;
-			constexpr double target_fitness		= 0.95;
+			printUsage(std::cout, "neat-dnfs-evol");
+			return 0;
+		}
+		if (opts.listRequested)
+		{
+			printTaskAndAblationList(std::cout);
+			return 0;
+		}
 
-			const PopulationParameters parameters{ population_size, number_generations, target_fitness };
-			Population population{ parameters, std::make_unique<SelectionInstability>(solution) };
+		const std::string taskSlug = opts.task.value_or("selection-instability");
+		const TaskEntry* task = findTask(taskSlug);
+		if (task == nullptr)
+		{
+			std::cerr << "Unknown task '" << taskSlug << "'.\n";
+			printTaskAndAblationList(std::cerr);
+			return 1;
+		}
+
+		if (opts.ablation && !AblationPresets::applyByName(*opts.ablation))
+		{
+			std::cerr << "Unknown ablation '" << *opts.ablation << "'.\n";
+			printTaskAndAblationList(std::cerr);
+			return 1;
+		}
+
+		const SolutionTopology topology = defaultTopologyFor(*task);
+
+		const int numberRuns = opts.runs.value_or(50);
+		const int populationSize = opts.populationSize.value_or(1000);
+		const int numberGenerations = opts.numGenerations.value_or(200);
+		const double targetFitness = opts.targetFitness.value_or(0.95);
+
+		for (int i = 0; i < numberRuns; i++)
+		{
+			const PopulationParameters parameters{ populationSize, numberGenerations, targetFitness };
+			Population population{ parameters, task->makeFromTopology(topology) };
 
 			population.initialize();
 			KeyListener keyListener{ population };

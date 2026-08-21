@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Mechanism ablation studies** — `AblationConstants`/`AblationPresets` (new `include/neat/ablation_presets.h`, `src/neat/ablation_presets.cpp`) gate five NEAT mechanisms independently, selectable at runtime via `neat-dnfs-evol --task NAME --ablation NAME` with zero source edits (closes #76):
+  - `no-growth-io-only` / `no-growth-one-hidden` — freeze structural mutations, seeding every legal connection (and one hidden field, respectively) at `initialize()` instead
+  - `no-speciation` — `Species::isCompatible()` short-circuits to always-compatible; paired with a random non-minimal initial population per Stanley & Miikkulainen (2002, §5.5)
+  - `no-crossover` — `Species::crossover()` reproduces by mutation only, cloning the single parent
+  - `random-initial-topology` — seeds 1-5 random hidden fields and a random legal-connection subset instead of the minimal input/output genome
+  - `Genome::legalConnectionTuples()`/`seedAllLegalConnections()`/`seedRandomConnections()` extract the connection-legality rule shared by the mutation path and the new seeding path, so they cannot drift apart
+  - Each ablated run's data folder is suffixed with the ablation name (`PopulationFileManager::setFileDirectory()`), so ablated and control runs list as separate experiments in the analysis dashboard with no extra setup
+  - `apps/` collapses from ten task-specific binaries to three (`neat-dnfs-evol`, `neat-dnfs-inc-evol`, `neat-dnfs-sol-eval`), each taking `--task`/`--ablation`/`--runs`/`--pop`/`--gens`/`--target`/`--template`/`--list` via a small hand-rolled parser (`apps/solution_registry.h/.cpp`)
+  - `tests/test_ablations.cpp` (new) — baseline parity, per-preset seeding shape, structure-freeze across 1000 mutations, seeder/mutator rule agreement, clone-only offspring under no-crossover (with an enabled-crossover control), and `isCompatible()` short-circuit
 - **CodeRabbit PR review** — `.coderabbit.yaml` with project-specific rules: C++20 idioms, no raw owning pointers, Catch2 test coverage enforcement, Doxygen completeness, and a welcoming tone for first-time contributors
 - **Gemini issue triage** — `gemini-issue-triage.yml` auto-labels and posts a welcome comment on every new issue using the Gemini free tier; label creation and `gh` write commands are deterministic shell steps hardened against prompt injection
 - **Gemini doc-sync check** — `gemini-doc-sync.yml` audits Doxygen, README, and CHANGELOG completeness on PRs touching `neat-dnfs/include/**`; skipped on forked PRs to avoid secret-missing failures

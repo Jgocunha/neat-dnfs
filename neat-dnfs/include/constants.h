@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <string_view>
 
 #include <elements/element_factory.h>
@@ -117,6 +118,48 @@ namespace neat_dnfs
 		static constexpr double ampGlobMin		= -0.20;
 		static constexpr double ampGlobMax		= 0.000;
 		static constexpr double ampGlobStep 	= 0.05;
+	};
+
+	/// @brief Per-mechanism overrides for ablation studies (issue #76). Unlike the
+	/// other constant blocks in this file, these are runtime-mutable: a preset in
+	/// AblationPresets sets them once before Population::initialize(), and they are
+	/// only read (never written) during Population::evolve(), so parallel
+	/// evaluation is unaffected. AblationPresets::reset() (called by callers, e.g.
+	/// AblationConstants::reset()) restores every field to its default.
+	struct AblationConstants
+	{
+		inline static std::string label = "";   // appended to solution name -> data/<name>/ folder
+
+		// structural freezes (No Growth IO Only, No Growth One Hidden)
+		inline static bool disableAddFieldGene      = false;
+		inline static bool disableAddConnectionGene = false;
+		inline static bool disableToggleConnectionGene = false;
+
+		// seeding (No Growth IO Only, No Growth One Hidden, Random Initial Topology)
+		inline static bool seedAllLegalConnections  = false;   // No Growth IO Only, No Growth One Hidden
+		inline static bool seedRandomHiddenFields   = false;   // No Growth One Hidden (min=max=1), Random Initial Topology (1..5)
+		inline static int  seedHiddenFieldsMin      = 0;
+		inline static int  seedHiddenFieldsMax      = 0;
+		inline static bool seedRandomConnections    = false;   // Random Initial Topology; count drawn as U[1, maxLegalConnectionCount()]
+
+		// mechanism ablations (No Speciation, No Crossover)
+		inline static bool disableSpeciation = false;
+		inline static bool disableCrossover  = false;
+
+		static void reset()
+		{
+			label = "";
+			disableAddFieldGene = false;
+			disableAddConnectionGene = false;
+			disableToggleConnectionGene = false;
+			seedAllLegalConnections = false;
+			seedRandomHiddenFields = false;
+			seedHiddenFieldsMin = 0;
+			seedHiddenFieldsMax = 0;
+			seedRandomConnections = false;
+			disableSpeciation = false;
+			disableCrossover = false;
+		}
 	};
 
 	/// @brief Weights used to compute the NEAT compatibility distance between two genomes.
