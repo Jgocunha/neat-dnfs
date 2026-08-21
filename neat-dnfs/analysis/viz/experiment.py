@@ -7,7 +7,7 @@ import numpy as np
 import streamlit as st
 
 from .cache import _disk_cache_read_json, _disk_cache_write_json, _fingerprint_dir, _run_cache_dir
-from .parsing import generations_meeting_targets
+from .parsing import find_runs_with_overview, generations_meeting_targets
 
 def _parse_evolution_timestamps(file_path: Path):
     metrics = {}
@@ -25,8 +25,8 @@ def _parse_evolution_timestamps(file_path: Path):
         return metrics
 
     metrics["num_generations"] = int(num_generations.group(1))
-    metrics["start_time"] = start_time.group(1)
-    metrics["end_time"] = end_time.group(1)
+    metrics["start_time"] = start_time.group(1).strip()
+    metrics["end_time"] = end_time.group(1).strip()
     metrics["duration_seconds"] = int(duration_seconds.group(1))
 
     # derived
@@ -35,9 +35,12 @@ def _parse_evolution_timestamps(file_path: Path):
             metrics["duration_seconds"] / metrics["num_generations"]
         )
 
-    start_dt = datetime.strptime(metrics["start_time"], "%Y-%m-%d %H:%M:%S")
-    end_dt = datetime.strptime(metrics["end_time"], "%Y-%m-%d %H:%M:%S")
-    metrics["duration_hours"] = (end_dt - start_dt).total_seconds() / 3600.0
+    try:
+        start_dt = datetime.strptime(metrics["start_time"], "%Y-%m-%d %H:%M:%S")
+        end_dt = datetime.strptime(metrics["end_time"], "%Y-%m-%d %H:%M:%S")
+        metrics["duration_hours"] = (end_dt - start_dt).total_seconds() / 3600.0
+    except ValueError:
+        pass
     return metrics
 
 
@@ -60,12 +63,9 @@ def compute_experiment_totals(base_dir_str: str):
     """
     base = Path(base_dir_str)
 
-    # USE THE SAME "RUN DETECTION" AS THE REST OF THE APP
-    run_dirs = [
-        d
-        for d in base.iterdir()
-        if d.is_dir() and (d / "per_generation_overview.txt").exists()
-    ]
+    # Same run detection as the rest of the app, including the flat-layout fallback
+    # (a base_dir with no run subfolders that is itself a run).
+    run_dirs = [d for _name, d in find_runs_with_overview(base)]
 
     rows = []
     for rd in run_dirs:
@@ -128,12 +128,17 @@ def _parse_run_overview(stats_file: Path):
         r"Current generation: (\d+).*?"
         r"Number of species: (\d+).*?"
         r"Number of active species: (\d+).*?"
-        r"Best solution: \[solution (\d+) \[ fit\.: ([\d\.]+), part\.: \((.*?)\),\s*spec\.: (\d+),.*?"
+        r"Best solution: \[solution (\d+) \[ fit\.: ([0-9eE\.\+\-]+), part\.: \((.*?)\),\s*spec\.: (\d+),.*?"
         r"genome \((.*?)\).*?"
         r"field genes \{(.*?)\}.*?"
         r"connection genes \{(.*?)\}"
     )
-    generations_data = re.findall(gen_pattern, txt, re.DOTALL)
+    # Each generation is one line in the file; matching per line (rather than DOTALL over the
+    # whole text) keeps a generation missing a trailing field from bleeding its neighbour's
+    # connection-genes block into the match.
+    generations_data = [
+        m for line in txt.splitlines() for m in re.findall(gen_pattern, line)
+    ]
     if not generations_data:
         return None
 
@@ -446,13 +451,8 @@ def _aggregate_convergence_metrics(all_metrics: list):
 def _load_experiment_runs_parsed_uncached(base_dir_str: str):
     base = Path(base_dir_str)
     parsed_runs = []
-    for rd in base.iterdir():
-        if not rd.is_dir():
-            continue
-        stats_file = rd / "per_generation_overview.txt"
-        if not stats_file.exists():
-            continue
-        m = _parse_run_overview(stats_file)
+    for _name, rd in find_runs_with_overview(base):
+        m = _parse_run_overview(rd / "per_generation_overview.txt")
         if m is None:
             continue
         m["run_dir"] = rd.name
@@ -463,7 +463,10 @@ def _load_experiment_runs_parsed_uncached(base_dir_str: str):
 def _experiment_runs_fingerprint(base_dir: Path) -> str:
     fp1 = _fingerprint_dir(base_dir, "*/per_generation_overview.txt")
     fp2 = _fingerprint_dir(base_dir, "*/evolution_timestamps.txt")
-    return f"{fp1}|{fp2}"
+    # Also cover the flat-layout fallback (base_dir itself is the run).
+    fp3 = _fingerprint_dir(base_dir, "per_generation_overview.txt")
+    fp4 = _fingerprint_dir(base_dir, "evolution_timestamps.txt")
+    return f"{fp1}|{fp2}|{fp3}|{fp4}"
 
 
 @st.cache_data

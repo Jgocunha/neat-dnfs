@@ -213,24 +213,34 @@ def _kernel_param_str(k_el) -> str:
     lab = get_element_label(k_el)
     lab_lower = lab.lower()
 
+    def num(*keys, default=None):
+        for key in keys:
+            val = k_el.get(key)
+            if val is not None:
+                return float(val)
+        return default
+
+    def fmt(val):
+        return f"{val:.2f}" if val is not None else "n/a"
+
     if "mexican" in lab_lower:
-        Ae = k_el.get("amplitudeExc")
-        se = k_el.get("widthExc")
-        Ai = k_el.get("amplitudeInh")
-        si = k_el.get("widthInh")
-        Ag = k_el.get("amplitudeGlobal", 0.0)
+        Ae = num("amplitudeExc")
+        se = num("widthExc")
+        Ai = num("amplitudeInh")
+        si = num("widthInh")
+        Ag = num("amplitudeGlobal", default=0.0)
         return (
             "Mexican-hat kernel: "
-            f"A_exc = {Ae:.2f}, σ_exc = {se:.2f}, "
-            f"A_inh = {Ai:.2f}, σ_inh = {si:.2f}, "
-            f"A_glob = {Ag:.2f}"
+            f"A_exc = {fmt(Ae)}, σ_exc = {fmt(se)}, "
+            f"A_inh = {fmt(Ai)}, σ_inh = {fmt(si)}, "
+            f"A_glob = {fmt(Ag)}"
         )
 
     if "gauss" in lab_lower:
-        A = k_el.get("amplitude") or k_el.get("amplitudeExc")
-        s = k_el.get("width") or k_el.get("widthExc")
-        Ag = k_el.get("amplitudeGlobal", 0.0)
-        return f"Gaussian kernel: A = {A:.2f}, σ = {s:.2f}, A_glob = {Ag:.2f}"
+        A = num("amplitude", "amplitudeExc")
+        s = num("width", "widthExc")
+        Ag = num("amplitudeGlobal", default=0.0)
+        return f"Gaussian kernel: A = {fmt(A)}, σ = {fmt(s)}, A_glob = {fmt(Ag)}"
 
     return lab
 

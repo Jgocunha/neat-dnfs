@@ -51,19 +51,19 @@ def test_spearman_correlation_perfect_monotonic_is_plus_one():
 
 
 def test_spearman_correlation_perfect_inverse_is_minus_one():
-    rho, p = spearman_correlation([1, 2, 3, 4, 5], [50, 40, 30, 20, 10])
+    rho, _p = spearman_correlation([1, 2, 3, 4, 5], [50, 40, 30, 20, 10])
     assert rho == pytest.approx(-1.0)
 
 
 def test_spearman_correlation_handles_ties_via_average_rank():
     # known worked example: x has a tie at rank (2,3) -> both get rank 2.5
-    rho, p = spearman_correlation([1, 2, 2, 4, 5], [2, 1, 4, 3, 5])
+    rho, _p = spearman_correlation([1, 2, 2, 4, 5], [2, 1, 4, 3, 5])
     assert -1.0 <= rho <= 1.0
     assert rho == rho  # not NaN
 
 
 def test_spearman_correlation_too_few_points_returns_nan():
-    rho, p = spearman_correlation([1, 2], [1, 2])
+    rho, _p = spearman_correlation([1, 2], [1, 2])
     assert rho != rho  # NaN
 
 
@@ -139,12 +139,12 @@ def test_mann_whitney_u_fully_separated_groups_is_significant():
 
 
 def test_mann_whitney_u_identical_distributions_is_not_significant():
-    u, p = mann_whitney_u([1, 2, 3, 4, 5], [1, 2, 3, 4, 5])
+    _u, p = mann_whitney_u([1, 2, 3, 4, 5], [1, 2, 3, 4, 5])
     assert p == pytest.approx(1.0, abs=1e-6)
 
 
 def test_mann_whitney_u_interleaved_groups_not_significant():
-    u, p = mann_whitney_u([1, 3, 5, 7, 9], [2, 4, 6, 8, 10])
+    _u, p = mann_whitney_u([1, 3, 5, 7, 9], [2, 4, 6, 8, 10])
     assert p > 0.3
 
 

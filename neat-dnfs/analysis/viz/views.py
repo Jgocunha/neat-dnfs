@@ -10,6 +10,13 @@ from .parsing import _sample_evenly, compute_mutation_events, compute_partial_fi
 from .experiment import _load_experiment_runs_parsed, compute_experiment_convergence, compute_experiment_totals, compute_partial_fitness_best_only
 from .solution_record import parse_solution_blob
 
+def _clamp(v: float, lo: float, hi: float) -> float:
+    """Clamp v into [lo, hi]. Used to keep a target value carried over in session
+    state (from a previous run/experiment selection) within a widget's current
+    min/max, which are derived from the newly selected data and can be narrower."""
+    return float(min(max(v, lo), hi))
+
+
 def render_fitness_stats(
     df: pd.DataFrame,
     target_fitness: float,
@@ -464,6 +471,8 @@ def render_fitness_view(df: pd.DataFrame, gens_tuple: tuple, selected_run_path: 
         st.session_state["target_fitness_slider"] = float(st.session_state["target_fitness"])
     if "target_fitness_input" not in st.session_state:
         st.session_state["target_fitness_input"] = float(st.session_state["target_fitness"])
+    st.session_state["target_fitness_slider"] = _clamp(st.session_state["target_fitness_slider"], slider_min, slider_max)
+    st.session_state["target_fitness_input"] = _clamp(st.session_state["target_fitness_input"], slider_min, slider_max)
 
     def _sync_target_from_slider():
         st.session_state["target_fitness_input"] = st.session_state["target_fitness_slider"]
@@ -545,6 +554,7 @@ def render_fitness_view(df: pd.DataFrame, gens_tuple: tuple, selected_run_path: 
                             bound_vals += [partial_df[avg_col].min(), partial_df[avg_col].max()]
                         col_min = float(min(bound_vals + [0.0]))
                         col_max = float(max(bound_vals + [1.0]))
+                        partial_targets[comp] = _clamp(partial_targets[comp], col_min, col_max)
 
                         with c:
                             st.markdown(f"**partial {comp}**")
@@ -1474,6 +1484,7 @@ def render_experiment_view(base_dir_str: str):
             for idx, comp in enumerate(sorted(partial_targets.keys())):
                 with cols[idx % len(cols)]:
                     col_min, col_max = comp_bounds.get(comp, (-10.0, 10.0))
+                    partial_targets[comp] = _clamp(partial_targets[comp], col_min, col_max)
                     partial_targets[comp] = float(
                         st.number_input(
                             f"Target p{comp}",

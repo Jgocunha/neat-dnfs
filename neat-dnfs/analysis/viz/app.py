@@ -224,9 +224,10 @@ def main():
                     )
                 st.session_state["run_export_path"] = md_path
                 st.session_state["run_export_content"] = Path(md_path).read_text(encoding="utf-8")
+                st.session_state["run_export_source"] = selected_run_path
                 st.toast(f"Run summary exported to {md_path}", icon="✅")
 
-            if "run_export_content" in st.session_state:
+            if st.session_state.get("run_export_source") == selected_run_path:
                 st.download_button(
                     "Download run .md",
                     data=st.session_state["run_export_content"],
@@ -253,9 +254,10 @@ def main():
                     )
                 st.session_state["experiment_export_path"] = md_path
                 st.session_state["experiment_export_content"] = Path(md_path).read_text(encoding="utf-8")
+                st.session_state["experiment_export_source"] = str(selected_experiment_dir)
                 st.toast(f"Experiment summary exported to {md_path}", icon="✅")
 
-            if "experiment_export_content" in st.session_state:
+            if st.session_state.get("experiment_export_source") == str(selected_experiment_dir):
                 st.download_button(
                     "Download experiment .md",
                     data=st.session_state["experiment_export_content"],

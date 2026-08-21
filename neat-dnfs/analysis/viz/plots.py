@@ -214,22 +214,24 @@ def chart_partial_fitness_grid(partial_df: pd.DataFrame, partial_targets: dict):
                         ],
                     )
                 )
-                target_rule = (
-                    alt.Chart(pd.DataFrame({"target": [target]}))
-                    .mark_rule(strokeDash=[4, 4], color=COLOR_TARGET)
-                    .encode(y="target:Q")
-                )
-                layers = [line, target_rule]
-
-                reached = partial_df[partial_df[best_col] >= target]
-                if not reached.empty:
-                    row = reached.iloc[0]
-                    reached_df = pd.DataFrame({"gen_display": [row["generation"] + 1], "fitness": [row[best_col]]})
-                    layers.append(
-                        alt.Chart(reached_df)
-                        .mark_point(shape="circle", size=70, filled=True, color=COLOR_SUCCESS)
-                        .encode(x="gen_display:Q", y="fitness:Q", tooltip=[alt.Tooltip("gen_display:Q", title="target reached at gen")])
+                layers = [line]
+                if target is not None:
+                    target_rule = (
+                        alt.Chart(pd.DataFrame({"target": [float(target)]}))
+                        .mark_rule(strokeDash=[4, 4], color=COLOR_TARGET)
+                        .encode(y="target:Q")
                     )
+                    layers.append(target_rule)
+
+                    reached = partial_df[partial_df[best_col] >= target]
+                    if not reached.empty:
+                        row = reached.iloc[0]
+                        reached_df = pd.DataFrame({"gen_display": [row["generation"] + 1], "fitness": [row[best_col]]})
+                        layers.append(
+                            alt.Chart(reached_df)
+                            .mark_point(shape="circle", size=70, filled=True, color=COLOR_SUCCESS)
+                            .encode(x="gen_display:Q", y="fitness:Q", tooltip=[alt.Tooltip("gen_display:Q", title="target reached at gen")])
+                        )
 
                 chart = alt.layer(*layers).properties(title=f"partial fitness {comp_index}", height=180)
                 st.altair_chart(chart, width="stretch")

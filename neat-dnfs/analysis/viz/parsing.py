@@ -411,15 +411,46 @@ def _scan_run_statistics_uncached(run_dir_str: str, generations: tuple):
     return partial_df, mut_df, dist_df
 
 
+_STATS_GEN_FILE_RE = re.compile(r"^generation_(\d+)\.txt$")
+
+
+def _all_statistics_generations(stats_dir: Path) -> tuple:
+    """Every 0-based generation that has a statistics/generation_X.txt file, sorted."""
+    if not stats_dir.exists():
+        return ()
+    gens = []
+    for p in stats_dir.glob("generation_*.txt"):
+        m = _STATS_GEN_FILE_RE.match(p.name)
+        if m:
+            gens.append(int(m.group(1)) - 1)
+    return tuple(sorted(gens))
+
+
+def _filter_scan_result(partial_df, mut_df, dist_df, generations: tuple):
+    gen_set = set(generations)
+    if partial_df is not None and not partial_df.empty:
+        partial_df = partial_df[partial_df["generation"].isin(gen_set)].reset_index(drop=True)
+    if not mut_df.empty:
+        mut_df = mut_df[mut_df["generation"].isin(gen_set)].reset_index(drop=True)
+    if not dist_df.empty:
+        dist_df = dist_df[dist_df["generation"].isin(gen_set)].reset_index(drop=True)
+    return partial_df, mut_df, dist_df
+
+
 def _scan_run_statistics_disk_cached(run_dir_str: str, generations: tuple):
     """Persistent-cache-aware wrapper around _scan_run_statistics_uncached.
 
-    Cache lives in <run_dir>/.viz_cache/, fingerprinted on statistics/generation_*.txt
-    (count/size/mtime). Falls back to a full recompute on any cache miss or error.
+    Always scans (and caches) every generation present in statistics/, fingerprinted only
+    on that directory (count/size/mtime) -- not on the requested `generations` -- then
+    filters the result down to the requested generations before returning. This is what
+    lets changing the displayed generation range reuse the same persisted scan instead of
+    invalidating it (and it also means the cache can never serve a request for generations
+    it doesn't actually contain). Falls back to a full recompute on any cache miss or error.
     """
     run_dir = Path(run_dir_str)
+    stats_dir = run_dir / "statistics"
     cache_dir = _run_cache_dir(run_dir)
-    fp = _fingerprint_dir(run_dir / "statistics", "generation_*.txt")
+    fp = _fingerprint_dir(stats_dir, "generation_*.txt")
     meta_path = cache_dir / "statistics_scan.meta.json"
     meta = _disk_cache_read_json(meta_path)
 
@@ -432,10 +463,11 @@ def _scan_run_statistics_disk_cached(run_dir_str: str, generations: tuple):
         )
         dist_df = _disk_cache_read_df(cache_dir / "statistics_scan.dist.parquet")
         if mut_df is not None and dist_df is not None:
-            return partial_df, mut_df, dist_df
+            return _filter_scan_result(partial_df, mut_df, dist_df, generations)
         # cache partially unreadable -> fall through to recompute
 
-    partial_df, mut_df, dist_df = _scan_run_statistics_uncached(run_dir_str, generations)
+    all_generations = _all_statistics_generations(stats_dir)
+    partial_df, mut_df, dist_df = _scan_run_statistics_uncached(run_dir_str, all_generations)
 
     _disk_cache_write_df(mut_df, cache_dir / "statistics_scan.mut.parquet")
     _disk_cache_write_df(dist_df, cache_dir / "statistics_scan.dist.parquet")
@@ -443,7 +475,7 @@ def _scan_run_statistics_disk_cached(run_dir_str: str, generations: tuple):
         _disk_cache_write_df(partial_df, cache_dir / "statistics_scan.partial.parquet")
     _disk_cache_write_json(meta_path, {"fingerprint": fp, "has_partial": partial_df is not None})
 
-    return partial_df, mut_df, dist_df
+    return _filter_scan_result(partial_df, mut_df, dist_df, generations)
 
 
 @st.cache_data
@@ -832,8 +864,8 @@ def compute_population_kernel_usage(
     A run can have 1000 solutions x 200 generations = 200k genome files, so this
     samples: every `gen_step`-th generation, and at most `max_solutions_per_gen`
     evenly-spaced solutions within each sampled generation. Both are part of the
-    cache key (and the disk-cache fingerprint), so changing them re-samples rather
-    than silently reusing a differently-sampled result.
+    in-memory `@st.cache_data` key, so changing them re-samples rather than silently
+    reusing a differently-sampled result. This result is not persisted to disk.
 
     Returns:
       df_usage: DataFrame with columns

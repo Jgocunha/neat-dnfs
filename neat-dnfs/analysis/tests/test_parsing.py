@@ -282,6 +282,34 @@ def test_compute_population_distributions_and_partial_fitness_share_one_scan(tmp
     assert partial_df.loc[0, "best_p1"] == pytest.approx(0.7)
 
 
+def test_scan_run_statistics_disk_cache_survives_a_wider_generation_request(tmp_path):
+    # Regression test: the persisted disk cache under .viz_cache/ used to be fingerprinted
+    # only on the statistics/ directory, not on the requested generation range. A narrow
+    # request that populated the cache would then be served, unfiltered, to a later wider
+    # request for the same (unchanged) statistics/ directory -- silently truncating results.
+    run_dir = tmp_path / "run"
+    stats_dir = run_dir / "statistics"
+    stats_dir.mkdir(parents=True)
+
+    fields = [(1, "INPUT"), (2, "INPUT"), (3, "OUTPUT")]
+    conns = [(1, 3, 0, True)]
+    for gen0, fitness in enumerate([0.1, 0.2, 0.3]):
+        _write_solution_line(stats_dir / f"generation_{gen0 + 1}.txt", gen0, fitness, 1, (0, 0), fields, conns)
+
+    # First call with a narrow range populates the persisted .viz_cache/ sidecar.
+    narrow_df = compute_partial_fitness(str(run_dir), (0,))
+    assert sorted(narrow_df["generation"].tolist()) == [0]
+    assert (run_dir / ".viz_cache" / "statistics_scan.meta.json").exists()
+
+    # A wider request against the same, unchanged statistics/ directory must see every
+    # generation, not just the ones covered by the first (narrower) request.
+    wide_df = compute_partial_fitness(str(run_dir), (0, 1, 2))
+    assert sorted(wide_df["generation"].tolist()) == [0, 1, 2]
+
+    dist_df = compute_population_distributions(str(run_dir), (0, 1, 2))
+    assert sorted(dist_df["generation"].unique().tolist()) == [0, 1, 2]
+
+
 def _species_line(sid, members, champ_id, champ_fitness, extinct="no"):
     champ_blob = (
         f"solution {champ_id} [ fit.: {champ_fitness}, part.: ({champ_fitness},), spec.: {sid}, "
