@@ -344,10 +344,20 @@ TEST_CASE("No Crossover: control - crossover enabled produces genuine mixing", "
 
     const auto parentA = std::make_shared<AND>(makeTopology(2, 1));
     parentA->initialize();
+
+    // Deterministic divergence: seed every legal connection instead of relying on
+    // rare addConnectionGeneProbability mutations. FieldGene::operator==/
+    // ConnectionGene::operator== compare only (type, id) and innovationNumber, not
+    // mutated kernel/neural-field values, so "genuine mixing" here can only be
+    // observed through the connection-gene set. A 50x-mutate() divergence
+    // occasionally leaves parentB with only 0 or 1 of AND's 2 legal connections
+    // instead of both, making a genuine partial mix structurally impossible for
+    // the whole trial batch below -- see the identical seeding idiom in the
+    // "No Speciation" test above for the same reasoning.
+    AblationConstants::seedAllLegalConnections = true;
     const auto parentB = std::make_shared<AND>(makeTopology(2, 1));
     parentB->initialize();
-    for (int i = 0; i < 50; ++i)
-        parentB->mutate();
+    AblationConstants::seedAllLegalConnections = false;
 
     REQUIRE_FALSE(parentA->hasTheSameGenome(parentB));
 
