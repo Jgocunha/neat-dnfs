@@ -88,6 +88,7 @@ set(header
         "include/neat_tools/utils.h"
         "include/neat_tools/key_listener.h"
         "include/neat_tools/config_loader.h"
+        "include/neat_tools/solution_registry.h"
 
         "include/constants.h"
 )
@@ -112,6 +113,7 @@ set(src
 
         "src/neat_tools/logger.cpp"
         "src/neat_tools/config_loader.cpp"
+        "src/neat_tools/solution_registry.cpp"
 )
 
 # Library target definition
@@ -190,7 +192,7 @@ install(EXPORT ${CMAKE_PROJECT_NAME}Targets DESTINATION ${NEAT_DNFS_CMAKE_CONFIG
 
 # Main executable
 set(EXE_PROJECT_EXAMPLE neat-dnfs-evol)
-add_executable(${EXE_PROJECT_EXAMPLE} "apps/neat_dnfs_evol.cpp" "apps/solution_registry.cpp")
+add_executable(${EXE_PROJECT_EXAMPLE} "apps/neat_dnfs_evol.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
 target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         imgui::imgui
@@ -201,7 +203,7 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
 
 # Incremental evolution executable
 set(EXE_PROJECT_EXAMPLE neat-dnfs-inc-evol)
-add_executable(${EXE_PROJECT_EXAMPLE} "apps/neat_dnfs_incremental_evolution.cpp" "apps/solution_registry.cpp")
+add_executable(${EXE_PROJECT_EXAMPLE} "apps/neat_dnfs_incremental_evolution.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
 target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         imgui::imgui
@@ -212,7 +214,7 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
 
 # Solution evaluation executable
 set(EXE_PROJECT_EXAMPLE neat-dnfs-sol-eval)
-add_executable(${EXE_PROJECT_EXAMPLE} "apps/neat_dnfs_solution_evaluation.cpp" "apps/solution_registry.cpp")
+add_executable(${EXE_PROJECT_EXAMPLE} "apps/neat_dnfs_solution_evaluation.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
 target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         imgui::imgui
