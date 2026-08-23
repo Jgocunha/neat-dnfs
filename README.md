@@ -141,6 +141,9 @@ cmake --build . --config Release
 
 ## Usage
 
+> **New here?** [HOW-TO.md](HOW-TO.md) is the practical guide: running experiments and
+> ablations, and which config files to edit to change hyperparameters.
+
 ### Basic Example
 
 ```cpp
