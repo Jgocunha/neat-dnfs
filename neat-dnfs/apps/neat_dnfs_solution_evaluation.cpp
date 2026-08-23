@@ -8,9 +8,10 @@
 #include <dnf_composer/simulation/simulation_file_manager.h>
 #include <dnf_composer/tools/logger.h>
 
+#include "neat_tools/config_loader.h"
 #include "neat/population.h"
 #include "neat_tools/logger.h"
-#include "solution_registry.h"
+#include "neat_tools/solution_registry.h"
 
 int main(int argc, char* argv[])
 {
@@ -18,7 +19,6 @@ int main(int argc, char* argv[])
 	{
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
-		using namespace neat_dnfs::examples;
 
 		const CliOptions opts = parseCliOptions(argc, argv);
 		if (opts.helpRequested)
@@ -40,6 +40,8 @@ int main(int argc, char* argv[])
 			printTaskAndAblationList(std::cerr);
 			return 1;
 		}
+
+		ConfigLoader::loadConfig(opts.config.value_or(ConfigLoader::defaultGlobalConfigPath()), std::string(task->slug));
 
 		// load a previous solution
 		const std::string templatePath = opts.templateFile.value_or(

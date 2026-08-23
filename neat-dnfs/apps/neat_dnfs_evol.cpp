@@ -7,11 +7,12 @@
 #include "dnf_composer/application/application.h"
 #include <dnf_composer/tools/logger.h>
 
+#include "neat_tools/config_loader.h"
 #include "neat/population.h"
-#include "neat/ablation_presets.h"
+#include "neat_tools/ablation_presets.h"
 #include "neat_tools/logger.h"
 #include "neat_tools/key_listener.h"
-#include "solution_registry.h"
+#include "neat_tools/solution_registry.h"
 
 int main(int argc, char* argv[])
 {
@@ -19,7 +20,6 @@ int main(int argc, char* argv[])
 	{
 		dnf_composer::tools::logger::Logger::setMinLogLevel(dnf_composer::tools::logger::LogLevel::ERROR);
 		using namespace neat_dnfs;
-		using namespace neat_dnfs::examples;
 
 		const CliOptions opts = parseCliOptions(argc, argv);
 		if (opts.helpRequested)
@@ -42,6 +42,8 @@ int main(int argc, char* argv[])
 			return 1;
 		}
 
+		ConfigLoader::loadConfig(opts.config.value_or(ConfigLoader::defaultGlobalConfigPath()), std::string(task->slug));
+
 		if (opts.ablation && !AblationPresets::applyByName(*opts.ablation))
 		{
 			std::cerr << "Unknown ablation '" << *opts.ablation << "'.\n";
@@ -51,10 +53,10 @@ int main(int argc, char* argv[])
 
 		const SolutionTopology topology = defaultTopologyFor(*task);
 
-		const int numberRuns = opts.runs.value_or(50);
-		const int populationSize = opts.populationSize.value_or(1000);
-		const int numberGenerations = opts.numGenerations.value_or(200);
-		const double targetFitness = opts.targetFitness.value_or(0.95);
+		const int numberRuns = opts.runs.value_or(SolutionConstants::numberRuns);
+		const int populationSize = opts.populationSize.value_or(SolutionConstants::populationSize);
+		const int numberGenerations = opts.numGenerations.value_or(SolutionConstants::numberGenerations);
+		const double targetFitness = opts.targetFitness.value_or(SolutionConstants::targetFitness);
 
 		for (int i = 0; i < numberRuns; i++)
 		{
