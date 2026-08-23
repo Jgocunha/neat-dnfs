@@ -6,6 +6,7 @@ namespace neat_dnfs
 		: Solution(topology)
 	{
 		name = "Inhibition of Return";
+		loadFitnessWeights("ior", 5);
 	}
 
 	InhibitionOfReturn::InhibitionOfReturn(const SolutionTopology& initialTopology,
@@ -13,6 +14,7 @@ namespace neat_dnfs
 		: Solution(initialTopology, phenotype)
 	{
 		name = "Inhibition of Return";
+		loadFitnessWeights("ior", 5);
 	}
 
 	SolutionPtr InhibitionOfReturn::clone() const
@@ -35,11 +37,10 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
-		static constexpr int iterations = SimulationConstants::maxSimulationSteps;
+		const int iterations = SimulationConstants::maxSimulationSteps;
 		parameters.partialFitness.clear();
 
 		static constexpr double left = 20.0;
-		static constexpr double right = 80.0;
 
 		// cue activates spatial location
 		initSimulation();
@@ -72,13 +73,9 @@ namespace neat_dnfs
 		const double f5 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", left, 6.0, 10.0);
 		parameters.partialFitness.push_back(f5);
 
-		static constexpr double wf1 = 0.15;
-		static constexpr double wf2 = 0.20;
-		static constexpr double wf3 = 0.15;
-		static constexpr double wf4 = 0.30;
-		static constexpr double wf5 = 0.20;
+		const auto& w = fitnessWeights;
 
-		parameters.fitness = wf1 * f1 + wf2 * f2 + wf3 * f3 + wf4 * f4 + wf5 * f5;
+		parameters.fitness = w[0] * f1 + w[1] * f2 + w[2] * f3 + w[3] * f4 + w[4] * f5;
 	}
 
 	void InhibitionOfReturn::createPhenotypeEnvironment()

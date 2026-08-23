@@ -7,12 +7,14 @@ namespace neat_dnfs
 		: Solution(topology)
 	{
 		name = "Memory Trace";
+		loadFitnessWeights("memory-trace", 8);
 	}
 
 	MemoryTrace::MemoryTrace(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
 		: Solution(initialTopology, phenotype)
 	{
 		name = "Memory Trace";
+		loadFitnessWeights("memory-trace", 8);
 	}
 
 	SolutionPtr MemoryTrace::clone() const
@@ -36,7 +38,7 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 	    parameters.fitness = 0.0;
 	    parameters.partialFitness.clear();
-		static constexpr int iterations = SimulationConstants::maxSimulationSteps;
+		const int iterations = SimulationConstants::maxSimulationSteps;
 
 		static constexpr double posA = 20.0;
 		static constexpr double posB = 80.0;
@@ -95,16 +97,9 @@ namespace neat_dnfs
 		const double f10 = noBumps("nf 3");
 		parameters.partialFitness.push_back(f10);
 
-		static constexpr double wf1 =  1 / 8.f;
-		static constexpr double wf2 =  1 / 8.f;
-		static constexpr double wf5 =  1 / 8.f;
-		static constexpr double wf6 =  1 / 8.f;
-		static constexpr double wf7 =  1 / 8.f;
-		static constexpr double wf8 =  1 / 8.f;
-		static constexpr double wf9 =  1 / 8.f;
-		static constexpr double wf10 = 1 / 8.f;
+		const auto& w = fitnessWeights;
 
-		parameters.fitness = wf1 * f1 + wf2 * f2 + wf5 * f5 + wf6 * f6 + wf7 * f7 + wf8 * f8 + wf9 * f9 + wf10 * f10;
+		parameters.fitness = w[0] * f1 + w[1] * f2 + w[2] * f5 + w[3] * f6 + w[4] * f7 + w[5] * f8 + w[6] * f9 + w[7] * f10;
 	}
 
 	void MemoryTrace::createPhenotypeEnvironment()

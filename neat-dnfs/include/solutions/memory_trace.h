@@ -17,5 +17,3 @@ namespace neat_dnfs
 		void createPhenotypeEnvironment() override;
 	};
 }
-
-

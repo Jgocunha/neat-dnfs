@@ -89,6 +89,11 @@ namespace neat_dnfs
 		dnf_composer::Simulation phenotype;
 		Genome genome;
 		std::tuple <int, int> parents;
+		/// This solution's own copy of SolutionConstants::fitnessWeights, taken
+		/// at construction. Held per instance rather than read from the global so
+		/// that two solution types alive at once -- as in the test binary, where
+		/// weight counts differ per task -- cannot read each other's weights.
+		std::vector<double> fitnessWeights;
 	public:
 		virtual ~Solution() = default;
 
@@ -191,6 +196,13 @@ namespace neat_dnfs
 	protected:
 		/// @brief Run the simulation and write the result into @c parameters.fitness. Called by @c evaluate().
 		virtual void testPhenotype() = 0;
+
+		/// @brief Fills @c fitnessWeights from config/solutions/<slug>.json.
+		/// Every subclass constructor calls this with its task slug and the number
+		/// of partial-fitness terms its testPhenotype() combines, so a config with
+		/// the wrong number of weights fails loudly instead of misweighting the
+		/// fitness or reading out of bounds.
+		void loadFitnessWeights(const std::string& slug, size_t expectedCount);
 
 		void initSimulation();
 		void stopSimulation();

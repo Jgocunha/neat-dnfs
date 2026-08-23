@@ -1,6 +1,7 @@
 #include <utility>
 
 #include "neat/solution.h"
+#include "neat_tools/config_loader.h"
 #include <format>
 #include <limits>
 #include <cmath>
@@ -44,6 +45,11 @@ namespace neat_dnfs
 		translatePhenotypeToGenome();
 		clearPhenotype();
 		this->phenotype = dnf_composer::Simulation(std::format("{}{}", SimulationConstants::name, id), SimulationConstants::deltaT);
+	}
+
+	void Solution::loadFitnessWeights(const std::string& slug, const size_t expectedCount)
+	{
+		fitnessWeights = ConfigLoader::loadFitnessWeights(slug, expectedCount);
 	}
 
 	void Solution::evaluate()
@@ -946,7 +952,7 @@ namespace neat_dnfs
 			minDistance = std::min(minDistance, std::abs(bump.centroid - p));
 		}
 
-		constexpr double epsilon = static_cast<double>(DimensionConstants::xSize) / 20;
+		const double epsilon = static_cast<double>(DimensionConstants::xSize) / 20;
 
 		// If the bump is not near any allowed position, do NOT give the big reward.
 		if (minDistance >= epsilon) {
