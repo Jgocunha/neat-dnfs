@@ -3,6 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <dnf_composer/tools/logger.h>
 
+#include "neat_tools/config_loader.h"
 #include "neat/population.h"
 
 // dnf_composer's logger writes to shared global output without synchronisation.
@@ -24,6 +25,13 @@ namespace
 			dnf_composer::tools::logger::Logger::setMinLogLevel(
 				dnf_composer::tools::logger::LogLevel::ERROR);
 			neat_dnfs::Population::setDefaultValidationPolicy(neat_dnfs::ValidationPolicy::Throw);
+
+			// The values in constants.h are loaded from config/neat_dnfs.json at
+			// startup and have no compiled-in defaults. Tests never go through
+			// apps/'s main(), so without this every test would silently run with
+			// xSize == 0 and every probability at 0.0 rather than failing loudly.
+			neat_dnfs::ConfigLoader::loadGlobalConfig(
+				neat_dnfs::ConfigLoader::defaultGlobalConfigPath());
 		}
 	};
 	const DnfComposerLogLevelInitializer dnfComposerLogLevelInitializer;

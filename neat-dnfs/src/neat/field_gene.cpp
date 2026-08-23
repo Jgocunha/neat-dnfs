@@ -122,7 +122,7 @@ namespace neat_dnfs
 
 	void FieldGene::mutate()
 	{
-		static constexpr double totalProbability = FieldGeneConstants::mutateFieldGeneKernelProbability +
+		const double totalProbability = FieldGeneConstants::mutateFieldGeneKernelProbability +
 			FieldGeneConstants::mutateFieldGeneNeuralFieldProbability +
 			FieldGeneConstants::mutateFieldGeneKernelTypeProbability;
 
@@ -233,8 +233,8 @@ namespace neat_dnfs
 		}
 		else
 		{
-			constexpr double tau = NeuralFieldConstants::tau;
-			constexpr double restingLevel = NeuralFieldConstants::restingLevel;
+			const double tau = NeuralFieldConstants::tau;
+			const double restingLevel = NeuralFieldConstants::restingLevel;
 			const NeuralFieldParameters nfp{ tau, restingLevel, NeuralFieldConstants::activationFunction };
 			const ElementCommonParameters nfcp{ std::format("{}{}", NeuralFieldConstants::namePrefix, parameters.id), dimensions };
 			neuralField = std::make_shared<NeuralField>(nfcp, nfp);
@@ -245,7 +245,7 @@ namespace neat_dnfs
 	{
 		using namespace neat_dnfs::tools::utils;
 
-		static constexpr double totalProbability = FieldGeneConstants::gaussKernelProbability +
+		const double totalProbability = FieldGeneConstants::gaussKernelProbability +
 			FieldGeneConstants::mexicanHatKernelProbability;
 
 		constexpr double epsilon = 1e-6;
@@ -287,9 +287,9 @@ namespace neat_dnfs
 		}
 		else
 		{
-			constexpr double width = GaussKernelConstants::width;
-			constexpr double amplitude = GaussKernelConstants::amplitude;
-			constexpr double amplitudeGlobal = GaussKernelConstants::amplitudeGlobal;
+			const double width = GaussKernelConstants::width;
+			const double amplitude = GaussKernelConstants::amplitude;
+			const double amplitudeGlobal = GaussKernelConstants::amplitudeGlobal;
 			const GaussKernelParameters gkp{ width, amplitude, amplitudeGlobal,
 										KernelConstants::circularity,
 										KernelConstants::normalization
@@ -443,7 +443,7 @@ namespace neat_dnfs
 
 		const auto dimensions = neuralField->getElementCommonParameters().dimensionParameters;
 
-		constexpr double totalProbability = FieldGeneConstants::gaussKernelProbability +
+		const double totalProbability = FieldGeneConstants::gaussKernelProbability +
 			FieldGeneConstants::mexicanHatKernelProbability;
 
 		constexpr double epsilon = 1e-6;
@@ -468,7 +468,7 @@ namespace neat_dnfs
 
 	void FieldGene::mutateNeuralField()
 	{
-		static constexpr double totalProbability = FieldGeneConstants::mutateFieldGeneNeuralFieldParametersProbability +
+		const double totalProbability = FieldGeneConstants::mutateFieldGeneNeuralFieldParametersProbability +
 			FieldGeneConstants::mutateFieldGeneNeuralFieldGenerateRandomParametersProbability;
 
 		constexpr double epsilon = 1e-6;

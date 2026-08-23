@@ -87,6 +87,7 @@ set(header
         "include/neat_tools/logger.h"
         "include/neat_tools/utils.h"
         "include/neat_tools/key_listener.h"
+        "include/neat_tools/config_loader.h"
 
         "include/constants.h"
 )
@@ -110,6 +111,7 @@ set(src
         "src/solutions/xor.cpp"
 
         "src/neat_tools/logger.cpp"
+        "src/neat_tools/config_loader.cpp"
 )
 
 # Library target definition
@@ -131,6 +133,7 @@ find_package(unofficial-imgui-node-editor CONFIG REQUIRED)
 
 # Setup nlohmann-json
 find_package(nlohmann_json CONFIG REQUIRED)
+target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC nlohmann_json::nlohmann_json)
 
 # Setup OpenGL (required on macOS/Linux to satisfy imgui-platform-kit's exported link interface)
 if(NOT WIN32)

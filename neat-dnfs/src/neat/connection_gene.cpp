@@ -149,7 +149,7 @@ namespace neat_dnfs
 			throw std::runtime_error(message);
 		}
 
-		static constexpr double totalProbability = ConnectionGeneConstants::mutateConnectionGeneKernelProbability +
+		const double totalProbability = ConnectionGeneConstants::mutateConnectionGeneKernelProbability +
 			ConnectionGeneConstants::mutateConnectionGeneConnectionSignalProbability +
 			ConnectionGeneConstants::mutateConnectionGeneKernelTypeProbability;
 
@@ -312,7 +312,7 @@ namespace neat_dnfs
 	{
 		using namespace neat_dnfs::tools::utils;
 
-		static constexpr double totalProbability = ConnectionGeneConstants::gaussKernelProbability +
+		const double totalProbability = ConnectionGeneConstants::gaussKernelProbability +
 			ConnectionGeneConstants::mexicanHatKernelProbability;
 
 		constexpr double epsilon = 1e-6;
@@ -343,9 +343,9 @@ namespace neat_dnfs
 		constexpr double amplitudeGlobal = 0.0;
 		const GaussKernelParameters gkp{ width,
 										amplitude,
-											amplitudeGlobal,
-									KernelConstants::circularity,
-									KernelConstants::normalization
+										amplitudeGlobal,
+										KernelConstants::circularity,
+										KernelConstants::normalization
 		};
 		const std::string elementName = std::format("{}{}-{} {}",
                                                 GaussKernelConstants::namePrefixConnectionGene,
@@ -407,7 +407,7 @@ namespace neat_dnfs
 
 		const auto dimensions = kernel->getElementCommonParameters().dimensionParameters;
 
-		constexpr double totalProbability = FieldGeneConstants::gaussKernelProbability +
+		const double totalProbability = FieldGeneConstants::gaussKernelProbability +
 			FieldGeneConstants::mexicanHatKernelProbability;
 
 		constexpr double epsilon = 1e-6;

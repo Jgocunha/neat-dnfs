@@ -2,6 +2,7 @@
 
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <elements/element_factory.h>
 
@@ -15,55 +16,74 @@ namespace neat_dnfs
 	using FieldCouplingPtr = std::shared_ptr<dnf_composer::element::FieldCoupling>;
 	using NormalNoisePtr = std::shared_ptr<dnf_composer::element::NormalNoise>;
 
+	// Every tunable value below is declared without an initializer and is
+	// populated at startup by ConfigLoader from config/neat_dnfs.json, with any
+	// per-experiment overrides from config/solutions/<task>.json merged over it
+	// (see include/neat_tools/config_loader.h). There are
+	// deliberately no compiled-in fallbacks: a missing config file or key is a
+	// hard startup error, so a run can never silently use a value that is not
+	// recorded in the config it was launched with.
+	//
+	// The name/namePrefix string_views are the exception and stay compile-time.
+	// They are not tuning knobs: they build element unique names via
+	// std::format and are parsed back with starts_with/substr in solution.cpp,
+	// and every file in templates/ and data/ hardcodes the strings they
+	// produce ("nf 1", "gk 1", ...). Making them configurable would let a
+	// config desync from that corpus with nothing to catch it.
+
 	/// @brief Global simulation timing and step-count limits.
 	struct SimulationConstants
 	{
-		static constexpr std::string_view name			= "solution ";
-		static constexpr double deltaT				= 1;
-		static constexpr size_t maxSimulationSteps	= 500;
+		static constexpr std::string_view name		= "solution ";
+		inline static double deltaT;
+		inline static size_t maxSimulationSteps;
 	};
 
 	struct DimensionConstants
 	{
-		static constexpr int xSize = 100;
-		static constexpr double dx = 1.0;
+		inline static int xSize;
+		inline static double dx;
 	};
 
 	struct NoiseConstants
 	{
 		static constexpr std::string_view namePrefix	= "nn ";
-		static constexpr double amplitude		= 0.010;
+		inline static double amplitude;
 	};
 
 	struct GaussStimulusConstants
 	{
 		static constexpr std::string_view namePrefix	= "gs ";
-		static constexpr double width			= 5.0;
-		static constexpr double amplitude		= 20.0;
-		static constexpr bool circularity		= true;
-		static constexpr bool normalization		= false;
+		inline static double width;
+		inline static double amplitude;
+		inline static bool circularity;
+		inline static bool normalization;
 	};
 
 	struct NeuralFieldConstants
 	{
 		static constexpr std::string_view namePrefix	= "nf ";
-		static constexpr double tau					= 100;
-		static constexpr double restingLevel		= -10;
-		inline static const dnf_composer::element::SigmoidFunction activationFunction{0.0, 5.0};
+		inline static double tau;
+		inline static double restingLevel;
+		// SigmoidFunction has no default constructor, so an initialiser is
+		// required here. These placeholder numbers are not defaults: both
+		// members are overwritten from config/neat_dnfs.json before first use,
+		// and a failed load throws rather than leaving them in place.
+		inline static dnf_composer::element::SigmoidFunction activationFunction{ 0.0, 0.0 };
 
-		static constexpr double tauMinVal			= 1.0;
-		static constexpr double tauMaxVal			= 200.0;
-		static constexpr double tauStep				= 15.0;
+		inline static double tauMinVal;
+		inline static double tauMaxVal;
+		inline static double tauStep;
 
-		static constexpr double restingLevelMinVal	= -15.0;
-		static constexpr double restingLevelMaxVal	= -1.0;
-		static constexpr double restingLevelStep	= 0.5;
+		inline static double restingLevelMinVal;
+		inline static double restingLevelMaxVal;
+		inline static double restingLevelStep;
 	};
 
 	struct KernelConstants
 	{
-		static constexpr bool circularity	= true;
-		static constexpr bool normalization = true;
+		inline static bool circularity;
+		inline static bool normalization;
 	};
 
 	struct GaussKernelConstants
@@ -71,21 +91,21 @@ namespace neat_dnfs
 		static constexpr std::string_view namePrefix				= "gk ";
 		static constexpr std::string_view namePrefixConnectionGene	= "gk cg ";
 
-		static constexpr double width			= 2.00;
-		static constexpr double amplitude		= 8.00;
-		static constexpr double amplitudeGlobal = -0.01;
+		inline static double width;
+		inline static double amplitude;
+		inline static double amplitudeGlobal;
 
-		static constexpr double widthMinVal		= 1.00;
-		static constexpr double widthMaxVal		= 10.0;
-		static constexpr double widthStep		= 0.50;
+		inline static double widthMinVal;
+		inline static double widthMaxVal;
+		inline static double widthStep;
 
-		static constexpr double ampMinVal		= 3.00;
-		static constexpr double ampMaxVal		= 30.0;
-		static constexpr double ampStep			= 0.50;
+		inline static double ampMinVal;
+		inline static double ampMaxVal;
+		inline static double ampStep;
 
-		static constexpr double ampGlobalMinVal = -0.2;
-		static constexpr double ampGlobalMaxVal = 0.00;
-		static constexpr double ampGlobalStep	= 0.05;
+		inline static double ampGlobalMinVal;
+		inline static double ampGlobalMaxVal;
+		inline static double ampGlobalStep;
 	};
 
 	struct MexicanHatKernelConstants
@@ -93,51 +113,52 @@ namespace neat_dnfs
 		static constexpr std::string_view namePrefix				= "mhk ";
 		static constexpr std::string_view namePrefixConnectionGene	= "mhk cg ";
 
-		static constexpr double widthExc		= 2.50;
-		static constexpr double widthInh		= 5.00;
-		static constexpr double amplitudeExc	= 11.0;
-		static constexpr double amplitudeInh	= 15.0;
-		static constexpr double amplitudeGlobal = -0.01;
+		inline static double widthExc;
+		inline static double widthInh;
+		inline static double amplitudeExc;
+		inline static double amplitudeInh;
+		inline static double amplitudeGlobal;
 
-		static constexpr double widthExcMinVal	= 5.00;
-		static constexpr double widthExcMaxVal	= 30.0;
-		static constexpr double widthExcStep	= 0.50;
+		inline static double widthExcMinVal;
+		inline static double widthExcMaxVal;
+		inline static double widthExcStep;
 
-		static constexpr double widthInhMinVal	= 5.00;
-		static constexpr double widthInhMaxVal	= 35.0;
-		static constexpr double widthInhStep	= 0.50;
+		inline static double widthInhMinVal;
+		inline static double widthInhMaxVal;
+		inline static double widthInhStep;
 
-		static constexpr double ampExcMinVal	= 15.0;
-		static constexpr double ampExcMaxVal	= 25.0;
-		static constexpr double ampExcStep		= 0.50;
+		inline static double ampExcMinVal;
+		inline static double ampExcMaxVal;
+		inline static double ampExcStep;
 
-		static constexpr double ampInhMinVal	= 1.00;
-		static constexpr double ampInhMaxVal	= 35.0;
-		static constexpr double ampInhStep		= 0.50;
+		inline static double ampInhMinVal;
+		inline static double ampInhMaxVal;
+		inline static double ampInhStep;
 
-		static constexpr double ampGlobMin		= -0.20;
-		static constexpr double ampGlobMax		= 0.000;
-		static constexpr double ampGlobStep 	= 0.05;
+		inline static double ampGlobMin;
+		inline static double ampGlobMax;
+		inline static double ampGlobStep;
 	};
 
 	/// @brief Per-mechanism overrides for ablation studies (issue #76). Unlike the
 	/// other constant blocks in this file, these are runtime-mutable: a preset in
 	/// AblationPresets sets them once before Population::initialize(), and they are
 	/// only read (never written) during Population::evolve(), so parallel
-	/// evaluation is unaffected. AblationPresets::reset() (called by callers, e.g.
-	/// AblationConstants::reset()) restores every field to its default.
+	/// evaluation is unaffected. AblationConstants::reset() restores every preset-set
+	/// field to its "no ablation" default; the config-loaded reference counts at the
+	/// bottom of the struct are not preset state and are deliberately left alone.
 	struct AblationConstants
 	{
 		inline static std::string label;   // appended to solution name -> data/<name>/ folder
 
-		// structural freezes (No Growth IO Only, No Growth One Hidden)
+		// structural freezes (No Growth IO Only, No Growth Reference Hidden Field Count)
 		inline static bool disableAddFieldGene      = false;
 		inline static bool disableAddConnectionGene = false;
 		inline static bool disableToggleConnectionGene = false;
 
-		// seeding (No Growth IO Only, No Growth One Hidden, Random Initial Topology)
-		inline static bool seedAllLegalConnections  = false;   // No Growth IO Only, No Growth One Hidden
-		inline static bool seedRandomHiddenFields   = false;   // No Growth One Hidden (min=max=1), Random Initial Topology (1..5)
+		// seeding (No Growth IO Only, No Growth Reference Hidden Field Count, Random Initial Topology)
+		inline static bool seedAllLegalConnections  = false;   // No Growth IO Only, No Growth Reference Hidden Field Count
+		inline static bool seedRandomHiddenFields   = false;   // No Growth Reference Hidden Field Count (min=max=reference min), Random Initial Topology (reference range)
 		inline static int  seedHiddenFieldsMin      = 0;
 		inline static int  seedHiddenFieldsMax      = 0;
 		inline static bool seedRandomConnections    = false;   // Random Initial Topology; count drawn as U[1, maxLegalConnectionCount()]
@@ -145,6 +166,14 @@ namespace neat_dnfs
 		// mechanism ablations (No Speciation, No Crossover)
 		inline static bool disableSpeciation = false;
 		inline static bool disableCrossover  = false;
+
+		// Unlike the flags above -- which default to "no ablation active" and are
+		// only set by a preset -- these two are loaded from config/neat_dnfs.json
+		// and are experiment-specific: the hidden-field count a task needs to
+		// succeed is a property of that task, not of NEAT. Presets refer to them
+		// by name rather than hardcoding a number (see config/ablations/).
+		inline static int referenceHiddenFieldsMin;
+		inline static int referenceHiddenFieldsMax;
 
 		static void reset()
 		{
@@ -166,13 +195,13 @@ namespace neat_dnfs
 	/// The distance determines whether two solutions belong to the same species.
 	struct CompatibilityCoefficients
 	{
-		static constexpr double compatibilityThreshold							= 3.5;
-		static constexpr double excessGenesCompatibilityWeight					= 1.0;
-		static constexpr double disjointGenesCompatibilityWeight				= 0.5;
-		static constexpr double averageConnectionDifferenceCompatibilityWeight	= 1.5;
+		inline static double compatibilityThreshold;
+		inline static double excessGenesCompatibilityWeight;
+		inline static double disjointGenesCompatibilityWeight;
+		inline static double averageConnectionDifferenceCompatibilityWeight;
 
-		static constexpr double amplitudeDifferenceCoefficient	= 0.05;
-		static constexpr double widthDifferenceCoefficient		= 0.05;
+		inline static double amplitudeDifferenceCoefficient;
+		inline static double widthDifferenceCoefficient;
 	};
 
 	/// @brief Probabilities governing structural and parametric genome mutations.
@@ -180,85 +209,103 @@ namespace neat_dnfs
 	{
 		// genome mutation probabilities (the sum does not have to be 1.0)
 		// structural mutations
-		static constexpr double toggleConnectionGeneProbability  = 0.01;
-		static constexpr double addFieldGeneProbability			 = 0.0005;
-		static constexpr double addConnectionGeneProbability	 = 0.15;
+		inline static double toggleConnectionGeneProbability;
+		inline static double addFieldGeneProbability;
+		inline static double addConnectionGeneProbability;
 		// parametrical mutations
-		static constexpr double mutateFieldGenesPerGenomeProbability = 0.800;
-		static constexpr double mutateConnectionGenesProbability = 0.800;
+		inline static double mutateFieldGenesPerGenomeProbability;
+		inline static double mutateConnectionGenesProbability;
 		// per gene mutation probabilities
-		static constexpr double mutateFieldGenePerGeneProbability = 0.800;
-		static constexpr double mutateConnectionGeneProbability  = 0.800;
+		inline static double mutateFieldGenePerGeneProbability;
+		inline static double mutateConnectionGeneProbability;
 
-		static constexpr bool checkForDuplicateConnectionGenesInGenome = false;
+		inline static bool checkForDuplicateConnectionGenesInGenome;
 	};
 
 	struct FieldGeneConstants
 	{
-		static constexpr bool variableParameters = true;
+		inline static bool variableParameters;
 
 		// (sum must be 1.0)
-		static constexpr double gaussKernelProbability			= 0.8;
-		static constexpr double mexicanHatKernelProbability		= 0.2;
+		inline static double gaussKernelProbability;
+		inline static double mexicanHatKernelProbability;
 
 		// field gene mutation probabilities (sum must be 1.0)
-		static constexpr double mutateFieldGeneKernelProbability			= 0.70;
-		static constexpr double mutateFieldGeneKernelTypeProbability		= 0.10;
-		static constexpr double mutateFieldGeneNeuralFieldProbability		= 0.20;
+		inline static double mutateFieldGeneKernelProbability;
+		inline static double mutateFieldGeneKernelTypeProbability;
+		inline static double mutateFieldGeneNeuralFieldProbability;
 		// field gene gauss kernel mutation probabilities (sum does not have to be 1.0)
-		static constexpr double mutateFieldGeneGaussKernelAmplitudeProbability			= 0.80;
-		static constexpr double mutateFieldGeneGaussKernelWidthProbability				= 0.60;
-		static constexpr double mutateFieldGeneGaussKernelGlobalAmplitudeProbability	= 0.20;
+		inline static double mutateFieldGeneGaussKernelAmplitudeProbability;
+		inline static double mutateFieldGeneGaussKernelWidthProbability;
+		inline static double mutateFieldGeneGaussKernelGlobalAmplitudeProbability;
 		// field gene mexican hat kernel mutation probabilities (sum does not have to be 1.0)
-		static constexpr double mutateFieldGeneMexicanHatKernelAmplitudeExcProbability		= 0.80;
-		static constexpr double mutateFieldGeneMexicanHatKernelAmplitudeInhProbability		= 0.80;
-		static constexpr double mutateFieldGeneMexicanHatKernelWidthExcProbability			= 0.60;
-		static constexpr double mutateFieldGeneMexicanHatKernelWidthInhProbability			= 0.60;
-		static constexpr double mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability	= 0.20;
+		inline static double mutateFieldGeneMexicanHatKernelAmplitudeExcProbability;
+		inline static double mutateFieldGeneMexicanHatKernelAmplitudeInhProbability;
+		inline static double mutateFieldGeneMexicanHatKernelWidthExcProbability;
+		inline static double mutateFieldGeneMexicanHatKernelWidthInhProbability;
+		inline static double mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability;
 
 		// field gene neural field mutation probabilities (sum must be 1.0)
-		static constexpr double mutateFieldGeneNeuralFieldParametersProbability					= 0.90;
-		static constexpr double mutateFieldGeneNeuralFieldGenerateRandomParametersProbability	= 0.10;
+		inline static double mutateFieldGeneNeuralFieldParametersProbability;
+		inline static double mutateFieldGeneNeuralFieldGenerateRandomParametersProbability;
 		// field gene neural field parameters mutation probabilities (sum does not have to be 1.0)
-		static constexpr double mutateFieldGeneNeuralFieldParametersTauProbability			= 0.50;
-		static constexpr double mutateFieldGeneNeuralFieldParametersRestingLevelProbability	= 0.80;
+		inline static double mutateFieldGeneNeuralFieldParametersTauProbability;
+		inline static double mutateFieldGeneNeuralFieldParametersRestingLevelProbability;
 	};
 
 	struct ConnectionGeneConstants
 	{
 		// connection gene kernel type probability (sum must be 1.0)
-		static constexpr double gaussKernelProbability			= 0.8;
-		static constexpr double mexicanHatKernelProbability		= 0.2;
+		inline static double gaussKernelProbability;
+		inline static double mexicanHatKernelProbability;
 
 		// connection gene mutation probabilities (sum must be 1.0)
-		static constexpr double mutateConnectionGeneKernelProbability			= 0.70;
-		static constexpr double mutateConnectionGeneKernelTypeProbability		= 0.05;
-		static constexpr double mutateConnectionGeneConnectionSignalProbability = 0.25;
+		inline static double mutateConnectionGeneKernelProbability;
+		inline static double mutateConnectionGeneKernelTypeProbability;
+		inline static double mutateConnectionGeneConnectionSignalProbability;
 
 		// field gene gauss kernel mutation probabilities (sum does not have to be 1.0)
-		static constexpr double mutateConnectionGeneGaussKernelAmplitudeProbability			= 0.80;
-		static constexpr double mutateConnectionGeneGaussKernelWidthProbability				= 0.60;
-		static constexpr double mutateConnectionGeneGaussKernelGlobalAmplitudeProbability	= 0.20;
+		inline static double mutateConnectionGeneGaussKernelAmplitudeProbability;
+		inline static double mutateConnectionGeneGaussKernelWidthProbability;
+		inline static double mutateConnectionGeneGaussKernelGlobalAmplitudeProbability;
 		// field gene mexican hat kernel mutation probabilities (sum does not have to be 1.0)
-		static constexpr double mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability		= 0.80;
-		static constexpr double mutateConnectionGeneMexicanHatKernelAmplitudeInhProbability		= 0.80;
-		static constexpr double mutateConnectionGeneMexicanHatKernelWidthExcProbability			= 0.60;
-		static constexpr double mutateConnectionGeneMexicanHatKernelWidthInhProbability			= 0.60;
-		static constexpr double mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability	= 0.20;
+		inline static double mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability;
+		inline static double mutateConnectionGeneMexicanHatKernelAmplitudeInhProbability;
+		inline static double mutateConnectionGeneMexicanHatKernelWidthExcProbability;
+		inline static double mutateConnectionGeneMexicanHatKernelWidthInhProbability;
+		inline static double mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability;
 	};
 
 	struct SolutionConstants
 	{
-		static constexpr uint8_t minInitialInputGenes	= 1;
-		static constexpr uint8_t minInitialOutputGenes	= 1;
+		inline static uint8_t minInitialInputGenes;
+		inline static uint8_t minInitialOutputGenes;
+
+		// The reference weighting of a solution's partial-fitness terms. Every
+		// task overrides this from its own config/solutions/<slug>.json, since
+		// the number of terms differs per task. Each Solution copies the value
+		// into an instance member at construction (see Solution::fitnessWeights)
+		// so two solution types alive at once cannot read each other's weights.
+		inline static std::vector<double> fitnessWeights;
+
+		// The run protocol. These are task properties -- how large a population
+		// and how many generations a task needs to solve, and what fitness counts
+		// as solved -- so a task overrides them in its own config. An ablation
+		// preset may override the first three to standardise the protocol across
+		// conditions; targetFitness stays a task property either way. CLI flags
+		// (--runs/--pop/--gens/--target) win over all of them.
+		inline static int populationSize;
+		inline static int numberGenerations;
+		inline static int numberRuns;
+		inline static double targetFitness;
 	};
 
 	struct PopulationConstants
 	{
-		static constexpr double pruneRatio										= 0.8;
-		static constexpr int generationsWithoutImprovementThresholdInPopulation = 10;
-		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 7;
-		static constexpr bool elitism											= true;
+		inline static double pruneRatio;
+		inline static int generationsWithoutImprovementThresholdInPopulation;
+		inline static int generationsWithoutImprovementThresholdInSpecies;
+		inline static bool elitism;
 		// Tolerance for the elitism validation check. The DNF simulation is
 		// stochastic (see NoiseConstants::amplitude), so re-evaluating the same
 		// preserved elite yields a fitness that drifts rather than being
@@ -267,17 +314,17 @@ namespace neat_dnfs
 		// swings a partial-fitness term by ~0.1). This covers that drift for
 		// the common case; a drop beyond it is still fine as long as the
 		// previous best solution itself is still present (see validateElitism).
-		static constexpr double elitismFitnessEpsilon							= 0.05;
+		inline static double elitismFitnessEpsilon;
 
-		static constexpr bool logSolutions				= false;
-		static constexpr bool logOverview				= true;
-		static constexpr bool logSpecies				= false;
+		inline static bool logSolutions;
+		inline static bool logOverview;
+		inline static bool logSpecies;
 
-		static constexpr bool saveOverview				= true;
-		static constexpr bool savePerGenerationOverview	= true;
-		static constexpr bool saveChampions				= true;
-		static constexpr bool saveBestSolutions			= true;
-		static constexpr bool saveSolutions				= true;
-		static constexpr bool saveSpecies				= true;
+		inline static bool saveOverview;
+		inline static bool savePerGenerationOverview;
+		inline static bool saveChampions;
+		inline static bool saveBestSolutions;
+		inline static bool saveSolutions;
+		inline static bool saveSpecies;
 	};
 }
