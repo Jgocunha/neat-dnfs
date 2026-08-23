@@ -66,7 +66,6 @@ add_compile_definitions(OUTPUT_DIRECTORY="${OUTPUT_DIRECTORY}")
 
 # Header and source files
 set(header
-        "include/neat/ablation_presets.h"
         "include/neat/connection_gene.h"
         "include/neat/field_gene.h"
         "include/neat/genome.h"
@@ -87,13 +86,13 @@ set(header
         "include/neat_tools/logger.h"
         "include/neat_tools/utils.h"
         "include/neat_tools/key_listener.h"
+        "include/neat_tools/ablation_presets.h"
         "include/neat_tools/config_loader.h"
         "include/neat_tools/solution_registry.h"
 
         "include/constants.h"
 )
 set(src
-        "src/neat/ablation_presets.cpp"
         "src/neat/connection_gene.cpp"
         "src/neat/field_gene.cpp"
         "src/neat/genome.cpp"
@@ -112,6 +111,7 @@ set(src
         "src/solutions/xor.cpp"
 
         "src/neat_tools/logger.cpp"
+        "src/neat_tools/ablation_presets.cpp"
         "src/neat_tools/config_loader.cpp"
         "src/neat_tools/solution_registry.cpp"
 )
