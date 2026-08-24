@@ -3,6 +3,7 @@
 #include <fstream>
 #include <map>
 #include <mutex>
+#include <set>
 #include <stdexcept>
 
 #include "constants.h"
@@ -83,6 +84,12 @@ namespace neat_dnfs
 		const std::lock_guard<std::mutex> lock(cacheMutex);
 		if (const auto it = cache.find(slug); it != cache.end())
 		{
+			if (it->second.size() != expectedCount)
+			{
+				throw std::runtime_error("ConfigLoader: cached fitness weights for '" + slug + "' have "
+					+ std::to_string(it->second.size()) + " entries, but this caller expected "
+					+ std::to_string(expectedCount) + ".");
+			}
 			return it->second;
 		}
 
@@ -129,6 +136,31 @@ namespace neat_dnfs
 			}
 			*target = value.get<int>();
 		}
+
+		// field()/weights()/hiddenFieldBound() below only ever read a *known*
+		// key out of each block, so a mistyped struct name (e.g.
+		// "SolutonConstants" in an override file) would otherwise merge in
+		// silently and the whole block would keep the reference's values with
+		// no error at all -- the one class of typo j.at() per-key can't catch,
+		// since the block itself is just never read.
+		void checkNoUnknownTopLevelKeys(const nlohmann::json& j, const std::string& path)
+		{
+			static const std::set<std::string> known = {
+				"SimulationConstants", "DimensionConstants", "NoiseConstants",
+				"GaussStimulusConstants", "NeuralFieldConstants", "KernelConstants",
+				"GaussKernelConstants", "MexicanHatKernelConstants", "CompatibilityCoefficients",
+				"GenomeMutationConstants", "FieldGeneConstants", "ConnectionGeneConstants",
+				"SolutionConstants", "AblationConstants", "PopulationConstants",
+			};
+			for (const auto& item : j.items())
+			{
+				if (!known.contains(item.key()))
+				{
+					throw std::runtime_error("ConfigLoader: '" + path + "' has unknown top-level key '"
+						+ item.key() + "'; check for a typo in the struct name.");
+				}
+			}
+		}
 	}
 
 	void ConfigLoader::applyConfig(const nlohmann::json& j, const std::string& path)
@@ -136,9 +168,14 @@ namespace neat_dnfs
 		// Each block mirrors the matching struct in constants.h field for field,
 		// in declaration order, so the two can be diffed side by side. field()
 		// uses json::at(), so any key missing from the file throws here rather
-		// than leaving a value silently zero-initialised.
+		// than leaving a value silently zero-initialised. checkNoUnknownTopLevelKeys()
+		// covers the complementary case -- an extra/mistyped struct name -- but
+		// only at this top level; a mistyped field *within* a correctly-named
+		// struct still silently keeps the reference's value for that one field.
 		try
 		{
+			checkNoUnknownTopLevelKeys(j, path);
+
 			const auto& sim = j.at("SimulationConstants");
 			field(sim, "deltaT", &SimulationConstants::deltaT);
 			field(sim, "maxSimulationSteps", &SimulationConstants::maxSimulationSteps);
