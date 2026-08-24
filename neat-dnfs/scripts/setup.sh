@@ -79,7 +79,8 @@ if [ ! -d "$DNFC_INSTALL" ]; then
         -DVCPKG_TARGET_TRIPLET="$TRIPLET" \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_PREFIX_PATH="$IPK_INSTALL" \
-        -DCMAKE_INSTALL_PREFIX="$DNFC_INSTALL"
+        -DCMAKE_INSTALL_PREFIX="$DNFC_INSTALL" \
+        -DDNF_COMPOSER_BUILD_TESTS=OFF
     cmake --build "$DNFC_SRC/build" --parallel "$PARALLEL"
     cmake --install "$DNFC_SRC/build"
 else
