@@ -12,9 +12,11 @@ OS=$(uname -s)
 if [ "$OS" = "Darwin" ]; then
     PLATFORM="macos"
     BUILD_DIR="$PROJECT_ROOT/build/macos-release"
+    BUILD_SCRIPT="scripts/build_macos.sh"
 else
     PLATFORM="linux"
     BUILD_DIR="$PROJECT_ROOT/build/linux-release"
+    BUILD_SCRIPT="scripts/build.sh"
 fi
 
 # uname spells the same architecture differently per platform; the archive name
@@ -26,7 +28,7 @@ case "$(uname -m)" in
 esac
 
 if [ ! -f "$BUILD_DIR/CMakeCache.txt" ]; then
-    echo "ERROR: no build found at $BUILD_DIR. Run ./scripts/build.sh first."
+    echo "ERROR: no build found at $BUILD_DIR. Run ./$BUILD_SCRIPT first."
     exit 1
 fi
 

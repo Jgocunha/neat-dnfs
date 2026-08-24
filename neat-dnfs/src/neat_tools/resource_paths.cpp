@@ -98,8 +98,14 @@ namespace neat_dnfs::paths
 			{
 				continue;
 			}
+			// A directory can pass std::filesystem::exists() by having a subdirectory
+			// or empty file named "config/neat_dnfs.json", and a root with the
+			// reference config but no templates/ would only fail later, inside
+			// neat_dnfs_inc_evol/neat_dnfs_solution_evaluation, with a less direct
+			// error. Both checks belong here, at the one place a root is accepted.
 			std::error_code ec;
-			if (std::filesystem::exists(candidate / referenceConfig, ec) && !ec)
+			if (std::filesystem::is_regular_file(candidate / referenceConfig, ec) && !ec
+				&& std::filesystem::is_directory(candidate / "templates", ec) && !ec)
 			{
 				return std::filesystem::path(candidate).lexically_normal();
 			}

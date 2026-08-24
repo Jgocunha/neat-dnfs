@@ -158,7 +158,18 @@ jobs:
       - name: Check the tag matches the packaged version
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          ARCHIVE=$(ls neat-dnfs/package/neat-dnfs-*.zip neat-dnfs/package/neat-dnfs-*.tar.gz 2>/dev/null | head -1)
+          # nullglob + array rather than `ls glob1 glob2 | head -1`: each platform
+          # only ever produces one of .zip/.tar.gz, so the other glob never
+          # matches, and `ls` exits non-zero for the pattern it can't expand --
+          # which -o pipefail (bash's GitHub Actions default) turns into a step
+          # failure even though the archive that does exist was found.
+          shopt -s nullglob
+          CANDIDATES=(neat-dnfs/package/neat-dnfs-*.zip neat-dnfs/package/neat-dnfs-*.tar.gz)
+          if [ "${#CANDIDATES[@]}" -eq 0 ]; then
+            echo "No package archive found under neat-dnfs/package/."
+            exit 1
+          fi
+          ARCHIVE="${CANDIDATES[0]}"
           PACKAGED=$(basename "$ARCHIVE" | sed -E 's/^neat-dnfs-([^-]+)-.*/\1/')
           TAGGED="${GITHUB_REF_NAME#v}"
           if [ "$PACKAGED" != "$TAGGED" ]; then
@@ -174,7 +185,15 @@ jobs:
       - name: Smoke-test the package
         run: |
           set -euo pipefail
-          ARCHIVE=$(ls "$PWD"/neat-dnfs/package/neat-dnfs-*.zip "$PWD"/neat-dnfs/package/neat-dnfs-*.tar.gz 2>/dev/null | head -1)
+          # See the nullglob comment in "Check the tag matches the packaged
+          # version" above -- same reason this avoids `ls`.
+          shopt -s nullglob
+          CANDIDATES=("$PWD"/neat-dnfs/package/neat-dnfs-*.zip "$PWD"/neat-dnfs/package/neat-dnfs-*.tar.gz)
+          if [ "${#CANDIDATES[@]}" -eq 0 ]; then
+            echo "No package archive found under neat-dnfs/package/."
+            exit 1
+          fi
+          ARCHIVE="${CANDIDATES[0]}"
           STAGE="$RUNNER_TEMP/package"
           WORKDIR="$RUNNER_TEMP/workdir"
           rm -rf "$STAGE" "$WORKDIR"
@@ -245,4 +264,3 @@ jobs:
         with:
           files: artifacts/*
           body_path: release-notes.md
-          generate_release_notes: true

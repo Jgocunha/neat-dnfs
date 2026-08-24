@@ -5,6 +5,7 @@
 #include <array>
 
 #include "neat/population.h"
+#include "neat_tools/resource_paths.h"
 #include "test_helpers.h"
 #include "test_stub_solution.h"
 
@@ -12,8 +13,9 @@ using namespace neat_dnfs;
 using namespace neat_dnfs::test;
 
 // PopulationFileManager writes to <data root>/data/<solutionName>/<timestamp>/ with no
-// test-mode override (see population_file_manager.cpp setFileDirectory()); in a build
-// tree that data root is PROJECT_DIR (see neat_tools/resource_paths.h).
+// test-mode override (see population_file_manager.cpp setFileDirectory()). The helper
+// below reads paths::dataRoot() itself rather than assuming PROJECT_DIR, so the test
+// still tracks production if $NEAT_DNFS_DATA_DIR happens to be set in the environment.
 // Every other test in this suite passes enableFileIO=false for exactly this reason. This
 // is the one test that exercises real file IO, so it: (1) uses CountingSolution's
 // distinctive name to keep the directory identifiable, (2) reproduces the same
@@ -32,7 +34,7 @@ namespace
 #endif
         std::array<char, 100> timeBuffer{};
         std::strftime(timeBuffer.data(), timeBuffer.size(), "%Y-%m-%d %Hh%Mm%Ss", &localTime);
-        return std::string(PROJECT_DIR) + "/data/" + solutionName + "/" + timeBuffer.data() + "/";
+        return (paths::dataRoot() / "data" / solutionName / timeBuffer.data()).generic_string() + "/";
     }
 }
 

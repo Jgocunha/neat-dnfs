@@ -2,6 +2,7 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
@@ -37,12 +38,13 @@ namespace
 
         const std::filesystem::path& path() const { return directory; }
 
-        // The one file selectResourceRoot() looks for. Its contents are never
-        // parsed here, only its presence.
+        // selectResourceRoot() requires both of these -- a regular reference
+        // config and a templates/ directory -- before it accepts a candidate.
         void writeReferenceConfig() const
         {
             std::filesystem::create_directories(directory / "config");
             std::ofstream(directory / "config" / "neat_dnfs.json") << "{}";
+            std::filesystem::create_directories(directory / "templates");
         }
 
     private:
@@ -80,9 +82,24 @@ TEST_CASE("selectResourceRoot names every candidate it tried when none matches",
 
 TEST_CASE("a test binary in a build tree resolves back to the source tree", "[ResourcePaths]")
 {
+    // tests/entry.cpp resolves paths::resourceRoot() once, in a static initializer
+    // that runs before main() -- and therefore before this TEST_CASE could unset
+    // anything -- so an override present when the test binary was launched is
+    // already baked into the cached result. That is the resolver working as
+    // documented, not a bug this test should fail on.
+    if (std::getenv("NEAT_DNFS_ROOT") != nullptr)
+    {
+        SKIP("NEAT_DNFS_ROOT is set; resourceRoot() correctly honours it instead of "
+            "falling back to the source tree, which is what this test checks.");
+    }
+
     REQUIRE(std::filesystem::exists(paths::resourceRoot() / "config" / "neat_dnfs.json"));
     REQUIRE(std::filesystem::equivalent(paths::resourceRoot(), PROJECT_DIR));
 
-    // Results keep landing in the repo's data/ folder, as they did before.
-    REQUIRE(std::filesystem::equivalent(paths::dataRoot(), paths::resourceRoot()));
+    // Results keep landing in the repo's data/ folder, as they did before -- unless
+    // $NEAT_DNFS_DATA_DIR was also set at launch, which again is the override working.
+    if (std::getenv("NEAT_DNFS_DATA_DIR") == nullptr)
+    {
+        REQUIRE(std::filesystem::equivalent(paths::dataRoot(), paths::resourceRoot()));
+    }
 }
