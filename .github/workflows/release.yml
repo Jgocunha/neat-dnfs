@@ -68,10 +68,15 @@ jobs:
           echo "vcpkg_triplet=$TRIPLET" >> "$GITHUB_OUTPUT"
 
       # ── System dependencies ────────────────────────────────────────────────
-      # imgui-platform-kit needs GLFW/OpenGL headers; same list as ci.yml.
+      # imgui-platform-kit needs GLFW/OpenGL headers; same list as ci.yml. Unlike
+      # ci.yml's ubuntu-latest (24.04, ships gcc-13 by default), this job runs on
+      # ubuntu-22.04 for glibc compatibility, and jammy's own archive tops out
+      # below gcc-13 -- <format> (used throughout this codebase) needs gcc-13's
+      # libstdc++ for full support, so the toolchain PPA is required here.
       - name: Install system dependencies
         if: runner.os == 'Linux'
         run: |
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update
           sudo apt-get install -y \
             gcc-13 g++-13 \
