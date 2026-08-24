@@ -39,18 +39,41 @@ echo "Installing vcpkg packages..."
     "catch2:$TRIPLET" \
     "fftw3:$TRIPLET"
 
+# ── helpers ────────────────────────────────────────────────────────────────────
+# Clones SRC from URL if missing, then checks out REF if one was requested --
+# independent of whether the clone just happened, so a source directory left
+# over from a previous run still ends up on the right revision.
+clone_at_ref() {
+    local src="$1" url="$2" ref="$3"
+    if [ ! -d "$src" ]; then
+        echo "Cloning $(basename "$src")..."
+        git clone "$url" "$src"
+    fi
+    if [ -n "$ref" ]; then
+        git -C "$src" checkout "$ref"
+    fi
+}
+
+# Removes INSTALL_DIR if it was built from a different revision than REF, so
+# the caller's own "already installed" check rebuilds instead of silently
+# reusing a stale revision.
+invalidate_if_stale() {
+    local install_dir="$1" ref="$2" revision_file="$1/.revision"
+    if [ -n "$ref" ] && [ -d "$install_dir" ] && [ "$(cat "$revision_file" 2>/dev/null)" != "$ref" ]; then
+        echo "$(basename "$install_dir") was built from a different revision, rebuilding."
+        rm -rf "$install_dir"
+    fi
+}
+
 # ── imgui-platform-kit ────────────────────────────────────────────────────────
 IPK_SRC="$DEPS_DIR/imgui-platform-kit"
 IPK_INSTALL="$DEPS_DIR/ipk-install"
 PARALLEL=$( [ "$OS" = "Darwin" ] && sysctl -n hw.logicalcpu || nproc )
 
-if [ ! -d "$IPK_INSTALL" ]; then
-    echo "Cloning imgui-platform-kit..."
-    git clone https://github.com/Jgocunha/imgui-platform-kit.git "$IPK_SRC"
-    if [ -n "$IPK_REF" ]; then
-        git -C "$IPK_SRC" checkout "$IPK_REF"
-    fi
+invalidate_if_stale "$IPK_INSTALL" "$IPK_REF"
 
+if [ ! -d "$IPK_INSTALL" ]; then
+    clone_at_ref "$IPK_SRC" https://github.com/Jgocunha/imgui-platform-kit.git "$IPK_REF"
     echo "Building imgui-platform-kit..."
     cmake -S "$IPK_SRC/imgui-platform-kit" -B "$IPK_SRC/build" \
         -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
@@ -59,6 +82,7 @@ if [ ! -d "$IPK_INSTALL" ]; then
         -DCMAKE_INSTALL_PREFIX="$IPK_INSTALL"
     cmake --build "$IPK_SRC/build" --parallel "$PARALLEL"
     cmake --install "$IPK_SRC/build"
+    [ -n "$IPK_REF" ] && echo "$IPK_REF" > "$IPK_INSTALL/.revision"
 else
     echo "imgui-platform-kit already installed, skipping."
 fi
@@ -67,13 +91,10 @@ fi
 DNFC_SRC="$DEPS_DIR/dynamic-neural-field-composer"
 DNFC_INSTALL="$DEPS_DIR/dnfc-install"
 
-if [ ! -d "$DNFC_INSTALL" ]; then
-    echo "Cloning dynamic-neural-field-composer..."
-    git clone https://github.com/Jgocunha/dynamic-neural-field-composer.git "$DNFC_SRC"
-    if [ -n "$DNFC_REF" ]; then
-        git -C "$DNFC_SRC" checkout "$DNFC_REF"
-    fi
+invalidate_if_stale "$DNFC_INSTALL" "$DNFC_REF"
 
+if [ ! -d "$DNFC_INSTALL" ]; then
+    clone_at_ref "$DNFC_SRC" https://github.com/Jgocunha/dynamic-neural-field-composer.git "$DNFC_REF"
     echo "Building dynamic-neural-field-composer..."
     cmake -S "$DNFC_SRC/dynamic-neural-field-composer" -B "$DNFC_SRC/build" \
         -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
@@ -84,6 +105,7 @@ if [ ! -d "$DNFC_INSTALL" ]; then
         -DDNF_COMPOSER_BUILD_TESTS=OFF
     cmake --build "$DNFC_SRC/build" --parallel "$PARALLEL"
     cmake --install "$DNFC_SRC/build"
+    [ -n "$DNFC_REF" ] && echo "$DNFC_REF" > "$DNFC_INSTALL/.revision"
 else
     echo "dynamic-neural-field-composer already installed, skipping."
 fi

@@ -7,6 +7,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
@@ -37,7 +40,7 @@ jobs:
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
 
       - name: Clone vcpkg
-        run: git clone --depth=1 https://github.com/microsoft/vcpkg.git $VCPKG_ROOT
+        run: git clone --depth=1 https://github.com/microsoft/vcpkg.git "$VCPKG_ROOT"
 
       - name: Bootstrap vcpkg
         run: $VCPKG_ROOT/bootstrap-vcpkg.sh -disableMetrics
