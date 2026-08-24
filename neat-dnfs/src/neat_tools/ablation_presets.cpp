@@ -19,6 +19,19 @@ namespace neat_dnfs
 		{
 			return presetDirectory() + "/" + std::string(name) + ".json";
 		}
+
+		// applyByName()'s argument comes straight from --ablation on the CLI, so
+		// unlike the hardcoded names above it is untrusted: a name containing a
+		// path separator or ".." could escape config/ablations/ and merge an
+		// arbitrary JSON file into the running config.
+		bool isSimplePresetName(const std::string_view name)
+		{
+			if (name.empty() || name == "." || name == "..")
+			{
+				return false;
+			}
+			return name.find_first_of("/\\") == std::string_view::npos;
+		}
 	}
 
 	// Each preset's field values live in its own file under config/ablations/.
@@ -74,6 +87,10 @@ namespace neat_dnfs
 	{
 		// Any file in config/ablations/ is a usable preset -- adding a condition
 		// means adding a JSON file, with no matching change here.
+		if (!isSimplePresetName(name))
+		{
+			return false;
+		}
 		const std::string path = presetPath(name);
 		if (!std::filesystem::exists(path))
 		{
