@@ -37,7 +37,6 @@ echo "Installing vcpkg packages..."
     "imgui-node-editor:$TRIPLET" \
     "nlohmann-json:$TRIPLET" \
     "catch2:$TRIPLET" \
-    "gtest:$TRIPLET" \
     "fftw3:$TRIPLET"
 
 # ── imgui-platform-kit ────────────────────────────────────────────────────────
@@ -45,12 +44,13 @@ IPK_SRC="$DEPS_DIR/imgui-platform-kit"
 IPK_INSTALL="$DEPS_DIR/ipk-install"
 PARALLEL=$( [ "$OS" = "Darwin" ] && sysctl -n hw.logicalcpu || nproc )
 
-if [ ! -d "$IPK_SRC" ]; then
+if [ ! -d "$IPK_INSTALL" ]; then
     echo "Cloning imgui-platform-kit..."
     git clone https://github.com/Jgocunha/imgui-platform-kit.git "$IPK_SRC"
-fi
+    if [ -n "$IPK_REF" ]; then
+        git -C "$IPK_SRC" checkout "$IPK_REF"
+    fi
 
-if [ ! -d "$IPK_INSTALL" ]; then
     echo "Building imgui-platform-kit..."
     cmake -S "$IPK_SRC/imgui-platform-kit" -B "$IPK_SRC/build" \
         -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
@@ -67,12 +67,13 @@ fi
 DNFC_SRC="$DEPS_DIR/dynamic-neural-field-composer"
 DNFC_INSTALL="$DEPS_DIR/dnfc-install"
 
-if [ ! -d "$DNFC_SRC" ]; then
+if [ ! -d "$DNFC_INSTALL" ]; then
     echo "Cloning dynamic-neural-field-composer..."
     git clone https://github.com/Jgocunha/dynamic-neural-field-composer.git "$DNFC_SRC"
-fi
+    if [ -n "$DNFC_REF" ]; then
+        git -C "$DNFC_SRC" checkout "$DNFC_REF"
+    fi
 
-if [ ! -d "$DNFC_INSTALL" ]; then
     echo "Building dynamic-neural-field-composer..."
     cmake -S "$DNFC_SRC/dynamic-neural-field-composer" -B "$DNFC_SRC/build" \
         -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \

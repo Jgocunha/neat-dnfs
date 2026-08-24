@@ -28,7 +28,6 @@ echo Installing vcpkg packages...
     "imgui-node-editor:x64-windows" ^
     "nlohmann-json:x64-windows" ^
     "catch2:x64-windows" ^
-    "gtest:x64-windows" ^
     "fftw3:x64-windows"
 if errorlevel 1 ( echo ERROR: vcpkg install failed. & exit /b 1 )
 
@@ -36,13 +35,17 @@ if errorlevel 1 ( echo ERROR: vcpkg install failed. & exit /b 1 )
 set IPK_SRC=%DEPS_DIR%\imgui-platform-kit
 set IPK_INSTALL=%DEPS_DIR%\ipk-install
 
-if not exist "%IPK_SRC%" (
-    echo Cloning imgui-platform-kit...
-    git clone https://github.com/Jgocunha/imgui-platform-kit.git "%IPK_SRC%"
-    if errorlevel 1 ( echo ERROR: Failed to clone imgui-platform-kit. & exit /b 1 )
-)
-
 if not exist "%IPK_INSTALL%\release" (
+    if not exist "%IPK_SRC%" (
+        echo Cloning imgui-platform-kit...
+        git clone https://github.com/Jgocunha/imgui-platform-kit.git "%IPK_SRC%"
+        if errorlevel 1 ( echo ERROR: Failed to clone imgui-platform-kit. & exit /b 1 )
+        if defined IPK_REF (
+            git -C "%IPK_SRC%" checkout %IPK_REF%
+            if errorlevel 1 ( echo ERROR: Failed to checkout IPK_REF. & exit /b 1 )
+        )
+    )
+
     echo Building imgui-platform-kit Release...
     cmake -S "%IPK_SRC%\imgui-platform-kit" -B "%IPK_SRC%\build-release" ^
         -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake" ^
@@ -56,31 +59,49 @@ if not exist "%IPK_INSTALL%\release" (
     echo imgui-platform-kit Release already installed, skipping.
 )
 
-if not exist "%IPK_INSTALL%\debug" (
-    echo Building imgui-platform-kit Debug...
-    cmake -S "%IPK_SRC%\imgui-platform-kit" -B "%IPK_SRC%\build-debug" ^
-        -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake" ^
-        -DCMAKE_INSTALL_PREFIX="%IPK_INSTALL%\debug"
-    if errorlevel 1 ( echo ERROR: imgui-platform-kit Debug configure failed. & exit /b 1 )
-    cmake --build "%IPK_SRC%\build-debug" --config Debug --parallel
-    if errorlevel 1 ( echo ERROR: imgui-platform-kit Debug build failed. & exit /b 1 )
-    cmake --install "%IPK_SRC%\build-debug" --config Debug
-    if errorlevel 1 ( echo ERROR: imgui-platform-kit Debug install failed. & exit /b 1 )
+if "%NEAT_DNFS_RELEASE_ONLY%"=="1" (
+    echo NEAT_DNFS_RELEASE_ONLY=1, skipping imgui-platform-kit Debug.
 ) else (
-    echo imgui-platform-kit Debug already installed, skipping.
+    if not exist "%IPK_INSTALL%\debug" (
+        if not exist "%IPK_SRC%" (
+            echo Cloning imgui-platform-kit...
+            git clone https://github.com/Jgocunha/imgui-platform-kit.git "%IPK_SRC%"
+            if errorlevel 1 ( echo ERROR: Failed to clone imgui-platform-kit. & exit /b 1 )
+            if defined IPK_REF (
+                git -C "%IPK_SRC%" checkout %IPK_REF%
+                if errorlevel 1 ( echo ERROR: Failed to checkout IPK_REF. & exit /b 1 )
+            )
+        )
+
+        echo Building imgui-platform-kit Debug...
+        cmake -S "%IPK_SRC%\imgui-platform-kit" -B "%IPK_SRC%\build-debug" ^
+            -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake" ^
+            -DCMAKE_INSTALL_PREFIX="%IPK_INSTALL%\debug"
+        if errorlevel 1 ( echo ERROR: imgui-platform-kit Debug configure failed. & exit /b 1 )
+        cmake --build "%IPK_SRC%\build-debug" --config Debug --parallel
+        if errorlevel 1 ( echo ERROR: imgui-platform-kit Debug build failed. & exit /b 1 )
+        cmake --install "%IPK_SRC%\build-debug" --config Debug
+        if errorlevel 1 ( echo ERROR: imgui-platform-kit Debug install failed. & exit /b 1 )
+    ) else (
+        echo imgui-platform-kit Debug already installed, skipping.
+    )
 )
 
 :: ── dynamic-neural-field-composer ─────────────────────────────────────────────
 set DNFC_SRC=%DEPS_DIR%\dynamic-neural-field-composer
 set DNFC_INSTALL=%DEPS_DIR%\dnfc-install
 
-if not exist "%DNFC_SRC%" (
-    echo Cloning dynamic-neural-field-composer...
-    git clone https://github.com/Jgocunha/dynamic-neural-field-composer.git "%DNFC_SRC%"
-    if errorlevel 1 ( echo ERROR: Failed to clone dynamic-neural-field-composer. & exit /b 1 )
-)
-
 if not exist "%DNFC_INSTALL%\release" (
+    if not exist "%DNFC_SRC%" (
+        echo Cloning dynamic-neural-field-composer...
+        git clone https://github.com/Jgocunha/dynamic-neural-field-composer.git "%DNFC_SRC%"
+        if errorlevel 1 ( echo ERROR: Failed to clone dynamic-neural-field-composer. & exit /b 1 )
+        if defined DNFC_REF (
+            git -C "%DNFC_SRC%" checkout %DNFC_REF%
+            if errorlevel 1 ( echo ERROR: Failed to checkout DNFC_REF. & exit /b 1 )
+        )
+    )
+
     echo Building dynamic-neural-field-composer Release...
     cmake -S "%DNFC_SRC%\dynamic-neural-field-composer" -B "%DNFC_SRC%\build-release" ^
         -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake" ^
@@ -98,22 +119,36 @@ if not exist "%DNFC_INSTALL%\release" (
     echo dynamic-neural-field-composer Release already installed, skipping.
 )
 
-if not exist "%DNFC_INSTALL%\debug" (
-    echo Building dynamic-neural-field-composer Debug...
-    cmake -S "%DNFC_SRC%\dynamic-neural-field-composer" -B "%DNFC_SRC%\build-debug" ^
-        -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake" ^
-        -DCMAKE_INSTALL_PREFIX="%DNFC_INSTALL%\debug" ^
-        -DCMAKE_PREFIX_PATH="%IPK_INSTALL%\debug" ^
-        -DCMAKE_MAP_IMPORTED_CONFIG_MINSIZEREL=Debug ^
-        -DCMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO=Debug ^
-        -DDNF_COMPOSER_BUILD_TESTS=OFF
-    if errorlevel 1 ( echo ERROR: dnfc Debug configure failed. & exit /b 1 )
-    cmake --build "%DNFC_SRC%\build-debug" --config Debug --parallel
-    if errorlevel 1 ( echo ERROR: dnfc Debug build failed. & exit /b 1 )
-    cmake --install "%DNFC_SRC%\build-debug" --config Debug
-    if errorlevel 1 ( echo ERROR: dnfc Debug install failed. & exit /b 1 )
+if "%NEAT_DNFS_RELEASE_ONLY%"=="1" (
+    echo NEAT_DNFS_RELEASE_ONLY=1, skipping dynamic-neural-field-composer Debug.
 ) else (
-    echo dynamic-neural-field-composer Debug already installed, skipping.
+    if not exist "%DNFC_INSTALL%\debug" (
+        if not exist "%DNFC_SRC%" (
+            echo Cloning dynamic-neural-field-composer...
+            git clone https://github.com/Jgocunha/dynamic-neural-field-composer.git "%DNFC_SRC%"
+            if errorlevel 1 ( echo ERROR: Failed to clone dynamic-neural-field-composer. & exit /b 1 )
+            if defined DNFC_REF (
+                git -C "%DNFC_SRC%" checkout %DNFC_REF%
+                if errorlevel 1 ( echo ERROR: Failed to checkout DNFC_REF. & exit /b 1 )
+            )
+        )
+
+        echo Building dynamic-neural-field-composer Debug...
+        cmake -S "%DNFC_SRC%\dynamic-neural-field-composer" -B "%DNFC_SRC%\build-debug" ^
+            -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake" ^
+            -DCMAKE_INSTALL_PREFIX="%DNFC_INSTALL%\debug" ^
+            -DCMAKE_PREFIX_PATH="%IPK_INSTALL%\debug" ^
+            -DCMAKE_MAP_IMPORTED_CONFIG_MINSIZEREL=Debug ^
+            -DCMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO=Debug ^
+            -DDNF_COMPOSER_BUILD_TESTS=OFF
+        if errorlevel 1 ( echo ERROR: dnfc Debug configure failed. & exit /b 1 )
+        cmake --build "%DNFC_SRC%\build-debug" --config Debug --parallel
+        if errorlevel 1 ( echo ERROR: dnfc Debug build failed. & exit /b 1 )
+        cmake --install "%DNFC_SRC%\build-debug" --config Debug
+        if errorlevel 1 ( echo ERROR: dnfc Debug install failed. & exit /b 1 )
+    ) else (
+        echo dynamic-neural-field-composer Debug already installed, skipping.
+    )
 )
 
 echo.

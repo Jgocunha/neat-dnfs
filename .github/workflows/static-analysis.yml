@@ -2,13 +2,19 @@ name: Static Analysis
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   static-analysis:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     env:
       VCPKG_ROOT: ${{ github.workspace }}/vcpkg
@@ -31,7 +37,7 @@ jobs:
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
 
       - name: Clone vcpkg
-        run: git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT
+        run: git clone --depth=1 https://github.com/microsoft/vcpkg.git $VCPKG_ROOT
 
       - name: Bootstrap vcpkg
         run: $VCPKG_ROOT/bootstrap-vcpkg.sh -disableMetrics
@@ -43,8 +49,26 @@ jobs:
           key: vcpkg-${{ runner.os }}-${{ hashFiles('neat-dnfs/scripts/setup.sh') }}
           restore-keys: vcpkg-${{ runner.os }}-
 
+      # ── Sibling dependencies ─────────────────────────────────────────────────
+      - name: Resolve dependency revisions
+        id: deps
+        run: |
+          echo "ipk=$(git ls-remote https://github.com/Jgocunha/imgui-platform-kit.git HEAD | cut -f1)" >> "$GITHUB_OUTPUT"
+          echo "dnfc=$(git ls-remote https://github.com/Jgocunha/dynamic-neural-field-composer.git HEAD | cut -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache prebuilt dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            neat-dnfs/deps/ipk-install
+            neat-dnfs/deps/dnfc-install
+          key: deps-${{ runner.os }}-${{ env.VCPKG_DEFAULT_TRIPLET }}-${{ steps.deps.outputs.ipk }}-${{ steps.deps.outputs.dnfc }}-${{ hashFiles('neat-dnfs/scripts/setup.sh') }}
+
       - name: Setup dependencies
         working-directory: ./neat-dnfs
+        env:
+          IPK_REF: ${{ steps.deps.outputs.ipk }}
+          DNFC_REF: ${{ steps.deps.outputs.dnfc }}
         run: |
           chmod +x scripts/setup.sh
           ./scripts/setup.sh
