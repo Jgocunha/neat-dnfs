@@ -53,11 +53,11 @@ experiment rather than of NEAT, it names the reference instead of hardcoding a n
 
 Full precedence, later wins:
 
-```
+```text
 config/neat_dnfs.json -> config/solutions/<task>.json -> config/ablations/<name>.json -> CLI flags
 ```
 
-See [HOW-TO.md](../../HOW-TO.md) for the user-facing guide.
+See the [First Steps wiki page](https://github.com/Jgocunha/neat-dnfs/wiki/First-Steps) for the user-facing guide.
 
 ## Examples
 
