@@ -6,12 +6,14 @@ namespace neat_dnfs
 		: Solution(topology)
 	{
 		name = "AND";
+		loadFitnessWeights("and", 8);
 	}
 
 	AND::AND(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
 		:Solution(initialTopology, phenotype)
 	{
 		name = "AND";
+		loadFitnessWeights("and", 8);
 	}
 
 	SolutionPtr AND::clone() const
@@ -36,42 +38,48 @@ namespace neat_dnfs
 		parameters.fitness = 0.0;
 		parameters.partialFitness.clear();
 
-		static constexpr int iterations = SimulationConstants::maxSimulationSteps;
+		const int iterations = SimulationConstants::maxSimulationSteps;
+
+		static constexpr double position = 50.0;
+		static constexpr double in_amp = 15.0;
+		static constexpr double in_width = 10.0;
+		static constexpr double out_amp = 10.0;
+		static constexpr double out_width = 10.0;
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, position,
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		runSimulation(iterations);
 
-		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 15, 10);
+		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", position, in_amp, in_width);
 		const double f1_2 = noBumps("nf 3");
 		parameters.partialFitness.emplace_back(f1_1);
 		parameters.partialFitness.emplace_back(f1_2);
 
 		removeGaussianStimuli();
 		addGaussianStimulus("nf 2",
-dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
-	GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, position,
+				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		runSimulation(iterations);
 
-		const double f2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 15, 10);
+		const double f2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", position, in_amp, in_width);
 		const double f2_2 = noBumps("nf 3");
 		parameters.partialFitness.emplace_back(f2_1);
 		parameters.partialFitness.emplace_back(f2_2);
 
 		addGaussianStimulus("nf 1",
-dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
-	GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+		dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, position,
+			GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+					dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		runSimulation(iterations);
 
-		const double f3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", 50.0, 10, 10);
+		const double f3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", position, out_amp, out_width);
 		parameters.partialFitness.emplace_back(f3);
 
 		removeGaussianStimuli();
@@ -84,23 +92,12 @@ dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, G
 		parameters.partialFitness.emplace_back(f4_2);
 		parameters.partialFitness.emplace_back(f4_3);
 
+		const auto& w = fitnessWeights;
 
-		static constexpr double wf1_1 = 0.10;
-		static constexpr double wf1_2 = 0.20; 
-
-		static constexpr double wf2_1 = 0.10;
-		static constexpr double wf2_2 = 0.20; 
-
-		static constexpr double wf3 = 0.25;
-
-		static constexpr double wf4_1 = 0.05;
-		static constexpr double wf4_2 = 0.05;
-		static constexpr double wf4_3 = 0.05;
-
-		parameters.fitness = wf1_1 * f1_1 + wf1_2 * f1_2 +
-			wf2_1 * f2_1 + wf2_2 * f2_2 +
-			wf3 * f3 +
-			wf4_1 * f4_1 + wf4_2 * f4_2 + wf4_3 * f4_3;
+		parameters.fitness = w[0] * f1_1 + w[1] * f1_2 +
+			w[2] * f2_1 + w[3] * f2_2 +
+			w[4] * f3 +
+			w[5] * f4_1 + w[6] * f4_2 + w[7] * f4_3;
 	}
 
 	void AND::createPhenotypeEnvironment()

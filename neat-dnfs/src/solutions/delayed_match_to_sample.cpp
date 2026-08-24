@@ -6,6 +6,7 @@ namespace neat_dnfs
 		: Solution(topology)
 	{
 		name = "Delayed Match to Sample";
+		loadFitnessWeights("dmts", 6);
 	}
 
 	DelayedMatchToSample::DelayedMatchToSample(const SolutionTopology& initialTopology,
@@ -13,6 +14,7 @@ namespace neat_dnfs
 		: Solution(initialTopology, phenotype)
 	{
 		name = "Delayed Match to Sample";
+		loadFitnessWeights("dmts", 6);
 	}
 
 	SolutionPtr DelayedMatchToSample::clone() const
@@ -35,7 +37,7 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
-		static constexpr int iterations = SimulationConstants::maxSimulationSteps;
+		const int iterations = SimulationConstants::maxSimulationSteps;
 		parameters.partialFitness.clear();
 
 		// sample representation
@@ -80,14 +82,9 @@ namespace neat_dnfs
 		parameters.partialFitness.emplace_back(f5);
 		parameters.partialFitness.emplace_back(f6);
 
-		static constexpr double wf1 = 0.1f;
-		static constexpr double wf2 = 0.15f;
-		static constexpr double wf3 = 0.1f;
-		static constexpr double wf4 = 0.4f;
-		static constexpr double wf5 = 0.1f;
-		static constexpr double wf6 = 0.15f;
+		const auto& w = fitnessWeights;
 
-		parameters.fitness = wf1 * f1 + wf2 * f2 + wf3 * f3 + wf4 * f4 + wf5 * f5 + wf6 * f6;
+		parameters.fitness = w[0] * f1 + w[1] * f2 + w[2] * f3 + w[3] * f4 + w[4] * f5 + w[5] * f6;
 	}
 
 	void DelayedMatchToSample::createPhenotypeEnvironment()

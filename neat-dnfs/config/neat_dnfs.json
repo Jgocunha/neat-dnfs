@@ -1,0 +1,166 @@
+{
+  "SimulationConstants": {
+    "deltaT": 1,
+    "maxSimulationSteps": 500
+  },
+  "DimensionConstants": {
+    "xSize": 100,
+    "dx": 1.0
+  },
+  "NoiseConstants": {
+    "amplitude": 0.010
+  },
+  "GaussStimulusConstants": {
+    "width": 5.0,
+    "amplitude": 20.0,
+    "circularity": true,
+    "normalization": false
+  },
+  "NeuralFieldConstants": {
+    "tau": 100,
+    "restingLevel": -10,
+    "activationFunction": {
+      "xShift": 0.0,
+      "steepness": 5.0
+    },
+    "tauMinVal": 1.0,
+    "tauMaxVal": 200.0,
+    "tauStep": 15.0,
+    "restingLevelMinVal": -15.0,
+    "restingLevelMaxVal": -1.0,
+    "restingLevelStep": 0.5
+  },
+  "KernelConstants": {
+    "circularity": true,
+    "normalization": true
+  },
+  "GaussKernelConstants": {
+    "width": 2.00,
+    "amplitude": 8.00,
+    "amplitudeGlobal": -0.01,
+    "widthMinVal": 1.00,
+    "widthMaxVal": 10.0,
+    "widthStep": 0.50,
+    "ampMinVal": 3.00,
+    "ampMaxVal": 30.0,
+    "ampStep": 0.50,
+    "ampGlobalMinVal": -0.2,
+    "ampGlobalMaxVal": 0.00,
+    "ampGlobalStep": 0.05
+  },
+  "MexicanHatKernelConstants": {
+    "widthExc": 2.50,
+    "widthInh": 5.00,
+    "amplitudeExc": 11.0,
+    "amplitudeInh": 15.0,
+    "amplitudeGlobal": -0.01,
+    "widthExcMinVal": 5.00,
+    "widthExcMaxVal": 30.0,
+    "widthExcStep": 0.50,
+    "widthInhMinVal": 5.00,
+    "widthInhMaxVal": 35.0,
+    "widthInhStep": 0.50,
+    "ampExcMinVal": 15.0,
+    "ampExcMaxVal": 25.0,
+    "ampExcStep": 0.50,
+    "ampInhMinVal": 1.00,
+    "ampInhMaxVal": 35.0,
+    "ampInhStep": 0.50,
+    "ampGlobMin": -0.20,
+    "ampGlobMax": 0.000,
+    "ampGlobStep": 0.05
+  },
+  "CompatibilityCoefficients": {
+    "compatibilityThreshold": 3.5,
+    "excessGenesCompatibilityWeight": 1.0,
+    "disjointGenesCompatibilityWeight": 0.5,
+    "averageConnectionDifferenceCompatibilityWeight": 1.5,
+    "amplitudeDifferenceCoefficient": 0.05,
+    "widthDifferenceCoefficient": 0.05
+  },
+  "GenomeMutationConstants": {
+    "toggleConnectionGeneProbability": 0.01,
+    "addFieldGeneProbability": 0.0005,
+    "addConnectionGeneProbability": 0.15,
+    "mutateFieldGenesPerGenomeProbability": 0.800,
+    "mutateConnectionGenesProbability": 0.800,
+    "mutateFieldGenePerGeneProbability": 0.800,
+    "mutateConnectionGeneProbability": 0.800,
+    "checkForDuplicateConnectionGenesInGenome": false
+  },
+  "FieldGeneConstants": {
+    "variableParameters": true,
+    "gaussKernelProbability": 0.8,
+    "mexicanHatKernelProbability": 0.2,
+    "mutateFieldGeneKernelProbability": 0.70,
+    "mutateFieldGeneKernelTypeProbability": 0.10,
+    "mutateFieldGeneNeuralFieldProbability": 0.20,
+    "mutateFieldGeneGaussKernelAmplitudeProbability": 0.80,
+    "mutateFieldGeneGaussKernelWidthProbability": 0.60,
+    "mutateFieldGeneGaussKernelGlobalAmplitudeProbability": 0.20,
+    "mutateFieldGeneMexicanHatKernelAmplitudeExcProbability": 0.80,
+    "mutateFieldGeneMexicanHatKernelAmplitudeInhProbability": 0.80,
+    "mutateFieldGeneMexicanHatKernelWidthExcProbability": 0.60,
+    "mutateFieldGeneMexicanHatKernelWidthInhProbability": 0.60,
+    "mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability": 0.20,
+    "mutateFieldGeneNeuralFieldParametersProbability": 0.90,
+    "mutateFieldGeneNeuralFieldGenerateRandomParametersProbability": 0.10,
+    "mutateFieldGeneNeuralFieldParametersTauProbability": 0.50,
+    "mutateFieldGeneNeuralFieldParametersRestingLevelProbability": 0.80
+  },
+  "ConnectionGeneConstants": {
+    "gaussKernelProbability": 0.8,
+    "mexicanHatKernelProbability": 0.2,
+    "mutateConnectionGeneKernelProbability": 0.70,
+    "mutateConnectionGeneKernelTypeProbability": 0.05,
+    "mutateConnectionGeneConnectionSignalProbability": 0.25,
+    "mutateConnectionGeneGaussKernelAmplitudeProbability": 0.80,
+    "mutateConnectionGeneGaussKernelWidthProbability": 0.60,
+    "mutateConnectionGeneGaussKernelGlobalAmplitudeProbability": 0.20,
+    "mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability": 0.80,
+    "mutateConnectionGeneMexicanHatKernelAmplitudeInhProbability": 0.80,
+    "mutateConnectionGeneMexicanHatKernelWidthExcProbability": 0.60,
+    "mutateConnectionGeneMexicanHatKernelWidthInhProbability": 0.60,
+    "mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability": 0.20
+  },
+  "SolutionConstants": {
+    "minInitialInputGenes": 1,
+    "minInitialOutputGenes": 1,
+    "fitnessWeights": [0.25, 0.25, 0.25, 0.25],
+    "populationSize": 1000,
+    "numberGenerations": 200,
+    "numberRuns": 50,
+    "targetFitness": 0.95
+  },
+  "AblationConstants": {
+    "referenceHiddenFieldsMin": 1,
+    "referenceHiddenFieldsMax": 5,
+    "label": "",
+    "disableAddFieldGene": false,
+    "disableAddConnectionGene": false,
+    "disableToggleConnectionGene": false,
+    "seedAllLegalConnections": false,
+    "seedRandomHiddenFields": false,
+    "seedHiddenFieldsMin": 0,
+    "seedHiddenFieldsMax": 0,
+    "seedRandomConnections": false,
+    "disableSpeciation": false,
+    "disableCrossover": false
+  },
+  "PopulationConstants": {
+    "pruneRatio": 0.8,
+    "generationsWithoutImprovementThresholdInPopulation": 10,
+    "generationsWithoutImprovementThresholdInSpecies": 7,
+    "elitism": true,
+    "elitismFitnessEpsilon": 0.05,
+    "logSolutions": false,
+    "logOverview": true,
+    "logSpecies": false,
+    "saveOverview": true,
+    "savePerGenerationOverview": true,
+    "saveChampions": true,
+    "saveBestSolutions": true,
+    "saveSolutions": true,
+    "saveSpecies": true
+  }
+}

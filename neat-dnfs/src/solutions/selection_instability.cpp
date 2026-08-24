@@ -6,6 +6,7 @@ namespace neat_dnfs
 		: Solution(topology)
 	{
 		name = "Selection Instability";
+		loadFitnessWeights("selection-instability", 4);
 	}
 
 	SelectionInstability::SelectionInstability(const SolutionTopology& initialTopology,
@@ -13,6 +14,7 @@ namespace neat_dnfs
 		:Solution(initialTopology, phenotype)
 	{
 		name = "Selection Instability";
+		loadFitnessWeights("selection-instability", 4);
 	}
 
 	SolutionPtr SelectionInstability::clone() const
@@ -36,8 +38,10 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
 		parameters.partialFitness.clear();
-		static constexpr int iterations = SimulationConstants::maxSimulationSteps;
+		const int iterations = SimulationConstants::maxSimulationSteps;
 
+		static constexpr double left = 20.0;
+		static constexpr double right = 80.0;
 		static constexpr double in_amp = 8.0;
 		static constexpr double in_width = 10.0;
 		static constexpr double out_amp = 6.0;
@@ -45,19 +49,19 @@ namespace neat_dnfs
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0, true, false },
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, left, true, false },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 1",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0, true, false },
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, right, true, false },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 
 		const double f1 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1",
-			20.0, in_amp, in_width,
-			80.0, in_amp, in_width);
+			left, in_amp, in_width,
+			right, in_amp, in_width);
 		parameters.partialFitness.emplace_back(f1);
 		const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 2",
-			{ 20.0, 80.0 }, out_amp, out_width);
+			{ left, right }, out_amp, out_width);
 		parameters.partialFitness.emplace_back(f2);
 
 		removeGaussianStimuli();
@@ -68,12 +72,9 @@ namespace neat_dnfs
 		parameters.partialFitness.emplace_back(f3);
 		parameters.partialFitness.emplace_back(f4);
 
-		static constexpr double wf1 = 1 / 4.f;
-		static constexpr double wf2 = 1 / 4.f;
-		static constexpr double wf3 = 1 / 4.f;
-		static constexpr double wf4 = 1 / 4.f;
+		const auto& w = fitnessWeights;
 
-		parameters.fitness = wf1*f1 + wf2*f2 + wf3*f3 + wf4*f4;
+		parameters.fitness = w[0]*f1 + w[1]*f2 + w[2]*f3 + w[3]*f4;
 	}
 
 	void SelectionInstability::createPhenotypeEnvironment()

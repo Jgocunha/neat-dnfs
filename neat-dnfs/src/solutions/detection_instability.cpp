@@ -6,6 +6,7 @@ namespace neat_dnfs
 		: Solution(topology)
 	{
 		name = "Detection Instability";
+		loadFitnessWeights("detection-instability", 4);
 	}
 
 	DetectionInstability::DetectionInstability(const SolutionTopology& initialTopology,
@@ -13,6 +14,7 @@ namespace neat_dnfs
 		: Solution(initialTopology, phenotype)
 	{
 		name = "Detection Instability";
+		loadFitnessWeights("detection-instability", 4);
 	}
 
 	SolutionPtr DetectionInstability::clone() const
@@ -35,18 +37,20 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer::element;
 		parameters.fitness = 0.0;
-		static constexpr int iterations = SimulationConstants::maxSimulationSteps;
+		const int iterations = SimulationConstants::maxSimulationSteps;
 		parameters.partialFitness.clear();
+
+		static constexpr double position = 50.0;
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
 					dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude,
-						50.0, true, false },
+						position, true, false },
 					dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 
-		const double f1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 20, 10);
-		const double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", 50.0, 15, 5);
+		const double f1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", position, 20, 10);
+		const double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", position, 15, 5);
 		parameters.partialFitness.emplace_back(f1);
 		parameters.partialFitness.emplace_back(f2);
 
@@ -62,12 +66,9 @@ namespace neat_dnfs
 		// f2 only one bump at the output field
 		// f3 closeness to resting level after removing the stimulus
 		// f4 closeness to resting level after removing the stimulus
-		static constexpr double wf1 = 1 / 4.f;
-		static constexpr double wf2 = 1 / 4.f;
-		static constexpr double wf3 = 1 / 4.f;
-		static constexpr double wf4 = 1 / 4.f;
+		const auto& w = fitnessWeights;
 
-		parameters.fitness = wf1*f1 + wf2*f2 + wf3*f3 + wf4*f4;
+		parameters.fitness = w[0]*f1 + w[1]*f2 + w[2]*f3 + w[3]*f4;
 	}
 
 	void DetectionInstability::createPhenotypeEnvironment()

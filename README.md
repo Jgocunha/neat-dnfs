@@ -141,6 +141,9 @@ cmake --build . --config Release
 
 ## Usage
 
+> **New here?** [First Steps](https://github.com/Jgocunha/neat-dnfs/wiki/First-Steps) is the practical guide: running experiments and
+> ablations, and which config files to edit to change hyperparameters.
+
 ### Basic Example
 
 ```cpp
@@ -187,12 +190,12 @@ neat-dnfs-evol --task and --ablation no-crossover --runs 30 --pop 500 --gens 200
 ```
 
 Five conditions are available, each a config-only override applied before `Population::initialize()`
-(see `include/neat/ablation_presets.h`):
+(see `include/neat_tools/ablation_presets.h`):
 
 | Ablation | What it disables |
 |---|---|
 | `no-growth-io-only` | Structural mutations; genome starts fully connected input/output only |
-| `no-growth-one-hidden` | Same, plus one seeded hidden field |
+| `no-growth-reference-hidden-field-count` | Same, plus the task's reference number of seeded hidden fields |
 | `no-speciation` | Compatibility-distance species assignment; population starts non-minimal |
 | `no-crossover` | Two-parent reproduction; offspring are single-parent clones |
 | `random-initial-topology` | Minimal-start bias; genome seeds 1-5 random hidden fields and connections |

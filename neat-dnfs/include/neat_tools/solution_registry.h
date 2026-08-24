@@ -15,7 +15,7 @@
 
 #include "neat/solution.h"
 
-namespace neat_dnfs::examples
+namespace neat_dnfs
 {
 	/// @brief One selectable task: how to build its default topology, its
 	/// default template file (for the incremental/evaluation binaries), and
@@ -50,6 +50,7 @@ namespace neat_dnfs::examples
 		std::optional<std::string> task;
 		std::optional<std::string> ablation;
 		std::optional<std::string> templateFile;
+		std::optional<std::string> config;
 		std::optional<int> runs;
 		std::optional<int> populationSize;
 		std::optional<int> numGenerations;

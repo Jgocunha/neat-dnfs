@@ -6,12 +6,14 @@ namespace neat_dnfs
 		: Solution(topology)
 	{
 		name = "XOR";
+		loadFitnessWeights("xor", 4);
 	}
 
 	XOR::XOR(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
 		: Solution(initialTopology, phenotype)
 	{
 		name = "XOR";
+		loadFitnessWeights("xor", 4);
 	}
 
 	SolutionPtr XOR::clone() const
@@ -36,41 +38,40 @@ namespace neat_dnfs
 		parameters.fitness = 0.0;
 		parameters.partialFitness.clear();
 
-		static constexpr int iterations = SimulationConstants::maxSimulationSteps;
+		const int iterations = SimulationConstants::maxSimulationSteps;
 
-		static constexpr double in_amp = 10.0;
-		static constexpr double in_width = 12.0;
+		static constexpr double position = 50.0;
 		static constexpr double out_amp = 5.0;
 		static constexpr double out_width = 9.0;
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
-			GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, position,
+				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3", { 50.0 }, out_amp, out_width);
+		const double f1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3", { position }, out_amp, out_width);
 		parameters.partialFitness.push_back(f1);
 		removeGaussianStimuli();
 
 		removeGaussianStimuli();
 		initSimulation();
 		addGaussianStimulus("nf 2",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
-			GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, position,
+				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3", { 50.0 }, out_amp, out_width);
+		const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3", { position }, out_amp, out_width);
 		parameters.partialFitness.push_back(f2);
 
 		removeGaussianStimuli();
 		initSimulation();
 		addGaussianStimulus("nf 1",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
-			GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, position,
+				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		addGaussianStimulus("nf 2",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, position,
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
@@ -82,23 +83,21 @@ dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionCo
 		const double f4 = closenessToRestingLevel("nf 3");
 		parameters.partialFitness.push_back(f4);
 
-		static constexpr double wf1 = 1 / 4.f;
-		static constexpr double wf2 = 1 / 4.f;
-		static constexpr double wf3 = 1 / 4.f;
-		static constexpr double wf4 = 1 / 4.f;
+		const auto& w = fitnessWeights;
 
-
-		parameters.fitness = wf1 * f1 + wf2 * f2 + wf3 * f3 + wf4 * f4;
+		parameters.fitness = w[0] * f1 + w[1] * f2 + w[2] * f3 + w[3] * f4;
 	}
 
 	void XOR::createPhenotypeEnvironment()
 	{
+		static constexpr double position = 50.0;
+
 		addGaussianStimulus("nf 1",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, position, true, false },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		addGaussianStimulus("nf 2",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0, true, false },
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, position, true, false },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 	}
 }

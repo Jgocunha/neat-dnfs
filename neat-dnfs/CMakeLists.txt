@@ -66,7 +66,6 @@ add_compile_definitions(OUTPUT_DIRECTORY="${OUTPUT_DIRECTORY}")
 
 # Header and source files
 set(header
-        "include/neat/ablation_presets.h"
         "include/neat/connection_gene.h"
         "include/neat/field_gene.h"
         "include/neat/genome.h"
@@ -87,11 +86,13 @@ set(header
         "include/neat_tools/logger.h"
         "include/neat_tools/utils.h"
         "include/neat_tools/key_listener.h"
+        "include/neat_tools/ablation_presets.h"
+        "include/neat_tools/config_loader.h"
+        "include/neat_tools/solution_registry.h"
 
         "include/constants.h"
 )
 set(src
-        "src/neat/ablation_presets.cpp"
         "src/neat/connection_gene.cpp"
         "src/neat/field_gene.cpp"
         "src/neat/genome.cpp"
@@ -110,6 +111,9 @@ set(src
         "src/solutions/xor.cpp"
 
         "src/neat_tools/logger.cpp"
+        "src/neat_tools/ablation_presets.cpp"
+        "src/neat_tools/config_loader.cpp"
+        "src/neat_tools/solution_registry.cpp"
 )
 
 # Library target definition
@@ -131,6 +135,7 @@ find_package(unofficial-imgui-node-editor CONFIG REQUIRED)
 
 # Setup nlohmann-json
 find_package(nlohmann_json CONFIG REQUIRED)
+target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC nlohmann_json::nlohmann_json)
 
 # Setup OpenGL (required on macOS/Linux to satisfy imgui-platform-kit's exported link interface)
 if(NOT WIN32)
@@ -181,13 +186,25 @@ write_basic_package_version_file(${version_file}
     COMPATIBILITY AnyNewerVersion
 )
 
-install(EXPORT ${CMAKE_PROJECT_NAME}Targets DESTINATION ${NEAT_DNFS_CMAKE_CONFIG_INSTALL_DIR}
-    FILE ${CMAKE_PROJECT_NAME}-config.cmake
+# config_loader.h publicly includes <nlohmann/json.hpp>, so the installed
+# package config must resolve nlohmann_json for downstream consumers -- a
+# plain install(EXPORT ... FILE ...config.cmake) has no room for that
+# find_dependency() call, hence the template instead.
+set(config_file "${CMAKE_CURRENT_BINARY_DIR}/cmake/${CMAKE_PROJECT_NAME}-config.cmake")
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/${CMAKE_PROJECT_NAME}-config.cmake.in"
+    ${config_file}
+    INSTALL_DESTINATION ${NEAT_DNFS_CMAKE_CONFIG_INSTALL_DIR}
 )
+
+install(EXPORT ${CMAKE_PROJECT_NAME}Targets DESTINATION ${NEAT_DNFS_CMAKE_CONFIG_INSTALL_DIR}
+    FILE ${CMAKE_PROJECT_NAME}-targets.cmake
+)
+install(FILES ${config_file} ${version_file} DESTINATION ${NEAT_DNFS_CMAKE_CONFIG_INSTALL_DIR})
 
 # Main executable
 set(EXE_PROJECT_EXAMPLE neat-dnfs-evol)
-add_executable(${EXE_PROJECT_EXAMPLE} "apps/neat_dnfs_evol.cpp" "apps/solution_registry.cpp")
+add_executable(${EXE_PROJECT_EXAMPLE} "apps/neat_dnfs_evol.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
 target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         imgui::imgui
@@ -198,7 +215,7 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
 
 # Incremental evolution executable
 set(EXE_PROJECT_EXAMPLE neat-dnfs-inc-evol)
-add_executable(${EXE_PROJECT_EXAMPLE} "apps/neat_dnfs_incremental_evolution.cpp" "apps/solution_registry.cpp")
+add_executable(${EXE_PROJECT_EXAMPLE} "apps/neat_dnfs_incremental_evolution.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
 target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         imgui::imgui
@@ -209,7 +226,7 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
 
 # Solution evaluation executable
 set(EXE_PROJECT_EXAMPLE neat-dnfs-sol-eval)
-add_executable(${EXE_PROJECT_EXAMPLE} "apps/neat_dnfs_solution_evaluation.cpp" "apps/solution_registry.cpp")
+add_executable(${EXE_PROJECT_EXAMPLE} "apps/neat_dnfs_solution_evaluation.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
 target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         imgui::imgui

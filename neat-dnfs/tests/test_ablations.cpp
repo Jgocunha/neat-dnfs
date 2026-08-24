@@ -4,7 +4,7 @@
 #include <utility>
 
 #include "constants.h"
-#include "neat/ablation_presets.h"
+#include "neat_tools/ablation_presets.h"
 #include "neat/genome.h"
 #include "neat/species.h"
 #include "solutions/and.h"
@@ -246,11 +246,11 @@ TEST_CASE("No Growth IO Only: parameters still evolve while structure is frozen"
     REQUIRE(parametersMoved);
 }
 
-TEST_CASE("No Growth One Hidden: initialize() seeds one hidden field and exactly the 5 legal connections", "[ablations][no_growth_one_hidden]")
+TEST_CASE("No Growth Reference Hidden Field Count: initialize() seeds the reference hidden field count and exactly the 5 legal connections", "[ablations][no_growth_reference_hidden_field_count]")
 {
     AblationFlagGuard guard;
     resetGlobalState();
-    AblationPresets::noGrowthOneHidden();
+    AblationPresets::noGrowthReferenceHiddenFieldCount();
 
     AND solution{ makeTopology(2, 1) };
     solution.initialize();
@@ -263,11 +263,11 @@ TEST_CASE("No Growth One Hidden: initialize() seeds one hidden field and exactly
     REQUIRE(allConnectionsEnabled(solution.getGenome()));
 }
 
-TEST_CASE("No Growth One Hidden: rule agreement and structure freeze across 1000 mutations", "[ablations][no_growth_one_hidden]")
+TEST_CASE("No Growth Reference Hidden Field Count: rule agreement and structure freeze across 1000 mutations", "[ablations][no_growth_reference_hidden_field_count]")
 {
     AblationFlagGuard guard;
     resetGlobalState();
-    AblationPresets::noGrowthOneHidden();
+    AblationPresets::noGrowthReferenceHiddenFieldCount();
     AblationConstants::disableAddConnectionGene = false; // leave the rule live
 
     AND solution{ makeTopology(2, 1) };
@@ -287,11 +287,11 @@ TEST_CASE("No Growth One Hidden: rule agreement and structure freeze across 1000
     REQUIRE(sawDisabledConnection); // gene count is frozen, but toggle can still prune a connection
 }
 
-TEST_CASE("No Growth One Hidden: field ordering - inputs, then output, then hidden", "[ablations][no_growth_one_hidden]")
+TEST_CASE("No Growth Reference Hidden Field Count: field ordering - inputs, then output, then hidden", "[ablations][no_growth_reference_hidden_field_count]")
 {
     AblationFlagGuard guard;
     resetGlobalState();
-    AblationPresets::noGrowthOneHidden();
+    AblationPresets::noGrowthReferenceHiddenFieldCount();
 
     AND solution{ makeTopology(2, 1) };
     solution.initialize();
