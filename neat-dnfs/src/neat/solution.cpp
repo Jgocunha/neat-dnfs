@@ -1185,7 +1185,7 @@ namespace neat_dnfs
 		const auto gaussStimulus = std::dynamic_pointer_cast<dnf_composer::element::GaussStimulus>(phenotype.getElement(name));
 		const double diff_x = std::abs(targetPosition - gaussStimulus->getParameters().position);
 		const double steps_x = diff_x / step;
-		const int steps_t = static_cast<int>(SimulationConstants::maxSimulationSteps / steps_x);
+		const int steps_t = static_cast<int>(static_cast<double>(SimulationConstants::maxSimulationSteps) / steps_x);
 
 		do
 		{
