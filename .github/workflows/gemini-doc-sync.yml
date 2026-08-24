@@ -93,7 +93,11 @@ jobs:
         env:
           GEMINI_ERROR: ${{ steps.gemini_doc_sync.outputs.error }}
         run: |
-          if grep -qiE 'exhausted your daily quota|RESOURCE_EXHAUSTED|"code":\s*429' <<< "$GEMINI_ERROR"; then
+          # Errors also reach this step as plain stderr text rather than JSON
+          # (the action falls back to raw stderr when it isn't valid JSON), so
+          # this also matches "HTTP 429" / "429 Too Many Requests" phrasing,
+          # not just the JSON "code": 429 field.
+          if grep -qiE 'exhausted your daily quota|RESOURCE_EXHAUSTED|Too Many Requests|\b429\b' <<< "$GEMINI_ERROR"; then
             echo "::warning title=Gemini doc-sync skipped::Gemini free-tier daily quota is exhausted; documentation sync check skipped, not failed. Re-run later or check manually."
             exit 0
           fi
