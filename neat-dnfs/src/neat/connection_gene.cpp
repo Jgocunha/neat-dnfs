@@ -407,8 +407,8 @@ namespace neat_dnfs
 
 		const auto dimensions = kernel->getElementCommonParameters().dimensionParameters;
 
-		const double totalProbability = FieldGeneConstants::gaussKernelProbability +
-			FieldGeneConstants::mexicanHatKernelProbability;
+		const double totalProbability = ConnectionGeneConstants::gaussKernelProbability +
+			ConnectionGeneConstants::mexicanHatKernelProbability;
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(totalProbability - 1.0) > epsilon)
@@ -418,7 +418,7 @@ namespace neat_dnfs
 
 		const double randomValue = generateRandomDouble(0.0, 1.0);
 
-		if (randomValue < FieldGeneConstants::gaussKernelProbability)
+		if (randomValue < ConnectionGeneConstants::gaussKernelProbability)
 		{
 			initializeGaussKernel(dimensions);
 			mutationsInLastGeneration += "(cg to gk)";
