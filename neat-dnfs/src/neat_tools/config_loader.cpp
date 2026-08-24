@@ -7,6 +7,7 @@
 #include <stdexcept>
 
 #include "constants.h"
+#include "neat_tools/resource_paths.h"
 
 namespace neat_dnfs
 {
@@ -30,7 +31,7 @@ namespace neat_dnfs
 
 	std::string ConfigLoader::defaultGlobalConfigPath()
 	{
-		return std::string(PROJECT_DIR) + "/config/neat_dnfs.json";
+		return (paths::resourceRoot() / "config" / "neat_dnfs.json").generic_string();
 	}
 
 	void ConfigLoader::weights(const nlohmann::json& j, const char* key,
@@ -46,7 +47,7 @@ namespace neat_dnfs
 
 	std::string ConfigLoader::solutionConfigPath(const std::string& slug)
 	{
-		return std::string(PROJECT_DIR) + "/config/solutions/" + slug + ".json";
+		return (paths::resourceRoot() / "config" / "solutions" / (slug + ".json")).generic_string();
 	}
 
 	void ConfigLoader::loadGlobalConfig(const std::string& path)

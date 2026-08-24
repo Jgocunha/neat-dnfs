@@ -11,8 +11,9 @@
 using namespace neat_dnfs;
 using namespace neat_dnfs::test;
 
-// PopulationFileManager writes to a hardcoded PROJECT_DIR/data/<solutionName>/<timestamp>/
-// path with no test-mode override (see population_file_manager.cpp setFileDirectory()).
+// PopulationFileManager writes to <data root>/data/<solutionName>/<timestamp>/ with no
+// test-mode override (see population_file_manager.cpp setFileDirectory()); in a build
+// tree that data root is PROJECT_DIR (see neat_tools/resource_paths.h).
 // Every other test in this suite passes enableFileIO=false for exactly this reason. This
 // is the one test that exercises real file IO, so it: (1) uses CountingSolution's
 // distinctive name to keep the directory identifiable, (2) reproduces the same

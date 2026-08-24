@@ -111,6 +111,37 @@ Additional simple logical tasks (e.g., AND, XOR) are included for validation and
 
 ---
 
+## Download a pre-built release
+
+Every tagged release ships ready-to-run archives for Windows, Linux and macOS on the
+[Releases page](https://github.com/Jgocunha/neat-dnfs/releases) — no VCPKG, no compiler, no build.
+
+```bash
+tar -xzf neat-dnfs-<version>-linux-x64.tar.gz    # or unzip the Windows archive
+cd neat-dnfs-<version>-linux-x64
+./bin/neat-dnfs-evol --help
+./bin/neat-dnfs-evol --task xor --runs 1
+```
+
+Each archive holds the three experiment executables in `bin/` and the hyperparameter
+files they read in `share/neat-dnfs/` (`config/`, `templates/`). The binaries find those
+files relative to their own location, so the extracted folder can live anywhere; results
+are written to a `data/` folder in whatever directory you run from. Two environment
+variables override this: `NEAT_DNFS_ROOT` points at a different `config/`+`templates/`
+tree, and `NEAT_DNFS_DATA_DIR` at a different results location.
+
+The archives do not bundle system libraries. On Linux, install the OpenGL/X11 runtime
+first:
+
+```bash
+sudo apt-get install -y libgl1 libglu1-mesa libglfw3 libxrandr2 libxinerama1 libxcursor1 libxi6
+```
+
+To build an archive yourself from a Release build tree, run `scripts/package.sh`
+(`scripts\package.bat` on Windows).
+
+---
+
 ## Building
 
 ### Prerequisites

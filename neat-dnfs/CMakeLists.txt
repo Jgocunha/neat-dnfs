@@ -1,13 +1,20 @@
-﻿cmake_minimum_required(VERSION 3.20...3.30)
+﻿# 3.21 is the floor for $<TARGET_RUNTIME_DLLS:...>, used to package the vcpkg
+# DLLs alongside the Windows executables.
+cmake_minimum_required(VERSION 3.21...3.30)
 
 project(neat-dnfs
         DESCRIPTION "Dynamic Neural Field Evolution with NEAT for Robotics"
         LANGUAGES CXX)
 
 # Define library version
-set(NEAT_DNFS_VERSION_MAJOR 1 CACHE STRING "major version" FORCE)
-set(NEAT_DNFS_VERSION_MINOR 0 CACHE STRING "minor version" FORCE)
-set(NEAT_DNFS_VERSION ${NEAT_DNFS_VERSION_MAJOR}.${NEAT_DNFS_VERSION_MINOR} CACHE STRING "version" FORCE)
+# Keep in step with the topmost released section of ../CHANGELOG.md: release
+# archives are named after this version, and release.yml refuses to publish a
+# tag that disagrees with it. Pre-1.0 on purpose -- the API is still free to
+# move between releases.
+set(NEAT_DNFS_VERSION_MAJOR 0 CACHE STRING "major version" FORCE)
+set(NEAT_DNFS_VERSION_MINOR 1 CACHE STRING "minor version" FORCE)
+set(NEAT_DNFS_VERSION_PATCH 0 CACHE STRING "patch version" FORCE)
+set(NEAT_DNFS_VERSION ${NEAT_DNFS_VERSION_MAJOR}.${NEAT_DNFS_VERSION_MINOR}.${NEAT_DNFS_VERSION_PATCH} CACHE STRING "version" FORCE)
 
 # Library build type prefix
 set(NEAT_DNFS_LIB_PREFIX "release")
@@ -88,6 +95,7 @@ set(header
         "include/neat_tools/key_listener.h"
         "include/neat_tools/ablation_presets.h"
         "include/neat_tools/config_loader.h"
+        "include/neat_tools/resource_paths.h"
         "include/neat_tools/solution_registry.h"
 
         "include/constants.h"
@@ -113,6 +121,7 @@ set(src
         "src/neat_tools/logger.cpp"
         "src/neat_tools/ablation_presets.cpp"
         "src/neat_tools/config_loader.cpp"
+        "src/neat_tools/resource_paths.cpp"
         "src/neat_tools/solution_registry.cpp"
 )
 
@@ -158,6 +167,7 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
     NEAT_DNFS=1
     NEAT_DNFS_VERSION_MAJOR=${NEAT_DNFS_VERSION_MAJOR}
     NEAT_DNFS_VERSION_MINOR=${NEAT_DNFS_VERSION_MINOR}
+    NEAT_DNFS_VERSION_PATCH=${NEAT_DNFS_VERSION_PATCH}
 )
 
 set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
@@ -166,16 +176,23 @@ set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
 )
 
 # Install the library (binaries)
+# The library, its headers and its package config form the "dev" component;
+# the executables and the files they read at startup form "runtime". Release
+# archives are built with `cmake --install --component runtime` (see
+# scripts/package.sh) so they carry only what is needed to run an experiment;
+# a plain `cmake --install` still installs both.
 install(TARGETS ${CMAKE_PROJECT_NAME} EXPORT ${CMAKE_PROJECT_NAME}Targets
     RUNTIME       DESTINATION ${NEAT_DNFS_RUNTIME_INSTALL_DIR}
     LIBRARY       DESTINATION ${NEAT_DNFS_LIBRARY_INSTALL_DIR}
     ARCHIVE       DESTINATION ${NEAT_DNFS_ARCHIVE_INSTALL_DIR}
     FRAMEWORK     DESTINATION ${NEAT_DNFS_FRAMEWORK_INSTALL_DIR}
+    COMPONENT dev
 )
 
 # Install the headers
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
         DESTINATION ${NEAT_DNFS_INC_INSTALL_DIR}/neat-dnfs
+        COMPONENT dev
         FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp")
 
 # Package version configuration
@@ -199,8 +216,10 @@ configure_package_config_file(
 
 install(EXPORT ${CMAKE_PROJECT_NAME}Targets DESTINATION ${NEAT_DNFS_CMAKE_CONFIG_INSTALL_DIR}
     FILE ${CMAKE_PROJECT_NAME}-targets.cmake
+    COMPONENT dev
 )
-install(FILES ${config_file} ${version_file} DESTINATION ${NEAT_DNFS_CMAKE_CONFIG_INSTALL_DIR})
+install(FILES ${config_file} ${version_file}
+    DESTINATION ${NEAT_DNFS_CMAKE_CONFIG_INSTALL_DIR} COMPONENT dev)
 
 # Main executable
 set(EXE_PROJECT_EXAMPLE neat-dnfs-evol)
@@ -235,6 +254,52 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         ${CMAKE_PROJECT_NAME}
 )
 
+# Runtime package (the "runtime" component)
+#
+# The executables resolve config/ and templates/ at startup, relative to their
+# own location, via neat_tools/resource_paths.h. Installing them to bin/ and the
+# data files to share/neat-dnfs/ is exactly the layout that resolver looks for,
+# so an installed or unpacked tree runs without any environment set up.
+#
+# Relative destinations, unlike the absolute NEAT_DNFS_*_INSTALL_DIR ones above:
+# only a relative destination follows `cmake --install --prefix` and the staging
+# prefix CPack installs into when it builds an archive.
+set(NEAT_DNFS_RUNTIME_DESTINATION "bin")
+set(NEAT_DNFS_DATA_DESTINATION "share/${CMAKE_PROJECT_NAME}")
+
+install(TARGETS neat-dnfs-evol neat-dnfs-inc-evol neat-dnfs-sol-eval
+    RUNTIME DESTINATION ${NEAT_DNFS_RUNTIME_DESTINATION}
+    COMPONENT runtime
+)
+
+install(DIRECTORY
+        "${CMAKE_CURRENT_SOURCE_DIR}/config"
+        "${CMAKE_CURRENT_SOURCE_DIR}/templates"
+    DESTINATION ${NEAT_DNFS_DATA_DESTINATION}
+    COMPONENT runtime
+)
+
+install(FILES
+        "${CMAKE_CURRENT_SOURCE_DIR}/../README.md"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../CHANGELOG.md"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
+    DESTINATION ${NEAT_DNFS_DATA_DESTINATION}
+    COMPONENT runtime
+)
+
+# vcpkg's Windows triplet is dynamic, so imgui/fftw3/glfw arrive as DLLs that
+# have to sit next to the executables -- the same set CI works around by putting
+# vcpkg's bin directory on PATH. All three executables link the identical set,
+# so one target's list covers them. Both sibling dependencies
+# (imgui-platform-kit, dynamic-neural-field-composer) are static libraries and
+# contribute nothing here.
+if(WIN32)
+    install(FILES $<TARGET_RUNTIME_DLLS:neat-dnfs-evol>
+        DESTINATION ${NEAT_DNFS_RUNTIME_DESTINATION}
+        COMPONENT runtime
+    )
+endif()
+
 # Setup Catch2
 enable_testing()
 find_package(Catch2 CONFIG REQUIRED)
@@ -258,6 +323,7 @@ add_executable(${TEST_PROJECT}
     "tests/test_population_file_manager.cpp"
     "tests/test_speciation.cpp"
     "tests/test_key_listener.cpp"
+    "tests/test_resource_paths.cpp"
     "tests/test_evolution_helpers.h"
     "tests/solutions/evol_detection_instability.cpp"
     "tests/solutions/evol_memory_instability.cpp"

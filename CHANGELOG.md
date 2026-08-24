@@ -9,7 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.1.0] - 2026-08-24
+
+First published release. Nothing before this was ever tagged or released, so the
+two sections below are development history rather than releases anyone could
+install; they are numbered 0.0.x to keep this file monotonic.
+
 ### Added
+- **Pre-built binaries for Windows, Linux and macOS** — `.github/workflows/release.yml` builds, packages and publishes ready-to-run archives when a `v*` tag is pushed, so an experiment can be run without VCPKG or a compiler (closes #13):
+  - `neat_tools/resource_paths.h`/`.cpp` (new) — `paths::resourceRoot()` locates `config/` and `templates/` at runtime instead of through the compile-time `PROJECT_DIR` macro, trying `$NEAT_DNFS_ROOT`, the executable's own directory, `<executable>/../share/neat-dnfs`, then the source tree the binary was configured from. A build tree still resolves to `PROJECT_DIR`, so development and `ctest` are unchanged; a downloaded archive resolves to itself, which it previously could not do at all
+  - `paths::dataRoot()` — a relocated binary writes its `data/` results under the working directory rather than into the source tree it was built from; `$NEAT_DNFS_DATA_DIR` overrides it
+  - `install()` rules split into a `dev` component (library, headers, package config — unchanged) and a `runtime` component (the three executables, `config/`, `templates/`, and on Windows the vcpkg DLLs), so a release archive carries only what running an experiment needs
+  - `scripts/package.sh` / `scripts/package.bat` (new) — build one platform's archive from an existing Release build tree, named `neat-dnfs-<version>-<platform>-<arch>`
+  - The workflow smoke-tests each archive on a clean path, from a directory that is neither the build nor the source tree, before publishing it; release notes come from this file's section for the tag
+  - `tests/test_resource_paths.cpp` (new) — candidate selection order, the error naming every path tried, and the source-tree fallback a build tree relies on
+- **Versioning** — `NEAT_DNFS_VERSION` in `CMakeLists.txt` gains a patch component and is now the single source of truth for release archive names, set to `0.1.0` (was `1.0`); the release workflow refuses to publish a tag that disagrees with it. Pre-1.0 is deliberate: the API is still free to move
 - **Mechanism ablation studies** — `AblationConstants`/`AblationPresets` (new `include/neat/ablation_presets.h`, `src/neat/ablation_presets.cpp`) gate five NEAT mechanisms independently, selectable at runtime via `neat-dnfs-evol --task NAME --ablation NAME` with zero source edits (closes #76):
   - `no-growth-io-only` / `no-growth-one-hidden` — freeze structural mutations, seeding every legal connection (and one hidden field, respectively) at `initialize()` instead
   - `no-speciation` — `Species::isCompatible()` short-circuits to always-compatible; paired with a random non-minimal initial population per Stanley & Miikkulainen (2002, §5.5)
@@ -46,7 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.1.0] - 2026-06-13
+## [0.0.2] - 2026-06-13
 
 ### Added
 - **Catch2 unit test suite** — 70 tests / 4 213 assertions covering `Genome`, `Population`, `Species`, `FieldGene`, `ConnectionGene`, and all `Solution` subclasses (closes #8)
@@ -74,7 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.0] - 2024-01-01
+## [0.0.1] - 2024-04-19
 
 ### Added
 - Core NEAT-DNF framework for evolving Dynamic Neural Field architectures
@@ -109,6 +125,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [`imgui-platform-kit`](https://github.com/Jgocunha/imgui-platform-kit)
 - `imgui`, `implot`, `imgui-node-editor`, `nlohmann-json` (via VCPKG)
 
-[Unreleased]: https://github.com/Jgocunha/neat-dnfs/compare/v1.1.0...HEAD
-[1.1.0]: https://github.com/Jgocunha/neat-dnfs/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/Jgocunha/neat-dnfs/releases/tag/v1.0.0
+[Unreleased]: https://github.com/Jgocunha/neat-dnfs/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Jgocunha/neat-dnfs/releases/tag/v0.1.0
