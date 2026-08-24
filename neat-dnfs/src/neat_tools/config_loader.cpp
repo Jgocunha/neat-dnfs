@@ -7,6 +7,7 @@
 #include <stdexcept>
 
 #include "constants.h"
+#include "neat_tools/resource_paths.h"
 
 namespace neat_dnfs
 {
@@ -30,7 +31,7 @@ namespace neat_dnfs
 
 	std::string ConfigLoader::defaultGlobalConfigPath()
 	{
-		return std::string(PROJECT_DIR) + "/config/neat_dnfs.json";
+		return (paths::resourceRoot() / "config" / "neat_dnfs.json").generic_string();
 	}
 
 	void ConfigLoader::weights(const nlohmann::json& j, const char* key,
@@ -46,7 +47,7 @@ namespace neat_dnfs
 
 	std::string ConfigLoader::solutionConfigPath(const std::string& slug)
 	{
-		return std::string(PROJECT_DIR) + "/config/solutions/" + slug + ".json";
+		return (paths::resourceRoot() / "config" / "solutions" / (slug + ".json")).generic_string();
 	}
 
 	void ConfigLoader::loadGlobalConfig(const std::string& path)
@@ -135,6 +136,22 @@ namespace neat_dnfs
 					+ name + "'; expected referenceHiddenFieldsMin or referenceHiddenFieldsMax");
 			}
 			*target = value.get<int>();
+		}
+
+		// AblationConstants::label is appended straight onto a solution's name to
+		// build the data/ output directory (see population_file_manager.cpp), so a
+		// value containing a path separator or ".." would let a custom --config
+		// write outside data/<solutionName>/ entirely. The built-in presets never
+		// set a label containing one; this only guards a user-supplied config file.
+		void validateAblationLabel(const std::string& label, const std::string& path)
+		{
+			if (label.find_first_of("/\\") != std::string::npos
+				|| label.find("..") != std::string::npos)
+			{
+				throw std::runtime_error("ConfigLoader: '" + path + "' has an AblationConstants.label ('"
+					+ label + "') containing a path separator or '..'; it is appended directly to a "
+					"directory name and must not name a path.");
+			}
 		}
 
 		// field()/weights()/hiddenFieldBound() below only ever read a *known*
@@ -323,6 +340,7 @@ namespace neat_dnfs
 			field(ac, "referenceHiddenFieldsMin", &AblationConstants::referenceHiddenFieldsMin);
 			field(ac, "referenceHiddenFieldsMax", &AblationConstants::referenceHiddenFieldsMax);
 			field(ac, "label", &AblationConstants::label);
+			validateAblationLabel(AblationConstants::label, path);
 			field(ac, "disableAddFieldGene", &AblationConstants::disableAddFieldGene);
 			field(ac, "disableAddConnectionGene", &AblationConstants::disableAddConnectionGene);
 			field(ac, "disableToggleConnectionGene", &AblationConstants::disableToggleConnectionGene);

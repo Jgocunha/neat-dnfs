@@ -76,11 +76,12 @@ namespace neat_dnfs
 		/// the merged result omits any expected key.
 		static void applyAblation(const std::string& path);
 
-		/// @return PROJECT_DIR "/config/neat_dnfs.json" -- the config used when
-		/// no --config flag is given.
+		/// @return <resource root>/config/neat_dnfs.json -- the config used when
+		/// no --config flag is given. See neat_tools/resource_paths.h for how the
+		/// root is found.
 		static std::string defaultGlobalConfigPath();
 
-		/// @return PROJECT_DIR "/config/solutions/<slug>.json", the per-experiment
+		/// @return <resource root>/config/solutions/<slug>.json, the per-experiment
 		/// override for that task.
 		static std::string solutionConfigPath(const std::string& slug);
 

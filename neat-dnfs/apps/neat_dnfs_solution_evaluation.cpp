@@ -11,6 +11,7 @@
 #include "neat_tools/config_loader.h"
 #include "neat/population.h"
 #include "neat_tools/logger.h"
+#include "neat_tools/resource_paths.h"
 #include "neat_tools/solution_registry.h"
 
 int main(int argc, char* argv[])
@@ -45,7 +46,7 @@ int main(int argc, char* argv[])
 
 		// load a previous solution
 		const std::string templatePath = opts.templateFile.value_or(
-			std::string(PROJECT_DIR) + "/templates/" + std::string(task->templateFile));
+			(paths::resourceRoot() / "templates" / std::string(task->templateFile)).generic_string());
 		const auto previousSolution = std::make_shared<dnf_composer::Simulation>();
 		const dnf_composer::SimulationFileManager sfm(previousSolution, templatePath);
 		sfm.loadElementsFromJson();

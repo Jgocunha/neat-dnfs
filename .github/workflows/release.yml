@@ -1,0 +1,266 @@
+name: Release
+
+# Builds the three experiment executables on each platform, packages them with
+# the config/ and templates/ they read at startup, smoke-tests the package on a
+# machine that has nothing else installed, and attaches the archives to a GitHub
+# Release.
+#
+# The archives are relocatable because the binaries resolve their data files
+# relative to their own location -- see
+# neat-dnfs/include/neat_tools/resource_paths.h.
+#
+# Note that scripts/setup.* clone vcpkg, imgui-platform-kit and
+# dynamic-neural-field-composer at unpinned HEAD, exactly as ci.yml does. Two
+# runs of the same tag can therefore differ; pinning them is deliberately left
+# for a follow-up.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Build and package one archive per platform ─────────────────────────────
+  package:
+    name: Package (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # ubuntu-22.04 rather than ubuntu-latest: the binaries link against
+          # the runner's glibc, and 24.04's is too new to run on older distros.
+          - os: ubuntu-22.04
+            label: linux
+          - os: windows-latest
+            label: windows
+          - os: macos-latest
+            label: macos
+
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Normalize paths
+        if: runner.os == 'Windows'
+        run: echo "VCPKG_ROOT=$(echo "$VCPKG_ROOT" | tr '\\' '/')" >> "$GITHUB_ENV"
+
+      - name: Set vcpkg triplet
+        id: triplet
+        run: |
+          case "${{ runner.os }}" in
+            Windows) TRIPLET=x64-windows ;;
+            Linux)   TRIPLET=x64-linux ;;
+            macOS)   if [ "$(uname -m)" = "arm64" ]; then TRIPLET=arm64-osx; else TRIPLET=x64-osx; fi ;;
+          esac
+          echo "VCPKG_DEFAULT_TRIPLET=$TRIPLET" >> "$GITHUB_ENV"
+          echo "vcpkg_triplet=$TRIPLET" >> "$GITHUB_OUTPUT"
+
+      # ── System dependencies ────────────────────────────────────────────────
+      # imgui-platform-kit needs GLFW/OpenGL headers; same list as ci.yml.
+      - name: Install system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc-13 g++-13 \
+            autoconf autoconf-archive automake libtool \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev \
+            libglfw3-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxext-dev
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
+
+      # ── vcpkg ──────────────────────────────────────────────────────────────
+      - name: Clone vcpkg
+        run: git clone https://github.com/microsoft/vcpkg.git "$VCPKG_ROOT"
+
+      - name: Bootstrap vcpkg
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            "$VCPKG_ROOT/bootstrap-vcpkg.bat" -disableMetrics
+          else
+            "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+          fi
+
+      - name: Cache vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VCPKG_ROOT }}/installed
+          key: vcpkg-${{ runner.os }}-${{ steps.triplet.outputs.vcpkg_triplet }}-${{ hashFiles('neat-dnfs/scripts/setup.sh', 'neat-dnfs/scripts/setup.bat') }}
+          restore-keys: vcpkg-${{ runner.os }}-${{ steps.triplet.outputs.vcpkg_triplet }}-
+
+      # ── Dependencies, build, package ───────────────────────────────────────
+      - name: Setup dependencies
+        if: runner.os != 'Windows'
+        working-directory: ./neat-dnfs
+        run: |
+          chmod +x scripts/setup.sh
+          ./scripts/setup.sh
+
+      - name: Setup dependencies (Windows)
+        if: runner.os == 'Windows'
+        working-directory: ./neat-dnfs
+        shell: cmd
+        run: scripts\setup.bat
+
+      - name: Build
+        if: runner.os == 'Linux'
+        working-directory: ./neat-dnfs
+        run: |
+          chmod +x scripts/build.sh
+          ./scripts/build.sh
+
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        working-directory: ./neat-dnfs
+        run: |
+          chmod +x scripts/build_macos.sh
+          ./scripts/build_macos.sh
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        working-directory: ./neat-dnfs
+        shell: cmd
+        run: scripts\build.bat
+
+      - name: Package
+        if: runner.os != 'Windows'
+        working-directory: ./neat-dnfs
+        run: |
+          chmod +x scripts/package.sh
+          ./scripts/package.sh
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        working-directory: ./neat-dnfs
+        shell: cmd
+        run: scripts\package.bat
+
+      # The archive is named after the version in CMakeLists.txt. A tag that
+      # disagrees with it would publish a "v0.2.0" release full of 0.1.0 binaries.
+      - name: Check the tag matches the packaged version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          # nullglob + array rather than `ls glob1 glob2 | head -1`: each platform
+          # only ever produces one of .zip/.tar.gz, so the other glob never
+          # matches, and `ls` exits non-zero for the pattern it can't expand --
+          # which -o pipefail (bash's GitHub Actions default) turns into a step
+          # failure even though the archive that does exist was found.
+          shopt -s nullglob
+          CANDIDATES=(neat-dnfs/package/neat-dnfs-*.zip neat-dnfs/package/neat-dnfs-*.tar.gz)
+          if [ "${#CANDIDATES[@]}" -eq 0 ]; then
+            echo "No package archive found under neat-dnfs/package/."
+            exit 1
+          fi
+          ARCHIVE="${CANDIDATES[0]}"
+          PACKAGED=$(basename "$ARCHIVE" | sed -E 's/^neat-dnfs-([^-]+)-.*/\1/')
+          TAGGED="${GITHUB_REF_NAME#v}"
+          if [ "$PACKAGED" != "$TAGGED" ]; then
+            echo "Tag $GITHUB_REF_NAME says $TAGGED but the build produced $PACKAGED."
+            echo "Update NEAT_DNFS_VERSION_* in neat-dnfs/CMakeLists.txt, or retag."
+            exit 1
+          fi
+
+      # ── Smoke test ─────────────────────────────────────────────────────────
+      # The point of the whole workflow: prove the archive runs somewhere that
+      # is neither the build tree nor the source tree, with none of the build's
+      # library directories on PATH.
+      - name: Smoke-test the package
+        run: |
+          set -euo pipefail
+          # See the nullglob comment in "Check the tag matches the packaged
+          # version" above -- same reason this avoids `ls`.
+          shopt -s nullglob
+          CANDIDATES=("$PWD"/neat-dnfs/package/neat-dnfs-*.zip "$PWD"/neat-dnfs/package/neat-dnfs-*.tar.gz)
+          if [ "${#CANDIDATES[@]}" -eq 0 ]; then
+            echo "No package archive found under neat-dnfs/package/."
+            exit 1
+          fi
+          ARCHIVE="${CANDIDATES[0]}"
+          STAGE="$RUNNER_TEMP/package"
+          WORKDIR="$RUNNER_TEMP/workdir"
+          rm -rf "$STAGE" "$WORKDIR"
+          mkdir -p "$STAGE" "$WORKDIR"
+
+          # cmake -E tar reads both .zip and .tar.gz, and cmake is the one
+          # extraction tool guaranteed to be present on all three runners.
+          (cd "$STAGE" && cmake -E tar xf "$ARCHIVE")
+
+          BIN="$STAGE/$(ls "$STAGE")/bin"
+          if [ "${{ runner.os }}" = "Windows" ]; then EXE=".exe"; else EXE=""; fi
+
+          cd "$WORKDIR"
+          "$BIN/neat-dnfs-evol$EXE" --list
+          # Reads config/neat_dnfs.json plus config/solutions/xor.json, then
+          # writes results; a tiny population keeps this to a few seconds.
+          "$BIN/neat-dnfs-evol$EXE" --task xor --runs 1 --pop 4 --gens 1
+          # Reads templates/and.json.
+          "$BIN/neat-dnfs-sol-eval$EXE" --task and --evals 1
+
+          # Results belong in the directory the user ran from -- not in the
+          # package, and not in the source tree the binary was built from.
+          test -d "$WORKDIR/data"
+          test ! -d "$STAGE/data"
+
+      - name: Upload archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: neat-dnfs-${{ matrix.label }}
+          path: |
+            neat-dnfs/package/neat-dnfs-*.zip
+            neat-dnfs/package/neat-dnfs-*.tar.gz
+          if-no-files-found: error
+
+  # ── Publish ────────────────────────────────────────────────────────────────
+  release:
+    name: Publish release
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download archives
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v version="$VERSION" '
+            $0 ~ "^## \\[" version "\\]" { inside = 1; next }
+            inside && /^## \[/ { exit }
+            inside { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "No CHANGELOG.md section for $VERSION." > release-notes.md
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+        with:
+          files: artifacts/*
+          body_path: release-notes.md

@@ -5,6 +5,7 @@
 
 #include "neat_tools/config_loader.h"
 #include "constants.h"
+#include "neat_tools/resource_paths.h"
 
 namespace neat_dnfs
 {
@@ -12,7 +13,7 @@ namespace neat_dnfs
 	{
 		std::string presetDirectory()
 		{
-			return std::string(PROJECT_DIR) + "/config/ablations";
+			return (paths::resourceRoot() / "config" / "ablations").generic_string();
 		}
 
 		std::string presetPath(const std::string_view name)

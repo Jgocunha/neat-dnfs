@@ -9,6 +9,7 @@
 
 #include "neat/population.h"
 #include "neat_tools/logger.h"
+#include "neat_tools/resource_paths.h"
 
 namespace neat_dnfs
 {
@@ -83,7 +84,7 @@ namespace neat_dnfs
 		std::array<char, 100> timeBuffer{};
 		(void)std::strftime(timeBuffer.data(), timeBuffer.size(), "%Y-%m-%d %Hh%Mm%Ss", &localTime);
 
-		fileDirectory = std::string(PROJECT_DIR) + "/data/" + solutionName + "/" + timeBuffer.data() + "/";
+		fileDirectory = (paths::dataRoot() / "data" / solutionName / timeBuffer.data()).generic_string() + "/";
 		std::filesystem::create_directories(fileDirectory); // Ensure directory exist
 	}
 
