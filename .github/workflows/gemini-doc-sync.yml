@@ -22,6 +22,8 @@ jobs:
           persist-credentials: false
 
       - name: Check documentation completeness with Gemini
+        id: gemini_doc_sync
+        continue-on-error: true
         uses: google-github-actions/run-gemini-cli@055c24c9f565debe282e4adf1f7ca1715040ebe2 # v0 (2026-06-19)
         with:
           gemini_cli_version: latest
@@ -79,3 +81,25 @@ jobs:
         env:
           GEMINI_CLI_TRUST_WORKSPACE: 'true'
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # The Gemini free tier used here allows a fixed number of requests per
+      # day across the whole repository, so this check can fail simply because
+      # some other job used up the quota first -- not because of anything in
+      # this PR. continue-on-error above keeps that from blocking the PR; this
+      # step re-raises the failure if it was for any other reason, so a real
+      # problem (bad prompt, revoked key, action bug) still fails the job.
+      - name: Evaluate Gemini result
+        if: always() && steps.gemini_doc_sync.outcome == 'failure'
+        env:
+          GEMINI_ERROR: ${{ steps.gemini_doc_sync.outputs.error }}
+        run: |
+          # Errors also reach this step as plain stderr text rather than JSON
+          # (the action falls back to raw stderr when it isn't valid JSON), so
+          # this also matches "HTTP 429" / "429 Too Many Requests" phrasing,
+          # not just the JSON "code": 429 field.
+          if grep -qiE 'exhausted your daily quota|RESOURCE_EXHAUSTED|Too Many Requests|\b429\b' <<< "$GEMINI_ERROR"; then
+            echo "::warning title=Gemini doc-sync skipped::Gemini free-tier daily quota is exhausted; documentation sync check skipped, not failed. Re-run later or check manually."
+            exit 0
+          fi
+          echo "::error title=Gemini doc-sync failed::Gemini CLI failed for a reason other than quota exhaustion; see the 'Check documentation completeness with Gemini' step above."
+          exit 1
