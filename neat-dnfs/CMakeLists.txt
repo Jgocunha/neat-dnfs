@@ -186,9 +186,21 @@ write_basic_package_version_file(${version_file}
     COMPATIBILITY AnyNewerVersion
 )
 
-install(EXPORT ${CMAKE_PROJECT_NAME}Targets DESTINATION ${NEAT_DNFS_CMAKE_CONFIG_INSTALL_DIR}
-    FILE ${CMAKE_PROJECT_NAME}-config.cmake
+# config_loader.h publicly includes <nlohmann/json.hpp>, so the installed
+# package config must resolve nlohmann_json for downstream consumers -- a
+# plain install(EXPORT ... FILE ...config.cmake) has no room for that
+# find_dependency() call, hence the template instead.
+set(config_file "${CMAKE_CURRENT_BINARY_DIR}/cmake/${CMAKE_PROJECT_NAME}-config.cmake")
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/${CMAKE_PROJECT_NAME}-config.cmake.in"
+    ${config_file}
+    INSTALL_DESTINATION ${NEAT_DNFS_CMAKE_CONFIG_INSTALL_DIR}
 )
+
+install(EXPORT ${CMAKE_PROJECT_NAME}Targets DESTINATION ${NEAT_DNFS_CMAKE_CONFIG_INSTALL_DIR}
+    FILE ${CMAKE_PROJECT_NAME}-targets.cmake
+)
+install(FILES ${config_file} ${version_file} DESTINATION ${NEAT_DNFS_CMAKE_CONFIG_INSTALL_DIR})
 
 # Main executable
 set(EXE_PROJECT_EXAMPLE neat-dnfs-evol)
