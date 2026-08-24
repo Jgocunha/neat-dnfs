@@ -15,7 +15,6 @@ if not defined VCPKG_ROOT (
 )
 
 mkdir %PROJECT_ROOT%\build\x64-release 2>nul
-mkdir %PROJECT_ROOT%\build\x64-debug 2>nul
 
 :: Release
 cmake ^
@@ -30,6 +29,13 @@ if errorlevel 1 ( echo ERROR: CMake Release configure failed. & exit /b 1 )
 cmake --build "%PROJECT_ROOT%\build\x64-release" --config Release --parallel
 if errorlevel 1 ( echo ERROR: Release build failed. & exit /b 1 )
 
+if "%NEAT_DNFS_RELEASE_ONLY%"=="1" (
+    echo NEAT_DNFS_RELEASE_ONLY=1, skipping Debug build.
+    goto :done
+)
+
+mkdir %PROJECT_ROOT%\build\x64-debug 2>nul
+
 :: Debug
 cmake ^
     -S "%PROJECT_ROOT%" -B "%PROJECT_ROOT%\build\x64-debug" ^
@@ -43,5 +49,6 @@ if errorlevel 1 ( echo ERROR: CMake Debug configure failed. & exit /b 1 )
 cmake --build "%PROJECT_ROOT%\build\x64-debug" --config Debug --parallel
 if errorlevel 1 ( echo ERROR: Debug build failed. & exit /b 1 )
 
+:done
 echo.
 echo Build complete.
