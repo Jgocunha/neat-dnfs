@@ -1407,7 +1407,8 @@ def render_provenance_view(selected_run_path: str):
             st.markdown("**Machine**")
             st.markdown(f"- OS: **{_meta_field(meta, 'machine', 'os') or _NOT_RECORDED}**")
             cpu_model = _meta_field(meta, "machine", "cpu_model")
-            st.markdown(f"- CPU: **{cpu_model.strip() if cpu_model else _NOT_RECORDED}**")
+            cpu_display = cpu_model.strip() if isinstance(cpu_model, str) and cpu_model.strip() else _NOT_RECORDED
+            st.markdown(f"- CPU: **{cpu_display}**")
             cores = _meta_field(meta, "machine", "logical_cores")
             st.markdown(f"- Logical cores: **{cores if cores else _NOT_RECORDED}**")
             ram = format_ram_bytes(_meta_field(meta, "machine", "total_ram_bytes"))
@@ -1425,8 +1426,12 @@ def render_provenance_view(selected_run_path: str):
             st.markdown("**dynamic-neural-field-composer**")
             st.code(dependencies.get("dynamic_neural_field_composer_sha") or _NOT_RECORDED, language=None)
 
-        vcpkg_blob = dependencies.get("vcpkg_packages") or ""
-        pkg_df = parse_vcpkg_package_list(vcpkg_blob) if vcpkg_blob else pd.DataFrame()
+        vcpkg_blob = dependencies.get("vcpkg_packages")
+        pkg_df = (
+            parse_vcpkg_package_list(vcpkg_blob)
+            if isinstance(vcpkg_blob, str) and vcpkg_blob
+            else pd.DataFrame()
+        )
         if not pkg_df.empty:
             with st.expander(f"vcpkg packages ({len(pkg_df)})", expanded=False):
                 st.dataframe(

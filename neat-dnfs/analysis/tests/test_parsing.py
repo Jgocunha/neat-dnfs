@@ -556,8 +556,23 @@ def test_parse_vcpkg_package_list_on_empty_blob_returns_empty_dataframe():
     assert list(df.columns) == ["package", "version", "description"]
 
 
-def test_format_ram_bytes_formats_gigabytes():
-    assert format_ram_bytes(34_253_680_640) == "31.9 GB"
+def test_parse_vcpkg_package_list_treats_a_one_word_feature_description_as_description_not_version():
+    # Regression: a feature row's lone remaining field previously fell back to the
+    # "no space -> version" branch when the description happened to be one word,
+    # storing it as a version instead. Feature rows are identified by "[...]" in
+    # the package spec itself, which a plain versioned package name never has.
+    blob = "imgui[core]:x64-windows                                               Enabled"
+    df = parse_vcpkg_package_list(blob)
+
+    assert len(df) == 1
+    row = df.iloc[0]
+    assert row["package"] == "imgui[core]:x64-windows"
+    assert row["version"] == ""
+    assert row["description"] == "Enabled"
+
+
+def test_format_ram_bytes_formats_gibibytes():
+    assert format_ram_bytes(34_253_680_640) == "31.9 GiB"
 
 
 def test_format_ram_bytes_returns_none_for_missing_or_non_numeric():

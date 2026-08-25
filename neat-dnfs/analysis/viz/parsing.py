@@ -108,8 +108,11 @@ def parse_vcpkg_package_list(blob: str) -> pd.DataFrame:
     overlong name, so the gap before the next field varies -- splitting on runs of
     2+ spaces (never present inside a single version token or between two words of
     prose without also being 2+) handles both a normal "name  version  description"
-    row and a feature row with no version ("name  description", where the lone
-    remaining field contains a space and a plain version token never does).
+    row and a feature row with no version ("name  description"). A feature row is
+    identified by "[...]" in the package spec itself (vcpkg's own feature-selection
+    syntax) rather than by whether its lone remaining field contains a space --
+    that heuristic alone misclassifies a one-word feature description (e.g.
+    "pkg[feature]:triplet  Enabled") as a bare version.
     """
     rows = []
     for line in blob.splitlines():
@@ -118,13 +121,14 @@ def parse_vcpkg_package_list(blob: str) -> pd.DataFrame:
             continue
         parts = re.split(r"\s{2,}", line)
         name = parts[0]
+        is_feature_row = "[" in name
         version = ""
         description = ""
         if len(parts) >= 3:
             version = parts[1]
             description = "  ".join(parts[2:])
         elif len(parts) == 2:
-            if " " in parts[1]:
+            if is_feature_row or " " in parts[1]:
                 description = parts[1]
             else:
                 version = parts[1]
@@ -133,15 +137,15 @@ def parse_vcpkg_package_list(blob: str) -> pd.DataFrame:
 
 
 def format_ram_bytes(n) -> str | None:
-    """Format a byte count as e.g. "31.9 GB". None for missing/non-numeric input."""
+    """Format a byte count as e.g. "31.9 GiB". None for missing/non-numeric input."""
     try:
         n = float(n)
     except (TypeError, ValueError):
         return None
     if n <= 0:
         return None
-    gb = n / (1024**3)
-    return f"{gb:.1f} GB"
+    gib = n / (1024**3)
+    return f"{gib:.1f} GiB"
 
 
 @st.cache_data
