@@ -1,16 +1,20 @@
 ---
 name: work-an-issue
 description: End-to-end workflow for resolving one GitHub issue in neat-dnfs - branch, TDD, build, review, docs, PR. Use when asked to fix, implement, or close a specific issue number.
+argument-hint: <issue-number>
 ---
 
 # Work an issue
 
 One issue, one branch, one PR. Do not stack unrelated changes.
 
+Issue number: `$ARGUMENTS`. If empty, ask the user which issue to work before doing anything
+else - do not guess or pick one from the open list yourself.
+
 ## 1. Understand
 
 ```bash
-gh issue view <N> --comments
+gh issue view $ARGUMENTS --comments
 ```
 
 Restate in your own words: the goal, and the **success criterion** - the observable thing
