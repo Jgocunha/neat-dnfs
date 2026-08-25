@@ -1,5 +1,7 @@
 #include "neat/population_file_manager.h"
 
+#include <nlohmann/json.hpp>
+
 #include <array>
 #include <chrono>
 #include <ctime>
@@ -8,7 +10,9 @@
 #include <iomanip>
 
 #include "neat/population.h"
+#include "neat_tools/build_info.h"
 #include "neat_tools/logger.h"
+#include "neat_tools/machine_info.h"
 #include "neat_tools/resource_paths.h"
 
 namespace neat_dnfs
@@ -58,6 +62,7 @@ namespace neat_dnfs
 		if (PopulationConstants::saveOverview)
 		{
 			saveTimestampsAndDuration();
+			saveRunMetadata();
 		}
 		if (PopulationConstants::saveChampions)
 		{
@@ -211,6 +216,50 @@ namespace neat_dnfs
 		else
 		{
 			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for timestamps.");
+		}
+	}
+
+	void PopulationFileManager::saveRunMetadata() const
+	{
+		using namespace tools;
+
+		nlohmann::json metadata;
+		metadata["build"] = {
+			{"compiler_id", std::string(build_info::compilerId)},
+			{"compiler_version", std::string(build_info::compilerVersion)},
+			{"cmake_version", std::string(build_info::cmakeVersion)},
+			{"neat_dnfs_version", std::string(build_info::neatDnfsVersion)},
+			{"sanitizer", std::string(build_info::sanitizer)},
+			{"build_type", std::string(build_info::buildType)},
+			{"git_sha", std::string(build_info::gitSha)},
+			{"git_dirty", build_info::gitDirty}
+		};
+		metadata["dependencies"] = {
+			{"imgui_platform_kit_sha", std::string(build_info::imguiPlatformKitSha)},
+			{"dynamic_neural_field_composer_sha", std::string(build_info::dynamicNeuralFieldComposerSha)},
+			{"vcpkg_packages", std::string(build_info::vcpkgPackageList)}
+		};
+		metadata["machine"] = {
+			{"os", machine_info::operatingSystem()},
+			{"cpu_model", machine_info::cpuModel()},
+			{"logical_cores", machine_info::logicalCoreCount()},
+			{"total_ram_bytes", machine_info::totalRamBytes()}
+		};
+		metadata["run_parameters"] = {
+			{"parallel_evolution", population->parameters.parallelEvolution}
+		};
+
+		const std::string directoryPath = fileDirectory + "/";
+		std::filesystem::create_directories(directoryPath); // Ensure directory exists
+
+		std::ofstream metadataFile(directoryPath + "run_metadata.json");
+		if (metadataFile.is_open())
+		{
+			metadataFile << metadata.dump(2);
+		}
+		else
+		{
+			logger::log(logger::LogLevel::ERROR, "Failed to open log file for run metadata.");
 		}
 	}
 

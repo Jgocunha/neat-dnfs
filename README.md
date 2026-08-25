@@ -250,10 +250,11 @@ All data are stored in the `data/` directory.
 
 ### Analysis Tools (`analysis/`)
 
-A Streamlit dashboard with six pages, split into two scopes:
+A Streamlit dashboard with seven pages, split into three scopes:
 
 * **Single run** -- Fitness, Species, Topology, Mutations
 * **Across runs** -- Experiment (aggregates every run in one experiment), Compare (several experiments side by side)
+* **Run context** -- Provenance (build, dependency, and machine facts recorded for the selected run)
 
 Install dependencies once with `pip install -r analysis/requirements.txt`, then run
 `launch-visualizer.bat` (Windows) or `launch-visualizer.sh` (macOS/Linux) to open the app, and

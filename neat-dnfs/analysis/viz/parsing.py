@@ -82,6 +82,73 @@ def load_overview(run_dir_str: str) -> pd.DataFrame:
 
 
 @st.cache_data
+def load_run_metadata(run_dir_str: str):
+    """Parse run_metadata.json from a run root.
+
+    Returns None when the file is absent (every run recorded before provenance
+    tracking existed), unreadable, or not a JSON object -- callers distinguish
+    "absent" from "malformed" by checking the path themselves. Mirrors
+    _load_elements' tolerant style: a bad file degrades the Provenance page,
+    it never breaks the run.
+    """
+    path = Path(run_dir_str) / "run_metadata.json"
+    try:
+        if path.exists():
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+            return loaded if isinstance(loaded, dict) else None
+    except Exception:
+        pass
+    return None
+
+
+def parse_vcpkg_package_list(blob: str) -> pd.DataFrame:
+    """Parse `vcpkg list`'s fixed-width-ish text into a package/version/description table.
+
+    vcpkg pads name and version to a nominal column width but does not truncate an
+    overlong name, so the gap before the next field varies -- splitting on runs of
+    2+ spaces (never present inside a single version token or between two words of
+    prose without also being 2+) handles both a normal "name  version  description"
+    row and a feature row with no version ("name  description"). A feature row is
+    identified by "[...]" in the package spec itself (vcpkg's own feature-selection
+    syntax) rather than by whether its lone remaining field contains a space --
+    that heuristic alone misclassifies a one-word feature description (e.g.
+    "pkg[feature]:triplet  Enabled") as a bare version.
+    """
+    rows = []
+    for line in blob.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        parts = re.split(r"\s{2,}", line)
+        name = parts[0]
+        is_feature_row = "[" in name
+        version = ""
+        description = ""
+        if len(parts) >= 3:
+            version = parts[1]
+            description = "  ".join(parts[2:])
+        elif len(parts) == 2:
+            if is_feature_row or " " in parts[1]:
+                description = parts[1]
+            else:
+                version = parts[1]
+        rows.append({"package": name, "version": version, "description": description})
+    return pd.DataFrame(rows, columns=["package", "version", "description"])
+
+
+def format_ram_bytes(n) -> str | None:
+    """Format a byte count as e.g. "31.9 GiB". None for missing/non-numeric input."""
+    try:
+        n = float(n)
+    except (TypeError, ValueError):
+        return None
+    if n <= 0:
+        return None
+    gib = n / (1024**3)
+    return f"{gib:.1f} GiB"
+
+
+@st.cache_data
 def compute_topology_trajectory(run_dir_str: str) -> pd.DataFrame:
     """Per-generation topology of that generation's best solution: hidden-field count and
     enabled/disabled connection counts. Reads only per_generation_overview.txt (already read by
