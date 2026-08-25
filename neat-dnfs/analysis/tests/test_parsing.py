@@ -1,3 +1,5 @@
+import json
+
 import pandas as pd
 import pytest
 
@@ -12,12 +14,15 @@ from viz.parsing import (
     find_experiment_dirs,
     find_runs_with_overview,
     first_crossing_per_component,
+    format_ram_bytes,
     generations_all_partial_meet_targets,
     generations_meeting_targets,
     get_best_solution_id,
     list_champion_generations,
+    load_run_metadata,
     parse_overview_line,
     parse_species_header,
+    parse_vcpkg_package_list,
     species_champion_fitness_trajectory,
     trace_lineage,
 )
@@ -462,3 +467,100 @@ def test_generations_meeting_targets_agrees_with_dataframe_variant():
     from_vectors = generations_meeting_targets(generations, partial_vectors, targets)
 
     assert from_df == from_vectors == [3]
+
+
+# Real excerpt from a run_metadata.json's dependencies.vcpkg_packages (data/Detection
+# Instability/.../run_metadata.json), trimmed to the rows exercising the three shapes
+# `vcpkg list` produces: name+version+description, a feature row with no version
+# (description sits right after the name with no fixed-width version column), and a
+# version-only row with no description.
+VCPKG_LIST_BLOB = (
+    "abseil:x64-windows                                20260107.1#2        Abseil is an open-source collection of C++ libra...\n"
+    "imgui[docking-experimental]:x64-windows                               Build with docking support\n"
+    "vcpkg-cmake-config:x64-windows                    2024-05-23          "
+)
+
+
+def test_load_run_metadata_returns_none_when_file_is_absent(tmp_path):
+    assert load_run_metadata(str(tmp_path / "run")) is None
+
+
+def test_load_run_metadata_returns_none_on_malformed_json(tmp_path):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "run_metadata.json").write_text("not json", encoding="utf-8")
+
+    assert load_run_metadata(str(run_dir)) is None
+
+
+def test_load_run_metadata_returns_none_when_top_level_is_not_an_object(tmp_path):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "run_metadata.json").write_text("[1, 2, 3]", encoding="utf-8")
+
+    assert load_run_metadata(str(run_dir)) is None
+
+
+def test_load_run_metadata_parses_a_complete_file(tmp_path):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    payload = {
+        "build": {"git_sha": "abc123", "git_dirty": True},
+        "dependencies": {"vcpkg_packages": VCPKG_LIST_BLOB},
+        "machine": {"os": "Windows", "logical_cores": 12},
+        "run_parameters": {"parallel_evolution": True},
+    }
+    (run_dir / "run_metadata.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    meta = load_run_metadata(str(run_dir))
+
+    assert meta["build"]["git_sha"] == "abc123"
+    assert meta["machine"]["logical_cores"] == 12
+    assert meta["run_parameters"]["parallel_evolution"] is True
+
+
+def test_load_run_metadata_parses_a_partial_file_with_only_a_build_section(tmp_path):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "run_metadata.json").write_text(
+        json.dumps({"build": {"git_sha": "abc123"}}), encoding="utf-8"
+    )
+
+    meta = load_run_metadata(str(run_dir))
+
+    assert meta["build"]["git_sha"] == "abc123"
+    assert "machine" not in meta
+
+
+def test_parse_vcpkg_package_list_splits_name_version_and_description():
+    df = parse_vcpkg_package_list(VCPKG_LIST_BLOB)
+
+    assert len(df) == 3
+
+    versioned = df[df["package"] == "abseil:x64-windows"].iloc[0]
+    assert versioned["version"] == "20260107.1#2"
+    assert versioned["description"].startswith("Abseil is an open-source")
+
+    feature_row = df[df["package"] == "imgui[docking-experimental]:x64-windows"].iloc[0]
+    assert feature_row["version"] == ""
+    assert feature_row["description"] == "Build with docking support"
+
+    version_only = df[df["package"] == "vcpkg-cmake-config:x64-windows"].iloc[0]
+    assert version_only["version"] == "2024-05-23"
+    assert version_only["description"] == ""
+
+
+def test_parse_vcpkg_package_list_on_empty_blob_returns_empty_dataframe():
+    df = parse_vcpkg_package_list("")
+    assert df.empty
+    assert list(df.columns) == ["package", "version", "description"]
+
+
+def test_format_ram_bytes_formats_gigabytes():
+    assert format_ram_bytes(34_253_680_640) == "31.9 GB"
+
+
+def test_format_ram_bytes_returns_none_for_missing_or_non_numeric():
+    assert format_ram_bytes(None) is None
+    assert format_ram_bytes("not a number") is None
+    assert format_ram_bytes(0) is None

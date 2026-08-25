@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `neat_tools/machine_info.h`/`.cpp` (new) — OS name, logical core count, CPU model, and total RAM, gathered at process start (`#ifdef _WIN32`/`__APPLE__`/`__linux__` behind a portable interface)
   - `PopulationFileManager::saveRunMetadata()` — writes the `build`, `dependencies`, `machine`, and `run_parameters` sections; gated by the same `PopulationConstants::saveOverview` flag as the timestamps file
   - Seed and resolved-config fields are intentionally omitted for now — they depend on GitHub #44 (seeding) and the config-resolution work, neither of which has landed yet
+  - **Analysis dashboard** — a new "Provenance" page (`analysis/viz/views.py::render_provenance_view`) shows one selected run's recorded build, dependencies, machine, and run-parameter facts, with an amber badge on a dirty build; backwards compatible with every pre-existing run that predates this file, showing a plain "not recorded" state instead of an error at the file, section, and field level
 
 ---
 

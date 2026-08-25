@@ -6,7 +6,7 @@ import streamlit as st
 from .genome import build_topology_graph, compute_kernel_usage_stats, summarize_best_solution_genome
 from .stats import compute_fitness_stats, compute_partial_component_failure_rates, compute_species_stats, compute_topology_frequency, compute_topology_stats, display_gen, find_invariant_violations, mann_whitney_u, spearman_correlation, topology_distance
 from .plots import chart_all_runs_overlay, chart_architecture_complexity_scatter, chart_best_mutation_timeline, chart_convergence_generations_histogram, chart_cross_experiment_boxplot, chart_first_crossing_per_component, chart_genome_topology_curves, chart_innovation_growth, chart_kernel_usage_time, chart_lineage_fitness, chart_mutation_categories, chart_mutation_effectiveness, chart_mutations_per_generation, chart_partial_component_failure_rates, chart_partial_component_heatmap, chart_partial_fitness_grid, chart_population_distribution, chart_run_duration_histogram, chart_seconds_per_generation_histogram, chart_species_champion_trajectory, chart_species_counts, chart_species_lifespans, chart_species_membership, chart_topology_frequency_heatmap, chart_topology_trajectory, chart_total_fitness, plot_topology_graph, show_fig
-from .parsing import _sample_evenly, compute_mutation_events, compute_partial_fitness, compute_per_generation_best_mutation, compute_population_distributions, compute_population_kernel_usage, compute_population_parameter_distributions, compute_species_meta, compute_target_crossing_mutations, compute_topology_trajectory, find_experiment_dirs, first_crossing_per_component, generations_all_partial_meet_targets, get_best_solution_id, get_species_for_generation, list_champion_generations, load_best_solution_architecture, load_champion_architecture, species_champion_fitness_trajectory, trace_lineage
+from .parsing import _sample_evenly, compute_mutation_events, compute_partial_fitness, compute_per_generation_best_mutation, compute_population_distributions, compute_population_kernel_usage, compute_population_parameter_distributions, compute_species_meta, compute_target_crossing_mutations, compute_topology_trajectory, find_experiment_dirs, first_crossing_per_component, format_ram_bytes, generations_all_partial_meet_targets, get_best_solution_id, get_species_for_generation, list_champion_generations, load_best_solution_architecture, load_champion_architecture, load_run_metadata, parse_vcpkg_package_list, species_champion_fitness_trajectory, trace_lineage
 from .experiment import _load_experiment_runs_parsed, compute_experiment_convergence, compute_experiment_totals, compute_partial_fitness_best_only
 from .solution_record import parse_solution_blob
 
@@ -1323,6 +1323,141 @@ def render_mutations_view(df: pd.DataFrame, gens_tuple: tuple, selected_run_path
             column_config=timeline_column_config,
             hide_index=True,
         )
+
+
+_NOT_RECORDED = "—"  # em dash
+
+
+def _meta_field(meta: dict, section: str, key: str):
+    """Value at meta[section][key], or None when either level is absent."""
+    block = meta.get(section)
+    return block.get(key) if isinstance(block, dict) else None
+
+
+@st.fragment
+def render_provenance_view(selected_run_path: str):
+    """What built this run, and the machine it ran on -- from run_metadata.json.
+
+    Every run directory predating neat-dnfs 0.1.0 has no such file, and an older
+    build may have written only some of its sections, so every level here (file,
+    section, field) has its own "not recorded" state rather than assuming the
+    whole document is complete.
+    """
+    meta = load_run_metadata(selected_run_path)
+
+    if meta is None:
+        path = Path(selected_run_path) / "run_metadata.json"
+        if path.exists():
+            st.warning(
+                f"`run_metadata.json` in this run folder could not be read -- "
+                f"it is not valid JSON.\n\n{path}"
+            )
+        else:
+            st.info(
+                "No `run_metadata.json` in this run folder.\n\n"
+                "Provenance recording was added in neat-dnfs 0.1.0; runs evolved before "
+                "that did not write this file, and it cannot be reconstructed after the "
+                "fact. Re-run this task with a current build to capture it."
+            )
+            st.caption(f"Looked for: {path}")
+        return
+
+    build = meta.get("build")
+    dependencies = meta.get("dependencies")
+    machine = meta.get("machine")
+    run_parameters = meta.get("run_parameters")
+
+    st.markdown("### Source")
+    if isinstance(build, dict):
+        git_sha = build.get("git_sha")
+        col_sha, col_badge = st.columns([3, 2])
+        with col_sha:
+            st.code(git_sha or _NOT_RECORDED, language=None)
+        with col_badge:
+            if build.get("git_dirty") is True:
+                st.badge("uncommitted changes", icon=":material/warning:", color="orange")
+            elif build.get("git_dirty") is False:
+                st.badge("clean tree", icon=":material/check:", color="green")
+        if build.get("git_dirty") is True:
+            st.caption(
+                "This build included local edits that are not in any commit -- the "
+                "exact source cannot be recovered from the SHA alone."
+            )
+        metric_cols = st.columns(2)
+        with metric_cols[0]:
+            st.metric("neat-dnfs version", build.get("neat_dnfs_version") or _NOT_RECORDED, border=True)
+        with metric_cols[1]:
+            st.metric("build type", build.get("build_type") or _NOT_RECORDED, border=True)
+    else:
+        st.caption("Not recorded in this file.")
+
+    st.markdown("### Build & machine")
+    if isinstance(build, dict) or isinstance(machine, dict):
+        build_col, machine_col = st.columns(2)
+        with build_col:
+            st.markdown("**Build**")
+            compiler_id = _meta_field(meta, "build", "compiler_id")
+            compiler_version = _meta_field(meta, "build", "compiler_version")
+            compiler = f"{compiler_id} {compiler_version}".strip() if (compiler_id or compiler_version) else _NOT_RECORDED
+            st.markdown(f"- Compiler: **{compiler}**")
+            st.markdown(f"- CMake: **{_meta_field(meta, 'build', 'cmake_version') or _NOT_RECORDED}**")
+            sanitizer = _meta_field(meta, "build", "sanitizer")
+            st.markdown(f"- Sanitizer: **{sanitizer if sanitizer else 'none'}**")
+        with machine_col:
+            st.markdown("**Machine**")
+            st.markdown(f"- OS: **{_meta_field(meta, 'machine', 'os') or _NOT_RECORDED}**")
+            cpu_model = _meta_field(meta, "machine", "cpu_model")
+            st.markdown(f"- CPU: **{cpu_model.strip() if cpu_model else _NOT_RECORDED}**")
+            cores = _meta_field(meta, "machine", "logical_cores")
+            st.markdown(f"- Logical cores: **{cores if cores else _NOT_RECORDED}**")
+            ram = format_ram_bytes(_meta_field(meta, "machine", "total_ram_bytes"))
+            st.markdown(f"- RAM: **{ram or _NOT_RECORDED}**")
+    else:
+        st.caption("Not recorded in this file.")
+
+    st.markdown("### Dependencies")
+    if isinstance(dependencies, dict):
+        dep_cols = st.columns(2)
+        with dep_cols[0]:
+            st.markdown("**imgui-platform-kit**")
+            st.code(dependencies.get("imgui_platform_kit_sha") or _NOT_RECORDED, language=None)
+        with dep_cols[1]:
+            st.markdown("**dynamic-neural-field-composer**")
+            st.code(dependencies.get("dynamic_neural_field_composer_sha") or _NOT_RECORDED, language=None)
+
+        vcpkg_blob = dependencies.get("vcpkg_packages") or ""
+        pkg_df = parse_vcpkg_package_list(vcpkg_blob) if vcpkg_blob else pd.DataFrame()
+        if not pkg_df.empty:
+            with st.expander(f"vcpkg packages ({len(pkg_df)})", expanded=False):
+                st.dataframe(
+                    pkg_df,
+                    width="stretch",
+                    hide_index=True,
+                    column_config={
+                        "package": st.column_config.TextColumn("package"),
+                        "version": st.column_config.TextColumn("version"),
+                        "description": st.column_config.TextColumn("description"),
+                    },
+                )
+        else:
+            st.caption("No vcpkg package list recorded in this file.")
+    else:
+        st.caption("Not recorded in this file.")
+
+    st.markdown("### Run parameters")
+    if isinstance(run_parameters, dict):
+        parallel = run_parameters.get("parallel_evolution")
+        st.metric(
+            "parallel evolution",
+            "yes" if parallel is True else ("no" if parallel is False else _NOT_RECORDED),
+            border=True,
+        )
+    else:
+        st.caption("Not recorded in this file.")
+    st.caption(
+        "Seed and resolved config are not recorded yet -- they depend on ongoing "
+        "reproducibility work, so this section is expected to grow."
+    )
 
 
 def render_topology_frequency(all_run_metrics: list):
