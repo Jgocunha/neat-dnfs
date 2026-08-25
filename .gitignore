@@ -2,7 +2,16 @@
 *.vscode
 *.idea
 
-.claude/
+# Only CLAUDE.md, skills/ and notes/ are shared. Settings hold machine-specific paths,
+# and papers/ reports/ temp/ local-notes/ are local working material.
+.claude/*
+!.claude/CLAUDE.md
+!.claude/skills/
+!.claude/notes/
+
+# The shared .claude/ is the one at the repo root. A .claude/ inside the nested project
+# dir is always a mistake -- see CLAUDE.md > Temp files -- and must never be committed.
+neat-dnfs/.claude/
 
 install/
 build/
