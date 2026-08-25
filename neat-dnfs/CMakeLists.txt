@@ -71,6 +71,64 @@ add_compile_definitions(PROJECT_DIR="${PROJECT_DIR}")
 set(OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/data")
 add_compile_definitions(OUTPUT_DIRECTORY="${OUTPUT_DIRECTORY}")
 
+# Build provenance -- captured at configure time and baked into a generated
+# build_info.h so each run's output can be traced to what built it (GH #73).
+set(NEAT_DNFS_GIT_SHA "unknown")
+set(NEAT_DNFS_GIT_DIRTY "false")
+set(NEAT_DNFS_IPK_SHA "unknown")
+set(NEAT_DNFS_DNFC_SHA "unknown")
+find_package(Git QUIET)
+if(GIT_FOUND)
+    execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE NEAT_DNFS_GIT_SHA_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE NEAT_DNFS_GIT_SHA_RESULT ERROR_QUIET)
+    if(NEAT_DNFS_GIT_SHA_RESULT EQUAL 0)
+        set(NEAT_DNFS_GIT_SHA "${NEAT_DNFS_GIT_SHA_OUT}")
+    endif()
+
+    execute_process(COMMAND ${GIT_EXECUTABLE} status --porcelain
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE NEAT_DNFS_GIT_STATUS_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE NEAT_DNFS_GIT_STATUS_RESULT ERROR_QUIET)
+    if(NEAT_DNFS_GIT_STATUS_RESULT EQUAL 0 AND NOT NEAT_DNFS_GIT_STATUS_OUT STREQUAL "")
+        set(NEAT_DNFS_GIT_DIRTY "true")
+    endif()
+
+    execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/deps/imgui-platform-kit
+        OUTPUT_VARIABLE NEAT_DNFS_IPK_SHA_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE NEAT_DNFS_IPK_SHA_RESULT ERROR_QUIET)
+    if(NEAT_DNFS_IPK_SHA_RESULT EQUAL 0)
+        set(NEAT_DNFS_IPK_SHA "${NEAT_DNFS_IPK_SHA_OUT}")
+    endif()
+
+    execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/deps/dynamic-neural-field-composer
+        OUTPUT_VARIABLE NEAT_DNFS_DNFC_SHA_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE NEAT_DNFS_DNFC_SHA_RESULT ERROR_QUIET)
+    if(NEAT_DNFS_DNFC_SHA_RESULT EQUAL 0)
+        set(NEAT_DNFS_DNFC_SHA "${NEAT_DNFS_DNFC_SHA_OUT}")
+    endif()
+endif()
+
+set(NEAT_DNFS_VCPKG_LIST "unknown")
+find_program(NEAT_DNFS_VCPKG_EXECUTABLE NAMES vcpkg PATHS "${VCPKG_ROOT}" NO_DEFAULT_PATH)
+if(NEAT_DNFS_VCPKG_EXECUTABLE)
+    execute_process(COMMAND ${NEAT_DNFS_VCPKG_EXECUTABLE} list
+        WORKING_DIRECTORY ${VCPKG_ROOT}
+        OUTPUT_VARIABLE NEAT_DNFS_VCPKG_LIST_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE NEAT_DNFS_VCPKG_LIST_RESULT ERROR_QUIET)
+    if(NEAT_DNFS_VCPKG_LIST_RESULT EQUAL 0 AND NOT NEAT_DNFS_VCPKG_LIST_OUT STREQUAL "")
+        set(NEAT_DNFS_VCPKG_LIST "${NEAT_DNFS_VCPKG_LIST_OUT}")
+    endif()
+endif()
+
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/neat_tools/build_info.h.in"
+    "${CMAKE_BINARY_DIR}/generated/include/neat_tools/build_info.h"
+    @ONLY)
+
 # Header and source files
 set(header
         "include/neat/connection_gene.h"
@@ -97,6 +155,7 @@ set(header
         "include/neat_tools/config_loader.h"
         "include/neat_tools/resource_paths.h"
         "include/neat_tools/solution_registry.h"
+        "include/neat_tools/machine_info.h"
 
         "include/constants.h"
 )
@@ -122,15 +181,17 @@ set(src
         "src/neat_tools/ablation_presets.cpp"
         "src/neat_tools/config_loader.cpp"
         "src/neat_tools/resource_paths.cpp"
+        "src/neat_tools/machine_info.cpp"
         "src/neat_tools/solution_registry.cpp"
 )
 
 # Library target definition
 add_library(${CMAKE_PROJECT_NAME} ${header} ${src})
-target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC 
+target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:${NEAT_DNFS_INC_INSTALL_DIR}> 
+    $<INSTALL_INTERFACE:${NEAT_DNFS_INC_INSTALL_DIR}>
 )
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE "${CMAKE_BINARY_DIR}/generated/include")
 
 # Setup imgui - win32 Directx12
 find_package(imgui CONFIG REQUIRED)

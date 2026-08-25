@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Run provenance metadata** — every run directory under `data/<TaskName>/<timestamp>/` gains a `run_metadata.json` alongside `evolution_timestamps.txt`, so a run's fitness or performance can be attributed to its environment rather than guessed at (closes #73):
+  - `neat_tools/build_info.h.in` (new, `configure_file`-generated) — compiler ID/version, CMake version, `NEAT_DNFS_VERSION`, `NEAT_DNFS_SANITIZER`, build type, git SHA and dirty flag, the resolved commit of `imgui-platform-kit`/`dynamic-neural-field-composer`, and `vcpkg list` output, all captured at CMake configure time
+  - `neat_tools/machine_info.h`/`.cpp` (new) — OS name, logical core count, CPU model, and total RAM, gathered at process start (`#ifdef _WIN32`/`__APPLE__`/`__linux__` behind a portable interface)
+  - `PopulationFileManager::saveRunMetadata()` — writes the `build`, `dependencies`, `machine`, and `run_parameters` sections; gated by the same `PopulationConstants::saveOverview` flag as the timestamps file
+  - Seed and resolved-config fields are intentionally omitted for now — they depend on GitHub #44 (seeding) and the config-resolution work, neither of which has landed yet
+
 ---
 
 ## [0.1.0] - 2026-08-24

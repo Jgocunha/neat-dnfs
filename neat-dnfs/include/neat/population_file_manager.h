@@ -33,6 +33,7 @@ namespace neat_dnfs
 		void saveAllSolutionsWithFitnessAbove(double fitness) const;
 		void saveChampions() const;
 		void saveTimestampsAndDuration() const;
+		void saveRunMetadata() const;
 		void saveAllSolutionsPerGeneration() const;
 		void savePerGenerationOverview() const;
 		void saveBestSolutionOfEachGeneration() const;

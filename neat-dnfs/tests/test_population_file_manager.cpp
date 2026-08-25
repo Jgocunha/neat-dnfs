@@ -1,6 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
+#include <nlohmann/json.hpp>
 
 #include <filesystem>
+#include <fstream>
 #include <ctime>
 #include <array>
 
@@ -78,5 +80,43 @@ TEST_CASE("PopulationFileManager writes per-generation artifacts to disk", "[Pop
 
     // Remove only this run's own timestamped directory, not the whole shared
     // data/Counting/ root, so other/concurrent runs under that name are untouched.
+    std::filesystem::remove_all(runDirectory);
+}
+
+TEST_CASE("PopulationFileManager writes run_metadata.json with build, dependency, machine and run-parameter facts", "[PopulationFileManager]")
+{
+    CountingSolution::live = 0;
+    CountingSolution::peak = 0;
+
+    const PopulationParameters parameters(5, 2, 1.1);
+    const std::string solutionName = "Counting";
+    const auto initialSolution = std::make_shared<CountingSolution>(makeTopology(1, 1));
+
+    Population population(parameters, initialSolution);
+    population.initialize();
+
+    const std::string directoryBeforeEvolve = expectedRunDirectory(solutionName);
+
+    REQUIRE_NOTHROW(population.evolve());
+
+    const std::string directoryAfterEvolve = expectedRunDirectory(solutionName);
+    const std::string runDirectory =
+        std::filesystem::exists(directoryBeforeEvolve) ? directoryBeforeEvolve : directoryAfterEvolve;
+
+    const std::string metadataPath = runDirectory + "run_metadata.json";
+    REQUIRE(std::filesystem::exists(metadataPath));
+
+    std::ifstream metadataFile(metadataPath);
+    REQUIRE(metadataFile.is_open());
+    nlohmann::json metadata;
+    REQUIRE_NOTHROW(metadata = nlohmann::json::parse(metadataFile));
+    metadataFile.close();
+
+    REQUIRE(metadata.contains("build"));
+    REQUIRE(metadata.contains("dependencies"));
+    REQUIRE(metadata.contains("machine"));
+    REQUIRE(metadata.contains("run_parameters"));
+    REQUIRE(metadata["build"]["git_dirty"].is_boolean());
+
     std::filesystem::remove_all(runDirectory);
 }

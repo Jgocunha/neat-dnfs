@@ -1,0 +1,18 @@
+#pragma once
+
+#include <string_view>
+
+namespace neat_dnfs::tools::build_info
+{
+	inline constexpr std::string_view compilerId = "@CMAKE_CXX_COMPILER_ID@";
+	inline constexpr std::string_view compilerVersion = "@CMAKE_CXX_COMPILER_VERSION@";
+	inline constexpr std::string_view cmakeVersion = "@CMAKE_VERSION@";
+	inline constexpr std::string_view neatDnfsVersion = "@NEAT_DNFS_VERSION@";
+	inline constexpr std::string_view sanitizer = "@NEAT_DNFS_SANITIZER@";
+	inline constexpr std::string_view buildType = "@CMAKE_BUILD_TYPE@";
+	inline constexpr std::string_view gitSha = "@NEAT_DNFS_GIT_SHA@";
+	inline constexpr bool gitDirty = @NEAT_DNFS_GIT_DIRTY@;
+	inline constexpr std::string_view imguiPlatformKitSha = "@NEAT_DNFS_IPK_SHA@";
+	inline constexpr std::string_view dynamicNeuralFieldComposerSha = "@NEAT_DNFS_DNFC_SHA@";
+	inline constexpr std::string_view vcpkgPackageList = R"neatdnfs(@NEAT_DNFS_VCPKG_LIST@)neatdnfs";
+}
