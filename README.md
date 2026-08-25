@@ -270,11 +270,13 @@ neat-dnfs/
 ├── include/
 │   ├── neat/          # Core NEAT-DNF implementation
 │   ├── solutions/     # Task definitions
-│   ├── tools/         # Logging and utilities
+│   ├── neat_tools/    # Logging, config loading, and other utilities
 │   └── constants.h    # Hyperparameter definition
 ├── src/
-├── apps/
+├── apps/              # Experiment executables
 ├── tests/
+├── config/            # Runtime hyperparameter JSON
+├── templates/         # Starting-solution JSONs
 ├── data/              # Evolution outputs
 ├── analysis/          # Post-hoc analysis tools
 └── CMakeLists.txt
