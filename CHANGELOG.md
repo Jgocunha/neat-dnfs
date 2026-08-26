@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.2.0] - 2026-08-26
+
 ### Added
 - **Run provenance metadata** — every run directory under `data/<TaskName>/<timestamp>/` gains a `run_metadata.json` alongside `evolution_timestamps.txt` when overview persistence is enabled (`PopulationConstants::saveOverview`, on by default), so a run's fitness or performance can be attributed to its environment rather than guessed at (closes #73):
   - `neat_tools/build_info.h.in` (new, `configure_file`-generated) — compiler ID/version, CMake version, `NEAT_DNFS_VERSION`, `NEAT_DNFS_SANITIZER`, build type, git SHA and dirty flag, the resolved commit of `imgui-platform-kit`/`dynamic-neural-field-composer`, and `vcpkg list` output, all captured at CMake configure time
@@ -133,5 +137,6 @@ install; they are numbered 0.0.x to keep this file monotonic.
 - [`imgui-platform-kit`](https://github.com/Jgocunha/imgui-platform-kit)
 - `imgui`, `implot`, `imgui-node-editor`, `nlohmann-json` (via VCPKG)
 
-[Unreleased]: https://github.com/Jgocunha/neat-dnfs/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Jgocunha/neat-dnfs/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Jgocunha/neat-dnfs/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Jgocunha/neat-dnfs/releases/tag/v0.1.0
