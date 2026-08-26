@@ -139,7 +139,7 @@ def compute_partial_fitness(run_dir_str: str, generations: tuple):
 
     records = []
     for g in generations:
-        stats_path = stats_dir / f"generation_{g}.txt"
+        stats_path = stats_dir / f"generation_{g + 1}.txt"
         if not stats_path.exists():
             continue
 
@@ -204,6 +204,36 @@ def compute_partial_fitness(run_dir_str: str, generations: tuple):
     return df
 
 
+def generations_all_partial_meet_targets(partial_df: pd.DataFrame, partial_targets: dict) -> list[int]:
+    """Return 1-based generations where all partial best components meet targets."""
+    if partial_df is None or partial_df.empty or not partial_targets:
+        return []
+
+    gens_ok: list[int] = []
+    for _, row in partial_df.iterrows():
+        ok = True
+        for comp, thr in partial_targets.items():
+            col = f"best_p{int(comp)}"
+            if col not in partial_df.columns:
+                ok = False
+                break
+            try:
+                val = float(row[col])
+                # Treat missing/NaN partials as NOT meeting the target.
+                if math.isnan(val) or val < float(thr):
+                    ok = False
+                    break
+            except Exception:
+                ok = False
+                break
+
+        if ok:
+            # stored generation is overview generation (0-based); display is 1-based
+            gens_ok.append(int(row["generation"]) + 1)
+
+    return gens_ok
+
+
 # =========================
 # Parsing helpers: species/ files
 # =========================
@@ -263,7 +293,7 @@ def compute_species_meta(run_dir_str: str, generations: tuple):
     final_gen = gens_sorted[-1] if gens_sorted else None
 
     for g in gens_sorted:
-        path = species_dir / f"generation_{g}.txt"
+        path = species_dir / f"generation_{g + 1}.txt"
         if not path.exists():
             continue
         with path.open("r") as f:
@@ -298,7 +328,7 @@ def compute_species_meta(run_dir_str: str, generations: tuple):
 def get_species_for_generation(run_dir_str: str, generation: int):
     run_dir = Path(run_dir_str)
     species_dir = run_dir / "species"
-    path = species_dir / f"generation_{generation}.txt"
+    path = species_dir / f"generation_{generation + 1}.txt"
     if not path.exists():
         return []
 
@@ -503,53 +533,41 @@ def build_topology_graph(elements):
 # Plotting helpers
 # =========================
 
-def plot_total_fitness(df: pd.DataFrame, target_fitness: float):
+def plot_total_fitness(
+    df: pd.DataFrame,
+    target_fitness: float,
+    success_generations: list[int] | None = None,
+    success_label: str = "All partial targets met",
+):
+    """
+    Main fitness plot.
+
+    NOTE: `df["generation"]` is 0-based (as stored in per_generation_overview.txt).
+    We display generations as 1-based everywhere in the UI/plots.
+    """
     fig, ax = plt.subplots(figsize=(10, 3))
-    ax.plot(df["generation"], df["avg_fitness"], label="avg. fitness")
-    ax.plot(df["generation"], df["best_fitness"], label="best fitness")
+
+    x = df["generation"] + 1
+    ax.plot(x, df["avg_fitness"], label="avg. fitness")
+    ax.plot(x, df["best_fitness"], label="best fitness")
     ax.axhline(target_fitness, linestyle="--", label=f"target ({target_fitness:.3f})")
 
-    reached = df[df["best_fitness"] >= target_fitness]
-    if not reached.empty:
-        row = reached.iloc[0]
-        ax.scatter(row["generation"], row["best_fitness"], marker="o", zorder=5, label="target reached")
+    # Mark ALL generations where all partial targets were met (simultaneously).
+    if success_generations:
+        best_by_gen = df.assign(gen_display=df["generation"] + 1).set_index("gen_display")["best_fitness"]
+        xs = [g for g in success_generations if g in best_by_gen.index]
+        ys = [float(best_by_gen.loc[g]) for g in xs]
+
+        if xs:
+            label = f'{success_label} (g={", ".join(map(str, xs))})'
+            ax.scatter(xs, ys, marker="D", s=40, label=label, zorder=5)
 
     ax.set_xlabel("generation")
     ax.set_ylabel("fitness")
-    ax.legend()
-    ax.grid(True)
-    fig.tight_layout()
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="best")
+
     return fig
-
-def generations_all_partial_meet_targets(partial_df: pd.DataFrame, partial_targets: dict):
-    """
-    Return a list of generations for which *all* partial best fitnesses
-    are >= their respective targets.
-
-    partial_df has columns: generation, best_p1..N, avg_p1..N
-    partial_targets is {index -> target} where index starts at 1.
-    """
-    if partial_df is None or partial_df.empty or not partial_targets:
-        return []
-
-    gens_ok = []
-    for _, row in partial_df.iterrows():
-        g = int(row["generation"])
-        all_ok = True
-        for idx, target in partial_targets.items():
-            col = f"best_p{idx}"
-            # if we don't have this partial in the DF, treat as not OK
-            if col not in partial_df.columns:
-                all_ok = False
-                break
-            if float(row[col]) < float(target):
-                all_ok = False
-                break
-        if all_ok:
-            gens_ok.append(g)
-
-    return gens_ok
-
 
 def plot_partial_fitness_grid(partial_df: pd.DataFrame, partial_targets: dict):
     if partial_df is None or partial_df.empty:
@@ -596,7 +614,7 @@ def plot_partial_fitness_grid(partial_df: pd.DataFrame, partial_targets: dict):
                 reached = partial_df[partial_df[best_col] >= target]
                 if not reached.empty:
                     row = reached.iloc[0]
-                    ax.scatter(row["generation"], row[best_col], marker="o", zorder=5, label="target reached")
+                    ax.scatter(row["generation"] + 1, row[best_col], marker="o", zorder=5, label="target reached")
 
                 ax.set_xlabel("generation")
                 ax.set_ylabel("fitness")
@@ -611,8 +629,8 @@ def plot_partial_fitness_grid(partial_df: pd.DataFrame, partial_targets: dict):
 
 def plot_species_counts(df: pd.DataFrame):
     fig, ax = plt.subplots(figsize=(8, 3))
-    ax.plot(df["generation"], df["num_species"], label="species")
-    ax.plot(df["generation"], df["num_active_species"], label="active species")
+    ax.plot(df["generation"] + 1, df["num_species"], label="species")
+    ax.plot(df["generation"] + 1, df["num_active_species"], label="active species")
     ax.set_xlabel("generation")
     ax.set_ylabel("count")
     ax.set_title("Species count evolution")
@@ -624,7 +642,7 @@ def plot_species_counts(df: pd.DataFrame):
 
 def plot_innovation_growth(df: pd.DataFrame):
     fig, ax = plt.subplots(figsize=(8, 3))
-    ax.plot(df["generation"], df["innovation_number"], label="innovation number")
+    ax.plot(df["generation"] + 1, df["innovation_number"], label="innovation number")
     ax.set_xlabel("generation")
     ax.set_ylabel("innovation number")
     ax.set_title("Innovation numbers growth")
@@ -922,9 +940,9 @@ def summarize_best_solution_genome(elements):
 
 def plot_genome_topology_curves(df: pd.DataFrame):
     fig, ax = plt.subplots(figsize=(8, 3))
-    ax.plot(df["generation"], df["avg_genome_size"], label="avg genome size")
-    ax.plot(df["generation"], df["avg_field_genes"], label="avg field genes")
-    ax.plot(df["generation"], df["avg_conn_genes"], label="avg connection genes")
+    ax.plot(df["generation"] + 1, df["avg_genome_size"], label="avg genome size")
+    ax.plot(df["generation"] + 1, df["avg_field_genes"], label="avg field genes")
+    ax.plot(df["generation"] + 1, df["avg_conn_genes"], label="avg connection genes")
     ax.set_xlabel("generation")
     ax.set_ylabel("genes")
     ax.set_title("Genome topology")
@@ -938,37 +956,44 @@ def plot_genome_topology_curves(df: pd.DataFrame):
 # Statistics helpers
 # =========================
 
-def render_fitness_stats(df: pd.DataFrame, target_fitness: float):
+def render_fitness_stats(
+    df: pd.DataFrame,
+    target_fitness: float,
+    partial_threshold_generation: int | None = None,
+):
+    # df["generation"] is 0-based (as stored in per_generation_overview.txt).
+    # We DISPLAY generations as 1-based everywhere.
     final_row = df.iloc[-1]
-    final_gen = int(final_row["generation"])
-    best_final = final_row["best_fitness"]
-    avg_final = final_row["avg_fitness"]
+    final_gen0 = int(final_row["generation"])
+    final_gen = final_gen0 + 1
 
-    max_best = df["best_fitness"].max()
-    gen_max_best = int(df.loc[df["best_fitness"].idxmax(), "generation"])
+    best_final = float(final_row["best_fitness"])
+    avg_final = float(final_row["avg_fitness"])
 
-    reached = df[df["best_fitness"] >= target_fitness]
-    if not reached.empty:
-        gen_target = int(reached["generation"].iloc[0])
-        best_at_target = reached["best_fitness"].iloc[0]
-    else:
-        gen_target = None
-        best_at_target = None
+    max_best = float(df["best_fitness"].max())
+    gen_max_best0 = int(df.loc[df["best_fitness"].idxmax(), "generation"])
+    gen_max_best = gen_max_best0 + 1
 
-    best_series = df["best_fitness"]
-    improved = best_series.diff().fillna(0) > 1e-9
+    # Visual/diagnostic reference: when total best fitness crosses chosen "overall target".
+    reached_total = df[df["best_fitness"] >= target_fitness]
+    total_cross_gen = None
+    if not reached_total.empty:
+        total_cross_gen0 = int(reached_total.iloc[0]["generation"])
+        total_cross_gen = total_cross_gen0 + 1
+
+    # Stagnation (in best fitness)
+    best_series = df["best_fitness"].astype(float).values
     longest_stagnation = 0
     current = 0
-    for imp in improved[1:]:
-        if imp:
-            longest_stagnation = max(longest_stagnation, current)
-            current = 0
-        else:
+    for i in range(1, len(best_series)):
+        if best_series[i] <= best_series[i - 1]:
             current += 1
-    longest_stagnation = max(longest_stagnation, current)
+            longest_stagnation = max(longest_stagnation, current)
+        else:
+            current = 0
 
-    auc_best = best_series.mean()
-    auc_avg = df["avg_fitness"].mean()
+    auc_best = float(df["best_fitness"].mean())
+    auc_avg = float(df["avg_fitness"].mean())
 
     st.markdown("#### Statistics")
     st.markdown(
@@ -981,21 +1006,17 @@ def render_fitness_stats(df: pd.DataFrame, target_fitness: float):
         • Max best fitness: **{max_best:.4f}** (reached at generation {gen_max_best})  
         • Mean best fitness over run (AUC): **{auc_best:.4f}**  
         • Mean average fitness over run (AUC): **{auc_avg:.4f}**  
-        • Longest stagnation period (no improvement in best fitness): **{longest_stagnation} generations**  
-        """
+        • Longest stagnation (best fitness not improving): **{longest_stagnation}** generations  
+        """,
     )
 
-    if gen_target is not None:
-        st.markdown(
-            f"• Target fitness **{target_fitness:.3f}** first reached at generation **{gen_target}** "
-            f"(best fitness ≈ **{best_at_target:.4f}**)."
-        )
+    if partial_threshold_generation is not None:
+        st.success(f"✅ All partial fitness targets met simultaneously at generation **{partial_threshold_generation}**.")
     else:
-        st.markdown(
-            f"• Target fitness **{target_fitness:.3f}** was **not reached** by the best fitness."
-        )
+        st.warning("❌ All partial fitness targets were **never** met simultaneously in this run.")
 
-
+    if total_cross_gen is not None:
+        st.caption(f"Reference: total best fitness first crossed the chosen overall target at generation {total_cross_gen}.")
 def render_species_stats(df: pd.DataFrame, species_meta: dict):
     last = df.iloc[-1]
     final_gen = int(last["generation"])
@@ -1049,7 +1070,7 @@ def render_species_stats(df: pd.DataFrame, species_meta: dict):
     st.markdown("#### Species statistics")
     st.markdown(
         f"""
-        **Final generation (g = {final_gen})**  
+        **Final generation (g = {final_gen + 1})**  
         • Species: **{final_species}**  
         • Active species: **{final_active}**  
 
@@ -1091,7 +1112,7 @@ def render_topology_stats(df: pd.DataFrame):
     st.markdown("#### Topology statistics")
     st.markdown(
         f"""
-        **Final generation (g = {int(last['generation'])})**  
+        **Final generation (g = {int(last['generation']) + 1})**  
         • Avg genome size: **{gN:.2f}**  
         • Avg field genes: **{fN:.2f}**  
         • Avg connection genes: **{cN:.2f}**  
@@ -1264,7 +1285,7 @@ def compute_population_kernel_usage(run_dir_str: str, generations: tuple):
     rows = []
 
     for g in generations:
-        gen_dir = solutions_root / f"gen {g}"
+        gen_dir = solutions_root / f"gen {g + 1}"
         if not gen_dir.exists():
             continue
 
@@ -1348,8 +1369,8 @@ def plot_kernel_usage_time(df_usage: pd.DataFrame, kind: str):
         ylabel = "% of interaction kernels"
 
     fig, ax = plt.subplots(figsize=(8, 3))
-    ax.plot(df_usage["generation"], df_usage[y1], label="Gaussian")
-    ax.plot(df_usage["generation"], df_usage[y2], label="Mexican-hat")
+    ax.plot(df_usage["generation"] + 1, df_usage[y1], label="Gaussian")
+    ax.plot(df_usage["generation"] + 1, df_usage[y2], label="Mexican-hat")
     ax.set_xlabel("generation")
     ax.set_ylabel(ylabel)
     ax.set_title(title)
@@ -1398,7 +1419,7 @@ def compute_mutation_events(run_dir_str: str, generations: tuple):
     )
 
     for g in generations:
-        path = stats_dir / f"generation_{g}.txt"
+        path = stats_dir / f"generation_{g + 1}.txt"
         if not path.exists():
             continue
 
@@ -1535,7 +1556,7 @@ def plot_mutations_per_generation(mut_events: pd.DataFrame):
         .reset_index(name="num_mutations")
     )
     fig, ax = plt.subplots(figsize=(8, 3))
-    ax.plot(per_gen["generation"], per_gen["num_mutations"])
+    ax.plot(per_gen["generation"] + 1, per_gen["num_mutations"])
     ax.set_xlabel("generation")
     ax.set_ylabel("number of mutations")
     ax.set_title("Mutation activity per generation")
@@ -1790,7 +1811,7 @@ def compute_per_generation_best_mutation(mut_events: pd.DataFrame):
 def plot_best_mutation_timeline(per_gen_df: pd.DataFrame):
     """Line plot: per-generation most beneficial mutation (delta vs gen mean)."""
     fig, ax = plt.subplots(figsize=(8, 3))
-    ax.plot(per_gen_df["generation"], per_gen_df["delta_vs_gen"])
+    ax.plot(per_gen_df["generation"] + 1, per_gen_df["delta_vs_gen"])
     ax.axhline(0.0, linestyle="--", linewidth=1)
     ax.set_xlabel("generation")
     ax.set_ylabel("Δ best mutation vs gen mean")
@@ -2053,12 +2074,36 @@ def render_experiment_totals(agg: dict, df: pd.DataFrame):
 #      adapted from analysis-per-generation-overview.py
 # --------------------------------------------------------------
 
-def _analyze_single_run_convergence(stats_file: Path, fitness_threshold: float):
+
+def _format_duration_human(duration_seconds: int | None) -> str | None:
+    """Return a compact human-readable duration (e.g., '12m' or '1h 05m')."""
+    if duration_seconds is None:
+        return None
+    try:
+        secs = int(duration_seconds)
+    except Exception:
+        return None
+    if secs < 0:
+        return None
+    mins = secs // 60
+    hours = mins // 60
+    rem_mins = mins % 60
+    if hours > 0:
+        return f"{hours}h {rem_mins:02d}m"
+    return f"{mins}m"
+
+
+def _analyze_single_run_convergence(stats_file: Path, partial_targets: dict):
     txt = stats_file.read_text()
+
+    # NOTE: generations in per_generation_overview.txt are 0-based (actual generation = g + 1).
+    # We keep internal generation indices 0-based; any generation we show to the user is 1-based.
 
     gen_pattern = (
         r"Current generation: (\d+).*?"
-        r"Best solution: \[solution \d+ \[ fit\.: ([\d\.]+).*?"
+        r"Number of species: (\d+).*?"
+        r"Number of active species: (\d+).*?"
+        r"Best solution: \[solution (\d+) \[ fit\.: ([\d\.]+), part\.: \((.*?)\),\s*spec\.: (\d+),.*?"
         r"genome \((.*?)\).*?"
         r"field genes \{(.*?)\}.*?"
         r"connection genes \{(.*?)\}"
@@ -2067,26 +2112,109 @@ def _analyze_single_run_convergence(stats_file: Path, fitness_threshold: float):
     if not generations_data:
         return None
 
-    generations = [int(g) for g, _, _, _, _ in generations_data]
-    fitness_values = [float(f) for _, f, _, _, _ in generations_data]
+    generations = []
+    fitness_values = []
+    partial_vectors = []
+    species_total = []
+    species_active = []
+    best_solution_ids = []
+    best_solution_species = []
+    field_genes_strs = []
+    conn_genes_strs = []
 
-    # last generation genome info
-    final_idx = generations.index(max(generations))
-    final_data = generations_data[final_idx]
+    for (
+        g_str,
+        sp_total_str,
+        sp_active_str,
+        sol_id_str,
+        fit_str,
+        parts_str,
+        sol_species_str,
+        _genome_header,
+        field_str,
+        conn_str,
+    ) in generations_data:
+        g0 = int(g_str)
+        generations.append(g0)
+        fitness_values.append(float(fit_str))
 
-    # field genes: count HIDDEN
-    field_genes_str = final_data[3]
+        # partials as list[float]
+        parts = []
+        for x in parts_str.split(","):
+            x = x.strip()
+            if not x:
+                continue
+            try:
+                parts.append(float(x))
+            except Exception:
+                pass
+        partial_vectors.append(parts)
+
+        species_total.append(int(sp_total_str))
+        species_active.append(int(sp_active_str))
+        best_solution_ids.append(int(sol_id_str))
+        best_solution_species.append(int(sol_species_str))
+        field_genes_strs.append(field_str)
+        conn_genes_strs.append(conn_str)
+
+    # last generation metadata (species totals/actives)
+    final_g0 = max(generations)
+    final_idx = generations.index(final_g0)
+    final_species_total = species_total[final_idx]
+    final_species_active = species_active[final_idx]
+
+    # Best solution diagnostics for the *last* generation line in per_generation_overview.txt
+    # (per_generation_overview.txt generations are 0-based, so display generation is g0 + 1).
+    last_g0 = final_g0
+    last_idx = final_idx
+
+    best_g0 = last_g0
+    best_solution_id = best_solution_ids[last_idx]
+    best_solution_species_id = best_solution_species[last_idx]
+    best_solution_fitness = fitness_values[last_idx]
+    best_solution_partials = partial_vectors[last_idx]
+
+    # topology of the last-generation best solution (hidden fields + enabled connections)
     field_types = re.findall(
-        r"fg \(id: \d+, type: (INPUT|OUTPUT|HIDDEN)\)", field_genes_str
+        r"fg \(id: \d+, type: (INPUT|OUTPUT|HIDDEN)\)", field_genes_strs[last_idx]
     )
     hidden_fields_count = field_types.count("HIDDEN")
-
-    # connection genes: count enabled
-    conn_str = final_data[4]
-    conn_states = re.findall(r"enabled: (true|false)", conn_str)
+    conn_states = re.findall(r"enabled: (true|false)", conn_genes_strs[last_idx])
     enabled_connections_count = conn_states.count("true")
 
-    # fitness improvements
+# which partial targets the BEST solution failed (based on partial_targets only)
+    failed_partials = []
+    for p_num, thr in sorted(partial_targets.items()):
+        # Partial fitness targets are specified as p1, p2, ... (1-based indexing).
+        if p_num <= 0:
+            continue
+        idx = p_num - 1  # convert to 0-based index into the partial vector
+        if idx >= len(best_solution_partials):
+            failed_partials.append(f"p{p_num}=NA<{thr:.3f}")
+            continue
+        val = best_solution_partials[idx]
+        # Treat missing/NaN values as failures.
+        if val is None or (isinstance(val, float) and math.isnan(val)) or float(val) < float(thr):
+            try:
+                failed_partials.append(f"p{p_num}={float(val):.3f}<{thr:.3f}")
+            except Exception:
+                failed_partials.append(f"p{p_num}=NA<{thr:.3f}")
+            
+    failed_partials_str = ", ".join(failed_partials) if failed_partials else "(none)"
+
+    # Success is based on partial fitness targets being met simultaneously (any generation).
+    run_dir = str(stats_file.parent)
+    partial_df = compute_partial_fitness(run_dir, tuple(generations))
+    gens_ok = generations_all_partial_meet_targets(partial_df, partial_targets)
+    success = len(gens_ok) > 0
+    generation_to_threshold = gens_ok[0] if success else None  # 1-based, per helper
+
+    # duration (from evolution_timestamps.txt, if available)
+    ts_metrics = _parse_evolution_timestamps(stats_file.parent / "evolution_timestamps.txt")
+    duration_seconds = ts_metrics.get("duration_seconds")
+    duration_human = _format_duration_human(duration_seconds)
+
+    # fitness improvements (over total fitness)
     fitness_improvements = []
     for i in range(1, len(fitness_values)):
         improvement = max(0.0, fitness_values[i] - fitness_values[i - 1])
@@ -2094,15 +2222,6 @@ def _analyze_single_run_convergence(stats_file: Path, fitness_threshold: float):
 
     max_fitness = max(fitness_values)
     min_fitness = min(fitness_values)
-    success = max_fitness >= fitness_threshold
-
-    generation_to_threshold = None
-    if success:
-        for g, fit in zip(generations, fitness_values):
-            if fit >= fitness_threshold:
-                generation_to_threshold = g
-                break
-
     avg_improvement = (
         sum(fitness_improvements) / len(fitness_improvements)
         if fitness_improvements
@@ -2110,20 +2229,34 @@ def _analyze_single_run_convergence(stats_file: Path, fitness_threshold: float):
     )
 
     return {
+        # run-level success
         "success": success,
+        "generation_to_threshold": generation_to_threshold,  # 1-based or None
+        # best-solution diagnostics
+        "best_solution_generation": best_g0 + 1,  # display (1-based)
+        "best_solution_id": best_solution_id,
+        "best_solution_species_id": best_solution_species_id,
+        "best_solution_fitness": best_solution_fitness,
+        "best_solution_failed_partials": failed_partials_str,
+        # reference stats
         "max_fitness": max_fitness,
         "min_fitness": min_fitness,
         "total_generations": len(generations),
-        "generation_to_threshold": generation_to_threshold,
         "avg_improvement_per_gen": avg_improvement,
         "generations": generations,
         "fitness_values": fitness_values,
         "fitness_improvements": fitness_improvements,
+        # final run state
+        "final_species_total": final_species_total,
+        "final_species_active": final_species_active,
+        # topology
         "hidden_fields_count": hidden_fields_count,
         "enabled_connections_count": enabled_connections_count,
+        # runtime
+        "duration_seconds": duration_seconds,
+        "duration_human": duration_human,
         # we fill run_dir higher up
     }
-
 
 def _aggregate_convergence_metrics(all_metrics: list):
     total_runs = len(all_metrics)
@@ -2159,12 +2292,16 @@ def _aggregate_convergence_metrics(all_metrics: list):
         convergence_rates = []
         for m in successful_runs:
             first_fit = m["fitness_values"][0]
-            g_thr = m["generation_to_threshold"]
+            g_thr = m["generation_to_threshold"]  # 1-based
             if g_thr is None or g_thr <= 0:
                 continue
-            idx = m["generations"].index(g_thr)
+            # internal generations are 0-based from per_generation_overview
+            g0 = g_thr - 1
+            if g0 not in m["generations"]:
+                continue
+            idx = m["generations"].index(g0)
             thr_fit = m["fitness_values"][idx]
-            convergence_rates.append((thr_fit - first_fit) / g_thr)
+            convergence_rates.append((thr_fit - first_fit) / float(g_thr))
 
         mean_conv_rate = float(np.mean(convergence_rates)) if convergence_rates else 0.0
         mean_improvement = float(
@@ -2229,13 +2366,16 @@ def _aggregate_convergence_metrics(all_metrics: list):
 
 
 @st.cache_data
-def compute_experiment_convergence(base_dir_str: str, fitness_threshold: float):
+def compute_experiment_convergence(base_dir_str: str, partial_targets_items: tuple):
     """
     Go through all run folders (subdirs with per_generation_overview.txt)
     and compute convergence/architecture statistics.
     """
     base = Path(base_dir_str)
     all_metrics = []
+
+    # convert cached tuple back to dict
+    partial_targets = {int(k): float(v) for k, v in partial_targets_items}
 
     for rd in base.iterdir():
         if not rd.is_dir():
@@ -2244,7 +2384,7 @@ def compute_experiment_convergence(base_dir_str: str, fitness_threshold: float):
         if not stats_file.exists():
             continue
 
-        m = _analyze_single_run_convergence(stats_file, fitness_threshold)
+        m = _analyze_single_run_convergence(stats_file, partial_targets)
         if m is None:
             continue
         m["run_dir"] = rd.name
@@ -2256,7 +2396,7 @@ def compute_experiment_convergence(base_dir_str: str, fitness_threshold: float):
     return _aggregate_convergence_metrics(all_metrics)
 
 
-def render_experiment_convergence(conv: dict, fitness_threshold: float):
+def render_experiment_convergence(conv: dict, partial_targets: dict):
     """Streamlit UI for multi-run convergence statistics."""
     if not conv:
         st.info("No per_generation_overview.txt files found for this base directory.")
@@ -2268,15 +2408,19 @@ def render_experiment_convergence(conv: dict, fitness_threshold: float):
     succ = conv["successful_runs"]
     rate = conv["success_rate"] * 100.0
 
+    targets_str = ", ".join(
+        [f"p{k}≥{v:.3f}" for k, v in sorted(partial_targets.items())]
+    ) or "(no partial targets set)"
     st.markdown(
         f"- Analysed **{total}** runs; "
-        f"**{succ}** reached the fitness threshold "
-        f"(**{rate:.1f}%** success; threshold = {fitness_threshold:.3f})."
+        f"**{succ}** met **all partial fitness targets simultaneously** "
+        f"(**{rate:.1f}%** success)."  
+        f"- Targets: {targets_str}"
     )
 
     cols = st.columns(3)
     with cols[0]:
-        st.markdown("#### Generations to threshold (successful runs)")
+        st.markdown("#### Generations to success (successful runs)")
         st.markdown(
             f"- Mean: **{conv['mean_generations_to_threshold']:.2f}**  \n"
             f"- Median: **{conv['median_generations_to_threshold']:.2f}**  \n"
@@ -2314,14 +2458,14 @@ def render_experiment_convergence(conv: dict, fitness_threshold: float):
             gens = [m["generation_to_threshold"] for m in successful]
             fig, ax = plt.subplots(figsize=(4, 3))
             ax.hist(gens, bins=min(10, len(gens)))
-            ax.set_xlabel("generations to threshold")
+            ax.set_xlabel("generations to success")
             ax.set_ylabel("runs")
-            ax.set_title("How many generations runs need\n to hit the threshold")
+            ax.set_title("How many generations runs need\n to meet all partial targets")
             fig.tight_layout()
             st.pyplot(fig)
             st.caption(
-                "Each bar shows how many runs first reached the fitness "
-                "threshold in a given generation range. Left = faster convergence."
+                "Each bar shows how many runs first met all partial targets "
+                "in a given generation range. Left = faster convergence."
             )
 
         # --- Architecture complexity scatter ---
@@ -2410,33 +2554,45 @@ def render_experiment_convergence(conv: dict, fitness_threshold: float):
     if rows:
         st.table(pd.DataFrame(rows))
 
-        # --- Best performer in each run ---
+    # --- Best performer in each run ---
     if conv.get("all_run_metrics"):
-        st.markdown("#### Best fitness per run")
+        st.markdown("#### Success per run")
 
         rows = []
         for m in conv["all_run_metrics"]:
-            max_fit = m["max_fitness"]
             rows.append(
                 {
-                    "run": m["run_dir"],
-                    "best_fitness": max_fit,
-                    # highlight using a clear symbol; threshold is the same one
-                    # you chose for the experiment (e.g. 0.9 by default)
-                    "above_threshold": "✅ yes" if max_fit >= fitness_threshold else "✖ no",
+                    "run id": m.get("run_dir"),
+                    "best solution fitness": m.get("best_solution_fitness"),
+                    "failed partial fitness (last gen)": m.get("best_solution_failed_partials"),
+                    "above threshold?": "✅ yes" if m.get("success") else "✖ no",
+                    "generations to threshold": m.get("generation_to_threshold"),
+                    "species (total/active)": f"{m.get('final_species_total')}/{m.get('final_species_active')}",
+                    "duration": m.get("duration_human"),
+                    "topology (hidden + enabled conns)": f"{m.get('hidden_fields_count')} + {m.get('enabled_connections_count')}",
                 }
             )
 
+        df_runs = pd.DataFrame(rows)
+
+        # Sort: successful first, then by earliest success generation, then by best fitness
+        df_runs["_succ"] = df_runs["above threshold?"].map({"✅ yes": 1, "✖ no": 0}).fillna(0)
         df_runs = (
-            pd.DataFrame(rows)
-            .sort_values("best_fitness", ascending=False)
+            df_runs.sort_values(
+                by=["_succ", "generations to threshold", "best solution fitness"],
+                ascending=[False, True, False],
+                na_position="last",
+            )
+            .drop(columns=["_succ"], errors="ignore")
             .reset_index(drop=True)
         )
 
         st.dataframe(df_runs, width="stretch")
         st.caption(
-            "One row per run. `best_fitness` is the highest fitness reached in that run. "
-            "Runs marked ✅ have best_fitness ≥ the chosen threshold."
+            "Main diagnosis per run. A run is marked successful when there exists at least one generation "
+            "where all partial fitness components are ≥ their targets in the same generation. "
+            "`generations to threshold` is the first such generation (1-based). "
+            "`failed partial fitness (last gen)` lists which partial targets the best-total-fitness solution failed, if any."
         )
 
 from datetime import datetime
@@ -2597,7 +2753,7 @@ def export_run_markdown(run_dir_str: str, target_fitness: float = 0.9, out_path:
     # ---- Fitness statistics ----
     lines.append("## Fitness statistics")
     lines.append("")
-    lines.append(f"Final generation (g = {final_gen})")
+    lines.append(f"Final generation (g = {final_gen + 1})")
     lines.append(f"- Best fitness: {best_final:.4f}")
     lines.append(f"- Target fitness: {target_fitness:.2f}")
     lines.append(f"- Average fitness: {avg_final:.4f}")
@@ -2618,7 +2774,7 @@ def export_run_markdown(run_dir_str: str, target_fitness: float = 0.9, out_path:
     lines.append("")
     lines.append("## Species statistics")
     lines.append("")
-    lines.append(f"Final generation (g = {final_gen})")
+    lines.append(f"Final generation (g = {final_gen + 1})")
     lines.append(f"- Species: {final_species}")
     lines.append(f"- Active species: {final_active}")
     lines.append("")
@@ -2638,7 +2794,7 @@ def export_run_markdown(run_dir_str: str, target_fitness: float = 0.9, out_path:
     lines.append("")
     lines.append("## Topology statistics")
     lines.append("")
-    lines.append(f"Final generation (g = {final_gen})")
+    lines.append(f"Final generation (g = {final_gen + 1})")
     lines.append(f"- Avg genome size: {gN:.2f}")
     lines.append(f"- Avg field genes: {fN:.2f}")
     lines.append(f"- Avg connection genes: {cN:.2f}")
@@ -2684,7 +2840,7 @@ def export_run_markdown(run_dir_str: str, target_fitness: float = 0.9, out_path:
 
 def export_experiment_markdown(
     base_dir_str: str,
-    fitness_threshold: float = 0.9,
+    partial_targets_items: tuple | None = None,
     out_path: str | None = None,
 ) -> str:
     """
@@ -2695,8 +2851,11 @@ def export_experiment_markdown(
     """
     base_dir = Path(base_dir_str).expanduser().resolve()
 
+    if partial_targets_items is None:
+        partial_targets_items = tuple()
+
     # reuse your cached computations
-    conv = compute_experiment_convergence(base_dir_str, float(fitness_threshold))
+    conv = compute_experiment_convergence(base_dir_str, tuple(partial_targets_items))
     agg_totals, df_totals = compute_experiment_totals(base_dir_str)
 
     lines: list[str] = []
@@ -2723,9 +2882,14 @@ def export_experiment_markdown(
     succ = conv["successful_runs"]
     rate = conv["success_rate"] * 100.0
 
+    partial_targets = {int(k): float(v) for k, v in partial_targets_items}
+    targets_str = ", ".join(
+        [f"p{k}≥{v:.3f}" for k, v in sorted(partial_targets.items())]
+    ) or "(no partial targets set)"
+
     lines.append(
-        f"Analysed {total} runs; {succ} reached the fitness threshold "
-        f"({rate:.1f}% success; threshold = {fitness_threshold:.3f})."
+        f"Analysed {total} runs; {succ} met all partial fitness targets simultaneously "
+        f"({rate:.1f}% success). Targets: {targets_str}"
     )
     lines.append("")
     lines.append("### Generations to threshold (successful runs)")
@@ -2826,31 +2990,42 @@ def export_experiment_markdown(
         lines.append("")
         lines.append("_No notable runs information available._")
 
-    # ---------- Best fitness per run table ----------
+    
+
+    # ---------- Success per run table ----------
     lines.append("")
-    lines.append("### Best fitness per run")
+    lines.append("### Success per run")
+    lines.append("")
+    lines.append("A run is **successful** if there exists at least one generation where **all partial fitness targets are met simultaneously** (same generation).")
+    lines.append("")
 
     if conv.get("all_run_metrics"):
-        rows_best = []
+        rows_success = []
         for m in conv["all_run_metrics"]:
-            max_fit = m["max_fitness"]
-            rows_best.append(
+            rows_success.append(
                 {
-                    "run": m["run_dir"],
-                    "best_fitness": max_fit,
-                    "above_threshold": "yes" if max_fit >= fitness_threshold else "no",
+                    "run id": m.get("run_dir"),
+                    "best solution fitness": m.get("best_solution_fitness"),
+                    "failed partial fitness (last gen)": m.get("best_solution_failed_partials"),
+                    "above threshold?": "yes" if m.get("success", False) else "no",
+                    "generations to threshold": m.get("generation_to_threshold", None),
+                    "species (total/active)": f"{m.get('final_species_total')}/{m.get('final_species_active')}",
+                    "duration": m.get("duration_human"),
+                    "topology (hidden + enabled conns)": f"{m.get('hidden_fields_count')} + {m.get('enabled_connections_count')}",
                 }
             )
-        df_best = (
-            pd.DataFrame(rows_best)
-            .sort_values("best_fitness", ascending=False)
+        df_success = (
+            pd.DataFrame(rows_success)
+            .sort_values(
+                ["above threshold?", "generations to threshold", "best solution fitness"],
+                ascending=[False, True, False],
+                na_position="last",
+            )
             .reset_index(drop=True)
         )
-        lines.append("")
-        lines.append(df_to_markdown_table(df_best))
+        lines.append(df_to_markdown_table(df_success))
     else:
-        lines.append("")
-        lines.append("_No run-level fitness information available._")
+        lines.append("_No run-level information available._")
 
     markdown_text = "\n".join(lines)
 
@@ -2928,9 +3103,11 @@ def main():
 
         with ctrl_col3:
             if st.button("Export experiment .md", use_container_width=True):
+                partial_targets = st.session_state.get("partial_targets", {})
+                targets_items = tuple(sorted((int(k), float(v)) for k, v in partial_targets.items()))
                 md_path = export_experiment_markdown(
                     base_dir_str,
-                    fitness_threshold=float(st.session_state.get("target_fitness", 0.9)),
+                    partial_targets_items=targets_items,
                 )
                 st.success(f"Experiment summary exported to:\n{md_path}")
 
@@ -2986,83 +3163,90 @@ def main():
 
             st.session_state["target_fitness"] = float(target)
 
+            # ---------- Partial targets + "success" generation ----------
+            partial_df = compute_partial_fitness(selected_run_path, gens_tuple)
+            partial_targets = st.session_state["partial_targets"]
+            first_ok = None
+            gens_ok = []
+
+            if partial_df is not None and not partial_df.empty:
+                # Determine number of partial components
+                num_partial = 0
+                for col in partial_df.columns:
+                    if col.startswith("best_p"):
+                        idx = int(col.replace("best_p", ""))
+                        num_partial = max(num_partial, idx)
+
+                if num_partial > 0:
+                    with st.expander("Targets for partial fitness components", expanded=False):
+                        rows = math.ceil(num_partial / 3)
+                        comp = 1
+                        for _ in range(rows):
+                            cols = st.columns(3)
+                            for c in cols:
+                                if comp > num_partial:
+                                    break
+
+                                best_col = f"best_p{comp}"
+                                avg_col = f"avg_p{comp}"
+                                if best_col not in partial_df.columns or avg_col not in partial_df.columns:
+                                    comp += 1
+                                    continue
+
+                                if comp not in partial_targets:
+                                    partial_targets[comp] = float(st.session_state["target_fitness"])
+
+                                col_min = float(
+                                    min(partial_df[best_col].min(), partial_df[avg_col].min(), 0.0)
+                                )
+                                col_max = float(
+                                    max(partial_df[best_col].max(), partial_df[avg_col].max(), 1.0)
+                                )
+
+                                with c:
+                                    st.markdown(f"**partial {comp}**")
+                                    val = st.number_input(
+                                        f"target p{comp}",
+                                        value=float(partial_targets[comp]),
+                                        min_value=col_min,
+                                        max_value=col_max,
+                                        key=f"num_p{comp}",
+                                    )
+                                    partial_targets[comp] = float(val)
+
+                                comp += 1
+
+                    st.session_state["partial_targets"] = partial_targets
+
+                    # generations where all partial best fitnesses >= their targets
+                    gens_ok = generations_all_partial_meet_targets(partial_df, partial_targets)
+                    if gens_ok:
+                        first_ok = int(gens_ok[0])
+                        st.info(
+                            "Generations where **all partial best fitnesses** are ≥ their targets: "
+                            f"{gens_ok} (first at generation {first_ok})."
+                        )
+                    else:
+                        st.info(
+                            "In this run, **no generation** reached all partial best fitness targets simultaneously."
+                        )
+
+            # ---------- Plots + stats (threshold based on partials) ----------
             st.markdown("### Total fitness")
-            fig_total = plot_total_fitness(df, st.session_state["target_fitness"])
+            fig_total = plot_total_fitness(df, st.session_state["target_fitness"], success_generations=gens_ok, success_label="All partial targets met")
             st.pyplot(fig_total)
 
             st.markdown("---")
             stats_col, partial_col = st.columns([1, 3])
 
             with stats_col:
-                render_fitness_stats(df, st.session_state["target_fitness"])
+                render_fitness_stats(
+                    df,
+                    st.session_state["target_fitness"],
+                    partial_threshold_generation=first_ok,
+                )
 
             with partial_col:
-                partial_df = compute_partial_fitness(selected_run_path, gens_tuple)
-                partial_targets = st.session_state["partial_targets"]
-                if partial_df is not None and not partial_df.empty:
-                    # Determine number of partial components
-                    num_partial = 0
-                    for col in partial_df.columns:
-                        if col.startswith("best_p"):
-                            idx = int(col.replace("best_p", ""))
-                            num_partial = max(num_partial, idx)
-
-                    if num_partial > 0:
-                        with st.expander("Targets for partial fitness components", expanded=False):
-                            rows = math.ceil(num_partial / 3)
-                            comp = 1
-                            for _ in range(rows):
-                                cols = st.columns(3)
-                                for c in cols:
-                                    if comp > num_partial:
-                                        break
-
-                                    best_col = f"best_p{comp}"
-                                    avg_col = f"avg_p{comp}"
-                                    if best_col not in partial_df.columns or avg_col not in partial_df.columns:
-                                        comp += 1
-                                        continue
-
-                                    if comp not in partial_targets:
-                                        partial_targets[comp] = float(st.session_state["target_fitness"])
-
-                                    col_min = float(
-                                        min(partial_df[best_col].min(), partial_df[avg_col].min(), 0.0)
-                                    )
-                                    col_max = float(
-                                        max(partial_df[best_col].max(), partial_df[avg_col].max(), 1.0)
-                                    )
-
-                                    with c:
-                                        st.markdown(f"**partial {comp}**")
-                                        val = st.number_input(
-                                            f"target p{comp}",
-                                            value=float(partial_targets[comp]),
-                                            min_value=col_min,
-                                            max_value=col_max,
-                                            key=f"num_p{comp}",
-                                        )
-                                        partial_targets[comp] = float(val)
-
-                                    comp += 1
-
-                        st.session_state["partial_targets"] = partial_targets
-
-                        # --- NEW: generations where all partial best fitnesses >= target ---
-                        gens_ok = generations_all_partial_meet_targets(partial_df, partial_targets)
-                        if gens_ok:
-                            first_ok = gens_ok[0]
-                            st.info(
-                                "Generations where **all partial best fitnesses** are "
-                                "≥ their targets: "
-                                f"{gens_ok} (first at generation {first_ok})."
-                            )
-                        else:
-                            st.info(
-                                "In this run, **no generation** reached all partial best "
-                                "fitness targets simultaneously."
-                            )
-
                 plot_partial_fitness_grid(partial_df, st.session_state["partial_targets"])
 
 
@@ -3385,28 +3569,83 @@ def main():
             # reuse the same base_dir_str that you typed on the left
             base_dir_str_for_runs = base_dir_str
 
-            # fitness threshold: reuse your global target_fitness slider if you like
             st.markdown("### Experiment-level statistics across runs")
 
-            c1, c2 = st.columns([3, 1])
-            with c1:
-                thr = st.slider(
-                    "Fitness threshold for considering a run successful",
-                    min_value=float(0.0),
-                    max_value=float(1.5),
-                    value=float(st.session_state.get("target_fitness", 0.9)),
-                    step=0.01,
-                )
-            with c2:
-                thr = st.number_input(
-                    "Threshold (manual)", value=float(thr), min_value=0.0, max_value=10.0
-                )
+            # Success criterion (refactor): run is successful if there exists at least one generation
+            # where *all* partial fitness components meet/exceed their targets simultaneously.
+            if "partial_targets" not in st.session_state:
+                st.session_state["partial_targets"] = {}
 
-            st.session_state["target_fitness"] = float(thr)
+            partial_targets = dict(st.session_state["partial_targets"])
 
-            # convergence / architecture (per_generation_overview.txt)
-            conv = compute_experiment_convergence(base_dir_str_for_runs, float(thr))
-            render_experiment_convergence(conv, float(thr))
+            # If not set yet, infer how many partial components exist from the first run we find.
+            # Default each partial target to the current global target_fitness.
+            if not partial_targets:
+                try:
+                    base_dir = Path(base_dir_str_for_runs)
+                    runs = find_runs_with_overview(base_dir)
+                    if runs:
+                        _, first_run = runs[0]
+                        df_first = load_overview(str(first_run))
+
+                        # Determine how many partial fitness components exist.
+                        # Prefer per_generation_overview.txt (it is the source of truth for partials),
+                        # because some runs may not have per-partial series in statistics.
+                        n_parts = 0
+                        try:
+                            if "partial_best" in df_first.columns:
+                                n_parts = int(
+                                    max(
+                                        (
+                                            len(v)
+                                            for v in df_first["partial_best"]
+                                            if isinstance(v, (list, tuple))
+                                        ),
+                                        default=0,
+                                    )
+                                )
+                        except Exception:
+                            n_parts = 0
+
+                        # Fallback: infer from computed partial-fitness dataframe columns.
+                        if n_parts == 0:
+                            gens_first = tuple(df_first["generation"].tolist())
+                            pf = compute_partial_fitness(str(first_run), gens_first)
+                            if pf is not None:
+                                n_parts = len([c for c in pf.columns if c.startswith("best_p")])
+
+                        default_thr = float(st.session_state.get("target_fitness", 0.9))
+                        for i in range(1, n_parts + 1):
+                                partial_targets[i] = default_thr
+                except Exception:
+                    pass
+
+            with st.expander("Partial fitness targets (success criteria)", expanded=True):
+                if not partial_targets:
+                    st.info(
+                        "No partial fitness components detected yet. "
+                        "Make sure your runs have statistics/generation_X.txt files."
+                    )
+                else:
+                    cols = st.columns(min(6, max(1, len(partial_targets))))
+                    for idx, comp in enumerate(sorted(partial_targets.keys())):
+                        with cols[idx % len(cols)]:
+                            partial_targets[comp] = float(
+                                st.number_input(
+                                    f"Target p{comp}",
+                                    value=float(partial_targets[comp]),
+                                    min_value=-10.0,
+                                    max_value=10.0,
+                                    step=0.01,
+                                )
+                            )
+
+            st.session_state["partial_targets"] = partial_targets
+
+            # convergence / architecture (across runs)
+            targets_items = tuple(sorted((int(k), float(v)) for k, v in partial_targets.items()))
+            conv = compute_experiment_convergence(base_dir_str_for_runs, targets_items)
+            render_experiment_convergence(conv, partial_targets)
 
             st.markdown("---")
 
