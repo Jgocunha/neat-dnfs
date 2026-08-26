@@ -74,7 +74,7 @@ namespace neat_dnfs
 
 		static constexpr double ampMinVal		= 1.00;
 		static constexpr double ampMaxVal		= 30.0;
-		static constexpr double ampStep			= 0.50;
+		static constexpr double ampStep			= 1.00; // 0.5
 
 		static constexpr double ampGlobalMinVal = -1.0;
 		static constexpr double ampGlobalMaxVal = 0.00;
@@ -102,11 +102,11 @@ namespace neat_dnfs
 
 		static constexpr double ampExcMinVal	= 5.00;
 		static constexpr double ampExcMaxVal	= 20.0;
-		static constexpr double ampExcStep		= 0.50;
+		static constexpr double ampExcStep		= 1.00; //0.50
 
 		static constexpr double ampInhMinVal	= 5.00;
 		static constexpr double ampInhMaxVal	= 20.0;
-		static constexpr double ampInhStep		= 0.50;
+		static constexpr double ampInhStep		= 1.00; //0.50
 
 		static constexpr double ampGlobMin		= -0.20;
 		static constexpr double ampGlobMax		= 0.00;
@@ -115,7 +115,7 @@ namespace neat_dnfs
 
 	struct CompatibilityCoefficients
 	{
-		static constexpr double compatibilityThreshold							= 5.0;
+		static constexpr double compatibilityThreshold							= 4.0;
 		static constexpr double excessGenesCompatibilityWeight					= 1.0;
 		static constexpr double disjointGenesCompatibilityWeight				= 0.5;
 		static constexpr double averageConnectionDifferenceCompatibilityWeight	= 0.5;
@@ -129,14 +129,14 @@ namespace neat_dnfs
 		// genome mutation probabilities (the sum does not have to be 1.0)
 		// structural mutations
 		static constexpr double toggleConnectionGeneProbability  = 0.005;
-		static constexpr double addFieldGeneProbability			 = 0.0005;
+		static constexpr double addFieldGeneProbability			 = 0.001;
 		static constexpr double addConnectionGeneProbability	 = 0.15;
 		// parametrical mutations
-		static constexpr double mutateFieldGenesProbability		 = 0.800;
-		static constexpr double mutateConnectionGenesProbability = 0.800;
+		static constexpr double mutateFieldGenesProbability		 = 0.500;
+		static constexpr double mutateConnectionGenesProbability = 0.500;
 		// per gene mutation probabilities
-		static constexpr double mutateFieldGeneProbability		 = 0.800;
-		static constexpr double mutateConnectionGeneProbability  = 0.800;
+		static constexpr double mutateFieldGeneProbability		 = 0.400;
+		static constexpr double mutateConnectionGeneProbability  = 0.400;
 
 		static constexpr bool checkForDuplicateConnectionGenesInGenome = false;
 	};
@@ -154,22 +154,22 @@ namespace neat_dnfs
 		static constexpr double mutateFieldGeneKernelTypeProbability		= 0.10;
 		static constexpr double mutateFieldGeneNeuralFieldProbability		= 0.20;
 		// field gene gauss kernel mutation probabilities (sum does not have to be 1.0)
-		static constexpr double mutateFieldGeneGaussKernelAmplitudeProbability			= 0.80;
-		static constexpr double mutateFieldGeneGaussKernelWidthProbability				= 0.60;
-		static constexpr double mutateFieldGeneGaussKernelGlobalAmplitudeProbability	= 0.20;
+		static constexpr double mutateFieldGeneGaussKernelAmplitudeProbability			= 0.50;
+		static constexpr double mutateFieldGeneGaussKernelWidthProbability				= 0.30;
+		static constexpr double mutateFieldGeneGaussKernelGlobalAmplitudeProbability	= 0.10;
 		// field gene mexican hat kernel mutation probabilities (sum does not have to be 1.0)
-		static constexpr double mutateFieldGeneMexicanHatKernelAmplitudeExcProbability		= 0.80;
-		static constexpr double mutateFieldGeneMexicanHatKernelAmplitudeInhProbability		= 0.80;
-		static constexpr double mutateFieldGeneMexicanHatKernelWidthExcProbability			= 0.60;
-		static constexpr double mutateFieldGeneMexicanHatKernelWidthInhProbability			= 0.60;
-		static constexpr double mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability	= 0.20;
+		static constexpr double mutateFieldGeneMexicanHatKernelAmplitudeExcProbability		= 0.50;
+		static constexpr double mutateFieldGeneMexicanHatKernelAmplitudeInhProbability		= 0.50;
+		static constexpr double mutateFieldGeneMexicanHatKernelWidthExcProbability			= 0.30;
+		static constexpr double mutateFieldGeneMexicanHatKernelWidthInhProbability			= 0.30;
+		static constexpr double mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability	= 0.10;
 
 		// field gene neural field mutation probabilities (sum must be 1.0)
 		static constexpr double mutateFieldGeneNeuralFieldParametersProbability					= 0.90;
 		static constexpr double mutateFieldGeneNeuralFieldGenerateRandomParametersProbability	= 0.10;
 		// field gene neural field parameters mutation probabilities (sum does not have to be 1.0)
-		static constexpr double mutateFieldGeneNeuralFieldParametersTauProbability			= 0.50;
-		static constexpr double mutateFieldGeneNeuralFieldParametersRestingLevelProbability	= 0.80;
+		static constexpr double mutateFieldGeneNeuralFieldParametersTauProbability			= 0.15;
+		static constexpr double mutateFieldGeneNeuralFieldParametersRestingLevelProbability	= 0.50;
 	};
 
 	struct ConnectionGeneConstants
@@ -186,15 +186,15 @@ namespace neat_dnfs
 		static constexpr double mutateConnectionGeneConnectionSignalProbability = 0.20; // 0.25
 
 		// field gene gauss kernel mutation probabilities (sum does not have to be 1.0)
-		static constexpr double mutateConnectionGeneGaussKernelAmplitudeProbability			= 0.80;
-		static constexpr double mutateConnectionGeneGaussKernelWidthProbability				= 0.60;
-		static constexpr double mutateConnectionGeneGaussKernelGlobalAmplitudeProbability	= 0.20;
+		static constexpr double mutateConnectionGeneGaussKernelAmplitudeProbability			= 0.50;
+		static constexpr double mutateConnectionGeneGaussKernelWidthProbability				= 0.30;
+		static constexpr double mutateConnectionGeneGaussKernelGlobalAmplitudeProbability	= 0.10;
 		// field gene mexican hat kernel mutation probabilities (sum does not have to be 1.0)
-		static constexpr double mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability		= 0.80;
-		static constexpr double mutateConnectionGeneMexicanHatKernelAmplitudeInhProbability		= 0.80;
-		static constexpr double mutateConnectionGeneMexicanHatKernelWidthExcProbability			= 0.60;
-		static constexpr double mutateConnectionGeneMexicanHatKernelWidthInhProbability			= 0.60;
-		static constexpr double mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability	= 0.20;
+		static constexpr double mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability		= 0.50;
+		static constexpr double mutateConnectionGeneMexicanHatKernelAmplitudeInhProbability		= 0.50;
+		static constexpr double mutateConnectionGeneMexicanHatKernelWidthExcProbability			= 0.30;
+		static constexpr double mutateConnectionGeneMexicanHatKernelWidthInhProbability			= 0.30;
+		static constexpr double mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability	= 0.10;
 	};
 
 	struct SolutionConstants
