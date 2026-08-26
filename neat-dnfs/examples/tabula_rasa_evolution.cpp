@@ -41,9 +41,9 @@
 
 		for (int i = 0; i < number_runs; i++)
 		{
-			constexpr size_t population_size	= 500;
+			constexpr size_t population_size	= 1000;
 			constexpr size_t number_generations = 200;
-			constexpr double target_fitness		= 0.95;
+			constexpr double target_fitness		= 0.90;
 
 			const PopulationParameters parameters{ population_size, number_generations, target_fitness };
 			Population population{ parameters, std::make_unique<HRIPackagingTask>(solution) };
