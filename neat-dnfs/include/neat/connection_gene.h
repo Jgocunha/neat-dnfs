@@ -5,7 +5,7 @@
 #include <dnf_composer/elements/gauss_kernel.h>
 #include <dnf_composer/elements/mexican_hat_kernel.h>
 #include <dnf_composer/elements/oscillatory_kernel.h>
-#include "tools/utils.h"
+#include "neat_tools/utils.h"
 #include "constants.h"
 
 namespace neat_dnfs

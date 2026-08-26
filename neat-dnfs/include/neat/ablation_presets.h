@@ -19,8 +19,8 @@ namespace neat_dnfs
 	struct AblationProtocol
 	{
 		static constexpr size_t populationSize    = 1000;
-		static constexpr size_t numberGenerations = 200;
-		static constexpr size_t numberRuns        = 100;
+		static constexpr size_t numberGenerations = 40;   // calibration; campaign value is 200
+		static constexpr size_t numberRuns        = 3;    // calibration; campaign value is 100
 		static constexpr double targetFitness     = 0.90;
 	};
 }

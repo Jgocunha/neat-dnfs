@@ -3,7 +3,7 @@
 #include "constants.h"
 #include "field_gene.h"
 #include "connection_gene.h"
-#include "tools/utils.h"
+#include "neat_tools/utils.h"
 
 namespace neat_dnfs
 {

@@ -44,6 +44,15 @@ endif()
 set(VCPKG_ROOT $ENV{VCPKG_ROOT})
 include(${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
 
+# dnf-composer 2.11.0 transitively pulls in <windows.h> (via its GUI headers)
+# without NOMINMAX; its own tools/math.h defends itself locally against the
+# resulting min/max/ERROR macro pollution (see its header comment) but nothing
+# upstream defends the rest of the include graph. Defining NOMINMAX before any
+# windows.h inclusion is the standard fix, applied here for the whole project.
+if(WIN32)
+    add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
+endif()
+
 # Project directory definitions
 set(PROJECT_DIR "${CMAKE_SOURCE_DIR}")
 add_compile_definitions(PROJECT_DIR="${PROJECT_DIR}")
@@ -71,8 +80,8 @@ set(header
         "include/solutions/xor.h"
         "include/solutions/hri_packaging_task.h"
 
-        "include/tools/logger.h"
-        "include/tools/utils.h"
+        "include/neat_tools/logger.h"
+        "include/neat_tools/utils.h"
 
         "include/constants.h"
 )
@@ -133,7 +142,7 @@ find_package(FFTW3 CONFIG REQUIRED)
 list(PREPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/deps/dnfc-install/release")
 find_package(dynamic-neural-field-composer REQUIRED)
 
-set(NEAT_DNFS_DNFC_DEBUG_LIB "${CMAKE_SOURCE_DIR}/deps/dnfc-install/debug/lib/debug/dynamic-neural-field-composer-2.9.4.lib")
+set(NEAT_DNFS_DNFC_DEBUG_LIB "${CMAKE_SOURCE_DIR}/deps/dnfc-install/debug/lib/debug/dynamic-neural-field-composer-2.11.0.lib")
 get_target_property(NEAT_DNFS_DNFC_CONFIGS dynamic-neural-field-composer IMPORTED_CONFIGURATIONS)
 if(NOT "DEBUG" IN_LIST NEAT_DNFS_DNFC_CONFIGS AND EXISTS "${NEAT_DNFS_DNFC_DEBUG_LIB}")
     set_property(TARGET dynamic-neural-field-composer APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)

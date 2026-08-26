@@ -111,7 +111,8 @@ namespace neat_dnfs
 
 		static constexpr double ampGlobMin		= -0.20;
 		static constexpr double ampGlobMax		= 0.00; 		
-		static constexpr double ampGlobStep 	= 0.05; 	};
+		static constexpr double ampGlobStep 	= 0.05;
+	};
 
 	struct CompatibilityCoefficients
 	{
@@ -245,6 +246,7 @@ namespace neat_dnfs
 		static constexpr int generationsWithoutImprovementThresholdInPopulation = 15; 
 		static constexpr int generationsWithoutImprovementThresholdInSpecies	= 5; 
 		static constexpr bool elitism											= true; 
+		static constexpr bool enableKeyListener								= false;
 
 		static constexpr bool validateUniqueSolutions					= false;
 		static constexpr bool validatePopulationSize					= false;
@@ -262,7 +264,7 @@ namespace neat_dnfs
 		static constexpr bool savePerGenerationOverview	= true;
 		static constexpr bool saveChampions				= true;
 		static constexpr bool saveBestSolutions			= true;
-		static constexpr bool saveSolutions				= true;
+		static constexpr bool saveSolutions				= false; // ablation campaign: solutions/ is ~95% of run size
 		static constexpr bool saveSpecies				= true;
 	};
 }

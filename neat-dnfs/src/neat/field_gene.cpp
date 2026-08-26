@@ -1,4 +1,6 @@
 #include "neat/field_gene.h"
+#include "neat_tools/logger.h"
+#include "neat_tools/utils.h"
 
 namespace neat_dnfs
 {

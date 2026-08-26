@@ -1,6 +1,7 @@
 #include <utility>
 
 #include "neat/solution.h"
+#include "neat_tools/logger.h"
 
 namespace neat_dnfs
 {

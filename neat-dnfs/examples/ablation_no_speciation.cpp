@@ -9,7 +9,7 @@
 
 #include "neat/population.h"
 #include "neat/ablation_presets.h"
-#include "tools/logger.h"
+#include "neat_tools/logger.h"
 #include "solutions/hri_packaging_task.h"
 
 int main(int argc, char* argv[])

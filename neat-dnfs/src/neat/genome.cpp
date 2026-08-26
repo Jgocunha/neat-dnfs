@@ -1,4 +1,5 @@
 #include "neat/genome.h"
+#include "neat_tools/logger.h"
 
 #include <algorithm>
 #include <iterator>

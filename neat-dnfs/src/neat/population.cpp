@@ -1,4 +1,5 @@
 #include "neat/population.h"
+#include "neat_tools/logger.h"
 
 namespace neat_dnfs
 {
@@ -1201,6 +1202,11 @@ namespace neat_dnfs
 
 	void Population::startKeyListenerForUserCommands()
 	{
+		// Called once per run, and the thread outlives the Population that spawned it,
+		// so batch runs leave it off entirely.
+		if (!PopulationConstants::enableKeyListener)
+			return;
+
 		std::thread keyListener([this]() {
 			std::cout << R"(
         _             _            _                 _                    _            _             _         _
@@ -1221,23 +1227,31 @@ namespace neat_dnfs
 			std::cout << "Press 'r' and 'Enter' to resume the current run." << std::endl << std::endl;
 			while (!control.stop)
 			{
-				if (std::cin.get() == 's')
+				const int key = std::cin.get();
+				// Redirected or closed stdin returns EOF immediately rather than
+				// blocking, which would turn this into a busy spin.
+				if (key == std::char_traits<char>::eof())
+					break;
+
+				switch (key)
 				{
+				case 's':
 					control.stop = true;
 					tools::logger::log(tools::logger::LogLevel::INFO,
 						"Stopping evolution after the current run...");
-				}
-				if (std::cin.get() == 'p')
-				{
+					break;
+				case 'p':
 					control.pause = true;
 					tools::logger::log(tools::logger::LogLevel::INFO,
 						"Pausing evolution...");
-				}
-				if (std::cin.get() == 'r')
-				{
+					break;
+				case 'r':
 					control.pause = false;
 					tools::logger::log(tools::logger::LogLevel::INFO,
 						"Resuming evolution...");
+					break;
+				default:
+					break;
 				}
 			}
 			});

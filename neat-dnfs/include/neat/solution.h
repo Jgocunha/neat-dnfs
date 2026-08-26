@@ -1,6 +1,7 @@
 #pragma once
 
 #include "genome.h"
+#include "neat_tools/logger.h"
 
 namespace neat_dnfs
 {

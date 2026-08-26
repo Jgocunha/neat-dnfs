@@ -1,4 +1,5 @@
 #include "neat/connection_gene.h"
+#include "neat_tools/logger.h"
 
 
 namespace neat_dnfs

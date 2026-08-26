@@ -2,7 +2,7 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
-#include "tools/logger.h"
+#include "neat_tools/logger.h"
 
 namespace neat_dnfs
 {
@@ -135,7 +135,7 @@ namespace neat_dnfs
 //
 //// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 //
-//#include "tools/logger.h"
+//#include "neat_tools/logger.h"
 //
 //namespace dnf_composer
 //{
