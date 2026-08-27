@@ -385,6 +385,7 @@ add_executable(${TEST_PROJECT}
     "tests/test_speciation.cpp"
     "tests/test_key_listener.cpp"
     "tests/test_resource_paths.cpp"
+    "tests/test_golden.cpp"
     "tests/test_evolution_helpers.h"
     "tests/solutions/evol_detection_instability.cpp"
     "tests/solutions/evol_memory_instability.cpp"
@@ -404,3 +405,5 @@ target_link_libraries(${TEST_PROJECT} PRIVATE Catch2::Catch2WithMain imgui-platf
 catch_discover_tests(${TEST_PROJECT} TEST_SPEC "~[Evolution]" TEST_PREFIX "fast.")
 catch_discover_tests(${TEST_PROJECT} TEST_SPEC "[Evolution]" TEST_PREFIX "slow."
     PROPERTIES LABELS "slow" TIMEOUT 600)
+catch_discover_tests(${TEST_PROJECT} TEST_SPEC "[Golden]" TEST_PREFIX "golden."
+    PROPERTIES LABELS "Golden")

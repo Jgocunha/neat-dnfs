@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Golden tests for phenotype build and genotype round-trip** — a new `[Golden]` CTest lane (`ctest -L Golden`) pins down *what value* `buildPhenotype()` and `translatePhenotypeToGenome()` produce, rather than only that they run without throwing (partially addresses #75; tiers 3-4 remain blocked on #47 and #44):
+  - tier 1 diffs each template's built phenotype against a checked-in fixture under `tests/golden/`
+  - tier 2 asserts the genotype->phenotype->genotype round-trip preserves field-gene count, connection-gene count and innovation numbers
+
+### Known issues surfaced
+- The genotype/phenotype round-trip is **not** lossless for every checked-in template, and tier 2 now documents exactly where it breaks. `translatePhenotypeToGenome()` infers field-gene type from phenotype connection degree (the magic-connection-count heuristic called out in #64) rather than from type metadata carried through the phenotype:
+  - `detection-instability`, `memory-instability`, `selection-instability`, `memory-trace` — a `HIDDEN` gene decodes back as `INPUT`
+  - `dmts` — worst case: 3 field genes decode as 4 and **all 3 connection genes are lost**; its template also mixes field sizes (`x_max` 100 and 360), which `dnf_composer` rejects at build time
+  - `and`, `xor`, `ior` round-trip cleanly
+- Tier 1 covers 5 of 8 tasks. `detection-instability`, `memory-instability` and `selection-instability` declare more fields in their topology than their template supplies, so the remainder are constructed with **unseeded random** kernel parameters and cannot be pinned to a fixture until seeding lands (#44). Those tasks are skipped with a warning rather than given a fixture that would fail on its next run.
+
 ---
 
 ## [0.2.0] - 2026-08-26
