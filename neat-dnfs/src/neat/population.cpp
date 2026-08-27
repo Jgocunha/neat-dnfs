@@ -1,6 +1,7 @@
 #include "neat/population.h"
 
 #include "neat/population_file_manager.h"
+#include "neat_tools/profiler.h"
 #include <algorithm>
 #include <cassert>
 #include <format>
@@ -114,11 +115,31 @@ namespace neat_dnfs
 
 		do
 		{
-			evaluate();
-			speciate();
-			upkeep();
+			tools::profiler::resetGeneration();
 
-			reproduceAndSelect();
+			{
+				const tools::profiler::ScopedTimer timer("evaluate");
+				evaluate();
+			}
+			{
+				const tools::profiler::ScopedTimer timer("speciate");
+				speciate();
+			}
+			{
+				const tools::profiler::ScopedTimer timer("upkeep");
+				upkeep();
+			}
+			{
+				const tools::profiler::ScopedTimer timer("reproduceAndSelect");
+				reproduceAndSelect();
+			}
+
+#ifdef NEAT_DNFS_PROFILE
+			if (fileManager)
+			{
+				fileManager->saveProfileForGeneration();
+			}
+#endif
 
 			while (control.pause)
 			{
@@ -267,6 +288,10 @@ namespace neat_dnfs
 
 		if (fileManager)
 		{
+			// Nested inside the "upkeep" scope above (upkeep() is what calls
+			// this), so "upkeep"'s total is inclusive of "save" rather than
+			// disjoint from it -- see PopulationFileManager::saveProfileForGeneration.
+			const tools::profiler::ScopedTimer timer("save");
 			fileManager->savePerGenerationData();
 		}
 

@@ -57,6 +57,12 @@ elseif(NOT NEAT_DNFS_SANITIZER STREQUAL "")
     message(FATAL_ERROR "Unknown NEAT_DNFS_SANITIZER: ${NEAT_DNFS_SANITIZER}")
 endif()
 
+# Evolution-loop profiling (GH #80)
+option(NEAT_DNFS_PROFILE "Time evolution-loop phases and write profile.csv per run" OFF)
+if(NEAT_DNFS_PROFILE)
+    add_compile_definitions(NEAT_DNFS_PROFILE)
+endif()
+
 # VCPKG integration
 if(NOT DEFINED ENV{VCPKG_ROOT})
     message(FATAL_ERROR "ERROR: This project requires VCPKG.\n")
@@ -156,6 +162,7 @@ set(header
         "include/neat_tools/resource_paths.h"
         "include/neat_tools/solution_registry.h"
         "include/neat_tools/machine_info.h"
+        "include/neat_tools/profiler.h"
 
         "include/constants.h"
 )
@@ -385,6 +392,7 @@ add_executable(${TEST_PROJECT}
     "tests/test_speciation.cpp"
     "tests/test_key_listener.cpp"
     "tests/test_resource_paths.cpp"
+    "tests/test_profiler.cpp"
     "tests/test_evolution_helpers.h"
     "tests/solutions/evol_detection_instability.cpp"
     "tests/solutions/evol_memory_instability.cpp"

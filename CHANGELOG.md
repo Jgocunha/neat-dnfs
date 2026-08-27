@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Evolution-loop profiling** — a new `NEAT_DNFS_PROFILE` CMake cache option (mirroring `NEAT_DNFS_SANITIZER`, default `OFF`) gates a header-only RAII scoped timer in `neat_tools/profiler.h` (closes #80):
+  - times the four `evolve()` phases (`evaluate`, `speciate`, `upkeep`, `reproduceAndSelect`) plus the per-generation file-I/O path
+  - writes `profile.csv` into the run directory, one row per generation, over a fixed column set so rows stay positionally stable even when a phase is not exercised
+  - compiles to nothing when the option is off: `ScopedTimer` becomes an empty type and the query functions fold to their zero/empty answers
+  - only the main thread records; `evaluate()`'s parallel worker path is deliberately left uninstrumented so no cross-thread accumulation is needed (TSan-safe by construction)
+  - `upkeep` is *inclusive* of `save` (the save timer nests inside it), so columns do not sum to the generation total — documented on `profiler::snapshot()`
+  - first measurement on the `and` task at population 8: file I/O costs roughly as much per generation as evaluation itself, confirming the bottleneck this issue suspected
+
 ---
 
 ## [0.2.0] - 2026-08-26
