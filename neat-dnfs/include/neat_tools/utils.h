@@ -95,11 +95,49 @@ namespace neat_dnfs
                     ^ time ^ (sequence * 0xBF58476D1CE4E5B9ULL);
             }
 
+            // Xoshiro256pp keeps only its state words, so the seed it was built from
+            // would otherwise be lost. Tracked alongside the engine, per thread, so
+            // getSeed() can report it even when the engine was never explicitly seeded.
+            inline std::uint64_t& engineSeed()
+            {
+                thread_local std::uint64_t seed = makeThreadSeed();
+                return seed;
+            }
+
             // One engine per thread, constructed once and reused for every draw.
             inline Xoshiro256pp& engine()
             {
-                thread_local Xoshiro256pp gen{ makeThreadSeed() };
+                thread_local Xoshiro256pp gen{ engineSeed() };
                 return gen;
+            }
+
+            /// @brief Reseeds the calling thread's random engine, so subsequent draws
+            /// from generateRandomInt/generateRandomDouble/generateRandomFloat/
+            /// generateRandomSignal follow a reproducible sequence.
+            ///
+            /// Only reproduces single-threaded runs (Population::evaluate() with
+            /// PopulationParameters::parallelEvolution = false) and tests that call
+            /// this directly. It does NOT make parallel evolution reproducible:
+            /// Population::evaluate() (src/neat/population.cpp) dispatches evaluation
+            /// via std::async, so per-thread engines still advance in whatever order
+            /// the OS schedules those tasks, and structural innovations are still
+            /// registered in a nondeterministic order.
+            /// @param seed Value the calling thread's engine is reseeded with.
+            inline void setSeed(const std::uint64_t seed)
+            {
+                engineSeed() = seed;
+                engine() = Xoshiro256pp{ seed };
+            }
+
+            /// @brief The seed the calling thread's random engine was constructed
+            /// with -- either the value last passed to setSeed(), or, if setSeed()
+            /// was never called on this thread, the value makeThreadSeed() produced
+            /// when the engine was first used. Lets an unseeded run record what seed
+            /// it happened to use.
+            /// @return The calling thread's current engine seed.
+            inline std::uint64_t getSeed()
+            {
+                return engineSeed();
             }
 
             inline int generateRandomInt(const int min, const int max)
