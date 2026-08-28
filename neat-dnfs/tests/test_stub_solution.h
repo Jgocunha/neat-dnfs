@@ -989,4 +989,63 @@ private:
     void createPhenotypeEnvironment() override {}
 };
 
+// Stand-in whose testPhenotype() calls addStandardStimulus("nf 1", 50.0) and
+// leaves the resulting phenotype intact (no throw, no removeGaussianStimuli())
+// so a test can inspect the generated GaussStimulus element afterwards -- used
+// to verify addStandardStimulus produces the same element as the equivalent
+// explicit addGaussianStimulus call (issue #62b).
+class AddStandardStimulusSolution final : public Solution
+{
+public:
+    explicit AddStandardStimulusSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "AddStandardStimulus";
+    }
+
+    AddStandardStimulusSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "AddStandardStimulus";
+    }
+
+    SolutionPtr clone() const override
+    {
+        AddStandardStimulusSolution solution(initialTopology);
+        return std::make_shared<AddStandardStimulusSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        AddStandardStimulusSolution solution(initialTopology, phenotype);
+        return std::make_shared<AddStandardStimulusSolution>(solution);
+    }
+
+    // evaluate() clears the phenotype after testPhenotype() returns (win or
+    // throw), so the generated GaussStimulus can't be inspected from outside
+    // afterwards -- capture what testPhenotype() sees while it still exists.
+    bool observedElementFound = false;
+    dnf_composer::element::GaussStimulusParameters observedParameters;
+
+private:
+    void testPhenotype() override
+    {
+        using namespace dnf_composer::element;
+
+        initSimulation();
+        addStandardStimulus("nf 1", 50.0);
+
+        const auto gaussStimulus = std::dynamic_pointer_cast<GaussStimulus>(phenotype.getElement("gs nf 1 50"));
+        if (gaussStimulus)
+        {
+            observedElementFound = true;
+            observedParameters = gaussStimulus->getParameters();
+        }
+
+        parameters.fitness = closenessToRestingLevel("nf 1");
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
 } // namespace neat_dnfs::test

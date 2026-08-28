@@ -211,6 +211,15 @@ namespace neat_dnfs
 			const dnf_composer::element::GaussStimulusParameters& stimulusParameters,
 			const dnf_composer::element::ElementDimensions& dimensions
 		);
+		/// @brief Adds a Gaussian stimulus built from the standard GaussStimulusConstants
+		/// (width, amplitude, circularity, normalization) and DimensionConstants
+		/// (xSize, dx), at the given target field and position. Delegates to
+		/// addGaussianStimulus() -- use this instead of repeating that call with
+		/// the constants spelled out whenever a task's stimulus needs no
+		/// deviation from the standard shape.
+		/// @param targetElement Name of the field element the stimulus feeds into.
+		/// @param position Spatial position (centre) of the Gaussian.
+		void addStandardStimulus(const std::string& targetElement, double position);
 		void removeGaussianStimuli();
 		void removeGaussianStimuliFromField(const std::string& fieldName);
 		void setGaussianStimulusParameters(const std::string& stimulusName, const dnf_composer::element::GaussStimulusParameters& parameters) const;

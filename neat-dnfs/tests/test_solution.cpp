@@ -124,6 +124,24 @@ TEST_CASE("Solution Build Phenotype", "[Solution]")
     REQUIRE(phenotype.getNumberOfElements() > 0);
 }
 
+// Issue #62b: addStandardStimulus("nf 1", 50.0) must produce exactly the
+// element the 26+ repeated call sites across src/solutions/ build by hand --
+// same generated element id and same stimulus parameters -- so replacing
+// those call sites with the helper is behaviour-preserving.
+TEST_CASE("addStandardStimulus produces the same element as the equivalent addGaussianStimulus call", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    AddStandardStimulusSolution solution(topology);
+    solution.initialize();
+    solution.evaluate();
+
+    REQUIRE(solution.observedElementFound);
+
+    const GaussStimulusParameters expected{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+        GaussStimulusConstants::circularity, GaussStimulusConstants::normalization };
+    REQUIRE(solution.observedParameters == expected);
+}
+
 TEST_CASE("Solution Age Increment", "[Solution]")
 {
     const auto topology = makeTopology(1, 1);

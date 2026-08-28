@@ -45,10 +45,7 @@ namespace neat_dnfs
 		static constexpr double out_width = 9.0;
 
 		initSimulation();
-		addGaussianStimulus("nf 1",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, position,
-				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+		addStandardStimulus("nf 1", position);
 		runSimulation(iterations);
 		const double f1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3", { position }, out_amp, out_width);
 		parameters.partialFitness.push_back(f1);
@@ -56,24 +53,15 @@ namespace neat_dnfs
 
 		removeGaussianStimuli();
 		initSimulation();
-		addGaussianStimulus("nf 2",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, position,
-				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+		addStandardStimulus("nf 2", position);
 		runSimulation(iterations);
 		const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 3", { position }, out_amp, out_width);
 		parameters.partialFitness.push_back(f2);
 
 		removeGaussianStimuli();
 		initSimulation();
-		addGaussianStimulus("nf 1",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, position,
-				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
-		addGaussianStimulus("nf 2",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, position,
-				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+		addStandardStimulus("nf 1", position);
+		addStandardStimulus("nf 2", position);
 		runSimulation(iterations);
 		const double f3 = noBumps("nf 3");
 		parameters.partialFitness.push_back(f3);

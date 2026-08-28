@@ -763,6 +763,14 @@ namespace neat_dnfs
 		gaussStimulus->init();
 	}
 
+	void Solution::addStandardStimulus(const std::string& targetElement, const double position)
+	{
+		addGaussianStimulus(targetElement,
+			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, position,
+				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+	}
+
 	void Solution::removeGaussianStimuli()
 	{
 		using namespace dnf_composer::element;

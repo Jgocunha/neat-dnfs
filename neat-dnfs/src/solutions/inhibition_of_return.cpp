@@ -44,10 +44,7 @@ namespace neat_dnfs
 
 		// cue activates spatial location
 		initSimulation();
-		addGaussianStimulus("nf 1",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, left,
-				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-				dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+		addStandardStimulus("nf 1", left);
 		runSimulation(500);
 		const double f1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", left, 15.0, 12.0);
 		const double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", left, 8.0, 12.0);
@@ -65,10 +62,7 @@ namespace neat_dnfs
 		parameters.partialFitness.push_back(f4);
 
 		// the same cue is given
-		addGaussianStimulus("nf 1",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, left,
-				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-				dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+		addStandardStimulus("nf 1", left);
 		runSimulation(500);
 		const double f5 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", left, 6.0, 10.0);
 		parameters.partialFitness.push_back(f5);
@@ -80,9 +74,6 @@ namespace neat_dnfs
 
 	void InhibitionOfReturn::createPhenotypeEnvironment()
 	{
-		addGaussianStimulus("nf 1",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0,
-				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-				dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+		addStandardStimulus("nf 1", 20.0);
 	}
 }

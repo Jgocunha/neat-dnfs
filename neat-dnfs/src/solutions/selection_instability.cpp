@@ -79,14 +79,8 @@ namespace neat_dnfs
 
 	void SelectionInstability::createPhenotypeEnvironment()
 	{
-		addGaussianStimulus("nf 1",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 20.0,
-		GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-		dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+		addStandardStimulus("nf 1", 20.0);
 
-		addGaussianStimulus("nf 1",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 80.0,
-	GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+		addStandardStimulus("nf 1", 80.0);
 	}
 }

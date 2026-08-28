@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Extracted the repeated Gaussian-stimulus incantation (issue #62, part b)** — the block spelling out `GaussStimulusConstants::width/amplitude/circularity/normalization` plus `DimensionConstants::xSize/dx` now lives once, in `Solution::addStandardStimulus(field, position)`. 23 of the 34 call sites across `src/solutions/` now use it.
+  - The other 11 are deliberately left as explicit `addGaussianStimulus` calls because they are **not** the standard form and converting them would change behaviour: fully literal parameters (`and.cpp`), a zero amplitude (`delayed_match_to_sample.cpp`, `memory_trace.cpp`), or hardcoded `true, false` for circularity/normalization (`detection_instability.cpp`, `memory_instability.cpp`, `selection_instability.cpp`, `xor.cpp`). Those constants are runtime config values that merely happen to equal `true`/`false` today, so converting those sites would silently couple them to config.
+  - Pure refactor: no fitness value changes. Verified against both the fast lane and the stochastic `[Evolution]` tier.
+
 ---
 
 ## [0.2.0] - 2026-08-26

@@ -73,9 +73,6 @@ namespace neat_dnfs
 
 	void MemoryInstability::createPhenotypeEnvironment()
 	{
-		addGaussianStimulus("nf 1",
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
-					GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+		addStandardStimulus("nf 1", 50.0);
 	}
 }
