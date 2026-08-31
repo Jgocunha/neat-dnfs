@@ -51,6 +51,9 @@ namespace neat_dnfs
 		void saveRunMetadata() const;
 		void saveAllSolutionsPerGeneration() const;
 		void savePerGenerationOverview() const;
+		/// @brief Appends one JSON object for the current generation to overview.jsonl,
+		/// alongside (never replacing) the prose per_generation_overview.txt.
+		void savePerGenerationOverviewJson() const;
 		void saveBestSolutionOfEachGeneration() const;
 		void saveChampionsOfEachGeneration() const;
 		void savePerGenerationStatistics() const;

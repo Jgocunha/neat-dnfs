@@ -326,5 +326,6 @@ namespace neat_dnfs
 		inline static bool saveBestSolutions;
 		inline static bool saveSolutions;
 		inline static bool saveSpecies;
+		inline static bool saveStructuredOverview;
 	};
 }

@@ -1,5 +1,6 @@
 #include "neat_tools/config_loader.h"
 
+#include <format>
 #include <fstream>
 #include <map>
 #include <mutex>
@@ -40,8 +41,7 @@ namespace neat_dnfs
 		field(j, key, target);
 		if (target->size() != expected)
 		{
-			throw std::runtime_error("ConfigLoader: '" + std::string(key) + "' must have "
-				+ std::to_string(expected) + " entries, got " + std::to_string(target->size()));
+			throw std::runtime_error(std::format("ConfigLoader: '{}' must have {} entries, got {}", key, expected, target->size()));
 		}
 	}
 
@@ -87,9 +87,7 @@ namespace neat_dnfs
 		{
 			if (it->second.size() != expectedCount)
 			{
-				throw std::runtime_error("ConfigLoader: cached fitness weights for '" + slug + "' have "
-					+ std::to_string(it->second.size()) + " entries, but this caller expected "
-					+ std::to_string(expectedCount) + ".");
+				throw std::runtime_error(std::format("ConfigLoader: cached fitness weights for '{}' have {} entries, but this caller expected {}.", slug, it->second.size(), expectedCount));
 			}
 			return it->second;
 		}
@@ -367,6 +365,7 @@ namespace neat_dnfs
 			field(pc, "saveBestSolutions", &PopulationConstants::saveBestSolutions);
 			field(pc, "saveSolutions", &PopulationConstants::saveSolutions);
 			field(pc, "saveSpecies", &PopulationConstants::saveSpecies);
+			field(pc, "saveStructuredOverview", &PopulationConstants::saveStructuredOverview);
 		}
 		catch (const nlohmann::json::exception& e)
 		{
