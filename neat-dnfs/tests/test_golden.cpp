@@ -226,16 +226,11 @@ TEST_CASE("genotype<->phenotype round-trip: field gene count and connection gene
             CHECK(roundTrippedConnectionGeneCount == originalConnectionGeneCount);
             CHECK(roundTrippedInnovationNumbers == originalInnovationNumbers);
 
-            // Field-gene *types* are the heuristic's weakest point: they survive
-            // only for templates whose inter-field connectivity happens to match
-            // what the heuristic expects. Pinned per task rather than asserted
-            // uniformly.
-            const bool typesSurviveRoundTrip =
-                roundTrippedFieldGeneTypes == originalFieldGeneTypes;
-            if (!typesSurviveRoundTrip)
-            {
-                WARN("known type-inference discrepancy (issue #64) for task: " << task.slug);
-            }
+            // A field gene's role is part of the genome: INPUT/OUTPUT/HIDDEN
+            // decide which connections are legal (Genome::isLegalConnectionSource
+            // / isLegalConnectionTarget), so a role that changes across a
+            // round-trip changes what the genome is allowed to mutate into.
+            CHECK(roundTrippedFieldGeneTypes == originalFieldGeneTypes);
         }
     }
 }
