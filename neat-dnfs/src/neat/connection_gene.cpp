@@ -64,7 +64,8 @@ namespace neat_dnfs
 	}
 
 	ConnectionGene::ConnectionGene(const ConnectionTuple connectionTuple, const int innov,
-		const dnf_composer::element::GaussKernelParameters& gkp)
+		const dnf_composer::element::GaussKernelParameters& gkp,
+		const dnf_composer::element::ElementDimensions& dimensions)
 		: parameters(connectionTuple, innov)
 	{
 		using namespace dnf_composer::element;
@@ -74,13 +75,13 @@ namespace neat_dnfs
 			connectionTuple.inFieldGeneId,
 			connectionTuple.outFieldGeneId,
 			innov);
-		const ElementCommonParameters gkcp{ elementName,
-			dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx} };
+		const ElementCommonParameters gkcp{ elementName, dimensions };
 		kernel = std::make_unique<GaussKernel>(gkcp, gkp);
 	}
 
 	ConnectionGene::ConnectionGene(const ConnectionTuple connectionTuple, const int innov,
-		const dnf_composer::element::MexicanHatKernelParameters& mhkp)
+		const dnf_composer::element::MexicanHatKernelParameters& mhkp,
+		const dnf_composer::element::ElementDimensions& dimensions)
 		: parameters(connectionTuple, innov)
 	{
 		using namespace dnf_composer::element;
@@ -90,8 +91,7 @@ namespace neat_dnfs
 			connectionTuple.inFieldGeneId,
 			connectionTuple.outFieldGeneId,
 			innov);
-		const ElementCommonParameters mhkcp{ elementName,
-			dnf_composer::element::ElementDimensions{DimensionConstants::xSize, DimensionConstants::dx} };
+		const ElementCommonParameters mhkcp{ elementName, dimensions };
 		kernel = std::make_unique<MexicanHatKernel>(mhkcp, mhkp);
 	}
 

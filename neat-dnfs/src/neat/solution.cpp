@@ -321,6 +321,11 @@ namespace neat_dnfs
 
 		// Map to track the field gene IDs by neural field names
 		std::map<std::string, int> fieldNameToIdMap;
+		// A connection's coupling kernel must be built at the same dimensions as the
+		// fields it joins: dnf_composer's Element::addInput rejects a size mismatch by
+		// logging and returning, so a mismatched coupling is silently never connected
+		// and is then lost on the next decode.
+		std::map<std::string, dnf_composer::element::ElementDimensions> fieldNameToDimensionsMap;
 		int nextFieldId = 1;
 
 		// First pass: identify all neural fields and create field genes
@@ -341,6 +346,8 @@ namespace neat_dnfs
 
 					// Store mapping for later use with connections
 					fieldNameToIdMap[nfcp.identifiers.uniqueName] = fieldId;
+					fieldNameToDimensionsMap.insert_or_assign(nfcp.identifiers.uniqueName,
+						nfcp.dimensionParameters);
 
 					// Determine if this is input, output, or hidden based on connections
 									// Logic based on connection patterns
@@ -464,8 +471,11 @@ namespace neat_dnfs
 					// Create connection tuple
 					ConnectionTuple connectionTuple(sourceId, targetId);
 
-					// Create a connection gene with an appropriate innovation number
-					// For reconstructing, we'll use a simple incremental approach
+					// Build the coupling at the joined fields' own dimensions rather
+					// than the global default: the two disagree whenever a task runs at
+					// a field size other than DimensionConstants::xSize, and a
+					// mismatched coupling never connects.
+					const auto& couplingDimensions = fieldNameToDimensionsMap.at(sourceName);
 
 					// Get the kernel parameters based on type
 					switch (element->getLabel())
@@ -473,14 +483,16 @@ namespace neat_dnfs
 					case ElementLabel::GAUSS_KERNEL:
 					{
 						auto gaussKernel = std::dynamic_pointer_cast<GaussKernel>(element);
-						ConnectionGene connectionGene(connectionTuple, innovationCounter++, gaussKernel->getParameters());
+						ConnectionGene connectionGene(connectionTuple, innovationCounter++,
+							gaussKernel->getParameters(), couplingDimensions);
 						genome.addConnectionGene(connectionGene);
 						break;
 					}
 					case ElementLabel::MEXICAN_HAT_KERNEL:
 					{
 						auto mexicanHatKernel = std::dynamic_pointer_cast<MexicanHatKernel>(element);
-						ConnectionGene connectionGene(connectionTuple, innovationCounter++, mexicanHatKernel->getParameters());
+						ConnectionGene connectionGene(connectionTuple, innovationCounter++,
+							mexicanHatKernel->getParameters(), couplingDimensions);
 						genome.addConnectionGene(connectionGene);
 						break;
 					}

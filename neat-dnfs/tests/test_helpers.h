@@ -1,8 +1,46 @@
 #pragma once
 #include "neat/solution.h"
 #include "neat/species.h"
+#include "neat_tools/config_loader.h"
 
 namespace neat_dnfs::test {
+
+// tests/entry.cpp loads only config/neat_dnfs.json; unlike the three apps/
+// binaries it never calls ConfigLoader::loadConfig(ref, slug), so per-task
+// overrides under config/solutions/ do not reach the test binary at all. That
+// matters for any task whose geometry differs from the global default -- dmts
+// runs at xSize 360 because its fields represent hue.
+//
+// DimensionConstants is a single global and Catch2 runs every task in one
+// process, so applying a task's config has to be scoped: this restores the
+// previous values on destruction, leaving the other tasks untouched. Construct
+// it *before* defaultTopologyFor(), which reads xSize, and keep it alive across
+// evaluate() too -- Solution's bump-position tolerance is xSize/20, read at
+// evaluation time.
+class ScopedTaskConfig
+{
+public:
+    explicit ScopedTaskConfig(const std::string& slug)
+        : previousXSize(DimensionConstants::xSize), previousDx(DimensionConstants::dx)
+    {
+        ConfigLoader::loadConfig(ConfigLoader::defaultGlobalConfigPath(), slug);
+    }
+
+    ~ScopedTaskConfig()
+    {
+        DimensionConstants::xSize = previousXSize;
+        DimensionConstants::dx = previousDx;
+    }
+
+    ScopedTaskConfig(const ScopedTaskConfig&) = delete;
+    ScopedTaskConfig& operator=(const ScopedTaskConfig&) = delete;
+    ScopedTaskConfig(ScopedTaskConfig&&) = delete;
+    ScopedTaskConfig& operator=(ScopedTaskConfig&&) = delete;
+
+private:
+    int previousXSize;
+    double previousDx;
+};
 
 // FieldGene's usual constructor randomizes everything that decides whether a
 // field can hold a bump: tau and restingLevel (FieldGene::initializeNeuralField),

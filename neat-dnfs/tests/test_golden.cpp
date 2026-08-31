@@ -51,6 +51,9 @@ namespace
     // construction, so the returned solution's genome -- not its phenotype --
     // is what the template actually decoded to; buildPhenotype() must be
     // called again to regenerate a phenotype from that genome.
+    // The caller owns a ScopedTaskConfig for this task and must keep it alive for
+    // as long as the returned solution is used: the per-task field size it applies
+    // is read again at buildPhenotype() and evaluate() time, not only here.
     std::unique_ptr<Solution> loadTemplateSolution(const TaskEntry& task)
     {
         const std::string templatePath =
@@ -143,6 +146,10 @@ TEST_CASE("buildPhenotype golden: template solutions match their checked-in fixt
         {
             resetGlobalState();
 
+            // Applies this task's own field size (dmts runs at 360) and restores
+            // the previous global when the section ends. Must outlive `solution`.
+            const ScopedTaskConfig taskConfig{ std::string(task.slug) };
+
             const auto solution = loadTemplateSolution(task);
 
             // A template that carries fewer neural fields than the task's
@@ -180,6 +187,10 @@ TEST_CASE("genotype<->phenotype round-trip: field gene count and connection gene
         {
             resetGlobalState();
 
+            // Applies this task's own field size (dmts runs at 360) and restores
+            // the previous global when the section ends. Must outlive `solution`.
+            const ScopedTaskConfig taskConfig{ std::string(task.slug) };
+
             const auto solution = loadTemplateSolution(task);
 
             const size_t originalFieldGeneCount = solution->getGenome().getFieldGenes().size();
@@ -207,49 +218,13 @@ TEST_CASE("genotype<->phenotype round-trip: field gene count and connection gene
 
             INFO("task: " << task.slug);
 
-            // The round-trip is NOT lossless for every template, and this test
-            // pins down exactly where it breaks rather than asserting a guarantee
-            // translatePhenotypeToGenome() does not provide.
-            //
-            // translatePhenotypeToGenome() (src/neat/solution.cpp) infers each
-            // field gene's FieldGeneType from its neural field's phenotype
-            // connection degree (numInputs/numOutputs), not from any type value
-            // carried through the phenotype -- the magic-connection-count
-            // heuristic issue #64 calls out. FieldGene construction gives
-            // INPUT/OUTPUT/HIDDEN genes an identical self-loop topology, so the
-            // classification depends entirely on which *inter-field* connections
-            // a template happens to contain.
-            //
-            // Observed on the checked-in templates (2026-08, unmodified main):
-            //   and, xor, ior, single-bump  -- round-trip cleanly
-            //   detection-instability,      -- a HIDDEN gene decodes as INPUT
-            //   memory-instability,            ({3,2,1} -> {1,2,1})
-            //   selection-instability,
-            //   memory-trace
-            //   dmts                        -- worst case: 3 field genes decode
-            //                                  as 4, and all 3 connection genes
-            //                                  are lost entirely ({1,2,3} -> {})
-            //
-            // Counts and innovation numbers hold everywhere except dmts, so they
-            // are asserted for every other task and pinned as known-broken for
-            // dmts. Fixing the decode belongs to issue #64; this test exists so
-            // that fix is provably observable, and so a *further* regression is
-            // caught immediately.
-            const bool connectionsSurviveRoundTrip = task.slug != "dmts";
-            if (connectionsSurviveRoundTrip)
-            {
-                CHECK(roundTrippedFieldGeneCount == originalFieldGeneCount);
-                CHECK(roundTrippedConnectionGeneCount == originalConnectionGeneCount);
-                CHECK(roundTrippedInnovationNumbers == originalInnovationNumbers);
-            }
-            else
-            {
-                // Known-broken, documented above. Asserted so that fixing #64
-                // fails this branch loudly instead of passing unnoticed.
-                CHECK(roundTrippedFieldGeneCount == originalFieldGeneCount + 1);
-                CHECK(roundTrippedConnectionGeneCount == 0);
-                CHECK(roundTrippedInnovationNumbers.empty());
-            }
+            // The round-trip must be lossless for every task, every time: a
+            // solution that is built into a phenotype has to decode back to the
+            // genome it came from, or nothing downstream of a save/load can be
+            // trusted.
+            CHECK(roundTrippedFieldGeneCount == originalFieldGeneCount);
+            CHECK(roundTrippedConnectionGeneCount == originalConnectionGeneCount);
+            CHECK(roundTrippedInnovationNumbers == originalInnovationNumbers);
 
             // Field-gene *types* are the heuristic's weakest point: they survive
             // only for templates whose inter-field connectivity happens to match
