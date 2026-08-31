@@ -280,6 +280,12 @@ namespace neat_dnfs
 
 		if (fileManager)
 		{
+			// Nested inside the "upkeep" scope above (upkeep() is what calls
+			// this), so "upkeep"'s total is inclusive of "save" rather than
+			// disjoint from it -- see PopulationFileManager::saveProfileForGeneration.
+			// Wraps both this call and savePerGenerationData() below so the
+			// "save" bucket reflects all per-generation file I/O.
+			const tools::profiler::ScopedTimer timer("save");
 			fileManager->saveOverviewForGeneration();
 		}
 
@@ -288,10 +294,6 @@ namespace neat_dnfs
 
 		if (fileManager)
 		{
-			// Nested inside the "upkeep" scope above (upkeep() is what calls
-			// this), so "upkeep"'s total is inclusive of "save" rather than
-			// disjoint from it -- see PopulationFileManager::saveProfileForGeneration.
-			const tools::profiler::ScopedTimer timer("save");
 			fileManager->savePerGenerationData();
 		}
 
