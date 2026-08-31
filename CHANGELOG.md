@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Seeding API (issue #44, Phase 1)** — `neat_dnfs::tools::utils::setSeed(std::uint64_t)` reseeds the calling thread's random engine, and `getSeed()` reports the seed it was constructed with, so an unseeded run can record the seed it happened to use and replay it later:
+  - makes single-threaded runs (`PopulationParameters::parallelEvolution = false`) and tests that call it directly reproducible
+  - **does not** make parallel evolution reproducible — `Population::evaluate()` dispatches via `std::async`, so per-thread engines advance in whatever order the OS schedules those tasks and structural innovations are still registered against the shared `globalInnovationNumber` in a nondeterministic order. Phases 2 (deterministic parallel evolution) and 3 (a seed on `PopulationParameters`, recorded under `data/`) remain open.
+
 ---
 
 ## [0.2.0] - 2026-08-26

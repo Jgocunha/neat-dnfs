@@ -1,6 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 #include <cmath>
+#include <vector>
+#include <thread>
 
 #include "neat_tools/utils.h"
 
@@ -204,4 +206,120 @@ TEST_CASE("normalizeWithFlatheadGaussian decreases away from the flat region", "
     REQUIRE(atEdge == Catch::Approx(1.0));
     REQUIRE(beyond < atEdge);
     REQUIRE(beyond >= 0.0);
+}
+
+TEST_CASE("setSeed makes the engine's draw sequence reproducible", "[seed]")
+{
+    using namespace neat_dnfs::tools::utils;
+
+    constexpr std::uint64_t seed = 123456789ULL;
+    constexpr int attempts = 50;
+
+    setSeed(seed);
+    std::vector<int> intsA(attempts);
+    std::vector<double> doublesA(attempts);
+    std::vector<int> signalsA(attempts);
+    for (int i = 0; i < attempts; ++i)
+    {
+        intsA[i] = generateRandomInt(0, 1000000);
+        doublesA[i] = generateRandomDouble(-100.0, 100.0);
+        signalsA[i] = generateRandomSignal();
+    }
+
+    setSeed(seed);
+    std::vector<int> intsB(attempts);
+    std::vector<double> doublesB(attempts);
+    std::vector<int> signalsB(attempts);
+    for (int i = 0; i < attempts; ++i)
+    {
+        intsB[i] = generateRandomInt(0, 1000000);
+        doublesB[i] = generateRandomDouble(-100.0, 100.0);
+        signalsB[i] = generateRandomSignal();
+    }
+
+    REQUIRE(intsA == intsB);
+    REQUIRE(doublesA == doublesB);
+    REQUIRE(signalsA == signalsB);
+}
+
+TEST_CASE("getSeed returns the seed passed to setSeed", "[seed]")
+{
+    using namespace neat_dnfs::tools::utils;
+
+    constexpr std::uint64_t seed = 42ULL;
+    setSeed(seed);
+
+    REQUIRE(getSeed() == seed);
+}
+
+TEST_CASE("getSeed on an unseeded thread reports a seed that replays that thread's sequence", "[seed]")
+{
+    using namespace neat_dnfs::tools::utils;
+
+    // The issue's stated purpose for getSeed(): an unseeded run must be able to
+    // record the seed it happened to use, and feeding that value back must
+    // reproduce the same draws. Run on its own thread so the engine really is
+    // untouched -- other cases in this file have already seeded the main thread.
+    std::uint64_t reported = 0;
+    int first = 0;
+    int replayed = 0;
+
+    std::thread worker([&]
+        {
+            reported = getSeed();
+            first = generateRandomInt(0, 1000000);
+
+            setSeed(reported);
+            replayed = generateRandomInt(0, 1000000);
+        });
+    worker.join();
+
+    REQUIRE(reported != 0);
+    REQUIRE(first == replayed);
+}
+
+TEST_CASE("setSeed before the engine is first used on a thread still seeds deterministically", "[seed]")
+{
+    using namespace neat_dnfs::tools::utils;
+
+    // engine()'s thread_local is initialised from engineSeed() on first use.
+    // Calling setSeed() before any draw on a fresh thread exercises the ordering
+    // where setSeed() itself triggers that first initialisation -- the reported
+    // seed and the sequence actually drawn must still agree.
+    constexpr std::uint64_t seed = 987654321ULL;
+    int fromFreshThread = 0;
+    std::uint64_t reported = 0;
+
+    std::thread worker([&]
+        {
+            setSeed(seed);
+            reported = getSeed();
+            fromFreshThread = generateRandomInt(0, 1000000);
+        });
+    worker.join();
+
+    setSeed(seed);
+    const int fromMainThread = generateRandomInt(0, 1000000);
+
+    REQUIRE(reported == seed);
+    REQUIRE(fromFreshThread == fromMainThread);
+}
+
+TEST_CASE("Different seeds produce different draw sequences", "[seed]")
+{
+    using namespace neat_dnfs::tools::utils;
+
+    constexpr int attempts = 50;
+
+    setSeed(1ULL);
+    std::vector<int> intsA(attempts);
+    for (int i = 0; i < attempts; ++i)
+        intsA[i] = generateRandomInt(0, 1000000);
+
+    setSeed(2ULL);
+    std::vector<int> intsB(attempts);
+    for (int i = 0; i < attempts; ++i)
+        intsB[i] = generateRandomInt(0, 1000000);
+
+    REQUIRE(intsA != intsB);
 }
