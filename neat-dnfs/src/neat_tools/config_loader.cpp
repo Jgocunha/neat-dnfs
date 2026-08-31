@@ -365,6 +365,7 @@ namespace neat_dnfs
 			field(pc, "saveBestSolutions", &PopulationConstants::saveBestSolutions);
 			field(pc, "saveSolutions", &PopulationConstants::saveSolutions);
 			field(pc, "saveSpecies", &PopulationConstants::saveSpecies);
+			field(pc, "saveStructuredOverview", &PopulationConstants::saveStructuredOverview);
 		}
 		catch (const nlohmann::json::exception& e)
 		{

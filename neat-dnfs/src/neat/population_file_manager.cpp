@@ -2,13 +2,16 @@
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <ctime>
 #include <filesystem>
 #include <format>
 #include <fstream>
 #include <iomanip>
+#include <numeric>
 
 #include "neat/population.h"
 #include "neat_tools/build_info.h"
@@ -35,6 +38,10 @@ namespace neat_dnfs
 		if (PopulationConstants::saveOverview)
 		{
 			savePerGenerationOverview();
+		}
+		if (PopulationConstants::saveStructuredOverview)
+		{
+			savePerGenerationOverviewJson();
 		}
 	}
 
@@ -323,6 +330,139 @@ namespace neat_dnfs
 		{
 			tools::logger::log(tools::logger::LogLevel::ERROR,
 				"Failed to open log file for field gene per generation statistics.");
+		}
+	}
+
+	namespace
+	{
+		struct FitnessDistribution
+		{
+			double min{};
+			double max{};
+			double mean{};
+			double median{};
+			double stddev{};
+			double q1{};
+			double q3{};
+		};
+
+		double percentile(const std::vector<double>& sortedValues, const double fraction)
+		{
+			const double position = fraction * static_cast<double>(sortedValues.size() - 1);
+			const auto lowerIndex = static_cast<size_t>(std::floor(position));
+			const auto upperIndex = static_cast<size_t>(std::ceil(position));
+			if (lowerIndex == upperIndex)
+			{
+				return sortedValues[lowerIndex];
+			}
+			const double weight = position - static_cast<double>(lowerIndex);
+			return sortedValues[lowerIndex] * (1.0 - weight) + sortedValues[upperIndex] * weight;
+		}
+
+		FitnessDistribution computeFitnessDistribution(const std::vector<SolutionPtr>& solutions)
+		{
+			std::vector<double> fitnessValues;
+			fitnessValues.reserve(solutions.size());
+			for (const auto& solution : solutions)
+			{
+				fitnessValues.push_back(solution->getFitness());
+			}
+			std::ranges::sort(fitnessValues);
+
+			FitnessDistribution distribution;
+			if (fitnessValues.empty())
+			{
+				return distribution;
+			}
+
+			const double sum = std::accumulate(fitnessValues.begin(), fitnessValues.end(), 0.0);
+			const double mean = sum / static_cast<double>(fitnessValues.size());
+
+			double squaredDeviationSum = 0.0;
+			for (const double value : fitnessValues)
+			{
+				squaredDeviationSum += (value - mean) * (value - mean);
+			}
+
+			distribution.min = fitnessValues.front();
+			distribution.max = fitnessValues.back();
+			distribution.mean = mean;
+			distribution.median = percentile(fitnessValues, 0.5);
+			distribution.stddev = std::sqrt(squaredDeviationSum / static_cast<double>(fitnessValues.size()));
+			distribution.q1 = percentile(fitnessValues, 0.25);
+			distribution.q3 = percentile(fitnessValues, 0.75);
+			return distribution;
+		}
+
+		nlohmann::json toJson(const FitnessDistribution& distribution)
+		{
+			return {
+				{"min", distribution.min},
+				{"max", distribution.max},
+				{"mean", distribution.mean},
+				{"median", distribution.median},
+				{"stddev", distribution.stddev},
+				{"q1", distribution.q1},
+				{"q3", distribution.q3}
+			};
+		}
+	}
+
+	void PopulationFileManager::savePerGenerationOverviewJson() const
+	{
+		nlohmann::json record;
+		record["generation"] = population->parameters.currentGeneration;
+		record["numberOfSolutions"] = population->solutions.size();
+		record["numberOfSpecies"] = population->perGenStatistics.numberOfSpecies;
+		record["numberOfActiveSpecies"] = population->perGenStatistics.numberOfActiveSpecies;
+		record["hasFitnessImproved"] = population->hasFitnessImproved;
+		record["generationsWithoutImprovement"] = population->generationsWithoutImprovement;
+		record["averageFitness"] = population->perGenStatistics.averageFitness;
+		record["bestFitness"] = population->perGenStatistics.bestFitness;
+		record["innovationNumber"] = population->perGenStatistics.innovationNumber;
+		record["averageGenomeSize"] = population->perGenStatistics.averageGenomeSize;
+		record["averageConnectionGenes"] = population->perGenStatistics.averageConnectionGenes;
+		record["averageFieldGenes"] = population->perGenStatistics.averageFieldGenes;
+		record["fitnessDistribution"] = toJson(computeFitnessDistribution(population->solutions));
+
+		nlohmann::json speciesArray = nlohmann::json::array();
+		for (const auto& species : population->speciesList)
+		{
+			speciesArray.push_back({
+				{"id", species->getId()},
+				{"size", species->size()}
+			});
+		}
+		record["species"] = speciesArray;
+
+		if (population->bestSolution != nullptr)
+		{
+			const auto [parent1, parent2] = population->bestSolution->getParents();
+			record["bestSolution"] = {
+				{"id", population->bestSolution->getId()},
+				{"fitness", population->bestSolution->getFitness()},
+				{"parentIds", {parent1, parent2}},
+				{"partialFitness", population->bestSolution->getParameters().partialFitness}
+			};
+		}
+		else
+		{
+			record["bestSolution"] = nullptr;
+		}
+
+		const std::string directoryPath = fileDirectory + "/";
+		std::filesystem::create_directories(directoryPath); // Ensure directory exists
+
+		std::ofstream logFile(directoryPath + "overview.jsonl", std::ios::app);
+		if (logFile.is_open())
+		{
+			logFile << record.dump() << "\n";
+			logFile.close();
+		}
+		else
+		{
+			tools::logger::log(tools::logger::LogLevel::ERROR,
+				"Failed to open log file for structured per generation overview.");
 		}
 	}
 
