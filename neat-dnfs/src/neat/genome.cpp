@@ -1,4 +1,5 @@
 #include "neat/genome.h"
+#include <format>
 
 namespace neat_dnfs
 {
@@ -129,8 +130,7 @@ namespace neat_dnfs
 
 		if (it == connectionGenes.end())
 		{
-			throw std::invalid_argument("Connection gene with the specified innovation number " +
-				std::to_string(innov) + " does not exist.");
+			throw std::invalid_argument(std::format("Connection gene with the specified innovation number {} does not exist.", innov));
 		}
 
 		connectionGenes.erase(it);
@@ -329,8 +329,7 @@ namespace neat_dnfs
 
 		if (it == connectionGenes.end())
 		{
-			throw std::invalid_argument("Connection gene with the specified innovation number " +
-				std::to_string(innovationNumber) + " does not exist.");
+			throw std::invalid_argument(std::format("Connection gene with the specified innovation number {} does not exist.", innovationNumber));
 		}
 
 		return *it;
@@ -346,8 +345,7 @@ namespace neat_dnfs
 
 		if (it == fieldGenes.end())
 		{
-			throw std::invalid_argument("Field gene with the specified id " +
-				std::to_string(id) + " does not exist.");
+			throw std::invalid_argument(std::format("Field gene with the specified id {} does not exist.", id));
 		}
 
 		return *it;
@@ -365,8 +363,7 @@ namespace neat_dnfs
 
 	std::string Genome::toString() const
 	{
-		std::string genomeString = "genome ( " + std::to_string(fieldGenes.size()) + " field genes, "
-		+ std::to_string(connectionGenes.size()) + " connection genes )";
+		std::string genomeString = std::format("genome ( {} field genes, {} connection genes )", fieldGenes.size(), connectionGenes.size());
 		genomeString += " field genes {";
 		for (const auto& fieldGene : fieldGenes)
 		{
@@ -597,8 +594,7 @@ namespace neat_dnfs
 			// use the same innovation number
 		{
 			connectionGenes.emplace_back(connectionTuple, innov);
-			mutationsInLastGeneration += "(added cg " + connectionTuple.toString()
-			+ " innov." + std::to_string(innov) + ")";
+			mutationsInLastGeneration += std::format("(added cg {} innov.{})", connectionTuple.toString(), innov);
 		}
 		else
 			// does not exist in the current generation
@@ -606,8 +602,7 @@ namespace neat_dnfs
 		{
 			connectionGenes.emplace_back(connectionTuple, globalInnovationNumber);
 			connectionTupleAndInnovationNumberWithinGeneration[connectionTuple] = globalInnovationNumber;
-			mutationsInLastGeneration += "(added cg " + connectionTuple.toString()
-			+ " innov." + std::to_string(globalInnovationNumber) + ")";
+			mutationsInLastGeneration += std::format("(added cg {} innov.{})", connectionTuple.toString(), globalInnovationNumber);
 			globalInnovationNumber++;
 		}
 	}
@@ -691,8 +686,7 @@ namespace neat_dnfs
 		default:
 			throw std::invalid_argument("Invalid kernel type.");
 		}
-		mutationsInLastGeneration += "(added fg " + std::to_string(fieldGenes.back().getParameters().id) +
-			" and cgs innov's " + std::to_string(innovIn) + ", " + std::to_string(innovOut) + ")";
+		mutationsInLastGeneration += std::format("(added fg {} and cgs innov's {}, {})", fieldGenes.back().getParameters().id, innovIn, innovOut);
 	}
 
 	void Genome::mutateGene()
@@ -702,8 +696,7 @@ namespace neat_dnfs
 			if (tools::utils::generateRandomDouble(0.0, 1.0) < GenomeMutationConstants::mutateFieldGenePerGeneProbability)
 			{
 				gene.mutate();
-				mutationsInLastGeneration +=  "[fg " + std::to_string(gene.getParameters().id) + " " +
-					gene.getMutationsInLastGeneration() + "] ";
+				mutationsInLastGeneration += std::format("[fg {} {}] ", gene.getParameters().id, gene.getMutationsInLastGeneration());
 			}
 		}
 	}
@@ -732,7 +725,7 @@ namespace neat_dnfs
 			{
 				connectionGene.mutate();
 				const std::string cg_id = connectionGene.getParameters().connectionTuple.toString();
-				mutationsInLastGeneration += "[cg " + cg_id + " " + connectionGene.getMutationsInLastGeneration() + "] ";
+				mutationsInLastGeneration += std::format("[cg {} {}] ", cg_id, connectionGene.getMutationsInLastGeneration());
 			}
 		}
 	}
@@ -745,8 +738,7 @@ namespace neat_dnfs
 		}
 		const auto connectionGeneId = tools::utils::generateRandomInt(0, static_cast<int>(connectionGenes.size()) - 1);
 		connectionGenes[connectionGeneId].toggle();
-		mutationsInLastGeneration += "toggle cg " + std::to_string(connectionGeneId) + " to " +
-			(connectionGenes[connectionGeneId].isEnabled() ? "enabled." : "disabled.");
+		mutationsInLastGeneration += std::format("toggle cg {} to {}", connectionGeneId, connectionGenes[connectionGeneId].isEnabled() ? "enabled." : "disabled.");
 	}
 
 	int Genome::getInnovationNumberOfTupleWithinGenerationUnlocked(const ConnectionTuple& tuple)
