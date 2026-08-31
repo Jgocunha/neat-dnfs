@@ -19,6 +19,11 @@
 #include "neat_tools/machine_info.h"
 #include "neat_tools/resource_paths.h"
 
+#ifdef NEAT_DNFS_PROFILE
+#include "neat_tools/profiler.h"
+#include <string_view>
+#endif
+
 namespace neat_dnfs
 {
 	namespace
@@ -570,4 +575,47 @@ namespace neat_dnfs
 			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for species.");
 		}
 	}
+
+#ifdef NEAT_DNFS_PROFILE
+	void PopulationFileManager::saveProfileForGeneration() const
+	{
+		// Fixed, explicit column set -- not whatever tools::profiler::snapshot()
+		// happens to contain this generation. "save" in particular is only ever
+		// recorded when fileManager is set, so deriving columns from the snapshot
+		// would silently shift every value to the wrong header on a generation
+		// where that phase's bucket is absent. elapsedSeconds() already returns
+		// 0.0 for a phase that was not timed, which keeps every row the same
+		// shape as the header written once below.
+		static constexpr std::array<std::string_view, 5> phaseNames{
+			"evaluate", "speciate", "upkeep", "reproduceAndSelect", "save"
+		};
+
+		const std::string filePath = fileDirectory + "profile.csv";
+		const bool fileExists = std::filesystem::exists(filePath);
+
+		std::ofstream csvFile(filePath, std::ios::app);
+		if (!csvFile.is_open())
+		{
+			tools::logger::log(tools::logger::LogLevel::ERROR, "Failed to open log file for profiling data.");
+			return;
+		}
+
+		if (!fileExists)
+		{
+			csvFile << "generation";
+			for (const auto& phaseName : phaseNames)
+			{
+				csvFile << "," << phaseName;
+			}
+			csvFile << "\n";
+		}
+
+		csvFile << population->parameters.currentGeneration;
+		for (const auto& phaseName : phaseNames)
+		{
+			csvFile << "," << tools::profiler::elapsedSeconds(phaseName);
+		}
+		csvFile << "\n";
+	}
+#endif
 }

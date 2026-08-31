@@ -29,6 +29,21 @@ namespace neat_dnfs
 		/// @brief Writes end-of-run artifacts (final solutions, timestamps, champions).
 		void saveEndOfRunData() const;
 
+#ifdef NEAT_DNFS_PROFILE
+		/// @brief Appends the current generation's profiler buckets as one row of
+		/// profile.csv in the run directory, creating the file with a header row
+		/// the first time it is called. Compiled only when @c NEAT_DNFS_PROFILE is on.
+		/// @details Columns are a fixed, explicit set (evaluate, speciate, upkeep,
+		/// reproduceAndSelect, save), not whatever tools::profiler::snapshot()
+		/// happens to hold that generation -- that keeps every row's columns
+		/// aligned with the header even on a generation where a phase's bucket is
+		/// absent. The save column times only file I/O and is measured *inside*
+		/// the upkeep scope in Population::evolve(), so upkeep's own total is
+		/// inclusive of save rather than disjoint from it; save is still reported
+		/// separately since it is usually the more actionable of the two.
+		void saveProfileForGeneration() const;
+#endif
+
 	private:
 		void saveAllSolutionsWithFitnessAbove(double fitness) const;
 		void saveChampions() const;
