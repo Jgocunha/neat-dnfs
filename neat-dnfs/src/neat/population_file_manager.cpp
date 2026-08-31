@@ -6,6 +6,7 @@
 #include <chrono>
 #include <ctime>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <iomanip>
 
@@ -17,6 +18,14 @@
 
 namespace neat_dnfs
 {
+	namespace
+	{
+		std::string solutionIdentifier(int id, int generation, int speciesId, double fitness)
+		{
+			return std::format("solution {} generation {} species {} fitness {:f}", id, generation, speciesId, fitness);
+		}
+	}
+
 	PopulationFileManager::PopulationFileManager(const Population& population)
 		: population(&population)
 	{}
@@ -97,7 +106,7 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer;
 
-		const std::string directoryPath = fileDirectory + "best_solutions/last_generation/";
+		const std::string directoryPath = std::format("{}best_solutions/last_generation/", fileDirectory);
 		std::filesystem::create_directories(directoryPath); // Ensure directory exist
 
 		for (const auto& solution : population->solutions)
@@ -118,10 +127,8 @@ namespace neat_dnfs
 					}
 				}
 				// save elements
-				const std::string uniqueIdentifier = "solution " + std::to_string(solution->getId())
-					+ " generation " + std::to_string(population->parameters.currentGeneration)
-					+ " species " + std::to_string(solution->getSpeciesId())
-					+ " fitness " + std::to_string(solution->getFitness());
+				const std::string uniqueIdentifier = solutionIdentifier(solution->getId(),
+					population->parameters.currentGeneration, solution->getSpeciesId(), solution->getFitness());
 				simulation.setUniqueIdentifier(uniqueIdentifier);
 				SimulationFileManager sfm(std::make_shared<Simulation>(simulation), directoryPath);
 				sfm.saveElementsToJson();
@@ -133,7 +140,7 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer;
 
-		const std::string directoryPath = fileDirectory + "champions/last_generation/";
+		const std::string directoryPath = std::format("{}champions/last_generation/", fileDirectory);
 		std::filesystem::create_directories(directoryPath); // Ensure directory exist
 
 		if (population->champions.empty())
@@ -161,10 +168,8 @@ namespace neat_dnfs
 				}
 			}
 			// save elements
-			const std::string uniqueIdentifier = "solution " + std::to_string(champion->getId())
-				+ " generation " + std::to_string(population->parameters.currentGeneration)
-				+ " species " + std::to_string(champion->getSpeciesId())
-				+ " fitness " + std::to_string(champion->getFitness());
+			const std::string uniqueIdentifier = solutionIdentifier(champion->getId(),
+				population->parameters.currentGeneration, champion->getSpeciesId(), champion->getFitness());
 			simulation.setUniqueIdentifier(uniqueIdentifier);
 			SimulationFileManager sfm(std::make_shared<Simulation>(simulation), directoryPath);
 			sfm.saveElementsToJson();
@@ -173,10 +178,10 @@ namespace neat_dnfs
 
 	void PopulationFileManager::saveTimestampsAndDuration() const
 	{
-		const std::string directoryPath = fileDirectory + "/";
+		const std::string directoryPath = std::format("{}/", fileDirectory);
 		std::filesystem::create_directories(directoryPath); // Ensure directory exists
 
-		std::ofstream logFile(directoryPath + "evolution_timestamps.txt", std::ios::app);
+		std::ofstream logFile(std::format("{}evolution_timestamps.txt", directoryPath), std::ios::app);
 		if (logFile.is_open())
 		{
 			// Convert steady_clock timestamps to system_clock timestamps
@@ -249,10 +254,10 @@ namespace neat_dnfs
 			{"parallel_evolution", population->parameters.parallelEvolution}
 		};
 
-		const std::string directoryPath = fileDirectory + "/";
+		const std::string directoryPath = std::format("{}/", fileDirectory);
 		std::filesystem::create_directories(directoryPath); // Ensure directory exists
 
-		std::ofstream metadataFile(directoryPath + "run_metadata.json");
+		std::ofstream metadataFile(std::format("{}run_metadata.json", directoryPath));
 		if (metadataFile.is_open())
 		{
 			metadataFile << metadata.dump(2);
@@ -269,7 +274,7 @@ namespace neat_dnfs
 
 		for (const auto& solution : population->solutions)
 		{
-			const std::string directoryPath = fileDirectory + "solutions/gen " + std::to_string(population->parameters.currentGeneration) + "/";
+			const std::string directoryPath = std::format("{}solutions/gen {}/", fileDirectory, population->parameters.currentGeneration);
 			std::filesystem::create_directories(directoryPath); // Ensure directory exists
 
 			solution->buildPhenotype();
@@ -277,10 +282,8 @@ namespace neat_dnfs
 			auto simulation = solution->getPhenotype();
 			solution->clearPhenotype();
 
-			const std::string uniqueIdentifier = "solution " + std::to_string(solution->getId())
-				+ " generation " + std::to_string(population->parameters.currentGeneration)
-				+ " species " + std::to_string(solution->getSpeciesId())
-				+ " fitness " + std::to_string(solution->getFitness());
+			const std::string uniqueIdentifier = solutionIdentifier(solution->getId(),
+				population->parameters.currentGeneration, solution->getSpeciesId(), solution->getFitness());
 			simulation.setUniqueIdentifier(uniqueIdentifier);
 			SimulationFileManager sfm(std::make_shared<Simulation>(simulation), directoryPath);
 			sfm.saveElementsToJson();
@@ -289,26 +292,31 @@ namespace neat_dnfs
 
 	void PopulationFileManager::savePerGenerationOverview() const
 	{
-		const std::string directoryPath = fileDirectory + "/";
+		const std::string directoryPath = std::format("{}/", fileDirectory);
 		std::filesystem::create_directories(directoryPath); // Ensure directory exists
 
-		std::ofstream logFile(directoryPath + "per_generation_overview.txt", std::ios::app);
+		std::ofstream logFile(std::format("{}per_generation_overview.txt", directoryPath), std::ios::app);
 		if (logFile.is_open())
 		{
-			logFile << "Current generation: " + std::to_string(population->parameters.currentGeneration);
-			logFile << " Number of solutions: " + std::to_string(population->solutions.size());
-			logFile << " Number of species: " + std::to_string(population->perGenStatistics.numberOfSpecies);
-			logFile << " Number of active species: " + std::to_string(population->perGenStatistics.numberOfActiveSpecies);
-			logFile << " Has fitness improved: " << (population->hasFitnessImproved ? "yes" : "no");
-			logFile << " Number of generations without improvement: " + std::to_string(population->generationsWithoutImprovement);
-			logFile << " Average fitness: " + std::to_string(population->perGenStatistics.averageFitness);
-			logFile << " Best fitness: " + std::to_string(population->perGenStatistics.bestFitness);
-			logFile << " Innovation number: " + std::to_string(population->perGenStatistics.innovationNumber);
-			logFile << " Average genome size: " + std::to_string(population->perGenStatistics.averageGenomeSize);
-			logFile << " Average connection genes: " + std::to_string(population->perGenStatistics.averageConnectionGenes);
-			logFile << " Average field genes: " + std::to_string(population->perGenStatistics.averageFieldGenes);
-			logFile << " Best solution: [" + population->bestSolution->toString() + "]";
-			logFile << "\n";
+			logFile << std::format(
+				"Current generation: {} Number of solutions: {} Number of species: {} "
+				"Number of active species: {} Has fitness improved: {} "
+				"Number of generations without improvement: {} Average fitness: {:.3f} "
+				"Best fitness: {:.3f} Innovation number: {} Average genome size: {:.3f} "
+				"Average connection genes: {:.3f} Average field genes: {:.3f} Best solution: [{}]\n",
+				population->parameters.currentGeneration,
+				population->solutions.size(),
+				population->perGenStatistics.numberOfSpecies,
+				population->perGenStatistics.numberOfActiveSpecies,
+				population->hasFitnessImproved ? "yes" : "no",
+				population->generationsWithoutImprovement,
+				population->perGenStatistics.averageFitness,
+				population->perGenStatistics.bestFitness,
+				population->perGenStatistics.innovationNumber,
+				population->perGenStatistics.averageGenomeSize,
+				population->perGenStatistics.averageConnectionGenes,
+				population->perGenStatistics.averageFieldGenes,
+				population->bestSolution->toString());
 			logFile.close();
 		}
 		else
@@ -322,7 +330,7 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer;
 
-		const std::string directoryPath = fileDirectory + "best_solutions/prev_generations/";
+		const std::string directoryPath = std::format("{}best_solutions/prev_generations/", fileDirectory);
 		std::filesystem::create_directories(directoryPath); // Ensure directory exist
 
 		population->bestSolution->buildPhenotype();
@@ -339,10 +347,8 @@ namespace neat_dnfs
 			}
 		}
 		// save elements
-		const std::string uniqueIdentifier = "solution " + std::to_string(population->bestSolution->getId())
-			+ " generation " + std::to_string(population->parameters.currentGeneration)
-			+ " species " + std::to_string(population->bestSolution->getSpeciesId())
-			+ " fitness " + std::to_string(population->bestSolution->getFitness());
+		const std::string uniqueIdentifier = solutionIdentifier(population->bestSolution->getId(),
+			population->parameters.currentGeneration, population->bestSolution->getSpeciesId(), population->bestSolution->getFitness());
 		simulation.setUniqueIdentifier(uniqueIdentifier);
 		SimulationFileManager sfm(std::make_shared<Simulation>(simulation), directoryPath);
 		sfm.saveElementsToJson();
@@ -352,7 +358,7 @@ namespace neat_dnfs
 	{
 		using namespace dnf_composer;
 
-		const std::string directoryPath = fileDirectory + "champions/prev_generations/";
+		const std::string directoryPath = std::format("{}champions/prev_generations/", fileDirectory);
 		std::filesystem::create_directories(directoryPath); // Ensure directory exist
 
 		for (const auto& champion : population->champions)
@@ -375,10 +381,8 @@ namespace neat_dnfs
 				}
 			}
 			// save elements
-			const std::string uniqueIdentifier = "solution " + std::to_string(champion->getId())
-				+ " generation " + std::to_string(population->parameters.currentGeneration)
-				+ " species " + std::to_string(champion->getSpeciesId())
-				+ " fitness " + std::to_string(champion->getFitness());
+			const std::string uniqueIdentifier = solutionIdentifier(champion->getId(),
+				population->parameters.currentGeneration, champion->getSpeciesId(), champion->getFitness());
 			simulation.setUniqueIdentifier(uniqueIdentifier);
 			SimulationFileManager sfm(std::make_shared<Simulation>(simulation), directoryPath);
 			sfm.saveElementsToJson();
@@ -387,10 +391,10 @@ namespace neat_dnfs
 
 	void PopulationFileManager::savePerGenerationStatistics() const
 	{
-		const std::string directoryPath = fileDirectory + "statistics/";
+		const std::string directoryPath = std::format("{}statistics/", fileDirectory);
 		std::filesystem::create_directories(directoryPath); // Ensure directory exists
 
-		std::ofstream logFile(directoryPath + "generation_" + std::to_string(population->parameters.currentGeneration) + ".txt",
+		std::ofstream logFile(std::format("{}generation_{}.txt", directoryPath, population->parameters.currentGeneration),
 			std::ios::app);
 		if (logFile.is_open())
 		{
@@ -408,10 +412,10 @@ namespace neat_dnfs
 
 	void PopulationFileManager::savePerGenerationSpecies() const
 	{
-		const std::string directoryPath = fileDirectory + "species/";
+		const std::string directoryPath = std::format("{}species/", fileDirectory);
 		std::filesystem::create_directories(directoryPath); // Ensure directory exists
 
-		std::ofstream logFile(directoryPath + "generation_" + std::to_string(population->parameters.currentGeneration) + ".txt",
+		std::ofstream logFile(std::format("{}generation_{}.txt", directoryPath, population->parameters.currentGeneration),
 			std::ios::app);
 		if (logFile.is_open())
 		{
