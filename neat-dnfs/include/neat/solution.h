@@ -141,6 +141,16 @@ namespace neat_dnfs
 		void print() const;
 		virtual void createPhenotypeEnvironment() = 0;
 		static void resetUniqueIdentifier();
+		/// @brief Rebuilds @c genome from @c phenotype, the exact inverse of buildPhenotype().
+		/// @details Field gene role (INPUT/OUTPUT/HIDDEN) is recovered from each gene's
+		/// id via @c initialTopology's declared ordering, not from the phenotype alone --
+		/// the phenotype itself carries no role marker, since INPUT/OUTPUT/HIDDEN genes
+		/// are built with identical element topology. Connection gene innovation numbers
+		/// are recovered from the coupling kernel's own element name where it carries
+		/// one, and allocated from the shared generational counter otherwise. This makes
+		/// the round-trip lossless for a genome that was actually produced by this
+		/// Solution's own @c initialTopology; decoding a phenotype built under a
+		/// different topology will misclassify roles for ids beyond that topology's range.
 		void translatePhenotypeToGenome();
 		void clearGenome();
 		void clearLastMutations();

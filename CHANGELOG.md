@@ -10,16 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Golden tests for phenotype build and genotype round-trip** — a new `[Golden]` CTest lane (`ctest -L Golden`) pins down *what value* `buildPhenotype()` and `translatePhenotypeToGenome()` produce, rather than only that they run without throwing (partially addresses #75; tiers 3-4 remain blocked on #47 and #44):
+- **Golden tests for phenotype build and genotype round-trip** — a new `[Golden]` CTest lane (`ctest -L Golden`) pins down *what value* `buildPhenotype()` and `translatePhenotypeToGenome()` produce, rather than only that they run without throwing (addresses #75; tiers 3-4 remain blocked on #44):
   - tier 1 diffs each template's built phenotype against a checked-in fixture under `tests/golden/`
-  - tier 2 asserts the genotype->phenotype->genotype round-trip preserves field-gene count, connection-gene count and innovation numbers
+  - tier 2 asserts the genotype->phenotype->genotype round-trip is lossless — field-gene count, id, type, connection-gene count and innovation numbers are all preserved, for every task, unconditionally
+  - `detection-instability`, `memory-instability` and `selection-instability` declare more fields in their topology than their template supplies, so the remainder are constructed with **unseeded random** kernel parameters; tier 1 skips them with a warning rather than checking in a fixture that would fail on its next run, until seeding lands (#44)
 
-### Known issues surfaced
-- The genotype/phenotype round-trip is **not** lossless for every checked-in template, and tier 2 now documents exactly where it breaks. `translatePhenotypeToGenome()` infers field-gene type from phenotype connection degree (the magic-connection-count heuristic called out in #64) rather than from type metadata carried through the phenotype:
-  - `detection-instability`, `memory-instability`, `selection-instability`, `memory-trace` — a `HIDDEN` gene decodes back as `INPUT`
-  - `dmts` — worst case: 3 field genes decode as 4 and **all 3 connection genes are lost**; its template also mixes field sizes (`x_max` 100 and 360), which `dnf_composer` rejects at build time
-  - `and`, `xor`, `ior` round-trip cleanly
-- Tier 1 covers 5 of 8 tasks. `detection-instability`, `memory-instability` and `selection-instability` declare more fields in their topology than their template supplies, so the remainder are constructed with **unseeded random** kernel parameters and cannot be pinned to a fixture until seeding lands (#44). Those tasks are skipped with a warning rather than given a fixture that would fail on its next run.
+### Fixed
+- **The genotype<->phenotype round-trip is now lossless for every task**, closing #64 and #47:
+  - `translatePhenotypeToGenome()` inferred each field gene's role (INPUT/OUTPUT/HIDDEN) from its neural field's phenotype connection degree — a heuristic that cannot work, since `FieldGene` builds all three roles with identical element topology. The role is now recovered from the gene's id via `initialTopology`'s declared ordering, which the decode already parsed and previously discarded
+  - every `ConnectionGene` constructor built its coupling kernel at the global `DimensionConstants::xSize` regardless of the fields it actually joins; a mismatched coupling silently fails to connect (`dnf_composer` logs and returns) and is then lost on the next decode. This was the real cause of `dmts` losing all three of its connection genes — its template was never malformed, its couplings were just being rebuilt at the wrong width. Constructors now take the dimensions to build at, defaulted to the previous global
+  - connection-gene innovation numbers were renumbered from scratch on every decode instead of being recovered from the coupling kernel's own element name (`"gk cg <in>-<out> <innov>"`), which every connection this codebase writes — and every saved champion under `data/` — already carries
+  - `dmts`'s fields represent hue and are tuned for a 360-wide field; `DimensionConstants::xSize` was lowered 360 → 100 for `InhibitionOfReturn` (commit `fe58ccbbf`) without retuning this task, so `DelayedMatchToSample::evaluate()` threw unconditionally. `config/solutions/dmts.json` now overrides `xSize` back to 360 for this task alone
 
 ---
 
