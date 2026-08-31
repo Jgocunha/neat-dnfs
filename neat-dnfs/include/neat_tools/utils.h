@@ -23,6 +23,9 @@
 #include <thread>
 #include <atomic>
 #include <chrono>
+#include <charconv>
+#include <optional>
+#include <string_view>
 
 namespace neat_dnfs
 {
@@ -30,6 +33,110 @@ namespace neat_dnfs
 	{
 		namespace utils
 		{
+            /// @brief Source and target field gene ids, and innovation number if the
+            /// name carried one, parsed out of a connection-gene coupling kernel's name.
+            struct ParsedConnectionKernelName
+            {
+                int inFieldGeneId;
+                int outFieldGeneId;
+                std::optional<int> innovationNumber;
+            };
+
+            namespace detail
+            {
+                inline bool consumePrefix(std::string_view& remaining, const std::string_view prefix)
+                {
+                    if (!remaining.starts_with(prefix))
+                    {
+                        return false;
+                    }
+                    remaining.remove_prefix(prefix.size());
+                    return true;
+                }
+
+                inline std::optional<int> parseInt(std::string_view& remaining)
+                {
+                    const auto start = remaining.data();
+                    int value = 0;
+                    const auto [parseEnd, error] =
+                        std::from_chars(start, start + remaining.size(), value);
+                    if (error != std::errc{})
+                    {
+                        return std::nullopt;
+                    }
+                    remaining.remove_prefix(static_cast<size_t>(parseEnd - start));
+                    return value;
+                }
+
+                inline void consumeSpaces(std::string_view& remaining)
+                {
+                    while (remaining.starts_with(' '))
+                    {
+                        remaining.remove_prefix(1);
+                    }
+                }
+            }
+
+            /// @brief Parses a coupling kernel's element name back into the connection
+            /// it describes.
+            /// @details A connection-gene kernel's name is "<in>-<out>" or "<in> -
+            /// <out>", optionally prefixed with "cg " and optionally followed by an
+            /// innovation number, after the kernel type's namePrefix (e.g. "gk "/
+            /// "gk cg "). A field's own self-kernel name ("gk 3") carries no dash and
+            /// is rejected here rather than mistaken for a connection.
+            /// @param name Full element name of a GAUSS_KERNEL or MEXICAN_HAT_KERNEL.
+            /// @param namePrefix The kernel type's plain prefix (e.g. GaussKernelConstants::namePrefix).
+            /// @param namePrefixConnectionGene The kernel type's connection-gene prefix
+            /// (e.g. GaussKernelConstants::namePrefixConnectionGene).
+            /// @return The parsed ids and optional innovation number, or nullopt if
+            /// `name` is not a connection-gene kernel name (including a field's own
+            /// self-kernel, or anything unparseable).
+            [[nodiscard]] inline std::optional<ParsedConnectionKernelName> parseConnectionKernelName(
+                const std::string_view name,
+                const std::string_view namePrefix,
+                const std::string_view namePrefixConnectionGene)
+            {
+                std::string_view remaining = name;
+                if (!detail::consumePrefix(remaining, namePrefixConnectionGene) &&
+                    !detail::consumePrefix(remaining, namePrefix))
+                {
+                    return std::nullopt;
+                }
+
+                const auto inFieldGeneId = detail::parseInt(remaining);
+                if (!inFieldGeneId)
+                {
+                    return std::nullopt;
+                }
+
+                detail::consumeSpaces(remaining);
+                if (!detail::consumePrefix(remaining, "-"))
+                {
+                    return std::nullopt;
+                }
+                detail::consumeSpaces(remaining);
+
+                const auto outFieldGeneId = detail::parseInt(remaining);
+                if (!outFieldGeneId)
+                {
+                    return std::nullopt;
+                }
+
+                detail::consumeSpaces(remaining);
+                if (remaining.empty())
+                {
+                    return ParsedConnectionKernelName{ *inFieldGeneId, *outFieldGeneId, std::nullopt };
+                }
+
+                const auto innovationNumber = detail::parseInt(remaining);
+                if (!innovationNumber || !remaining.empty())
+                {
+                    return std::nullopt;
+                }
+
+                return ParsedConnectionKernelName{ *inFieldGeneId, *outFieldGeneId, *innovationNumber };
+            }
+
             // splitmix64: avalanches a single 64-bit seed into well-distributed state words.
             // Used only to seed xoshiro256++, which must not start from an all-zero state.
             inline std::uint64_t splitmix64(std::uint64_t& state)

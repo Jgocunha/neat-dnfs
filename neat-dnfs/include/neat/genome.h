@@ -62,6 +62,16 @@ namespace neat_dnfs
 
 		void addFieldGene(const FieldGene& fieldGene);
 		void addConnectionGene(const ConnectionGene& connectionGene);
+		/// @brief Returns the innovation number assigned to @p connectionTuple within
+		/// the current generation, allocating and recording a new one if it has not
+		/// been assigned yet. The same allocation the private
+		/// addConnectionGene(ConnectionTuple) uses, exposed for callers that need the
+		/// number before they can build the gene itself (e.g. decoding a connection
+		/// gene whose kernel parameters come from an existing phenotype rather than a
+		/// fresh mutation).
+		/// @param connectionTuple Source and target field gene ids.
+		/// @return The innovation number for this tuple in the current generation.
+		[[nodiscard]] static int allocateInnovationNumber(ConnectionTuple connectionTuple);
 		/// @brief Adds every legal (source, target) connection tuple as a new
 		/// connection gene. Used by ablation presets that freeze structure but
 		/// need the genome to start fully connected (see AblationConstants).

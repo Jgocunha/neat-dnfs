@@ -588,7 +588,7 @@ namespace neat_dnfs
 		return enabledConnectionGenes[randomIndex];
 	}
 
-	void Genome::addConnectionGene(ConnectionTuple connectionTuple)
+	int Genome::allocateInnovationNumber(const ConnectionTuple connectionTuple)
 	{
 		std::scoped_lock lock(innovationMutex);
 		const int innov = getInnovationNumberOfTupleWithinGenerationUnlocked(connectionTuple);
@@ -596,20 +596,20 @@ namespace neat_dnfs
 			// exists in the current generation
 			// use the same innovation number
 		{
-			connectionGenes.emplace_back(connectionTuple, innov);
-			mutationsInLastGeneration += "(added cg " + connectionTuple.toString()
+			return innov;
+		}
+		// does not exist in the current generation
+		// create new innovation number
+		connectionTupleAndInnovationNumberWithinGeneration[connectionTuple] = globalInnovationNumber;
+		return globalInnovationNumber++;
+	}
+
+	void Genome::addConnectionGene(ConnectionTuple connectionTuple)
+	{
+		const int innov = allocateInnovationNumber(connectionTuple);
+		connectionGenes.emplace_back(connectionTuple, innov);
+		mutationsInLastGeneration += "(added cg " + connectionTuple.toString()
 			+ " innov." + std::to_string(innov) + ")";
-		}
-		else
-			// does not exist in the current generation
-			// create new innovation number
-		{
-			connectionGenes.emplace_back(connectionTuple, globalInnovationNumber);
-			connectionTupleAndInnovationNumberWithinGeneration[connectionTuple] = globalInnovationNumber;
-			mutationsInLastGeneration += "(added cg " + connectionTuple.toString()
-			+ " innov." + std::to_string(globalInnovationNumber) + ")";
-			globalInnovationNumber++;
-		}
 	}
 
 	void Genome::addGene()

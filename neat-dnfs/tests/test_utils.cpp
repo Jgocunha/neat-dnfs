@@ -205,3 +205,104 @@ TEST_CASE("normalizeWithFlatheadGaussian decreases away from the flat region", "
     REQUIRE(beyond < atEdge);
     REQUIRE(beyond >= 0.0);
 }
+
+// Every variant below is a real name observed either in a checked-in
+// templates/*.json or a saved champion under data/ -- not synthesized. Saved
+// champions in particular use the spaced "gk cg 1 - 2 0" form, which current
+// code no longer emits (it writes "gk cg 1-2 0"); a parser that only accepted
+// the unspaced form would silently drop every reloaded champion's innovation
+// numbers.
+TEST_CASE("parseConnectionKernelName accepts every naming variant seen in templates/ and data/", "[parseConnectionKernelName]")
+{
+    using neat_dnfs::tools::utils::parseConnectionKernelName;
+    constexpr std::string_view namePrefix = "gk ";
+    constexpr std::string_view namePrefixConnectionGene = "gk cg ";
+
+    SECTION("plain prefix, unspaced dash, no innovation number (and.json, xor.json, selection.json, ...)")
+    {
+        const auto parsed = parseConnectionKernelName("gk 1-3", namePrefix, namePrefixConnectionGene);
+        REQUIRE(parsed.has_value());
+        CHECK(parsed->inFieldGeneId == 1);
+        CHECK(parsed->outFieldGeneId == 3);
+        CHECK_FALSE(parsed->innovationNumber.has_value());
+    }
+
+    SECTION("plain prefix, spaced dash, no innovation number (delayed-match-to-sample.json, inhibition-of-return.json)")
+    {
+        const auto parsed = parseConnectionKernelName("gk 1 - 3", namePrefix, namePrefixConnectionGene);
+        REQUIRE(parsed.has_value());
+        CHECK(parsed->inFieldGeneId == 1);
+        CHECK(parsed->outFieldGeneId == 3);
+        CHECK_FALSE(parsed->innovationNumber.has_value());
+    }
+
+    SECTION("cg prefix, spaced dash, no innovation number (memory-trace.json)")
+    {
+        const auto parsed = parseConnectionKernelName("gk cg 1 - 3", namePrefix, namePrefixConnectionGene);
+        REQUIRE(parsed.has_value());
+        CHECK(parsed->inFieldGeneId == 1);
+        CHECK(parsed->outFieldGeneId == 3);
+        CHECK_FALSE(parsed->innovationNumber.has_value());
+    }
+
+    SECTION("cg prefix, spaced dash, innovation number (detection-instability.json, selection-instability.json)")
+    {
+        const auto parsed = parseConnectionKernelName("gk cg 1 - 2 1", namePrefix, namePrefixConnectionGene);
+        REQUIRE(parsed.has_value());
+        CHECK(parsed->inFieldGeneId == 1);
+        CHECK(parsed->outFieldGeneId == 2);
+        REQUIRE(parsed->innovationNumber.has_value());
+        CHECK(*parsed->innovationNumber == 1);
+    }
+
+    SECTION("cg prefix, spaced dash, innovation number, current code's own output form (unspaced ids)")
+    {
+        const auto parsed = parseConnectionKernelName("gk cg 1-2 0", namePrefix, namePrefixConnectionGene);
+        REQUIRE(parsed.has_value());
+        CHECK(parsed->inFieldGeneId == 1);
+        CHECK(parsed->outFieldGeneId == 2);
+        REQUIRE(parsed->innovationNumber.has_value());
+        CHECK(*parsed->innovationNumber == 0);
+    }
+
+    SECTION("cg prefix, spaced dash, innovation number, legacy saved-champion form (data/AND, data/Delayed Match to Sample, data/Inhibition of Return)")
+    {
+        const auto parsed = parseConnectionKernelName("gk cg 1 - 2 0", namePrefix, namePrefixConnectionGene);
+        REQUIRE(parsed.has_value());
+        CHECK(parsed->inFieldGeneId == 1);
+        CHECK(parsed->outFieldGeneId == 2);
+        REQUIRE(parsed->innovationNumber.has_value());
+        CHECK(*parsed->innovationNumber == 0);
+    }
+
+    SECTION("a field's own self-kernel name is rejected, not mistaken for a connection")
+    {
+        const auto parsed = parseConnectionKernelName("gk 1", namePrefix, namePrefixConnectionGene);
+        CHECK_FALSE(parsed.has_value());
+    }
+
+    SECTION("malformed input does not throw and is rejected")
+    {
+        CHECK_FALSE(parseConnectionKernelName("", namePrefix, namePrefixConnectionGene).has_value());
+        CHECK_FALSE(parseConnectionKernelName("gk cg", namePrefix, namePrefixConnectionGene).has_value());
+        CHECK_FALSE(parseConnectionKernelName("gk 1-", namePrefix, namePrefixConnectionGene).has_value());
+        CHECK_FALSE(parseConnectionKernelName("gk 1-x", namePrefix, namePrefixConnectionGene).has_value());
+        CHECK_FALSE(parseConnectionKernelName("gk cg 1 - 2 x", namePrefix, namePrefixConnectionGene).has_value());
+        CHECK_FALSE(parseConnectionKernelName("gk cg 1 - 2 1 extra", namePrefix, namePrefixConnectionGene).has_value());
+        CHECK_FALSE(parseConnectionKernelName("nf 1", namePrefix, namePrefixConnectionGene).has_value());
+    }
+}
+
+TEST_CASE("parseConnectionKernelName works for the mexican-hat prefixes too (AND champion: mhk cg 1 - 3 7)", "[parseConnectionKernelName]")
+{
+    using neat_dnfs::tools::utils::parseConnectionKernelName;
+    constexpr std::string_view namePrefix = "mhk ";
+    constexpr std::string_view namePrefixConnectionGene = "mhk cg ";
+
+    const auto parsed = parseConnectionKernelName("mhk cg 1 - 3 7", namePrefix, namePrefixConnectionGene);
+    REQUIRE(parsed.has_value());
+    CHECK(parsed->inFieldGeneId == 1);
+    CHECK(parsed->outFieldGeneId == 3);
+    REQUIRE(parsed->innovationNumber.has_value());
+    CHECK(*parsed->innovationNumber == 7);
+}

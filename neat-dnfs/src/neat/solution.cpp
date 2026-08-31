@@ -431,8 +431,6 @@ namespace neat_dnfs
 			}
 		}
 
-		int innovationCounter = 1;
-
 		// Second pass: identify all connections between neural fields and create connection genes
 		for (const auto& element : phenotype.getElements())
 		{
@@ -484,13 +482,32 @@ namespace neat_dnfs
 					// mismatched coupling never connects.
 					const auto& couplingDimensions = fieldNameToDimensionsMap.at(sourceName);
 
+					// A connection-gene kernel's own name already carries its
+					// innovation number where one was assigned (every "gk cg "/
+					// "mhk cg " coupling this class itself writes). Recovering it
+					// keeps a reloaded genome's disjoint/excess accounting identical
+					// to the one that was saved, instead of renumbering from 1 on
+					// every decode. Hand-authored templates using the plain "gk "/
+					// "mhk " form carry no number; those fall back to the same
+					// generational allocation addConnectionGene(ConnectionTuple)
+					// uses for a freshly mutated connection, so two genomes decoding
+					// the same tuple in one generation agree.
+					const auto parsedName = element->getLabel() == ElementLabel::GAUSS_KERNEL
+						? tools::utils::parseConnectionKernelName(element->getUniqueName(),
+							GaussKernelConstants::namePrefix, GaussKernelConstants::namePrefixConnectionGene)
+						: tools::utils::parseConnectionKernelName(element->getUniqueName(),
+							MexicanHatKernelConstants::namePrefix, MexicanHatKernelConstants::namePrefixConnectionGene);
+					const int innovationNumber = (parsedName && parsedName->innovationNumber)
+						? *parsedName->innovationNumber
+						: Genome::allocateInnovationNumber(connectionTuple);
+
 					// Get the kernel parameters based on type
 					switch (element->getLabel())
 					{
 					case ElementLabel::GAUSS_KERNEL:
 					{
 						auto gaussKernel = std::dynamic_pointer_cast<GaussKernel>(element);
-						ConnectionGene connectionGene(connectionTuple, innovationCounter++,
+						ConnectionGene connectionGene(connectionTuple, innovationNumber,
 							gaussKernel->getParameters(), couplingDimensions);
 						genome.addConnectionGene(connectionGene);
 						break;
@@ -498,7 +515,7 @@ namespace neat_dnfs
 					case ElementLabel::MEXICAN_HAT_KERNEL:
 					{
 						auto mexicanHatKernel = std::dynamic_pointer_cast<MexicanHatKernel>(element);
-						ConnectionGene connectionGene(connectionTuple, innovationCounter++,
+						ConnectionGene connectionGene(connectionTuple, innovationNumber,
 							mexicanHatKernel->getParameters(), couplingDimensions);
 						genome.addConnectionGene(connectionGene);
 						break;
