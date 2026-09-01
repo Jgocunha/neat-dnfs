@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.3.0] - 2026-09-01
+
 ### Added
 - **Structured per-generation run output** — when `PopulationConstants::saveStructuredOverview` is enabled (the default), a run writes `overview.jsonl` (line-delimited JSON, one object per generation) alongside the existing prose `per_generation_overview.txt`, whose format is unchanged (closes #82):
   - named fields for everything the prose line already carried, so the analysis tooling no longer has to reverse-engineer a 12-group regex

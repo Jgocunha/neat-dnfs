@@ -12,7 +12,7 @@ project(neat-dnfs
 # tag that disagrees with it. Pre-1.0 on purpose -- the API is still free to
 # move between releases.
 set(NEAT_DNFS_VERSION_MAJOR 0 CACHE STRING "major version" FORCE)
-set(NEAT_DNFS_VERSION_MINOR 2 CACHE STRING "minor version" FORCE)
+set(NEAT_DNFS_VERSION_MINOR 3 CACHE STRING "minor version" FORCE)
 set(NEAT_DNFS_VERSION_PATCH 0 CACHE STRING "patch version" FORCE)
 set(NEAT_DNFS_VERSION ${NEAT_DNFS_VERSION_MAJOR}.${NEAT_DNFS_VERSION_MINOR}.${NEAT_DNFS_VERSION_PATCH} CACHE STRING "version" FORCE)
 
