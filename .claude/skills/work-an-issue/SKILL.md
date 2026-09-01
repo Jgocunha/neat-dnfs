@@ -90,7 +90,30 @@ before asking anyone else to look.
 Use the `docs-check` skill. Doxygen on new public API (CI enforces it), the matching prose or
 config JSON, and no stale references left behind.
 
-## 9. Ship
+## 9. Changelog
+
+Add an entry under `[Unreleased]` in the **git-root** `CHANGELOG.md` - the one beside
+`README.md`, not inside `neat-dnfs/`. Create the `[Unreleased]` heading if the last release
+consumed it; it is often empty between releases.
+
+Pick the subsection matching the work. The file uses `Added`, `Changed`, `Fixed`, `Removed`
+and `Dependencies` - create the one you need in that order if absent, and do not invent a
+sixth.
+
+Write for someone reading the release notes months from now with no access to the issue:
+what changed, and why it mattered. Reference the issue as `(closes #N)`, which is what every
+existing entry uses. Match the surrounding entries' density - they are full sentences with an
+em-dash after the bolded subject, often with nested bullets naming the files involved, not
+one-line summaries.
+
+Every issue gets an entry, CI- and test-only work included. It is easier to drop a line at
+release time than to reconstruct one from a diff.
+
+**Expect a conflict here.** Every open PR appends to the same `[Unreleased]` block, so
+whichever merges second has to rebase this one line. That is normal - keep the entry to the
+block, and do not restructure the surrounding sections to avoid it.
+
+## 10. Ship
 
 ```bash
 git add -A && git commit -m "<type>: <lowercase summary>"
@@ -104,7 +127,7 @@ The body fills `.github/PULL_REQUEST_TEMPLATE.md` - use the `pr` skill to draft 
 
 Do **not** merge. The PR waits for human review.
 
-## 10. Hand back
+## 11. Hand back
 
 Report: PR URL, what changed, what you verified (with the test count and the lane), and
 anything you deliberately left out.

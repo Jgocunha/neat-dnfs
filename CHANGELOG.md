@@ -10,6 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Structured per-generation run output** — when `PopulationConstants::saveStructuredOverview` is enabled (the default), a run writes `overview.jsonl` (line-delimited JSON, one object per generation) alongside the existing prose `per_generation_overview.txt`, whose format is unchanged (closes #82):
+  - named fields for everything the prose line already carried, so the analysis tooling no longer has to reverse-engineer a 12-group regex
+  - the full per-generation fitness distribution (min/max/mean/median/stddev/q1/q3), not just average and best
+  - per-species membership sizes, and the best solution's lineage as a structured `parentIds` pair rather than a fragment of `Solution::toString()` prose
+  - gated by a new `PopulationConstants::saveStructuredOverview` flag (default `true`), following the existing `saveXxx` pattern
+- **Evolution-loop profiling** — a new `NEAT_DNFS_PROFILE` CMake cache option (mirroring `NEAT_DNFS_SANITIZER`, default `OFF`) gates a header-only RAII scoped timer in `neat_tools/profiler.h` (closes #80):
+  - times the four `evolve()` phases (`evaluate`, `speciate`, `upkeep`, `reproduceAndSelect`) plus the per-generation file-I/O path
+  - writes `profile.csv` into the run directory, one row per generation, over a fixed column set so rows stay positionally stable even when a phase is not exercised
+  - compiles to nothing when the option is off: `ScopedTimer` becomes an empty type and the query functions fold to their zero/empty answers
+  - only the main thread records; `evaluate()`'s parallel worker path is deliberately left uninstrumented so no cross-thread accumulation is needed (TSan-safe by construction)
+  - `upkeep` is *inclusive* of `save` (the save timer nests inside it), so columns do not sum to the generation total — documented on `profiler::snapshot()`
+  - first measurement on the `and` task at population 8: file I/O costs roughly as much per generation as evaluation itself, confirming the bottleneck this issue suspected
 - **Golden tests for phenotype build and genotype round-trip** — a new `[Golden]` CTest lane (`ctest -L Golden`) pins down *what value* `buildPhenotype()` and `translatePhenotypeToGenome()` produce, rather than only that they run without throwing (addresses #75; tiers 3-4 remain blocked on #44):
   - tier 1 diffs each template's built phenotype against a checked-in fixture under `tests/golden/`
   - tier 2 asserts the genotype->phenotype->genotype round-trip is lossless — field-gene count, id, type, connection-gene count and innovation numbers are all preserved, for every task, unconditionally
