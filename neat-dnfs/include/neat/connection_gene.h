@@ -49,10 +49,28 @@ namespace neat_dnfs
 	public:
 		ConnectionGene(ConnectionTuple connectionTuple, int innov);
 
+		/// @brief Builds a gauss-kernel connection gene.
+		/// @param connectionTuple Source and target field gene ids.
+		/// @param innov Innovation number.
+		/// @param gkp Gauss kernel parameters.
+		/// @param dimensions Field dimensions the coupling kernel must match. Defaults
+		/// to the global DimensionConstants; pass the source field's own dimensions when
+		/// decoding a phenotype, since a kernel whose size differs from the fields it
+		/// joins is silently dropped by dnf_composer when the interaction is created.
 		ConnectionGene(ConnectionTuple connectionTuple, int innov,
-			const dnf_composer::element::GaussKernelParameters& gkp);
+			const dnf_composer::element::GaussKernelParameters& gkp,
+			const dnf_composer::element::ElementDimensions& dimensions =
+				dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+		/// @brief Builds a mexican-hat-kernel connection gene.
+		/// @param connectionTuple Source and target field gene ids.
+		/// @param innov Innovation number.
+		/// @param mhkp Mexican hat kernel parameters.
+		/// @param dimensions Field dimensions the coupling kernel must match. See the
+		/// gauss-kernel overload above for why this matters when decoding a phenotype.
 		ConnectionGene(ConnectionTuple connectionTuple, int innov,
-			const dnf_composer::element::MexicanHatKernelParameters& mhkp);
+			const dnf_composer::element::MexicanHatKernelParameters& mhkp,
+			const dnf_composer::element::ElementDimensions& dimensions =
+				dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 
 		ConnectionGene(const ConnectionGeneParameters& parameters,
 			const dnf_composer::element::GaussKernelParameters& gkp);

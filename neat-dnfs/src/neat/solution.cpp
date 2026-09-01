@@ -6,6 +6,8 @@
 #include <limits>
 #include <cmath>
 #include <algorithm>
+#include <charconv>
+#include <string_view>
 
 namespace neat_dnfs
 {
@@ -301,8 +303,11 @@ namespace neat_dnfs
 				const auto targetId = connectionGene.getOutFieldGeneId();
 
 				phenotype.addElement(coupling);
-				phenotype.createInteraction(std::format("nf {}", sourceId), "output", coupling->getUniqueName());
-				phenotype.createInteraction(coupling->getUniqueName(), "output", std::format("nf {}", targetId));
+				phenotype.createInteraction(
+					std::format("{}{}", NeuralFieldConstants::namePrefix, sourceId),
+					"output", coupling->getUniqueName());
+				phenotype.createInteraction(coupling->getUniqueName(), "output",
+					std::format("{}{}", NeuralFieldConstants::namePrefix, targetId));
 			}
 		}
 	}
@@ -321,6 +326,11 @@ namespace neat_dnfs
 
 		// Map to track the field gene IDs by neural field names
 		std::map<std::string, int> fieldNameToIdMap;
+		// A connection's coupling kernel must be built at the same dimensions as the
+		// fields it joins: dnf_composer's Element::addInput rejects a size mismatch by
+		// logging and returning, so a mismatched coupling is silently never connected
+		// and is then lost on the next decode.
+		std::map<std::string, dnf_composer::element::ElementDimensions> fieldNameToDimensionsMap;
 		int nextFieldId = 1;
 
 		// First pass: identify all neural fields and create field genes
@@ -332,41 +342,46 @@ namespace neat_dnfs
 				const auto nfcp = neuralField->getElementCommonParameters();
 				const auto nfp = neuralField->getParameters();
 
-				// Determine a field gene type based on naming convention
 				FieldGeneType fieldType = FieldGeneType::HIDDEN;
 				if (nfcp.identifiers.uniqueName.starts_with(NeuralFieldConstants::namePrefix))
 				{
-					const std::string idStr = nfcp.identifiers.uniqueName.substr(NeuralFieldConstants::namePrefix.length());
-					const int fieldId = std::stoi(idStr);
+					const std::string_view idStr =
+						std::string_view{ nfcp.identifiers.uniqueName }.substr(NeuralFieldConstants::namePrefix.length());
+					int fieldId = 0;
+					const auto [parseEnd, parseError] =
+						std::from_chars(idStr.data(), idStr.data() + idStr.size(), fieldId);
+					if (parseError != std::errc{} || parseEnd != idStr.data() + idStr.size())
+					{
+						tools::logger::log(tools::logger::LogLevel::WARNING,
+							std::format("Skipping neural field with an unparseable id: {}",
+								nfcp.identifiers.uniqueName));
+						continue;
+					}
 
 					// Store mapping for later use with connections
 					fieldNameToIdMap[nfcp.identifiers.uniqueName] = fieldId;
+					fieldNameToDimensionsMap.insert_or_assign(nfcp.identifiers.uniqueName,
+						nfcp.dimensionParameters);
 
-					// Determine if this is input, output, or hidden based on connections
-									// Logic based on connection patterns
-					const size_t numInputs = element->getInputs().size();
-					const size_t numOutputs = element->getOutputs().size();
-
-					if (numInputs == 2 && numOutputs >= 1)
-					{
-						fieldType = FieldGeneType::INPUT;
-					}
-					else if (numInputs >= 3 && numOutputs == 1)
-					{
-						fieldType = FieldGeneType::OUTPUT;
-					}
-					else if (numInputs >= 3 && numOutputs >= 2)
-					{
-						fieldType = FieldGeneType::HIDDEN;
-					}
-					else
-					{
-						// Default to HIDDEN if the connection pattern doesn't match expected patterns
-						fieldType = FieldGeneType::HIDDEN;
-						tools::logger::log(tools::logger::LogLevel::WARNING,
-							std::format("Unusual connection pattern for neural field: {} (inputs: {}, outputs: {})", 
-								nfcp.identifiers.uniqueName, numInputs, numOutputs));
-					}
+					// The gene's role is recovered from its id, not guessed from how
+					// many things happen to be wired to it. Genome::addInputGene /
+					// addOutputGene / addHiddenGene assign ids sequentially in the
+					// order initialTopology declares them, so the id is a direct index
+					// into that topology. Inferring the role from connection degree
+					// instead cannot work: FieldGene builds INPUT, OUTPUT and HIDDEN
+					// genes with identical element topology (one self-kernel, one
+					// noise), so degree reflects only inter-field connectivity and a
+					// field's role is invisible in it.
+					//
+					// Ids above the declared topology are hidden genes grown by
+					// mutation. Crossover can leave holes above that range, but never
+					// inside it -- it copies every one of the fitter parent's field
+					// genes, and every genome descends from an initialize() that
+					// created all declared inputs and outputs.
+					const auto topologyIndex = static_cast<size_t>(fieldId) - 1;
+					fieldType = topologyIndex < initialTopology.geneTopology.size()
+						? initialTopology.geneTopology[topologyIndex].first
+						: FieldGeneType::HIDDEN;
 
 					// Create field gene parameters
 					FieldGeneParameters params(fieldType, fieldId);
@@ -416,8 +431,6 @@ namespace neat_dnfs
 			}
 		}
 
-		int innovationCounter = 1;
-
 		// Second pass: identify all connections between neural fields and create connection genes
 		for (const auto& element : phenotype.getElements())
 		{
@@ -427,7 +440,6 @@ namespace neat_dnfs
 				element->getLabel() == ElementLabel::OSCILLATORY_KERNEL)
 			{
 				// Skip self-connection kernels (which are part of field genes)
-				bool isSelfConnection = false;
 				std::string sourceName;
 				std::string targetName;
 
@@ -464,8 +476,30 @@ namespace neat_dnfs
 					// Create connection tuple
 					ConnectionTuple connectionTuple(sourceId, targetId);
 
-					// Create a connection gene with an appropriate innovation number
-					// For reconstructing, we'll use a simple incremental approach
+					// Build the coupling at the joined fields' own dimensions rather
+					// than the global default: the two disagree whenever a task runs at
+					// a field size other than DimensionConstants::xSize, and a
+					// mismatched coupling never connects.
+					const auto& couplingDimensions = fieldNameToDimensionsMap.at(sourceName);
+
+					// A connection-gene kernel's own name already carries its
+					// innovation number where one was assigned (every "gk cg "/
+					// "mhk cg " coupling this class itself writes). Recovering it
+					// keeps a reloaded genome's disjoint/excess accounting identical
+					// to the one that was saved, instead of renumbering from 1 on
+					// every decode. Hand-authored templates using the plain "gk "/
+					// "mhk " form carry no number; those fall back to the same
+					// generational allocation addConnectionGene(ConnectionTuple)
+					// uses for a freshly mutated connection, so two genomes decoding
+					// the same tuple in one generation agree.
+					const auto parsedName = element->getLabel() == ElementLabel::GAUSS_KERNEL
+						? tools::utils::parseConnectionKernelName(element->getUniqueName(),
+							GaussKernelConstants::namePrefix, GaussKernelConstants::namePrefixConnectionGene)
+						: tools::utils::parseConnectionKernelName(element->getUniqueName(),
+							MexicanHatKernelConstants::namePrefix, MexicanHatKernelConstants::namePrefixConnectionGene);
+					const int innovationNumber = (parsedName && parsedName->innovationNumber)
+						? *parsedName->innovationNumber
+						: Genome::allocateInnovationNumber(connectionTuple);
 
 					// Get the kernel parameters based on type
 					switch (element->getLabel())
@@ -473,14 +507,16 @@ namespace neat_dnfs
 					case ElementLabel::GAUSS_KERNEL:
 					{
 						auto gaussKernel = std::dynamic_pointer_cast<GaussKernel>(element);
-						ConnectionGene connectionGene(connectionTuple, innovationCounter++, gaussKernel->getParameters());
+						ConnectionGene connectionGene(connectionTuple, innovationNumber,
+							gaussKernel->getParameters(), couplingDimensions);
 						genome.addConnectionGene(connectionGene);
 						break;
 					}
 					case ElementLabel::MEXICAN_HAT_KERNEL:
 					{
 						auto mexicanHatKernel = std::dynamic_pointer_cast<MexicanHatKernel>(element);
-						ConnectionGene connectionGene(connectionTuple, innovationCounter++, mexicanHatKernel->getParameters());
+						ConnectionGene connectionGene(connectionTuple, innovationNumber,
+							mexicanHatKernel->getParameters(), couplingDimensions);
 						genome.addConnectionGene(connectionGene);
 						break;
 					}
@@ -491,41 +527,45 @@ namespace neat_dnfs
 			}
 		}
 
-		// Ensure the genome is valid by adding any missing input or output genes from topology
-		for (const auto& geneTypeAndDimension : initialTopology.geneTopology)
+		// A phenotype that is missing fields the topology declares still has to
+		// decode into a usable genome, so the shortfall is back-filled here. This
+		// counts what is actually missing rather than stopping at the first gene of
+		// each role: a task declaring two inputs and supplying one needs the second,
+		// which a presence-only check would never add.
+		//
+		// Back-filling uses the decoded genes' own dimensions where there are any,
+		// not the topology's -- the two disagree whenever a task runs at a field size
+		// other than the global default, and a genome mixing widths cannot be built
+		// into a connected phenotype.
+		const auto backFillDimensions = [this]() {
+			const auto& decodedGenes = genome.getFieldGenes();
+			return decodedGenes.empty()
+				? initialTopology.geneTopology.front().second
+				: decodedGenes.front().getNeuralField()->getElementCommonParameters().dimensionParameters;
+		}();
+
+		for (const auto declaredType : { FieldGeneType::INPUT, FieldGeneType::OUTPUT })
 		{
-			if (geneTypeAndDimension.first == FieldGeneType::INPUT)
-			{
-				bool found = false;
-				for (const auto& fieldGene : genome.getFieldGenes())
-				{
-					if (fieldGene.getParameters().type == FieldGeneType::INPUT)
-					{
-						found = true;
-						break;
-					}
-				}
+			const auto declaredCount = std::ranges::count(
+				initialTopology.geneTopology, declaredType, &std::pair<FieldGeneType,
+					dnf_composer::element::ElementDimensions>::first);
+			const auto decodedCount = std::ranges::count(
+				genome.getFieldGenes(), declaredType,
+				[](const FieldGene& gene) { return gene.getParameters().type; });
 
-				if (!found)
-				{
-					genome.addInputGene(geneTypeAndDimension.second);
-				}
-			}
-			else if (geneTypeAndDimension.first == FieldGeneType::OUTPUT)
+			for (auto missing = decodedCount; missing < declaredCount; ++missing)
 			{
-				bool found = false;
-				for (const auto& fieldGene : genome.getFieldGenes())
+				tools::logger::log(tools::logger::LogLevel::WARNING,
+					std::format("Phenotype was missing a declared field gene; back-filling one "
+						"of type {} (decoded {} of {}).",
+						static_cast<int>(declaredType), decodedCount, declaredCount));
+				if (declaredType == FieldGeneType::INPUT)
 				{
-					if (fieldGene.getParameters().type == FieldGeneType::OUTPUT)
-					{
-						found = true;
-						break;
-					}
+					genome.addInputGene(backFillDimensions);
 				}
-
-				if (!found)
+				else
 				{
-					genome.addOutputGene(geneTypeAndDimension.second);
+					genome.addOutputGene(backFillDimensions);
 				}
 			}
 		}

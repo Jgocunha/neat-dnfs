@@ -22,6 +22,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - only the main thread records; `evaluate()`'s parallel worker path is deliberately left uninstrumented so no cross-thread accumulation is needed (TSan-safe by construction)
   - `upkeep` is *inclusive* of `save` (the save timer nests inside it), so columns do not sum to the generation total — documented on `profiler::snapshot()`
   - first measurement on the `and` task at population 8: file I/O costs roughly as much per generation as evaluation itself, confirming the bottleneck this issue suspected
+- **Golden tests for phenotype build and genotype round-trip** — a new `[Golden]` CTest lane (`ctest -L Golden`) pins down *what value* `buildPhenotype()` and `translatePhenotypeToGenome()` produce, rather than only that they run without throwing (addresses #75; tiers 3-4 remain blocked on #44):
+  - tier 1 diffs each template's built phenotype against a checked-in fixture under `tests/golden/`
+  - tier 2 asserts the genotype->phenotype->genotype round-trip is lossless — field-gene count, id, type, connection-gene count and innovation numbers are all preserved, for every task, unconditionally
+  - `detection-instability`, `memory-instability` and `selection-instability` declare more fields in their topology than their template supplies, so the remainder are constructed with **unseeded random** kernel parameters; tier 1 skips them with a warning rather than checking in a fixture that would fail on its next run, until seeding lands (#44)
+
+### Fixed
+- **The genotype<->phenotype round-trip is now lossless for every task**, closing #64 and #47:
+  - `translatePhenotypeToGenome()` inferred each field gene's role (INPUT/OUTPUT/HIDDEN) from its neural field's phenotype connection degree — a heuristic that cannot work, since `FieldGene` builds all three roles with identical element topology. The role is now recovered from the gene's id via `initialTopology`'s declared ordering, which the decode already parsed and previously discarded
+  - every `ConnectionGene` constructor built its coupling kernel at the global `DimensionConstants::xSize` regardless of the fields it actually joins; a mismatched coupling silently fails to connect (`dnf_composer` logs and returns) and is then lost on the next decode. This was the real cause of `dmts` losing all three of its connection genes — its template was never malformed, its couplings were just being rebuilt at the wrong width. Constructors now take the dimensions to build at, defaulted to the previous global
+  - connection-gene innovation numbers were renumbered from scratch on every decode instead of being recovered from the coupling kernel's own element name (`"gk cg <in>-<out> <innov>"`), which every connection this codebase writes — and every saved champion under `data/` — already carries
+  - `dmts`'s fields represent hue and are tuned for a 360-wide field; `DimensionConstants::xSize` was lowered 360 → 100 for `InhibitionOfReturn` (commit `fe58ccbbf`) without retuning this task, so `DelayedMatchToSample::evaluate()` threw unconditionally. `config/solutions/dmts.json` now overrides `xSize` back to 360 for this task alone
 
 ---
 

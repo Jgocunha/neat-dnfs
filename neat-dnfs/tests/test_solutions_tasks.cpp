@@ -122,22 +122,37 @@ TEST_CASE("DelayedMatchToSample contract", "[Solutions][DelayedMatchToSample]")
     checkSolutionContract<DelayedMatchToSample>(makeTopology(1, 1));
 }
 
-// DelayedMatchToSample is tuned for a 360-wide field: testPhenotype() places the
-// second sample at position 100 (src/solutions/delayed_match_to_sample.cpp:73).
-// DimensionConstants::xSize was lowered 360 -> 100 in fe58ccbbf, when
-// InhibitionOfReturn (positions 20/80) was integrated, without retuning this task.
-// Position 100 is therefore outside the valid [0, size) range and evaluate()
-// throws unconditionally, on any genome or topology. The field size is a single
-// global constexpr, so only one task's geometry can be correct per build -- to
-// evaluate this task, set xSize back to 360 (see examples/solutions/evol_dmts.cpp).
-// This test encodes the default-build behaviour.
-TEST_CASE("DelayedMatchToSample evaluate throws at the default field size", "[Solutions][DelayedMatchToSample]")
+// DelayedMatchToSample is tuned for a 360-wide field (its stimuli represent
+// hue): testPhenotype() places the second sample at position 100
+// (src/solutions/delayed_match_to_sample.cpp), outside the [0, size) range of
+// the global default xSize=100. config/solutions/dmts.json overrides xSize to
+// 360 for this task; ScopedTaskConfig applies that override for the scope of
+// this test the same way tests/entry.cpp's global config never does on its own.
+//
+// makeTopology() hardcodes dimensions at 100 (right for every other task in
+// this file), so it cannot be used here -- the topology has to be built at
+// whatever xSize the ScopedTaskConfig override just set, read live rather
+// than baked in, or the field genes end up 100-wide while the stimuli below
+// (which do read the live global) are built at 360 and never attach.
+TEST_CASE("DelayedMatchToSample evaluate produces a bounded fitness", "[Solutions][DelayedMatchToSample]")
 {
     resetGlobalState();
-    DelayedMatchToSample solution(makeTopology(1, 1));
+    const ScopedTaskConfig taskConfig{ "dmts" };
+
+    using dnf_composer::element::ElementDimensions;
+    const ElementDimensions dims{ DimensionConstants::xSize, DimensionConstants::dx };
+    const SolutionTopology topology({
+        { FieldGeneType::INPUT, dims },
+        { FieldGeneType::OUTPUT, dims }
+    });
+
+    DelayedMatchToSample solution(topology);
     solution.initialize();
 
-    REQUIRE_THROWS_AS(solution.evaluate(), dnf_composer::Exception);
+    REQUIRE_NOTHROW(solution.evaluate());
+    REQUIRE(solution.getFitness() >= 0.0);
+    REQUIRE(solution.getFitness() <= 1.0);
+    REQUIRE(solution.getParameters().partialFitness.size() == 6);
 }
 
 TEST_CASE("InhibitionOfReturn contract", "[Solutions][InhibitionOfReturn]")

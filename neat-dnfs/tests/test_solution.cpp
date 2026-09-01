@@ -572,8 +572,10 @@ TEST_CASE("Solution::hasTheSameGenome", "[Solution]")
     // hasTheSameGenome compares Genome::operator== directly, so use a genome
     // that is actually identical -- a fresh solution built from the same
     // topology and initialize() sequence, not copy() (which reconstructs the
-    // genome from the phenotype via translatePhenotypeToGenome() and is not
-    // guaranteed to produce a byte-identical genome; see test_solutions_tasks.cpp).
+    // genome from the phenotype via translatePhenotypeToGenome() and would
+    // therefore carry a different innovation numbering; see
+    // "Solution::translatePhenotypeToGenome recovers the exact original field
+    // genes" above for what the round-trip does guarantee).
     const auto solutionB = std::make_shared<DetectionInstability>(topology);
     solutionB->initialize();
     REQUIRE(solutionA->hasTheSameGenome(solutionB));
@@ -612,22 +614,30 @@ TEST_CASE("Solution::clearPhenotype allows rebuilding the phenotype", "[Solution
     REQUIRE(solution.getPhenotype().getNumberOfElements() > 0);
 }
 
-TEST_CASE("Solution::translatePhenotypeToGenome produces a non-empty genome from a built phenotype", "[Solution]")
+TEST_CASE("Solution::translatePhenotypeToGenome recovers the exact original field genes", "[Solution]")
 {
-    // translatePhenotypeToGenome() infers field gene type (INPUT/OUTPUT/HIDDEN)
-    // from each neural field's connection pattern in the phenotype (see
-    // solution.cpp translatePhenotypeToGenome). With zero connection genes,
-    // as here, that inference does not reproduce the original field count
-    // exactly -- so this only asserts the documented, guaranteed behaviour:
-    // it does not throw and the resulting genome is non-empty.
+    // Field gene role (INPUT/OUTPUT/HIDDEN) is recovered from the gene's id via
+    // initialTopology's declared ordering (see solution.cpp
+    // translatePhenotypeToGenome), not guessed from connection degree, so the
+    // decode reproduces the original field count and types exactly -- even
+    // with zero connection genes, as here.
     resetGlobalState();
     const auto topology = makeTopology(1, 1);
     DetectionInstability solution(topology);
     solution.initialize();
+
+    const auto originalFieldGenes = solution.getGenome().getFieldGenes();
     solution.buildPhenotype();
 
     REQUIRE_NOTHROW(solution.translatePhenotypeToGenome());
-    REQUIRE(!solution.getGenome().getFieldGenes().empty());
+    const auto& decodedFieldGenes = solution.getGenome().getFieldGenes();
+
+    REQUIRE(decodedFieldGenes.size() == originalFieldGenes.size());
+    for (size_t i = 0; i < originalFieldGenes.size(); ++i)
+    {
+        CHECK(decodedFieldGenes[i].getParameters().id == originalFieldGenes[i].getParameters().id);
+        CHECK(decodedFieldGenes[i].getParameters().type == originalFieldGenes[i].getParameters().type);
+    }
 }
 
 TEST_CASE("Solution::crossover with identical parents yields a matching-topology child", "[Solution]")
