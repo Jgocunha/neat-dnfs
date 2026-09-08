@@ -58,10 +58,10 @@ namespace neat_dnfs
 
 		const double f1 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1",
 			left, in_amp, in_width,
-			right, in_amp, in_width);
+			right, in_amp, in_width, BumpFitnessWeights{ 0.70, 0.20, 0.05, 0.05 });
 		parameters.partialFitness.emplace_back(f1);
 		const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 2",
-			{ left, right }, out_amp, out_width);
+			{ left, right }, out_amp, out_width, BumpFitnessWeights{ 0.55, 0.35, 0.05, 0.05 });
 		parameters.partialFitness.emplace_back(f2);
 
 		removeGaussianStimuli();

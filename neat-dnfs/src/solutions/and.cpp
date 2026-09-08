@@ -54,8 +54,8 @@ namespace neat_dnfs
 
 		runSimulation(iterations);
 
-		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", position, in_amp, in_width);
-		const double f1_2 = noBumps("nf 3");
+		const double f1_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", position, in_amp, in_width, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
+		const double f1_2 = noBumps("nf 3", BumpFitnessDefaults::noBumpsDecayRate);
 		parameters.partialFitness.emplace_back(f1_1);
 		parameters.partialFitness.emplace_back(f1_2);
 
@@ -67,8 +67,8 @@ namespace neat_dnfs
 
 		runSimulation(iterations);
 
-		const double f2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", position, in_amp, in_width);
-		const double f2_2 = noBumps("nf 3");
+		const double f2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", position, in_amp, in_width, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
+		const double f2_2 = noBumps("nf 3", BumpFitnessDefaults::noBumpsDecayRate);
 		parameters.partialFitness.emplace_back(f2_1);
 		parameters.partialFitness.emplace_back(f2_2);
 
@@ -79,7 +79,7 @@ namespace neat_dnfs
 
 		runSimulation(iterations);
 
-		const double f3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", position, out_amp, out_width);
+		const double f3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", position, out_amp, out_width, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
 		parameters.partialFitness.emplace_back(f3);
 
 		removeGaussianStimuli();

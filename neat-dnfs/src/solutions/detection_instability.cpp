@@ -49,8 +49,8 @@ namespace neat_dnfs
 					dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 
-		const double f1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", position, 20, 10);
-		const double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", position, 15, 5);
+		const double f1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", position, 20, 10, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
+		const double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", position, 15, 5, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
 		parameters.partialFitness.emplace_back(f1);
 		parameters.partialFitness.emplace_back(f2);
 

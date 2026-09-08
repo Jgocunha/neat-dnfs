@@ -270,7 +270,7 @@ private:
     {
         initSimulation();
         parameters.fitness = twoBumpsAtPositionWithAmplitudeAndWidth(
-            "this field does not exist", 30.0, 10.0, 10.0, 70.0, 10.0, 10.0);
+            "this field does not exist", 30.0, 10.0, 10.0, 70.0, 10.0, 10.0, BumpFitnessWeights{ 0.70, 0.20, 0.05, 0.05 });
     }
 
     void createPhenotypeEnvironment() override {}
@@ -312,7 +312,7 @@ private:
     void testPhenotype() override
     {
         initSimulation();
-        parameters.fitness = preShapednessAtPosition("nf 1", static_cast<double>(DimensionConstants::xSize));
+        parameters.fitness = preShapednessAtPosition("nf 1", static_cast<double>(DimensionConstants::xSize), BumpFitnessDefaults::preShapednessSigma, BumpFitnessDefaults::preShapednessEpsilon);
     }
 
     void createPhenotypeEnvironment() override {}
@@ -353,51 +353,13 @@ private:
     void testPhenotype() override
     {
         initSimulation();
-        parameters.fitness = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1", 30.0, 10.0, 10.0, 70.0, 10.0, 10.0);
+        parameters.fitness = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1", 30.0, 10.0, 10.0, 70.0, 10.0, 10.0, BumpFitnessWeights{ 0.70, 0.20, 0.05, 0.05 });
     }
 
     void createPhenotypeEnvironment() override {}
 };
 
 // Same as EmptyFieldTwoBumpsSolution, but for the three-bump helper.
-class EmptyFieldThreeBumpsSolution final : public Solution
-{
-public:
-    explicit EmptyFieldThreeBumpsSolution(const SolutionTopology& topology)
-        : Solution(topology)
-    {
-        name = "EmptyFieldThreeBumps";
-    }
-
-    EmptyFieldThreeBumpsSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
-        : Solution(initialTopology, phenotype)
-    {
-        name = "EmptyFieldThreeBumps";
-    }
-
-    SolutionPtr clone() const override
-    {
-        EmptyFieldThreeBumpsSolution solution(initialTopology);
-        return std::make_shared<EmptyFieldThreeBumpsSolution>(solution);
-    }
-
-    SolutionPtr copy() const override
-    {
-        EmptyFieldThreeBumpsSolution solution(initialTopology, phenotype);
-        return std::make_shared<EmptyFieldThreeBumpsSolution>(solution);
-    }
-
-private:
-    void testPhenotype() override
-    {
-        initSimulation();
-        parameters.fitness = threeBumpsAtPositionWithAmplitudeAndWidth(
-            "nf 1", 20.0, 10.0, 10.0, 50.0, 10.0, 10.0, 80.0, 10.0, 10.0);
-    }
-
-    void createPhenotypeEnvironment() override {}
-};
-
 // Stand-in that drives a single field with one Gaussian stimulus so exactly
 // one real bump forms, then queries twoBumpsAtPositionWithAmplitudeAndWidth
 // with position1 == position2 (both targeting that same bump). Used to prove
@@ -491,7 +453,7 @@ private:
 
         parameters.fitness = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1",
             targetPosition, targetAmplitude, targetWidth,
-            targetPosition, targetAmplitude, targetWidth);
+            targetPosition, targetAmplitude, targetWidth, BumpFitnessWeights{ 0.70, 0.20, 0.05, 0.05 });
     }
 
     void createPhenotypeEnvironment() override {}
@@ -531,7 +493,7 @@ private:
     void testPhenotype() override
     {
         initSimulation();
-        parameters.fitness = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 10.0, 10.0);
+        parameters.fitness = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 10.0, 10.0, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
     }
 
     void createPhenotypeEnvironment() override {}
@@ -571,7 +533,7 @@ private:
     void testPhenotype() override
     {
         initSimulation();
-        parameters.fitness = oneBumpAtPositionWithAmplitudeAndWidth("this field does not exist", 50.0, 10.0, 10.0);
+        parameters.fitness = oneBumpAtPositionWithAmplitudeAndWidth("this field does not exist", 50.0, 10.0, 10.0, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
     }
 
     void createPhenotypeEnvironment() override {}
@@ -656,57 +618,12 @@ private:
 
         const auto& bump = observedBumps.front();
         parameters.fitness = oneBumpAtPositionWithAmplitudeAndWidth("nf 1",
-            bump.centroid, bump.amplitude, bump.width);
+            bump.centroid, bump.amplitude, bump.width, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
     }
 
     void createPhenotypeEnvironment() override {}
 };
 
-// Same guard as MissingFieldTwoBumpsSolution, checked directly against
-// threeBumpsAtPositionWithAmplitudeAndWidth.
-class MissingFieldThreeBumpsSolution final : public Solution
-{
-public:
-    explicit MissingFieldThreeBumpsSolution(const SolutionTopology& topology)
-        : Solution(topology)
-    {
-        name = "MissingFieldThreeBumps";
-    }
-
-    MissingFieldThreeBumpsSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
-        : Solution(initialTopology, phenotype)
-    {
-        name = "MissingFieldThreeBumps";
-    }
-
-    SolutionPtr clone() const override
-    {
-        MissingFieldThreeBumpsSolution solution(initialTopology);
-        return std::make_shared<MissingFieldThreeBumpsSolution>(solution);
-    }
-
-    SolutionPtr copy() const override
-    {
-        MissingFieldThreeBumpsSolution solution(initialTopology, phenotype);
-        return std::make_shared<MissingFieldThreeBumpsSolution>(solution);
-    }
-
-private:
-    void testPhenotype() override
-    {
-        initSimulation();
-        parameters.fitness = threeBumpsAtPositionWithAmplitudeAndWidth(
-            "this field does not exist",
-            20.0, 10.0, 10.0, 50.0, 10.0, 10.0, 80.0, 10.0, 10.0);
-    }
-
-    void createPhenotypeEnvironment() override {}
-};
-
-// Same idea as SingleBumpTwoBumpsSolution, but for the three-bump helper: one
-// real bump is queried against three target slots that all point at that same
-// bump, proving matchClosestBump's injective consumption (issue #53) also
-// prevents a single bump from being triple-counted, not just double-counted.
 // Targets equal the bump's own observed values so every matched distance term
 // is exactly zero, making the expected fitness computable independently of
 // simulation jitter.
@@ -715,75 +632,6 @@ private:
 // as SingleBumpOneBumpSolution above: an unseeded genome draws random field/
 // kernel parameters and roughly 2% of those draws never form a bump, which
 // would make `observedBumps.front()` below undefined behaviour.
-class SingleBumpThreeBumpsSolution final : public Solution
-{
-public:
-    explicit SingleBumpThreeBumpsSolution(const SolutionTopology& topology)
-        : Solution(topology)
-    {
-        name = "SingleBumpThreeBumps";
-        seedFixedGenes();
-    }
-
-    SingleBumpThreeBumpsSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
-        : Solution(initialTopology, phenotype)
-    {
-        name = "SingleBumpThreeBumps";
-        seedFixedGenes();
-    }
-
-    SolutionPtr clone() const override
-    {
-        SingleBumpThreeBumpsSolution solution(initialTopology);
-        return std::make_shared<SingleBumpThreeBumpsSolution>(solution);
-    }
-
-    SolutionPtr copy() const override
-    {
-        SingleBumpThreeBumpsSolution solution(initialTopology, phenotype);
-        return std::make_shared<SingleBumpThreeBumpsSolution>(solution);
-    }
-
-    std::vector<dnf_composer::element::NeuralFieldBump> observedBumps;
-
-private:
-    // Seeds one INPUT ("nf 1") and one OUTPUT ("nf 2") gene with fixed field and
-    // kernel parameters, so the field this fixture drives is identical on every
-    // construction. Guarded on isEmpty() because the phenotype-taking
-    // constructor is used by copy(), where the genome may already be populated.
-    void seedFixedGenes()
-    {
-        if (!genome.isEmpty())
-        {
-            return;
-        }
-        addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
-        addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
-    }
-
-    void testPhenotype() override
-    {
-        using namespace dnf_composer::element;
-
-        initSimulation();
-        addGaussianStimulus("nf 1",
-            GaussStimulusParameters{ 5.0, 15.0, 50.0, true, false },
-            ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
-        runSimulation(SimulationConstants::maxSimulationSteps);
-
-        const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement("nf 1"));
-        observedBumps = neuralField->getBumps();
-
-        const auto& bump = observedBumps.front();
-        parameters.fitness = threeBumpsAtPositionWithAmplitudeAndWidth("nf 1",
-            bump.centroid, bump.amplitude, bump.width,
-            bump.centroid, bump.amplitude, bump.width,
-            bump.centroid, bump.amplitude, bump.width);
-    }
-
-    void createPhenotypeEnvironment() override {}
-};
-
 // Same guard as MissingFieldSolution, checked directly against
 // preShapednessAtPosition rather than closenessToRestingLevel.
 class MissingFieldPreShapednessSolution final : public Solution
@@ -817,7 +665,7 @@ private:
     void testPhenotype() override
     {
         initSimulation();
-        parameters.fitness = preShapednessAtPosition("this field does not exist", 50.0);
+        parameters.fitness = preShapednessAtPosition("this field does not exist", 50.0, BumpFitnessDefaults::preShapednessSigma, BumpFitnessDefaults::preShapednessEpsilon);
     }
 
     void createPhenotypeEnvironment() override {}
@@ -860,7 +708,7 @@ private:
     void testPhenotype() override
     {
         initSimulation();
-        parameters.fitness = preShapednessAtPosition("nf 1", 50.0);
+        parameters.fitness = preShapednessAtPosition("nf 1", 50.0, BumpFitnessDefaults::preShapednessSigma, BumpFitnessDefaults::preShapednessEpsilon);
     }
 
     void createPhenotypeEnvironment() override {}
@@ -899,7 +747,7 @@ private:
     void testPhenotype() override
     {
         initSimulation();
-        parameters.fitness = negativePreShapednessAtPosition("this field does not exist", 50.0);
+        parameters.fitness = negativePreShapednessAtPosition("this field does not exist", 50.0, BumpFitnessDefaults::negativePreShapednessEpsilon, BumpFitnessDefaults::negativePreShapednessWidth);
     }
 
     void createPhenotypeEnvironment() override {}
@@ -941,7 +789,7 @@ private:
     void testPhenotype() override
     {
         initSimulation();
-        parameters.fitness = negativePreShapednessAtPosition("nf 1", 50.0);
+        parameters.fitness = negativePreShapednessAtPosition("nf 1", 50.0, BumpFitnessDefaults::negativePreShapednessEpsilon, BumpFitnessDefaults::negativePreShapednessWidth);
     }
 
     void createPhenotypeEnvironment() override {}
@@ -983,7 +831,7 @@ private:
     void testPhenotype() override
     {
         initSimulation();
-        parameters.fitness = negativePreShapednessAtPosition("nf 1", static_cast<double>(DimensionConstants::xSize));
+        parameters.fitness = negativePreShapednessAtPosition("nf 1", static_cast<double>(DimensionConstants::xSize), BumpFitnessDefaults::negativePreShapednessEpsilon, BumpFitnessDefaults::negativePreShapednessWidth);
     }
 
     void createPhenotypeEnvironment() override {}

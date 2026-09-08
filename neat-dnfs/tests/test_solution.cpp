@@ -288,17 +288,6 @@ TEST_CASE("Solution twoBumpsAtPositionWithAmplitudeAndWidth yields no bump credi
     REQUIRE(solution.getFitness() == 0.0);
 }
 
-// Same as above, for threeBumpsAtPositionWithAmplitudeAndWidth.
-TEST_CASE("Solution threeBumpsAtPositionWithAmplitudeAndWidth yields no bump credit for an empty field", "[Solution]")
-{
-    const auto topology = makeTopology(1, 1);
-    EmptyFieldThreeBumpsSolution solution(topology);
-    solution.initialize();
-
-    REQUIRE_NOTHROW(solution.evaluate());
-    REQUIRE(solution.getFitness() == 0.0);
-}
-
 // Issue #53 (sibling bug flagged in the author's own comment): twoBumpsAtPositionWithAmplitudeAndWidth
 // independently searched for "the bump closest to position1" and "the bump
 // closest to position2" without removing a matched bump from the candidate
@@ -349,7 +338,7 @@ TEST_CASE("Solution twoBumpsAtPositionWithAmplitudeAndWidth does not credit the 
 }
 
 // Issue #68: oneBumpAtPositionWithAmplitudeAndWidth's own zero-bump case had
-// never been directly asserted -- only twoBumps/threeBumps had. A field that
+// never been directly asserted -- only twoBumps had. A field that
 // never receives a stimulus must score 0.0, same as the multi-bump helpers.
 TEST_CASE("Solution oneBumpAtPositionWithAmplitudeAndWidth yields no bump credit for an empty field", "[Solution]")
 {
@@ -388,51 +377,6 @@ TEST_CASE("Solution oneBumpAtPositionWithAmplitudeAndWidth scores the theoretica
     REQUIRE_NOTHROW(solution.evaluate());
     REQUIRE(solution.observedBumps.size() == 1);
     REQUIRE(solution.getFitness() == Catch::Approx(1.0).margin(1e-9));
-}
-
-// Issue #68: the missing-field-name guard, checked directly against
-// threeBumpsAtPositionWithAmplitudeAndWidth.
-TEST_CASE("Solution threeBumpsAtPositionWithAmplitudeAndWidth throws on a field name that doesn't exist", "[Solution]")
-{
-    const auto topology = makeTopology(1, 1);
-    MissingFieldThreeBumpsSolution solution(topology);
-    solution.initialize();
-
-    REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
-    REQUIRE(solution.getPhenotype().getNumberOfElements() == 0);
-}
-
-// Issue #68 / #53: the injective-matching fix must also prevent a single real
-// bump from being triple-counted against three identical target slots, not
-// just double-counted against two. Targets equal the bump's own observed
-// values, so only the first matched slot contributes a nonzero distance term;
-// the second and third find an empty candidate pool (matchClosestBump returns
-// std::nullopt) and contribute nothing.
-TEST_CASE("Solution threeBumpsAtPositionWithAmplitudeAndWidth does not credit the same bump for all three target positions", "[Solution]")
-{
-    const auto topology = makeTopology(1, 1);
-    SingleBumpThreeBumpsSolution solution(topology);
-    solution.initialize();
-
-    REQUIRE_NOTHROW(solution.evaluate());
-    REQUIRE(solution.observedBumps.size() == 1);
-
-    // Same weights as Solution::threeBumpsAtPositionWithAmplitudeAndWidth.
-    static constexpr int targetNumberOfBumps = 3;
-    static constexpr double weightBumps = 0.40;
-    static constexpr double weightPos   = 0.20 / targetNumberOfBumps;
-    static constexpr double weightAmp   = 0.20 / targetNumberOfBumps;
-    static constexpr double weightWidth = 0.20 / targetNumberOfBumps;
-
-    const double bumpsTerm = weightBumps / (1.0 + std::abs(targetNumberOfBumps - 1));
-    // Target equals the observed bump exactly, so every distance term is zero.
-    const double matchedBumpTerm = weightPos + weightAmp + weightWidth;
-
-    const double tripleCountedFitness = bumpsTerm + 3.0 * matchedBumpTerm;
-    const double expectedFitness = bumpsTerm + matchedBumpTerm;
-
-    REQUIRE(solution.getFitness() == Catch::Approx(expectedFitness).margin(1e-9));
-    REQUIRE(solution.getFitness() < tripleCountedFitness - 1e-9);
 }
 
 // Issue #68: the missing-field-name guard, checked directly against

@@ -894,7 +894,7 @@ namespace neat_dnfs
 		return result;
 	}
 
-	double Solution::noBumps(const std::string& fieldName) const
+	double Solution::noBumps(const std::string& fieldName, const double decayRate) const
 	{
 		const auto neuralField = getNeuralFieldOrThrow(fieldName, "noBumps");
 
@@ -906,72 +906,25 @@ namespace neat_dnfs
 			return 1.0;
 		}
 
-		// For positive activations, apply exponential decay
-		// The decay rate can be adjusted with the constant (5.0 here)
-		// A larger value will make it decline more steeply
-		static constexpr double decayRate = 10.0;
+		// For positive activations, apply exponential decay; a larger decayRate
+		// makes the score decline more steeply.
 		const double result = exp(-decayRate * highestActivation);
 		return result;
 	}
 
-	double Solution::iterationsUntilBump(const std::string& fieldName, const double targetIterations, const double maxIterations, const double tolerance)
-	{
-		const auto neuralField = getNeuralFieldOrThrow(fieldName, "iterationsUntilBump");
-		int it = 0;
-		do
-		{
-			phenotype.step();
-			it++;
-			if (!neuralField->getBumps().empty())
-			{
-				const double sigma = 6.0 * tolerance; // smoother shoulders; the higher the constant the smoother
-				return tools::utils::normalizeWithFlatheadGaussian(
-					it,
-					targetIterations - tolerance,
-					targetIterations + tolerance,
-					sigma
-				);
-			}
-
-		} while (it < maxIterations);
-
-		return 0.0;
-	}
-
-	double Solution::iterationsUntilNoBump(const std::string& fieldName, const double targetIterations, const double maxIterations, const double tolerance)
-	{
-		const auto neuralField = getNeuralFieldOrThrow(fieldName, "iterationsUntilNoBump");
-
-		int it = 0;
-		do
-		{
-			phenotype.step();
-			it++;
-			if (neuralField->getBumps().empty())
-			{
-				const double sigma = 6.0 * tolerance; // smoother shoulders; the higher the constant the smoother
-				return tools::utils::normalizeWithFlatheadGaussian(
-					it,
-					targetIterations - tolerance,
-					targetIterations + tolerance,
-					sigma
-				);
-			}
-
-		} while (it < maxIterations);
-
-		return 0.0;
-	}
-
-	double Solution::justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName, const std::vector<double>& positions, const double& amplitude, const double& width) const
+	double Solution::justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName, const std::vector<double>& positions, const double& amplitude, const double& width, const BumpFitnessWeights& weights) const
 	{
 		using namespace dnf_composer::element;
 		const auto neuralField = getNeuralFieldOrThrow(fieldName, "justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth");
 
-		static constexpr double wBumps  = 0.55;
-		static constexpr double wPos    = 0.35;
-		static constexpr double wAmp    = 0.05;
-		static constexpr double wWidth  = 0.05;
+		const double wBumps = weights.bumps;
+		const double wPos = weights.position;
+		const double wAmp = weights.amplitude;
+		const double wWidth = weights.width;
+		if (std::abs(wBumps + wPos + wAmp + wWidth - 1.0) > 1e-6)
+		{
+			throw std::invalid_argument("Sum of weights must be 1.0");
+		}
 
 		const int n = static_cast<int>(neuralField->getBumps().size());
 		if (n == 0)
@@ -1012,14 +965,14 @@ namespace neat_dnfs
 	}
 
 	double Solution::oneBumpAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position, const double& 
-		amplitude, const double& width) const
+		amplitude, const double& width, const BumpFitnessWeights& weights) const
 	{
 		// Field existence and type are validated by getNeuralFieldOrThrow() below,
 		// which throws std::invalid_argument on a missing/wrong-type field name.
-		static constexpr double weightBumps = 0.45;
-		static constexpr double weightPos = 0.45;
-		static constexpr double weightAmp = 0.05;
-		static constexpr double weightWidth = 0.05;
+		const double weightBumps = weights.bumps;
+		const double weightPos = weights.position;
+		const double weightAmp = weights.amplitude;
+		const double weightWidth = weights.width;
 		// if the sum of weights is not 1.0, throw exception
 		if (std::abs(weightBumps + weightPos + weightAmp + weightWidth - 1.0) > 1e-6)
 		{
@@ -1057,13 +1010,13 @@ namespace neat_dnfs
 		return fitness;
 	}
 
-	double Solution::twoBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position1, const double& amplitude1, const double& width1, const double& position2, const double& amplitude2, const double& width2) const
+	double Solution::twoBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position1, const double& amplitude1, const double& width1, const double& position2, const double& amplitude2, const double& width2, const BumpFitnessWeights& weights) const
 	{
 		static constexpr int targetNumberOfBumps = 2;
-		static constexpr double weightBumps = 0.70;
-		static constexpr double weightPos = 0.20 / targetNumberOfBumps;
-		static constexpr double weightAmp = 0.05 / targetNumberOfBumps;
-		static constexpr double weightWidth = 0.05 / targetNumberOfBumps;
+		const double weightBumps = weights.bumps;
+		const double weightPos = weights.position / targetNumberOfBumps;
+		const double weightAmp = weights.amplitude / targetNumberOfBumps;
+		const double weightWidth = weights.width / targetNumberOfBumps;
 		// if sum of weights is not 1.0, throw exception
 		if (std::abs(weightBumps + (weightPos + weightAmp + weightWidth) * targetNumberOfBumps - 1.0) > 1e-6)
 		{
@@ -1108,62 +1061,8 @@ namespace neat_dnfs
 		return fitness;
 	}
 
-	double Solution::threeBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName, const double& position1, const double& amplitude1, const double& width1, const double& position2, const double& amplitude2, const double& width2, const double& position3, const double& amplitude3, const double& width3) const
-	{
-		static constexpr int targetNumberOfBumps = 3;
-		static constexpr double weightBumps = 0.40;
-		static constexpr double weightPos = 0.20 / targetNumberOfBumps;
-		static constexpr double weightAmp = 0.20 / targetNumberOfBumps;
-		static constexpr double weightWidth = 0.20 / targetNumberOfBumps;
-		// if sum of weights is not 1.0, throw exception
-		if (std::abs(weightBumps + (weightPos + weightAmp + weightWidth) * targetNumberOfBumps - 1.0) > 1e-6)
-		{
-			tools::logger::log(tools::logger::LogLevel::ERROR, "Sum of weights must be 1.0 in three bump fitness evaluation.");
-			throw std::invalid_argument("Sum of weights must be 1.0 in three bump fitness evaluation.");
-		}
-		double fitness = 0.0;
 
-		using namespace dnf_composer::element;
-
-		const auto neuralField = getNeuralFieldOrThrow(fieldName, "threeBumpsAtPositionWithAmplitudeAndWidth");
-
-		const int numberOfBumps = static_cast<int>(neuralField->getBumps().size());
-		if (numberOfBumps == 0)
-		{
-			return fitness;
-		}
-
-		fitness += weightBumps / (1.0 + std::abs(targetNumberOfBumps - numberOfBumps));
-
-		// Injective matching -- see the identical comment in
-		// twoBumpsAtPositionWithAmplitudeAndWidth (issue #53).
-		std::vector<NeuralFieldBump> candidates = neuralField->getBumps();
-
-		if (const auto bump1 = matchClosestBump(candidates, position1))
-		{
-			fitness += weightPos / (1.0 + std::abs(bump1->centroid - position1));
-			fitness += weightAmp / (1.0 + std::abs(bump1->amplitude - amplitude1));
-			fitness += weightWidth / (1.0 + std::abs(bump1->width - width1));
-		}
-
-		if (const auto bump2 = matchClosestBump(candidates, position2))
-		{
-			fitness += weightPos / (1.0 + std::abs(bump2->centroid - position2));
-			fitness += weightAmp / (1.0 + std::abs(bump2->amplitude - amplitude2));
-			fitness += weightWidth / (1.0 + std::abs(bump2->width - width2));
-		}
-
-		if (const auto bump3 = matchClosestBump(candidates, position3))
-		{
-			fitness += weightPos / (1.0 + std::abs(bump3->centroid - position3));
-			fitness += weightAmp / (1.0 + std::abs(bump3->amplitude - amplitude3));
-			fitness += weightWidth / (1.0 + std::abs(bump3->width - width3));
-		}
-
-		return fitness;
-	}
-
-	double Solution::preShapednessAtPosition(const std::string& fieldName, double position) const
+	double Solution::preShapednessAtPosition(const std::string& fieldName, double position, const double sigma, const double epsilon) const
 	{
 		const auto nf = getNeuralFieldOrThrow(fieldName, "preShapednessAtPosition");
 
@@ -1171,7 +1070,6 @@ namespace neat_dnfs
 		const double u = nf->getComponent("activation")[idx];
 		const double h = nf->getParameters().startingRestingLevel;
 		const double u_tar =  h / 2.0;
-		constexpr double sigma = 10.0;
 
 		// 1) enforce subthreshold
 		if (u >= 0.0)
@@ -1180,7 +1078,6 @@ namespace neat_dnfs
 		}
 
 		// 2) enforce higher than resting level
-		static constexpr double epsilon = 0.01;
 		if (u <= h + epsilon)
 		{
 			return 0.0;
@@ -1192,7 +1089,7 @@ namespace neat_dnfs
 		return score_height;
 	}
 
-	double Solution::negativePreShapednessAtPosition(const std::string& fieldName, const double& position) const
+	double Solution::negativePreShapednessAtPosition(const std::string& fieldName, const double& position, const double epsilon, const double width) const
 	{
 		const auto neuralField = getNeuralFieldOrThrow(fieldName, "negativePreShapednessAtPosition");
 
@@ -1201,7 +1098,6 @@ namespace neat_dnfs
 
 		// activation of field at position should be lower than the resting level
 		// we need to be careful here because if the field is in the resting level, this still produces above 0.5 fitness
-		static constexpr double epsilon = 0.15;
 		if (u_pos >= neuralField->getParameters().startingRestingLevel - epsilon)
 		{
 			return 0.0;
@@ -1210,13 +1106,10 @@ namespace neat_dnfs
 		const double u_baseline = neuralField->getHighestActivation();
 		// this should not be like this - I am hardcoding the position of the baseline activation
 		const double u_target = u_baseline + u_baseline / 2.0;
-		constexpr double width = 10.0;// std::abs(u_baseline / 8.0);
 
 		const double result = tools::utils::normalizeWithGaussian(u_pos, u_target, width);
 		return result;
 	}
-
-
 
 	void Solution::moveGaussianStimulusContinuously(const std::string& name, const double targetPosition, const double step)
 	{
@@ -1240,18 +1133,5 @@ namespace neat_dnfs
 		} while (std::abs(newPosition - targetPosition) > epsilon);
 	}
 
-	double Solution::negativeBaseline(const std::string& fieldName) const
-	{
-		const auto neuralField = getNeuralFieldOrThrow(fieldName, "negativeBaseline");
-
-		const double startingRestingLevel = neuralField->getParameters().startingRestingLevel;
-		const double maxActivation = neuralField->getHighestActivation();
-
-		const double targetBaseline = startingRestingLevel * 2;
-		const double width = std::abs(maxActivation / 8);
-
-		const double result = tools::utils::normalizeWithGaussian(maxActivation, targetBaseline, width);
-		return result;
-	}
 
 }

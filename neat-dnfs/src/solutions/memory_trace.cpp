@@ -52,7 +52,7 @@ namespace neat_dnfs
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f1 = preShapednessAtPosition("nf 3", posA);
+		const double f1 = preShapednessAtPosition("nf 3", posA, BumpFitnessDefaults::preShapednessSigma, BumpFitnessDefaults::preShapednessEpsilon);
 		parameters.partialFitness.push_back(f1);
 		removeGaussianStimuli();
 		runSimulation(iterations);
@@ -67,7 +67,7 @@ namespace neat_dnfs
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations*5);
-		const double f5 = preShapednessAtPosition("nf 3", posB);
+		const double f5 = preShapednessAtPosition("nf 3", posB, BumpFitnessDefaults::preShapednessSigma, BumpFitnessDefaults::preShapednessEpsilon);
 		parameters.partialFitness.push_back(f5);
 
 		// =========================
@@ -85,16 +85,16 @@ namespace neat_dnfs
 		runSimulation(iterations);
 		const double f6 = closenessToRestingLevel("nf 2");
 		parameters.partialFitness.push_back(f6);
-		const double f7 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1", posA, 10.0, 10.0, posB, 10.0, 10.0);
+		const double f7 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1", posA, 10.0, 10.0, posB, 10.0, 10.0, BumpFitnessWeights{ 0.70, 0.20, 0.05, 0.05 });
 		parameters.partialFitness.push_back(f7);
-		const double f8 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", posB, 10.0, 10.0);
+		const double f8 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", posB, 10.0, 10.0, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
 		parameters.partialFitness.push_back(f8);
 		runSimulation(iterations);
-		const double f9 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", posB, 10.0, 10.0);
+		const double f9 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", posB, 10.0, 10.0, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
 		parameters.partialFitness.push_back(f9);
 
 		runSimulation(iterations*2);
-		const double f10 = noBumps("nf 3");
+		const double f10 = noBumps("nf 3", BumpFitnessDefaults::noBumpsDecayRate);
 		parameters.partialFitness.push_back(f10);
 
 		const auto& w = fitnessWeights;
