@@ -128,7 +128,7 @@ def _parse_run_overview(stats_file: Path):
         r"Current generation: (\d+).*?"
         r"Number of species: (\d+).*?"
         r"Number of active species: (\d+).*?"
-        r"Best solution: \[solution (\d+) \[ fit\.: ([0-9eE\.\+\-]+), part\.: \((.*?)\),\s*spec\.: (\d+),.*?"
+        r"Best solution: \[solution (\d+) \[ fit\.: ([0-9eE\.\+\-]+), part\.: \((.*?)\),?\s*spec\.: (\d+),.*?"
         r"genome \((.*?)\).*?"
         r"field genes \{(.*?)\}.*?"
         r"connection genes \{(.*?)\}"

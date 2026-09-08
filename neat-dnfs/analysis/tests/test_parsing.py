@@ -3,6 +3,7 @@ import json
 import pandas as pd
 import pytest
 
+from viz.experiment import _parse_run_overview
 from viz.parsing import (
     _extract_mutation_events,
     _sample_evenly,
@@ -579,3 +580,38 @@ def test_format_ram_bytes_returns_none_for_missing_or_non_numeric():
     assert format_ram_bytes(None) is None
     assert format_ram_bytes("not a number") is None
     assert format_ram_bytes(0) is None
+
+
+# Verbatim first line of a per_generation_overview.txt written by neat-dnfs-evol after the
+# std::format refactor of SolutionParameters::toString dropped the comma between the
+# partial-fitness tuple and "spec.:". The parser must read both this and the older
+# "), spec.:" form, since existing data under data/ uses the latter.
+OVERVIEW_LINE_NO_COMMA_BEFORE_SPEC = (
+    "Current generation: 0 Number of solutions: 500 Number of species: 1 "
+    "Number of active species: 1 Has fitness improved: no "
+    "Number of generations without improvement: 0 Average fitness: 0.620 "
+    "Best fitness: 0.739 Innovation number: 0 Average genome size: 2.000 "
+    "Average connection genes: 0.000 Average field genes: 2.000 "
+    "Best solution: [solution 13815 [ fit.: 0.7390080153167148, "
+    "part.: (0.9614474008659996, 0, 0.9963421016084902, 0.9982425587923693, ) "
+    "spec.: 12, adj.fit.: 0.0014780160306334296, age: 0, (0, 0), "
+    "genome ( 2 field genes, 0 connection genes ) "
+    "field genes {fg (id: 1, type: INPUT), fg (id: 2, type: OUTPUT), } "
+    "connection genes {}, last mutations{}]]"
+)
+
+
+@pytest.mark.parametrize(
+    "line",
+    [OVERVIEW_LINE_NO_COMMA_BEFORE_SPEC, OVERVIEW_LINE_NO_COMMA_BEFORE_SPEC.replace(") spec.:", "), spec.:")],
+    ids=["without_comma", "with_comma"],
+)
+def test_parse_run_overview_accepts_both_spec_separators(tmp_path, line):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "per_generation_overview.txt").write_text(line + "\n")
+
+    metrics = _parse_run_overview(run_dir / "per_generation_overview.txt")
+
+    assert metrics is not None
+    assert metrics["best_solution_species_id"] == 12
