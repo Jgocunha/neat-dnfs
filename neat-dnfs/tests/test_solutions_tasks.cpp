@@ -1,5 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <filesystem>
+
 #include <dnf_composer/exceptions/exception.h>
 
 #include "solutions/memory_instability.h"
@@ -9,6 +11,8 @@
 #include "solutions/inhibition_of_return.h"
 #include "solutions/and.h"
 #include "solutions/xor.h"
+#include "neat_tools/resource_paths.h"
+#include "neat_tools/solution_registry.h"
 #include "test_helpers.h"
 
 using namespace neat_dnfs;
@@ -207,4 +211,18 @@ TEST_CASE("XOR evaluate produces a bounded fitness", "[Solutions][XOR]")
     REQUIRE(solution.getFitness() >= 0.0);
     REQUIRE(solution.getFitness() <= 1.0);
     REQUIRE(solution.getParameters().partialFitness.size() == 4);
+}
+
+TEST_CASE("Every registered task's template file exists under templates/", "[SolutionRegistry]")
+{
+    // The registry names each task's starting template by filename, but nothing
+    // resolved it until neat-dnfs-sol-eval / neat-dnfs-inc-evol ran. Renaming or
+    // replacing a template therefore broke both binaries at runtime with the
+    // suite still green.
+    for (const auto& task : taskEntries())
+    {
+        const auto templatePath = paths::resourceRoot() / "templates" / std::string(task.templateFile);
+        INFO("task '" << task.slug << "' references missing template " << task.templateFile);
+        REQUIRE(std::filesystem::exists(templatePath));
+    }
 }
