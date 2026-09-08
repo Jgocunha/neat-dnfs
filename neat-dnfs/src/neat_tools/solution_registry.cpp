@@ -43,7 +43,7 @@ namespace neat_dnfs
 		static const std::vector<TaskEntry> entries{
 			entry<AND>("and", "and.json", 2, 1),
 			entry<XOR>("xor", "xor.json", 2, 1),
-			entry<DetectionInstability>("detection-instability", "detection-instability.json", 1, 1),
+			entry<DetectionInstability>("detection-instability", "detection-instability.dnf", 1, 1),
 			entry<MemoryInstability>("memory-instability", "memory-instability.json", 1, 1),
 			entry<SelectionInstability>("selection-instability", "selection-instability.json", 1, 1),
 			entry<MemoryTrace>("memory-trace", "memory-trace.json", 2, 1),
