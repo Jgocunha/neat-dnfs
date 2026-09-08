@@ -683,3 +683,17 @@ TEST_CASE("Solution::crossover inherits field genes from the fitter parent", "[S
     for (const auto& gene : offspring->getGenome().getFieldGenes())
         REQUIRE(fitterParent->getGenome().containsFieldGene(gene));
 }
+
+TEST_CASE("SolutionParameters::toString separates partial fitness from species with a comma", "[Solution]")
+{
+    // The analysis dashboard parses this line with a regex anchored on "), spec.:".
+    // A std::format refactor once dropped that comma, which silently made every new
+    // per_generation_overview.txt unreadable while the C++ suite stayed green.
+    SolutionParameters parameters{ 0.5, 0.25, 3 };
+    parameters.speciesId = 7;
+    parameters.partialFitness = { 0.25, 0.75 };
+
+    const std::string text = parameters.toString();
+
+    REQUIRE(text.find("), spec.: 7") != std::string::npos);
+}

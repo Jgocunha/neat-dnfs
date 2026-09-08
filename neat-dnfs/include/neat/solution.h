@@ -55,7 +55,7 @@ namespace neat_dnfs
             partials += std::format("{}, ", partial);
         }
 
-        return std::format(" fit.: {}, part.: ({}) spec.: {}, adj.fit.: {}, age: {}", 
+        return std::format(" fit.: {}, part.: ({}), spec.: {}, adj.fit.: {}, age: {}", 
             fitness, 
             partials, 
             speciesId, 
