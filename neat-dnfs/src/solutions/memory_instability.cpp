@@ -55,7 +55,7 @@ namespace neat_dnfs
 		parameters.partialFitness.emplace_back(f2);
 
 		removeGaussianStimuli();
-		runSimulation(iterations);
+		runSimulation(5*iterations);
 
 		const double f3 = closenessToRestingLevel("nf 1");
 		const double f4 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", position, 15, 12, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
