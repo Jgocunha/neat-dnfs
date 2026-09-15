@@ -47,21 +47,21 @@ namespace neat_dnfs
 			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude,
 				position, true, false },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
-		runSimulation(iterations);
+		runSimulation(2*iterations);
 
-		const double f1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", position, 20, 10, 
+		const double f1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", position, 3.5, 6, 
 			BumpFitnessWeights{ 0.45, 0.40, 0.05, 0.10 });
-		const double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", position, 20, 10, 
+		const double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", position, 12, 14, 
 			BumpFitnessWeights{ 0.45, 0.40, 0.05, 0.10 });
 		parameters.partialFitness.emplace_back(f1);
 		parameters.partialFitness.emplace_back(f2);
 
 		removeGaussianStimuli();
-		runSimulation(5*iterations);
+		runSimulation(10*iterations);
 
 		const double f3 = closenessToRestingLevel("nf 1");
-		const double f4 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", position, 15, 12, 
-			BumpFitnessWeights{ 0.45, 0.40, 0.05, 0.10 });
+		const double f4 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", position, 3.5, 10, 
+			BumpFitnessWeights{ 0.40, 0.40, 0.10, 0.10 });
 		parameters.partialFitness.emplace_back(f3);
 		parameters.partialFitness.emplace_back(f4);
 
