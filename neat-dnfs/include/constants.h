@@ -107,7 +107,7 @@ namespace neat_dnfs
 
 		static constexpr double ampInhMinVal	= 5.00; 
 		static constexpr double ampInhMaxVal	= 20.0; 
-		static constexpr double ampInhStep		= 1.00; 
+		static constexpr double ampInhStep		= 1.00; // updated
 
 		static constexpr double ampGlobMin		= -0.20;
 		static constexpr double ampGlobMax		= 0.00; 		
@@ -262,7 +262,8 @@ namespace neat_dnfs
 
 		static constexpr bool saveOverview				= true;
 		static constexpr bool savePerGenerationOverview	= true;
-		static constexpr bool saveChampions				= true;
+		static constexpr bool saveChampions				= false; // ablation campaign: champions/prev_generations grows with species count,
+		// which explodes (No Crossover, Random Initial Topology) or drifts up (No Growth One Hidden)
 		static constexpr bool saveBestSolutions			= true;
 		static constexpr bool saveSolutions				= false; // ablation campaign: solutions/ is ~95% of run size
 		static constexpr bool saveSpecies				= true;
