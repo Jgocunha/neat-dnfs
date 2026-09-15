@@ -45,7 +45,7 @@ namespace neat_dnfs
 			entry<XOR>("xor", "xor.json", 2, 1),
 			entry<DetectionInstability>("detection-instability", "detection-instability.dnf", 1, 1),
 			entry<MemoryInstability>("memory-instability", "memory-instability.dnf", 1, 1),
-			entry<SelectionInstability>("selection-instability", "selection-instability.json", 1, 1),
+			entry<SelectionInstability>("selection-instability", "selection-instability.dnf", 1, 1),
 			entry<MemoryTrace>("memory-trace", "memory-trace.json", 2, 1),
 			entry<DelayedMatchToSample>("dmts", "delayed-match-to-sample.json", 1, 1),
 			entry<InhibitionOfReturn>("ior", "inhibition-of-return.json", 1, 1),
