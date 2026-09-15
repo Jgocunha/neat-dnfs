@@ -837,43 +837,35 @@ private:
     void createPhenotypeEnvironment() override {}
 };
 
-// Which resting-level closeness helper RestingLevelClosenessSolution scores with.
-enum class RestingLevelMetric
-{
-    MeanActivation,
-    WithinTolerance
-};
-
-// Stand-in that runs a full simulation on "nf 1" and scores it with one of the
-// noise-tolerant resting-level closeness helpers. With holdFieldOffRest false
-// the field receives no stimulus, so it sits at its resting level and only
-// noise moves it; with it true a Gaussian stimulus holds the field well above
-// rest, which the helper must still penalise.
+// Stand-in that runs a full simulation on "nf 1" and scores it with
+// closenessOfMeanActivationToRestingLevel. With holdFieldOffRest false the
+// field receives no stimulus, so it sits at its resting level and only noise
+// moves it; with it true a Gaussian stimulus holds the field well above rest,
+// which the helper must still penalise.
 class RestingLevelClosenessSolution final : public Solution
 {
 public:
-    RestingLevelClosenessSolution(const SolutionTopology& topology, const RestingLevelMetric metric, const bool holdFieldOffRest)
-        : Solution(topology), metric(metric), holdFieldOffRest(holdFieldOffRest)
+    RestingLevelClosenessSolution(const SolutionTopology& topology, const bool holdFieldOffRest)
+        : Solution(topology), holdFieldOffRest(holdFieldOffRest)
     {
         name = "RestingLevelCloseness";
     }
 
-    RestingLevelClosenessSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype,
-        const RestingLevelMetric metric, const bool holdFieldOffRest)
-        : Solution(initialTopology, phenotype), metric(metric), holdFieldOffRest(holdFieldOffRest)
+    RestingLevelClosenessSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype, const bool holdFieldOffRest)
+        : Solution(initialTopology, phenotype), holdFieldOffRest(holdFieldOffRest)
     {
         name = "RestingLevelCloseness";
     }
 
     SolutionPtr clone() const override
     {
-        RestingLevelClosenessSolution solution(initialTopology, metric, holdFieldOffRest);
+        RestingLevelClosenessSolution solution(initialTopology, holdFieldOffRest);
         return std::make_shared<RestingLevelClosenessSolution>(solution);
     }
 
     SolutionPtr copy() const override
     {
-        RestingLevelClosenessSolution solution(initialTopology, phenotype, metric, holdFieldOffRest);
+        RestingLevelClosenessSolution solution(initialTopology, phenotype, holdFieldOffRest);
         return std::make_shared<RestingLevelClosenessSolution>(solution);
     }
 
@@ -890,14 +882,11 @@ private:
         }
         runSimulation(static_cast<int>(SimulationConstants::maxSimulationSteps));
 
-        parameters.fitness = metric == RestingLevelMetric::MeanActivation
-            ? closenessOfMeanActivationToRestingLevel("nf 1")
-            : closenessToRestingLevelWithinTolerance("nf 1");
+        parameters.fitness = closenessOfMeanActivationToRestingLevel("nf 1");
     }
 
     void createPhenotypeEnvironment() override {}
 
-    RestingLevelMetric metric;
     bool holdFieldOffRest;
 };
 
