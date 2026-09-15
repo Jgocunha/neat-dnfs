@@ -42,6 +42,37 @@ private:
     double previousDx;
 };
 
+// NoiseConstants::amplitude and SimulationConstants::deltaT are process-wide
+// globals, so a test that needs a particular task's noise regime has to put
+// the previous values back afterwards. Construct it *before*
+// Solution::initialize(): FieldGene reads the noise amplitude when it builds
+// each field's noise element.
+class ScopedNoiseAndTimestep
+{
+public:
+    ScopedNoiseAndTimestep(const double amplitude, const double deltaT)
+        : previousAmplitude(NoiseConstants::amplitude), previousDeltaT(SimulationConstants::deltaT)
+    {
+        NoiseConstants::amplitude = amplitude;
+        SimulationConstants::deltaT = deltaT;
+    }
+
+    ~ScopedNoiseAndTimestep()
+    {
+        NoiseConstants::amplitude = previousAmplitude;
+        SimulationConstants::deltaT = previousDeltaT;
+    }
+
+    ScopedNoiseAndTimestep(const ScopedNoiseAndTimestep&) = delete;
+    ScopedNoiseAndTimestep& operator=(const ScopedNoiseAndTimestep&) = delete;
+    ScopedNoiseAndTimestep(ScopedNoiseAndTimestep&&) = delete;
+    ScopedNoiseAndTimestep& operator=(ScopedNoiseAndTimestep&&) = delete;
+
+private:
+    double previousAmplitude;
+    double previousDeltaT;
+};
+
 // FieldGene's usual constructor randomizes everything that decides whether a
 // field can hold a bump: tau and restingLevel (FieldGene::initializeNeuralField),
 // the kernel type (80/20 Gauss/Mexican-hat), and the Gauss kernel's width,

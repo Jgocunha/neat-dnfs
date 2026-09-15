@@ -641,3 +641,62 @@ TEST_CASE("SolutionParameters::toString separates partial fitness from species w
 
     REQUIRE(text.find("), spec.: 7") != std::string::npos);
 }
+
+// closenessToRestingLevel scores the single highest cell of a field. The
+// maximum of ~100 zero-mean noisy cells sits ~2.5 sd above rest, so under
+// selection-instability's regime (noise amplitude 0.2, deltaT 10) a field
+// sitting exactly at its resting level scored ~0.92 instead of ~1.0, capping
+// that task's p3/p4 no matter how good the solution was. The noise-tolerant
+// helpers must score a field at rest near 1.0 under the same noise.
+TEST_CASE("Solution noise-tolerant resting-level closeness scores a noisy field at rest near 1.0", "[Solution]")
+{
+    const ScopedNoiseAndTimestep noisyRegime{ 0.2, 10.0 };
+    const auto topology = makeTopology(1, 1);
+    static constexpr int evaluations = 20;
+
+    SECTION("mean activation")
+    {
+        RestingLevelClosenessSolution solution(topology, RestingLevelMetric::MeanActivation, false);
+        solution.initialize();
+        for (int i = 0; i < evaluations; ++i)
+        {
+            solution.evaluate();
+            REQUIRE(solution.getFitness() >= 0.98);
+        }
+    }
+
+    SECTION("within tolerance")
+    {
+        RestingLevelClosenessSolution solution(topology, RestingLevelMetric::WithinTolerance, false);
+        solution.initialize();
+        for (int i = 0; i < evaluations; ++i)
+        {
+            solution.evaluate();
+            REQUIRE(solution.getFitness() >= 0.99);
+        }
+    }
+}
+
+// Tolerating noise must not mean tolerating a field that is genuinely off
+// rest: with a stimulus holding the field up, both helpers must score it
+// below what the old max-based helper gave a field that was only noisy.
+TEST_CASE("Solution noise-tolerant resting-level closeness still penalises a field held off rest", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+
+    SECTION("mean activation")
+    {
+        RestingLevelClosenessSolution solution(topology, RestingLevelMetric::MeanActivation, true);
+        solution.initialize();
+        solution.evaluate();
+        REQUIRE(solution.getFitness() < 0.9);
+    }
+
+    SECTION("within tolerance")
+    {
+        RestingLevelClosenessSolution solution(topology, RestingLevelMetric::WithinTolerance, true);
+        solution.initialize();
+        solution.evaluate();
+        REQUIRE(solution.getFitness() < 0.9);
+    }
+}

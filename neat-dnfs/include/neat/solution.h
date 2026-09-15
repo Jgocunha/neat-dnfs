@@ -49,6 +49,11 @@ namespace neat_dnfs
 		inline constexpr double preShapednessEpsilon = 0.01;
 		inline constexpr double negativePreShapednessEpsilon = 0.15;
 		inline constexpr double negativePreShapednessWidth = 10.0;
+		/// @brief Deviation from the resting level that Solution::closenessToRestingLevelWithinTolerance treats as noise.
+		///
+		/// About twice the largest highest-activation gap (0.127) measured on a field at rest under
+		/// noise amplitude 0.2 and deltaT 10, the noisiest regime any task currently runs.
+		inline constexpr double restingLevelTolerance = 0.25;
 
 		/// @brief Default weights for Solution::oneBumpAtPositionWithAmplitudeAndWidth.
 		/// @return The weight set {0.45, 0.45, 0.05, 0.05}.
@@ -279,6 +284,19 @@ namespace neat_dnfs
 		/// @param decayRate How sharply the score falls off as activation rises above the resting level.
 		/// @return Fitness score in [0,1].
 		double noBumps(const std::string& fieldName, double decayRate = BumpFitnessDefaults::noBumpsDecayRate) const;
+		/// @brief Fitness score in [0,1] from how far the field's mean activation sits from its resting level.
+		///
+		/// closenessToRestingLevel scores the single highest cell, and the maximum of many
+		/// zero-mean noisy cells always sits above rest, so a field at rest cannot score 1.0
+		/// under noise. The mean over every cell is not lifted by zero-mean noise.
+		/// @param fieldName Name of the neural field to score.
+		/// @return 1 / (1 + |mean activation - resting level|).
+		double closenessOfMeanActivationToRestingLevel(const std::string& fieldName) const;
+		/// @brief Fitness score in [0,1] from the highest activation, ignoring deviations from the resting level within a tolerance band.
+		/// @param fieldName Name of the neural field to score.
+		/// @param tolerance Deviation of the highest activation from the resting level that costs no fitness.
+		/// @return 1 / (1 + max(0, |highest activation - resting level| - tolerance)).
+		double closenessToRestingLevelWithinTolerance(const std::string& fieldName, double tolerance = BumpFitnessDefaults::restingLevelTolerance) const;
 
 		// validated but could be improved
 		/// @brief Fitness score for a single bump at @p position with the given amplitude and width.
