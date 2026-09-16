@@ -42,7 +42,7 @@ namespace neat_dnfs
 	{
 		static const std::vector<TaskEntry> entries{
 			entry<AND>("and", "and.dnf", 2, 1),
-			entry<XOR>("xor", "xor.json", 2, 1),
+			entry<XOR>("xor", "xor.dnf", 2, 1),
 			entry<DetectionInstability>("detection-instability", "detection-instability.dnf", 1, 1),
 			entry<MemoryInstability>("memory-instability", "memory-instability.dnf", 1, 1),
 			entry<SelectionInstability>("selection-instability", "selection-instability.dnf", 1, 1),
