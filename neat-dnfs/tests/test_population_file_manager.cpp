@@ -160,6 +160,38 @@ TEST_CASE("PopulationFileManager writes per-generation artifacts to disk", "[Pop
     std::filesystem::remove_all(runDirectory);
 }
 
+// best_solutions/last_generation/ is the end-of-run counterpart of
+// best_solutions/prev_generations/, so it must follow saveBestSolutions --
+// it used to be gated on saveSolutions, which left the directory missing
+// under the shipped config (saveBestSolutions true, saveSolutions false).
+TEST_CASE("PopulationFileManager writes best_solutions/last_generation under saveBestSolutions", "[PopulationFileManager]")
+{
+    const bool previousSaveSolutions = PopulationConstants::saveSolutions;
+    const bool previousSaveBestSolutions = PopulationConstants::saveBestSolutions;
+    PopulationConstants::saveSolutions = false;
+    PopulationConstants::saveBestSolutions = true;
+
+    const PopulationParameters parameters(5, 2, 1.1);
+    const std::string solutionName = "FixedFitnessJsonOverview";
+    const auto preExistingRunDirs = existingRunDirs(solutionName);
+
+    Population population(parameters, std::make_shared<JsonOverviewSolution>(makeTopology(1, 1), 0.5));
+    population.initialize();
+
+    REQUIRE_NOTHROW(population.evolve());
+
+    const std::string runDirectory = newlyCreatedRunDirectory(solutionName, preExistingRunDirs);
+    REQUIRE_FALSE(runDirectory.empty());
+
+    const bool lastGenerationWritten = std::filesystem::exists(runDirectory + "best_solutions/last_generation/");
+
+    std::filesystem::remove_all(runDirectory);
+    PopulationConstants::saveSolutions = previousSaveSolutions;
+    PopulationConstants::saveBestSolutions = previousSaveBestSolutions;
+
+    REQUIRE(lastGenerationWritten);
+}
+
 TEST_CASE("PopulationFileManager writes run_metadata.json with build, dependency, machine and run-parameter facts", "[PopulationFileManager]")
 {
     const PopulationParameters parameters(5, 2, 1.1);
