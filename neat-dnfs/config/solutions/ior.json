@@ -1,5 +1,55 @@
 {
   "SolutionConstants": {
     "fitnessWeights": [0.15, 0.20, 0.15, 0.30, 0.20]
+  },
+    "NeuralFieldConstants": {
+    "tau": 25,
+    "restingLevel": -10,
+    "activationFunction": {
+      "xShift": 0.0,
+      "steepness": 5.0
+    },
+    "tauMinVal": 5.0,
+    "tauMaxVal": 40.0,
+    "tauStep": 5.0,
+    "restingLevelMinVal": -15.0,
+    "restingLevelMaxVal": -5.0,
+    "restingLevelStep": 0.5
+  },
+  "GenomeMutationConstants": {
+    "toggleConnectionGeneProbability": 0.05,
+    "addFieldGeneProbability": 0.0005,
+    "addConnectionGeneProbability": 0.15,
+    "mutateFieldGenesPerGenomeProbability": 0.8,
+    "mutateConnectionGenesProbability": 0.8,
+    "mutateFieldGenePerGeneProbability": 0.8,
+    "mutateConnectionGeneProbability": 0.8,
+    "checkForDuplicateConnectionGenesInGenome": false
+  },
+  "ConnectionGeneConstants": {
+    "gaussKernelProbability": 0.8,
+    "mexicanHatKernelProbability": 0.2,
+    "mutateConnectionGeneKernelProbability": 0.9,
+    "mutateConnectionGeneKernelTypeProbability": 0.10,
+    "mutateConnectionGeneConnectionSignalProbability": 0.00,
+    "mutateConnectionGeneGaussKernelAmplitudeProbability": 0.8,
+    "mutateConnectionGeneGaussKernelWidthProbability": 0.6,
+    "mutateConnectionGeneGaussKernelGlobalAmplitudeProbability": 0.2,
+    "mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability": 0.8,
+    "mutateConnectionGeneMexicanHatKernelAmplitudeInhProbability": 0.8,
+    "mutateConnectionGeneMexicanHatKernelWidthExcProbability": 0.6,
+    "mutateConnectionGeneMexicanHatKernelWidthInhProbability": 0.6,
+    "mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability": 0.2
+  },
+  "PopulationConstants": {
+    "pruneRatio": 0.2
+  },
+  "CompatibilityCoefficients": {
+    "compatibilityThreshold": 3.5,
+    "excessGenesCompatibilityWeight": 1.0,
+    "disjointGenesCompatibilityWeight": 0.5,
+    "averageConnectionDifferenceCompatibilityWeight": 1.0,
+    "amplitudeDifferenceCoefficient": 0.05,
+    "widthDifferenceCoefficient": 0.05
   }
 }
