@@ -76,7 +76,7 @@ namespace neat_dnfs
 		int size; ///< Number of solutions per generation; must be greater than 0.
 		int currentGeneration{0};
 		int numGenerations;
-		double targetFitness; ///< Evolution stops early when the best solution reaches this fitness.
+		double targetFitness; ///< Evolution stops early when every partial fitness of the best solution exceeds this value.
 		bool parallelEvolution; ///< Evaluate solutions concurrently via std::async.
 
 		explicit PopulationParameters(int size = 100, int numGenerations = 1000, double targetFitness = 0.95, bool parallelEvolution = true);
@@ -118,7 +118,7 @@ namespace neat_dnfs
 	/// @brief Manages a NEAT population: speciation, evaluation, reproduction, and selection.
 	///
 	/// Call @c initialize() once, then @c evolve() to run the full evolutionary loop.
-	/// Evolution stops when @c PopulationParameters::targetFitness is reached or
+	/// Evolution stops when every partial fitness of the best solution exceeds @c PopulationParameters::targetFitness or
 	/// @c numGenerations is exhausted. Use @c pause() / @c stop() for interactive control.
 	class Population
 	{

@@ -24,7 +24,7 @@ Every binary supports `--list` (print available tasks and ablations) and
 | `--runs N` | evol, inc-evol | Number of independent `Population::evolve()` runs | `SolutionConstants.numberRuns` from config |
 | `--pop N` | evol, inc-evol | Population size per run | `SolutionConstants.populationSize` from config |
 | `--gens N` | evol, inc-evol | Max generations per run | `SolutionConstants.numberGenerations` from config |
-| `--target F` | evol, inc-evol | Target fitness that ends a run early | `SolutionConstants.targetFitness` from config |
+| `--target F` | evol, inc-evol | Ends a run early once every partial fitness of the best solution exceeds F | `SolutionConstants.targetFitness` from config |
 | `--evals N` | sol-eval | Number of `evaluate()` calls | 20 |
 | `--config PATH` | all | Reference hyperparameter JSON | `config/neat_dnfs.json` |
 

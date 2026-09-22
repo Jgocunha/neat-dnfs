@@ -1,7 +1,9 @@
 #pragma once
 #include <atomic>
 #include <thread>
+#include <numeric>
 #include <stdexcept>
+#include <vector>
 
 #include "neat/solution.h"
 #include "test_helpers.h"
@@ -141,6 +143,51 @@ private:
     void testPhenotype() override
     {
         parameters.fitness = fitnessToReport;
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
+// Stand-in whose partial fitnesses are set directly by the test, with overall
+// fitness their plain mean, so Population's end condition can be driven through
+// evolve() into "overall above target, one partial below" deterministically.
+class FixedPartialFitnessSolution final : public Solution
+{
+public:
+    FixedPartialFitnessSolution(const SolutionTopology& topology, std::vector<double> partialFitness)
+        : Solution(topology), partialFitnessToReport(std::move(partialFitness))
+    {
+        name = "FixedPartialFitness";
+    }
+
+    FixedPartialFitnessSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "FixedPartialFitness";
+    }
+
+    SolutionPtr clone() const override
+    {
+        FixedPartialFitnessSolution solution(initialTopology, partialFitnessToReport);
+        return std::make_shared<FixedPartialFitnessSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        FixedPartialFitnessSolution solution(initialTopology, phenotype);
+        solution.partialFitnessToReport = partialFitnessToReport;
+        return std::make_shared<FixedPartialFitnessSolution>(solution);
+    }
+
+private:
+    std::vector<double> partialFitnessToReport;
+
+    void testPhenotype() override
+    {
+        parameters.partialFitness = partialFitnessToReport;
+        parameters.fitness = partialFitnessToReport.empty() ? 0.0
+            : std::accumulate(partialFitnessToReport.begin(), partialFitnessToReport.end(), 0.0)
+              / static_cast<double>(partialFitnessToReport.size());
     }
 
     void createPhenotypeEnvironment() override {}
