@@ -42,6 +42,16 @@ namespace neat_dnfs
 		static constexpr double small_obj_pos_a = 10.0;
 		static constexpr double small_obj_pos_b = 50.0;
 		static constexpr double large_obj_pos = 30.0;
+		static constexpr double obj_input_field_bump_amp = 5.0;
+		static constexpr double obj_input_field_bump_width = 4.0;
+		static constexpr double hand_input_field_bump_amp = 5.0;
+		static constexpr double hand_input_field_bump_width = 4.0;
+		static constexpr double large_output_field_bump_amp = 10.0;
+		static constexpr double large_output_field_bump_width = 8.0;
+		static constexpr double small_output_field_bump_amp = 10.0;
+		static constexpr double small_output_field_bump_width = 8.0;
+		static constexpr double hand_output_field_inhibition_depth = 8.6;
+		static constexpr double hand_output_field_inhibition_width = 2.0;
 		const std::string handStimulus = std::format("gs nf 3 {}", large_obj_pos);
 
 		removeGaussianStimuli();
@@ -58,10 +68,10 @@ namespace neat_dnfs
 		runSimulation(iterations);
 
 		const double f1_1 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1",
-		   small_obj_pos_a, 5.0, 4.0,
-		   small_obj_pos_b, 5.0, 4.0);
+		   small_obj_pos_a, obj_input_field_bump_amp, obj_input_field_bump_width,
+		   small_obj_pos_b, obj_input_field_bump_amp, obj_input_field_bump_width);
 		const double f1_2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(
-			"nf 4", { small_obj_pos_a, small_obj_pos_b }, 4.0, 4.0);
+			"nf 4", { small_obj_pos_a, small_obj_pos_b }, small_output_field_bump_amp, small_output_field_bump_width);
 
 		// hand position negatively pre-shapes the output field
 		addGaussianStimulus("nf 3",
@@ -69,14 +79,14 @@ namespace neat_dnfs
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", large_obj_pos, 6.0, 6.0);
-		const double f2_2 = negativePreShapednessAtPosition("nf 4", large_obj_pos);
+		const double f2_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", large_obj_pos, hand_input_field_bump_amp, hand_input_field_bump_width);
+		const double f2_2 = negativePreShapingDepthAtPosition("nf 4", large_obj_pos, hand_output_field_inhibition_depth, hand_output_field_inhibition_width);
 
 		// hand position biases the output field towards the non-targeted small object
 		moveGaussianStimulusContinuously(handStimulus, small_obj_pos_a, -5.0f);
-		const double f3_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_b, 4.0, 4.0);
+		const double f3_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_b, small_output_field_bump_amp, small_output_field_bump_width);
 		moveGaussianStimulusContinuously(handStimulus, small_obj_pos_b, 10.0f);
-		const double f3_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_a, 4.0, 4.0);
+		const double f3_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_a, small_output_field_bump_amp, small_output_field_bump_width);
 
 		// large object appears
 		addGaussianStimulus("nf 2",
@@ -84,23 +94,23 @@ namespace neat_dnfs
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f4_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", large_obj_pos, 4.0, 4.0); // 2
-		const double f4_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_a, 8.0, 4.0); // a
+		const double f4_1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", large_obj_pos, obj_input_field_bump_amp, obj_input_field_bump_width);
+		const double f4_2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_a, small_output_field_bump_amp, small_output_field_bump_width);
 		moveGaussianStimulusContinuously(handStimulus, large_obj_pos, -5.0f);
-		const double f4_3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", large_obj_pos, 10.0, 6.0); // c
+		const double f4_3 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", large_obj_pos, large_output_field_bump_amp, large_output_field_bump_width);
 		moveGaussianStimulusContinuously(handStimulus, small_obj_pos_a, -5.0f);
-		const double f4_4 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_b, 4.0, 4.0); // b
+		const double f4_4 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_b,  small_output_field_bump_amp, small_output_field_bump_width);
 		moveGaussianStimulusContinuously(handStimulus, large_obj_pos, 5.0f);
-		const double f4_5 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", large_obj_pos, 10.0, 6.0); // c
+		const double f4_5 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", large_obj_pos, large_output_field_bump_amp, large_output_field_bump_width);
 		moveGaussianStimulusContinuously(handStimulus, small_obj_pos_b, 5.0f);
-		const double f4_6 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_a, 4.0, 4.0); // a
+		const double f4_6 = oneBumpAtPositionWithAmplitudeAndWidth("nf 4", small_obj_pos_a,  small_output_field_bump_amp, small_output_field_bump_width);
 
 		removeGaussianStimuli();
 		runSimulation(iterations/2);
-		const double f5_1 = closenessToRestingLevel("nf 1");
-		const double f5_2 = closenessToRestingLevel("nf 2");
-		const double f5_3 = closenessToRestingLevel("nf 3");
-		const double f5_4 = closenessToRestingLevel("nf 4");
+		const double f5_1 = closenessOfMeanActivationToRestingLevel("nf 1");
+		const double f5_2 = closenessOfMeanActivationToRestingLevel("nf 2");
+		const double f5_3 = closenessOfMeanActivationToRestingLevel("nf 3");
+		const double f5_4 = closenessOfMeanActivationToRestingLevel("nf 4"); 
 
 		const double f1 = f1_1*0.5f + f5_1*0.5f; // small object detection
 		const double f2 = f4_1*0.5f + f5_2*0.5f; // large object detection
