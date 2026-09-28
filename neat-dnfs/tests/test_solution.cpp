@@ -287,6 +287,20 @@ TEST_CASE("Solution moveGaussianStimulusContinuously simulates a leftward move a
     REQUIRE(leftwardDuration == rightwardDuration);
 }
 
+TEST_CASE("Solution negativePreShapingDepthAtPosition scores trough depth below rest, not against the field's peak", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    NegativePreShapingDepthSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    const auto& scores = solution.getParameters().partialFitness;
+    REQUIRE(scores.size() == 2);
+
+    REQUIRE(scores[0] == Catch::Approx(1.0).margin(1e-9));
+    REQUIRE(scores[1] == Catch::Approx(std::exp(-0.5)).margin(1e-9));
+}
+
 TEST_CASE("Solution moveGaussianStimulusContinuously throws for a stimulus that does not exist", "[Solution][MoveStimulus]")
 {
     MoveScenarioSolution solution(makeTopology(1, 1), MoveScenario{ "gs nf 1 30.000000", 30.0, 10.0, -5.0 });

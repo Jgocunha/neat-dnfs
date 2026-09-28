@@ -1123,6 +1123,17 @@ namespace neat_dnfs
 		return result;
 	}
 
+	double Solution::negativePreShapingDepthAtPosition(const std::string& fieldName, const double position,
+		const double targetDepth, const double width) const
+	{
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "negativePreShapingDepthAtPosition");
+
+		const int pos = clampedIndexForPosition(neuralField, position);
+		const double depth = neuralField->getParameters().startingRestingLevel - neuralField->getComponent("activation")[pos];
+
+		return tools::utils::normalizeWithGaussian(depth, targetDepth, width);
+	}
+
 	void Solution::moveGaussianStimulusContinuously(const std::string& name, const double targetPosition, const double step)
 	{
 		constexpr double epsilon = 1e-6;

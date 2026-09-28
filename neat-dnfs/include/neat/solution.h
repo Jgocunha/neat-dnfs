@@ -332,6 +332,16 @@ namespace neat_dnfs
 		double negativePreShapednessAtPosition(const std::string& fieldName, const double& position,
 			double epsilon = BumpFitnessDefaults::negativePreShapednessEpsilon,
 			double width = BumpFitnessDefaults::negativePreShapednessWidth) const;
+		/// @brief Fitness score rewarding an inhibited trough of a given depth below the resting level at @p position.
+		/// Unlike negativePreShapednessAtPosition(), the target is anchored to the field's resting level, so a
+		/// peak elsewhere in the field does not move it.
+		/// @param fieldName Name of the neural field to score.
+		/// @param position Position at which the trough is measured.
+		/// @param targetDepth Desired distance of the activation at @p position below the resting level.
+		/// @param width Width of the Gaussian the measured depth is compared against.
+		/// @return Fitness score in [0,1]; 1 when the trough is exactly @p targetDepth deep.
+		double negativePreShapingDepthAtPosition(const std::string& fieldName, double position,
+			double targetDepth, double width) const;
 		/// @brief Fitness score for exactly one bump at any one of @p positions.
 		/// @param fieldName Name of the neural field to score.
 		/// @param positions Accepted target centroids; the closest one is credited.

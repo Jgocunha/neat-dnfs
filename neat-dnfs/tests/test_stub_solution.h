@@ -999,6 +999,70 @@ private:
     void createPhenotypeEnvironment() override {}
 };
 
+// Stand-in whose testPhenotype() inhibits "nf 1" at one position while
+// driving a peak elsewhere, measures the resulting trough depth below the
+// resting level, and records negativePreShapingDepthAtPosition() in
+// partialFitness: [0] with the target set to the measured depth, [1] with the
+// target one width further away. The peak must not move the target.
+class NegativePreShapingDepthSolution final : public Solution
+{
+public:
+    static constexpr double width = 2.0;
+
+    explicit NegativePreShapingDepthSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "NegativePreShapingDepth";
+    }
+
+    NegativePreShapingDepthSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "NegativePreShapingDepth";
+    }
+
+    SolutionPtr clone() const override
+    {
+        NegativePreShapingDepthSolution solution(initialTopology);
+        return std::make_shared<NegativePreShapingDepthSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        NegativePreShapingDepthSolution solution(initialTopology, phenotype);
+        return std::make_shared<NegativePreShapingDepthSolution>(solution);
+    }
+
+private:
+    void testPhenotype() override
+    {
+        static constexpr double troughPosition = 30.0;
+        static constexpr double peakPosition = 80.0;
+
+        initSimulation();
+        addGaussianStimulus("nf 1",
+            dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, -GaussStimulusConstants::amplitude, troughPosition,
+                GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+            dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+        addGaussianStimulus("nf 1",
+            dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, 3.0 * GaussStimulusConstants::amplitude, peakPosition,
+                GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+            dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+        runSimulation(SimulationConstants::maxSimulationSteps);
+
+        const auto field = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(phenotype.getElement("nf 1"));
+        const int troughIndex = static_cast<int>(troughPosition / DimensionConstants::dx);
+        const double measuredDepth = field->getParameters().startingRestingLevel - field->getComponent("activation")[troughIndex];
+
+        parameters.partialFitness = {
+            negativePreShapingDepthAtPosition("nf 1", troughPosition, measuredDepth, width),
+            negativePreShapingDepthAtPosition("nf 1", troughPosition, measuredDepth + width, width)
+        };
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
 // One call to moveGaussianStimulusContinuously(), described as data so each
 // test can pick its own stimulus name, start, target and step.
 struct MoveScenario
