@@ -44,7 +44,7 @@ namespace neat_dnfs
 		static constexpr double posB = 80.0;
 
 		// =========================
-		// Phase A: No encoding, no output bump
+		// Phase A: No encoding, output pre-shape
 		// =========================
 		initSimulation();
 		addGaussianStimulus("nf 1",
@@ -67,8 +67,8 @@ namespace neat_dnfs
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations*5);
-		const double f5 = preShapednessAtPosition("nf 3", posB, BumpFitnessDefaults::preShapednessSigma, BumpFitnessDefaults::preShapednessEpsilon);
-		parameters.partialFitness.push_back(f5);
+		const double f3 = preShapednessAtPosition("nf 3", posB, BumpFitnessDefaults::preShapednessSigma, BumpFitnessDefaults::preShapednessEpsilon);
+		parameters.partialFitness.push_back(f3);
 
 		// =========================
 		// Phase C: Probing
@@ -83,23 +83,30 @@ namespace neat_dnfs
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
-		const double f6 = closenessToRestingLevel("nf 2");
+		const double f4 = closenessToRestingLevel("nf 2");
+		parameters.partialFitness.push_back(f4);
+		const double f5 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1", posA, 10.0, 10.0, posB, 10.0, 10.0, BumpFitnessWeights{ 0.70, 0.20, 0.05, 0.05 });
+		parameters.partialFitness.push_back(f5);
+		const double f6 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", posB, 10.0, 10.0, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
 		parameters.partialFitness.push_back(f6);
-		const double f7 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1", posA, 10.0, 10.0, posB, 10.0, 10.0, BumpFitnessWeights{ 0.70, 0.20, 0.05, 0.05 });
-		parameters.partialFitness.push_back(f7);
-		const double f8 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", posB, 10.0, 10.0, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
-		parameters.partialFitness.push_back(f8);
 		runSimulation(iterations);
-		const double f9 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", posB, 10.0, 10.0, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
-		parameters.partialFitness.push_back(f9);
+		const double f7 = oneBumpAtPositionWithAmplitudeAndWidth("nf 3", posB, 10.0, 10.0, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
+		parameters.partialFitness.push_back(f7);
 
 		runSimulation(iterations*2);
-		const double f10 = noBumps("nf 3", BumpFitnessDefaults::noBumpsDecayRate);
-		parameters.partialFitness.push_back(f10);
+		const double f8 = noBumps("nf 3", BumpFitnessDefaults::noBumpsDecayRate);
+		parameters.partialFitness.push_back(f8);
 
 		const auto& w = fitnessWeights;
 
-		parameters.fitness = w[0] * f1 + w[1] * f2 + w[2] * f5 + w[3] * f6 + w[4] * f7 + w[5] * f8 + w[6] * f9 + w[7] * f10;
+		parameters.fitness = w[0] * f1
+		+ w[1] * f2
+		+ w[2] * f3
+		+ w[3] * f4
+		+ w[4] * f5
+		+ w[5] * f6
+		+ w[6] * f7
+		+ w[7] * f8;
 	}
 
 	void MemoryTrace::createPhenotypeEnvironment()
