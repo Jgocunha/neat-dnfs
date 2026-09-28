@@ -1,5 +1,7 @@
 #pragma once
 #include <atomic>
+#include <format>
+#include <string>
 #include <thread>
 #include <numeric>
 #include <stdexcept>
@@ -935,6 +937,130 @@ private:
     void createPhenotypeEnvironment() override {}
 
     bool holdFieldOffRest;
+};
+
+// Stand-in whose testPhenotype() moves one stimulus the same distance leftward
+// and then rightward with moveGaussianStimulusContinuously(), recording the
+// simulation time each move consumed in partialFitness: [0] leftward, [1]
+// rightward. A move in either direction must run the simulation for the same
+// duration; a negative step must not skip simulating the move altogether.
+class MovingStimulusSolution final : public Solution
+{
+public:
+    explicit MovingStimulusSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "MovingStimulus";
+    }
+
+    MovingStimulusSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "MovingStimulus";
+    }
+
+    SolutionPtr clone() const override
+    {
+        MovingStimulusSolution solution(initialTopology);
+        return std::make_shared<MovingStimulusSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        MovingStimulusSolution solution(initialTopology, phenotype);
+        return std::make_shared<MovingStimulusSolution>(solution);
+    }
+
+private:
+    void testPhenotype() override
+    {
+        static constexpr double start = 30.0;
+        static constexpr double end = 10.0;
+        static constexpr double step = 5.0;
+
+        initSimulation();
+        addGaussianStimulus("nf 1",
+            dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, start,
+                GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+            dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+        const std::string stimulus = std::format("gs nf 1 {}", start);
+
+        const double beforeLeftward = phenotype.getT();
+        moveGaussianStimulusContinuously(stimulus, end, -step);
+        const double leftwardDuration = phenotype.getT() - beforeLeftward;
+
+        const double beforeRightward = phenotype.getT();
+        moveGaussianStimulusContinuously(stimulus, start, step);
+        const double rightwardDuration = phenotype.getT() - beforeRightward;
+
+        parameters.partialFitness = { leftwardDuration, rightwardDuration };
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
+// One call to moveGaussianStimulusContinuously(), described as data so each
+// test can pick its own stimulus name, start, target and step.
+struct MoveScenario
+{
+    std::string stimulusName;
+    double start;
+    double target;
+    double step;
+};
+
+// Stand-in whose testPhenotype() adds a stimulus on "nf 1" at scenario.start,
+// then moves the stimulus named scenario.stimulusName to scenario.target in
+// steps of scenario.step. Records in partialFitness: [0] the stimulus's final
+// position, [1] the simulation time the move consumed.
+class MoveScenarioSolution final : public Solution
+{
+public:
+    MoveScenarioSolution(const SolutionTopology& topology, MoveScenario scenario)
+        : Solution(topology), scenario(std::move(scenario))
+    {
+        name = "MoveScenario";
+    }
+
+    MoveScenarioSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype, MoveScenario scenario)
+        : Solution(initialTopology, phenotype), scenario(std::move(scenario))
+    {
+        name = "MoveScenario";
+    }
+
+    SolutionPtr clone() const override
+    {
+        MoveScenarioSolution solution(initialTopology, scenario);
+        return std::make_shared<MoveScenarioSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        MoveScenarioSolution solution(initialTopology, phenotype, scenario);
+        return std::make_shared<MoveScenarioSolution>(solution);
+    }
+
+private:
+    void testPhenotype() override
+    {
+        initSimulation();
+        addGaussianStimulus("nf 1",
+            dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, scenario.start,
+                GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+            dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+
+        const double beforeMove = phenotype.getT();
+        moveGaussianStimulusContinuously(scenario.stimulusName, scenario.target, scenario.step);
+        const double moveDuration = phenotype.getT() - beforeMove;
+
+        const auto stimulus = std::dynamic_pointer_cast<dnf_composer::element::GaussStimulus>(
+            phenotype.getElement(std::format("gs nf 1 {}", scenario.start)));
+        parameters.partialFitness = { stimulus->getParameters().position, moveDuration };
+    }
+
+    void createPhenotypeEnvironment() override {}
+
+    MoveScenario scenario;
 };
 
 } // namespace neat_dnfs::test

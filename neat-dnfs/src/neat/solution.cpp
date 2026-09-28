@@ -1126,16 +1126,33 @@ namespace neat_dnfs
 	void Solution::moveGaussianStimulusContinuously(const std::string& name, const double targetPosition, const double step)
 	{
 		constexpr double epsilon = 1e-6;
-		double newPosition = 0.0;
 		const auto gaussStimulus = std::dynamic_pointer_cast<dnf_composer::element::GaussStimulus>(phenotype.getElement(name));
-		const double diff_x = std::abs(targetPosition - gaussStimulus->getParameters().position);
-		const double steps_x = diff_x / step;
+		if (gaussStimulus == nullptr)
+		{
+			throw std::invalid_argument(std::format(
+				"moveGaussianStimulusContinuously: stimulus '{}' does not exist in the phenotype or is not a GaussStimulus.", name));
+		}
+
+		const double startPosition = gaussStimulus->getParameters().position;
+		const double distance = targetPosition - startPosition;
+		if (std::abs(distance) <= epsilon)
+		{
+			return;
+		}
+		if (step == 0.0 || std::signbit(step) != std::signbit(distance))
+		{
+			throw std::invalid_argument(std::format(
+				"moveGaussianStimulusContinuously: a step of {} cannot move stimulus '{}' from {} to {}.", step, name, startPosition, targetPosition));
+		}
+
+		const double steps_x = std::abs(distance) / std::abs(step);
 		const int steps_t = static_cast<int>(static_cast<double>(SimulationConstants::maxSimulationSteps) / steps_x);
 
+		double newPosition = startPosition;
 		do
 		{
-			const auto position = gaussStimulus->getParameters().position;
-			newPosition = position + step;
+			const bool lastStep = std::abs(targetPosition - newPosition) <= std::abs(step);
+			newPosition = lastStep ? targetPosition : newPosition + step;
 			gaussStimulus->setParameters(dnf_composer::element::GaussStimulusParameters{ gaussStimulus->getParameters().width, gaussStimulus->getParameters().amplitude, newPosition });
 
 			for (int i = 0; i < steps_t; i++)

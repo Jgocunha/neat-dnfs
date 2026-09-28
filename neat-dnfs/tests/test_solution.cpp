@@ -271,6 +271,72 @@ TEST_CASE("Solution preShapednessAtPosition does not read past the end of the fi
     REQUIRE(solution.getFitness() <= 1.0);
 }
 
+TEST_CASE("Solution moveGaussianStimulusContinuously simulates a leftward move as long as a rightward one", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    MovingStimulusSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    const auto& durations = solution.getParameters().partialFitness;
+    REQUIRE(durations.size() == 2);
+    const double leftwardDuration = durations[0];
+    const double rightwardDuration = durations[1];
+
+    REQUIRE(rightwardDuration > 0.0);
+    REQUIRE(leftwardDuration == rightwardDuration);
+}
+
+TEST_CASE("Solution moveGaussianStimulusContinuously throws for a stimulus that does not exist", "[Solution][MoveStimulus]")
+{
+    MoveScenarioSolution solution(makeTopology(1, 1), MoveScenario{ "gs nf 1 30.000000", 30.0, 10.0, -5.0 });
+    solution.initialize();
+
+    REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
+}
+
+TEST_CASE("Solution moveGaussianStimulusContinuously throws for a step pointing away from the target", "[Solution][MoveStimulus]")
+{
+    MoveScenarioSolution solution(makeTopology(1, 1), MoveScenario{ "gs nf 1 30", 30.0, 10.0, 5.0 });
+    solution.initialize();
+
+    REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
+}
+
+TEST_CASE("Solution moveGaussianStimulusContinuously throws for a zero step", "[Solution][MoveStimulus]")
+{
+    MoveScenarioSolution solution(makeTopology(1, 1), MoveScenario{ "gs nf 1 30", 30.0, 10.0, 0.0 });
+    solution.initialize();
+
+    REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
+}
+
+TEST_CASE("Solution moveGaussianStimulusContinuously lands on a target that is not a whole number of steps away", "[Solution][MoveStimulus]")
+{
+    MoveScenarioSolution solution(makeTopology(1, 1), MoveScenario{ "gs nf 1 30", 30.0, 12.0, -5.0 });
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    const auto& recorded = solution.getParameters().partialFitness;
+    const double finalPosition = recorded[0];
+    const double moveDuration = recorded[1];
+    REQUIRE(finalPosition == Catch::Approx(12.0).margin(1e-9));
+    REQUIRE(moveDuration > 0.0);
+}
+
+TEST_CASE("Solution moveGaussianStimulusContinuously does nothing when the stimulus is already at the target", "[Solution][MoveStimulus]")
+{
+    MoveScenarioSolution solution(makeTopology(1, 1), MoveScenario{ "gs nf 1 30", 30.0, 30.0, 5.0 });
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    const auto& recorded = solution.getParameters().partialFitness;
+    const double finalPosition = recorded[0];
+    const double moveDuration = recorded[1];
+    REQUIRE(finalPosition == Catch::Approx(30.0).margin(1e-9));
+    REQUIRE(moveDuration == 0.0);
+}
+
 // Issue #53: unlike oneBumpAtPositionWithAmplitudeAndWidth (which returns 0.0
 // immediately when the field has zero bumps), twoBumpsAtPositionWithAmplitudeAndWidth
 // had no such guard -- on an empty field the bump-matching loop never runs and
