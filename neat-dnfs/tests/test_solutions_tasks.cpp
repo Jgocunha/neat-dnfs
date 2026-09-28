@@ -11,6 +11,7 @@
 #include "solutions/inhibition_of_return.h"
 #include "solutions/and.h"
 #include "solutions/xor.h"
+#include "solutions/hri_packaging_task.h"
 #include "neat_tools/resource_paths.h"
 #include "neat_tools/solution_registry.h"
 #include "test_helpers.h"
@@ -211,6 +212,33 @@ TEST_CASE("XOR evaluate produces a bounded fitness", "[Solutions][XOR]")
     REQUIRE(solution.getFitness() >= 0.0);
     REQUIRE(solution.getFitness() <= 1.0);
     REQUIRE(solution.getParameters().partialFitness.size() == 4);
+}
+
+TEST_CASE("HRIPackagingTask contract", "[Solutions][HRIPackagingTask]")
+{
+    resetGlobalState();
+    checkSolutionContract<HRIPackagingTask>(makeTopology(3, 1)); // nf1, nf2, nf3 inputs; nf4 output
+}
+
+TEST_CASE("HRIPackagingTask evaluate produces a bounded fitness", "[Solutions][HRIPackagingTask]")
+{
+    resetGlobalState();
+    HRIPackagingTask solution(makeTopology(3, 1));
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    REQUIRE(solution.getFitness() >= 0.0);
+    REQUIRE(solution.getFitness() <= 1.0);
+    REQUIRE(solution.getParameters().partialFitness.size() == 7);
+}
+
+TEST_CASE("HRIPackagingTask is registered with three inputs and one output", "[SolutionRegistry]")
+{
+    const auto* task = findTask("hri-packaging");
+    REQUIRE(task != nullptr);
+    REQUIRE(task->templateFile == "hri-packaging-task.dnf");
+    REQUIRE(task->inputs == 3);
+    REQUIRE(task->outputs == 1);
 }
 
 TEST_CASE("Every registered task's template file exists under templates/", "[SolutionRegistry]")
