@@ -42,7 +42,11 @@ it, holding only the values that differ for that experiment — its fitness weig
 anything else it needs (a different `DimensionConstants.xSize`, say, or a different
 `AblationConstants.referenceHiddenFieldsMin`). The two are deep-merged and the merged
 result is validated strictly, so a missing key or a wrong-length weight array is a startup
-error rather than a silently wrong run.
+error rather than a silently wrong run. The one exception is the multi-objective selection
+settings: the `SelectionConstants` block, each key in it, and `PopulationConstants.saveObjectives`
+may be omitted and fall back to their defaults (scalar selection; `saveObjectives` true), so a
+`--config` file written before they existed keeps loading. A mistyped key inside
+`SelectionConstants` is still an error.
 
 Ablation presets live in `config/ablations/` and are the third layer, merged over the first
 two when `--ablation` is passed; adding a file adds a preset, with no code change. A preset

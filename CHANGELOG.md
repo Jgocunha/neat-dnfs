@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Groundwork for multi-objective (Pareto) selection.** Off by default: selection and every existing output are unchanged.
+  - `neat/pareto.h`: epsilon-dominance, Deb 2002 constrained-domination, the NSGA-II non-dominated sort and crowding distance, and a bounded `ParetoArchive`. All are pure functions with no RNG.
+  - A new, optional `SelectionConstants` config block (`mode`, `objectiveGroups`, `dominanceEpsilon`, `feasibilityFloor`, `archiveCapacity`). If the block, or any key in it, is absent, the default applies, so existing `--config` files keep loading. A mistyped key inside the block is an error.
+  - `objectiveGroups` partitions a task's partial fitnesses into objectives. Each solution validates it against its own partial count at construction, and derives `SolutionParameters::objectives` (the weighted mean of each group) after every `evaluate()`.
+  - A new, optional `PopulationConstants.saveObjectives` flag (default `true`). It is not used yet.
+
 ---
 
 ## [0.3.0] - 2026-09-01
