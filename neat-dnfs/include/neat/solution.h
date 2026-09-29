@@ -36,6 +36,13 @@ namespace neat_dnfs
 		/// groups after every evaluate(). Deliberately left out of toString() and
 		/// operator==, whose output and semantics predate it.
 		std::vector<double> objectives;
+		/// Front index from the population's latest non-dominated sort (0 = the
+		/// non-dominated front); -1 until the population has ranked this solution.
+		int paretoRank{-1};
+		/// NSGA-II crowding distance within that front; +infinity for a boundary point.
+		double crowdingDistance{0.0};
+		/// Total shortfall of partialFitness below SelectionConstants::feasibilityFloor; 0 when feasible.
+		double constraintViolation{0.0};
 
 		SolutionParameters(double fitness = 0.0,
 			double adjustedFitness = 0.0, int age = 0)
@@ -137,6 +144,11 @@ namespace neat_dnfs
 		static void clearGenerationalInnovations();
 		void incrementAge();
 		void setAdjustedFitness(double adjustedFitness);
+		/// @brief Records where the population's latest non-dominated sort placed this solution.
+		/// @param rank Front index, 0 for the non-dominated front.
+		/// @param crowdingDistance NSGA-II crowding distance within that front.
+		/// @param violation Total constraint violation used by the sort; 0 when feasible.
+		void setParetoRanking(int rank, double crowdingDistance, double violation);
 		void buildPhenotype();
 		void clearPhenotype();
 		void addFieldGene(const FieldGene& gene);

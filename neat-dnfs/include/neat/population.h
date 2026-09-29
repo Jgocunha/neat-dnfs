@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "genome.h"
+#include "pareto.h"
 #include "solution.h"
 #include "species.h"
 
@@ -145,6 +146,9 @@ namespace neat_dnfs
 		std::unique_ptr<PopulationFileManager> fileManager;
 		ValidationReport validationReport;
 		ValidationPolicy validationPolicy = defaultValidationPolicy;
+		ParetoArchive paretoArchive;
+		/// Ids of the front-0 solutions the archive accepted this generation.
+		std::vector<int> acceptedIntoArchive;
 
 		// Not thread-safe; only ever called from upkeep()/speciate(), both
 		// main-thread. Must not be called from the parallel evaluate() path.
@@ -205,6 +209,15 @@ namespace neat_dnfs
 	private:
 		static inline ValidationPolicy defaultValidationPolicy = ValidationPolicy::Log;
 		void evaluate() const;
+		/// @brief Whether this generation's solutions are Pareto-ranked. For now only
+		/// objectives.jsonl reads the ranks, so they are computed only when it is written.
+		/// @return True when file I/O is enabled and PopulationConstants::saveObjectives is set.
+		[[nodiscard]] bool isRankingObjectives() const;
+		/// @brief Non-dominated sort and crowding distance over the whole population,
+		/// written into each solution's parameters, then offers front 0 to the archive.
+		/// Draws no random numbers. Runs on the main thread, after evaluate().
+		void rankObjectives();
+		void offerFrontToArchive(std::span<const RankedPoint> points, std::span<const size_t> front);
 		void speciate();
 		void reproduceAndSelect();
 

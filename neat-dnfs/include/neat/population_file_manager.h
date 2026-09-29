@@ -54,6 +54,12 @@ namespace neat_dnfs
 		/// @brief Appends one JSON object for the current generation to overview.jsonl,
 		/// alongside (never replacing) the prose per_generation_overview.txt.
 		void savePerGenerationOverviewJson() const;
+		/// @brief Appends one JSON object for the current generation to objectives.jsonl:
+		/// the selection settings, every solution's partials, objectives, Pareto rank,
+		/// crowding distance and constraint violation, and the archive's size and
+		/// this generation's accepted ids. An infinite crowding distance (a boundary
+		/// point) is written as null, since JSON has no infinity.
+		void saveObjectivesForGeneration() const;
 		void saveBestSolutionOfEachGeneration() const;
 		void saveChampionsOfEachGeneration() const;
 		void savePerGenerationStatistics() const;

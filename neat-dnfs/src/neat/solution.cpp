@@ -608,6 +608,13 @@ namespace neat_dnfs
 		parameters.adjustedFitness = adjustedFitness;
 	}
 
+	void Solution::setParetoRanking(const int rank, const double crowdingDistance, const double violation)
+	{
+		parameters.paretoRank = rank;
+		parameters.crowdingDistance = crowdingDistance;
+		parameters.constraintViolation = violation;
+	}
+
 	void Solution::addFieldGene(const FieldGene& gene)
 	{
 		genome.addFieldGene(gene);

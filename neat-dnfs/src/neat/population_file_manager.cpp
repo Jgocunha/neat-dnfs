@@ -48,6 +48,10 @@ namespace neat_dnfs
 		{
 			savePerGenerationOverviewJson();
 		}
+		if (PopulationConstants::saveObjectives)
+		{
+			saveObjectivesForGeneration();
+		}
 	}
 
 	void PopulationFileManager::savePerGenerationData() const
@@ -468,6 +472,70 @@ namespace neat_dnfs
 		{
 			tools::logger::log(tools::logger::LogLevel::ERROR,
 				"Failed to open log file for structured per generation overview.");
+		}
+	}
+
+	namespace
+	{
+		std::string selectionModeName(const SelectionMode mode)
+		{
+			return mode == SelectionMode::Pareto ? "pareto" : "scalar";
+		}
+
+		nlohmann::json finiteOrNull(const double value)
+		{
+			return std::isfinite(value) ? nlohmann::json(value) : nlohmann::json(nullptr);
+		}
+
+		nlohmann::json toObjectivesJson(const Solution& solution)
+		{
+			const auto parameters = solution.getParameters();
+			return {
+				{"id", solution.getId()},
+				{"species", solution.getSpeciesId()},
+				{"fitness", parameters.fitness},
+				{"partialFitness", parameters.partialFitness},
+				{"objectives", parameters.objectives},
+				{"rank", parameters.paretoRank},
+				{"crowding", finiteOrNull(parameters.crowdingDistance)},
+				{"violation", parameters.constraintViolation}
+			};
+		}
+	}
+
+	void PopulationFileManager::saveObjectivesForGeneration() const
+	{
+		nlohmann::json individuals = nlohmann::json::array();
+		for (const auto& solution : population->solutions)
+		{
+			individuals.push_back(toObjectivesJson(*solution));
+		}
+
+		const nlohmann::json record = {
+			{"generation", population->parameters.currentGeneration},
+			{"mode", selectionModeName(SelectionConstants::mode)},
+			{"epsilon", SelectionConstants::dominanceEpsilon},
+			{"feasibilityFloor", SelectionConstants::feasibilityFloor},
+			{"objectiveGroups", SelectionConstants::objectiveGroups},
+			{"individuals", individuals},
+			{"archive", {
+				{"size", population->paretoArchive.size()},
+				{"acceptedThisGeneration", population->acceptedIntoArchive}
+			}}
+		};
+
+		const std::string directoryPath = fileDirectory + "/";
+		std::filesystem::create_directories(directoryPath);
+
+		std::ofstream logFile(directoryPath + "objectives.jsonl", std::ios::app);
+		if (logFile.is_open())
+		{
+			logFile << record.dump() << "\n";
+		}
+		else
+		{
+			tools::logger::log(tools::logger::LogLevel::ERROR,
+				"Failed to open objectives.jsonl for the per-generation objective record.");
 		}
 	}
 

@@ -71,7 +71,7 @@ namespace neat_dnfs
 	{}
 
 	Population::Population(const PopulationParameters& parameters, const SolutionPtr& initialSolution, const bool enableFileIO)
-		: parameters(parameters)
+		: parameters(parameters), paretoArchive(SelectionConstants::archiveCapacity)
 	{
 		createInitialSolutions(initialSolution);
 		if (enableFileIO)
@@ -118,8 +118,14 @@ namespace neat_dnfs
 			tools::profiler::resetGeneration();
 
 			{
+				// Ranking is timed as part of "evaluate" rather than as a column of
+				// its own, so profile.csv keeps its fixed column set.
 				const tools::profiler::ScopedTimer timer("evaluate");
 				evaluate();
+				if (isRankingObjectives())
+				{
+					rankObjectives();
+				}
 			}
 			{
 				const tools::profiler::ScopedTimer timer("speciate");
@@ -200,6 +206,51 @@ namespace neat_dnfs
 		if (firstError)
 		{
 			std::rethrow_exception(firstError);
+		}
+	}
+
+	bool Population::isRankingObjectives() const
+	{
+		return fileManager != nullptr && PopulationConstants::saveObjectives;
+	}
+
+	void Population::rankObjectives()
+	{
+		std::vector<RankedPoint> points;
+		points.reserve(solutions.size());
+		for (const auto& solution : solutions)
+		{
+			const auto solutionParameters = solution->getParameters();
+			points.push_back({ solutionParameters.objectives,
+				constraintViolation(solutionParameters.partialFitness, SelectionConstants::feasibilityFloor) });
+		}
+
+		const auto fronts = nonDominatedSort(points, SelectionConstants::dominanceEpsilon);
+		for (size_t rank = 0; rank < fronts.size(); ++rank)
+		{
+			const auto distances = crowdingDistances(points, fronts[rank]);
+			for (size_t position = 0; position < fronts[rank].size(); ++position)
+			{
+				const size_t index = fronts[rank][position];
+				solutions[index]->setParetoRanking(static_cast<int>(rank), distances[position], points[index].violation);
+			}
+		}
+		offerFrontToArchive(points, fronts.front());
+	}
+
+	void Population::offerFrontToArchive(std::span<const RankedPoint> points, std::span<const size_t> front)
+	{
+		acceptedIntoArchive.clear();
+		for (const size_t index : front)
+		{
+			const auto& solution = solutions[index];
+			const ParetoArchiveEntry entry{ solution->getId(), solution->getSpeciesId(), parameters.currentGeneration,
+				points[index].objectives, solution->getParameters().partialFitness, solution->getFitness(),
+				points[index].violation };
+			if (paretoArchive.tryInsert(entry, SelectionConstants::dominanceEpsilon))
+			{
+				acceptedIntoArchive.push_back(solution->getId());
+			}
 		}
 	}
 
