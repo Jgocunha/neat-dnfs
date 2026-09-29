@@ -146,6 +146,40 @@ private:
     void createPhenotypeEnvironment() override {}
 };
 
+// Stand-in that reports fixed partial fitnesses under the "and" task's eight
+// fitness weights, for checking how Solution::evaluate() derives the
+// objective vector without running a real DNF simulation.
+class FixedPartialsSolution final : public Solution
+{
+public:
+    FixedPartialsSolution(const SolutionTopology& topology, std::vector<double> partials)
+        : Solution(topology), partialsToReport(std::move(partials))
+    {
+        name = "FixedPartials";
+        loadFitnessWeights("and", partialsToReport.size());
+    }
+
+    SolutionPtr clone() const override
+    {
+        return std::make_shared<FixedPartialsSolution>(initialTopology, partialsToReport);
+    }
+
+    SolutionPtr copy() const override
+    {
+        return clone();
+    }
+
+private:
+    std::vector<double> partialsToReport;
+
+    void testPhenotype() override
+    {
+        parameters.partialFitness = partialsToReport;
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
 // Stand-in whose testPhenotype() calls a fitness helper with a field name
 // that doesn't exist in its own topology, used to verify that the shared
 // null-field guard (Solution::getNeuralFieldOrThrow) raises an indicative

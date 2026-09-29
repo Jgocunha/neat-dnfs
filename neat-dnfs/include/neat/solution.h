@@ -32,6 +32,10 @@ namespace neat_dnfs
 		int speciesId{-1};
 		std::vector<double> partialFitness;
 		std::vector<dnf_composer::element::NeuralFieldBump> bumps;
+		/// Objective vector derived from partialFitness by the task's objective
+		/// groups after every evaluate(). Deliberately left out of toString() and
+		/// operator==, whose output and semantics predate it.
+		std::vector<double> objectives;
 
 		SolutionParameters(double fitness = 0.0,
 			double adjustedFitness = 0.0, int age = 0)
@@ -94,6 +98,11 @@ namespace neat_dnfs
 		/// that two solution types alive at once -- as in the test binary, where
 		/// weight counts differ per task -- cannot read each other's weights.
 		std::vector<double> fitnessWeights;
+		/// This solution's own copy of SelectionConstants::objectiveGroups, taken
+		/// and validated by loadFitnessWeights() for the same reason as
+		/// fitnessWeights. Stays empty (one objective per partial) for a solution
+		/// that never calls loadFitnessWeights().
+		std::vector<std::vector<size_t>> objectiveGroups;
 	public:
 		virtual ~Solution() = default;
 
@@ -207,11 +216,17 @@ namespace neat_dnfs
 		/// @brief Run the simulation and write the result into @c parameters.fitness. Called by @c evaluate().
 		virtual void testPhenotype() = 0;
 
-		/// @brief Fills @c fitnessWeights from config/solutions/<slug>.json.
+		/// @brief Fills @c fitnessWeights from config/solutions/<slug>.json, and
+		/// copies SelectionConstants::objectiveGroups into @c objectiveGroups.
 		/// Every subclass constructor calls this with its task slug and the number
 		/// of partial-fitness terms its testPhenotype() combines, so a config with
-		/// the wrong number of weights fails loudly instead of misweighting the
-		/// fitness or reading out of bounds.
+		/// the wrong number of weights, or with objective groups that do not
+		/// partition those terms, fails loudly instead of misweighting the fitness
+		/// or reading out of bounds.
+		/// @param slug Task slug naming config/solutions/<slug>.json.
+		/// @param expectedCount Number of partial-fitness terms the task produces.
+		/// @throws std::runtime_error if the weights have the wrong length or the
+		/// objective groups are not a partition of [0, expectedCount).
 		void loadFitnessWeights(const std::string& slug, size_t expectedCount);
 
 		void initSimulation();

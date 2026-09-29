@@ -15,6 +15,14 @@ namespace neat_dnfs
 	/// or a missing key is a hard error rather than a silent zero. Callers are
 	/// the three apps in apps/ (via --config) and tests/entry.cpp.
 	///
+	/// The one exception is the multi-objective selection settings: the whole
+	/// SelectionConstants block, each key inside it, and
+	/// PopulationConstants.saveObjectives are optional and fall back to their
+	/// compiled-in defaults (scalar selection; saveObjectives true). They were
+	/// added after users had written their own full --config files, and those
+	/// files must keep loading unchanged. Because optional keys would hide a
+	/// typo, an unknown key inside SelectionConstants is still an error.
+	///
 	/// config/neat_dnfs.json is the complete reference set. A per-experiment
 	/// config under config/solutions/ is a *sparse* override of it: the two are
 	/// deep-merged (RFC 7386) and the merged result is then validated strictly,

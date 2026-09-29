@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <span>
+#include <string_view>
 #include <vector>
 
 namespace neat_dnfs
@@ -70,6 +71,16 @@ namespace neat_dnfs
     /// @p groups is empty.
     [[nodiscard]] std::vector<double> groupObjectives(std::span<const double> partials,
         const std::vector<std::vector<size_t>>& groups, std::span<const double> weights);
+
+    /// @brief Checks that objective groups partition a task's partial-fitness indices.
+    /// @details Valid groups use every index in [0, @p partialCount) exactly once and
+    /// contain no empty group. An empty list of groups is always valid (one objective
+    /// per partial).
+    /// @param groups The candidate grouping, one index list per objective.
+    /// @param partialCount Number of partial-fitness terms the task produces.
+    /// @param taskName Task slug, named in the error message.
+    /// @throws std::runtime_error naming @p taskName if the groups are not a partition.
+    void validateObjectiveGroups(const std::vector<std::vector<size_t>>& groups, size_t partialCount, std::string_view taskName);
 
     /// @brief One point stored in the ParetoArchive.
     struct ParetoArchiveEntry

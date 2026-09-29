@@ -22,7 +22,9 @@ namespace neat_dnfs
 	// (see include/neat_tools/config_loader.h). There are
 	// deliberately no compiled-in fallbacks: a missing config file or key is a
 	// hard startup error, so a run can never silently use a value that is not
-	// recorded in the config it was launched with.
+	// recorded in the config it was launched with. SelectionConstants and
+	// PopulationConstants::saveObjectives are the exception: they postdate
+	// users' own config files, so they are optional and carry defaults.
 	//
 	// The name/namePrefix string_views are the exception and stay compile-time.
 	// They are not tuning knobs: they build element unique names via
@@ -300,6 +302,40 @@ namespace neat_dnfs
 		inline static double targetFitness;
 	};
 
+	/// @brief How the population compares solutions when selecting.
+	enum class SelectionMode
+	{
+		Scalar,	///< the weighted-sum fitness, as NEAT always has
+		Pareto	///< dominance over the objective vector (see neat/pareto.h)
+	};
+
+	/// @brief Multi-objective selection settings (config block "SelectionConstants").
+	/// @details The exception to this file's no-fallback rule: every field has a
+	/// compiled-in default, and ConfigLoader restores them when a config has no
+	/// SelectionConstants block, or omits a key from it. A user's pre-existing
+	/// --config file therefore keeps loading, and runs in scalar mode.
+	struct SelectionConstants
+	{
+		inline static SelectionMode mode = SelectionMode::Scalar;
+		// Partition of a task's partial-fitness indices, one list per objective;
+		// empty means one objective per partial. Each Solution validates it
+		// against its own partial count at construction.
+		inline static std::vector<std::vector<size_t>> objectiveGroups;
+		inline static double dominanceEpsilon = 0.0;
+		inline static double feasibilityFloor = 0.0;
+		inline static size_t archiveCapacity = 100;
+
+		/// @brief Restores every field to its compiled-in default.
+		static void reset()
+		{
+			mode = SelectionMode::Scalar;
+			objectiveGroups.clear();
+			dominanceEpsilon = 0.0;
+			feasibilityFloor = 0.0;
+			archiveCapacity = 100;
+		}
+	};
+
 	struct PopulationConstants
 	{
 		inline static double pruneRatio;
@@ -327,5 +363,8 @@ namespace neat_dnfs
 		inline static bool saveSolutions;
 		inline static bool saveSpecies;
 		inline static bool saveStructuredOverview;
+		// Optional in config, unlike the flags above: defaults to true when the
+		// key is absent, so configs written before it existed keep loading.
+		inline static bool saveObjectives = true;
 	};
 }

@@ -2,6 +2,7 @@
 
 #include "neat/solution.h"
 #include "neat_tools/config_loader.h"
+#include "neat/pareto.h"
 #include <format>
 #include <limits>
 #include <cmath>
@@ -52,6 +53,8 @@ namespace neat_dnfs
 	void Solution::loadFitnessWeights(const std::string& slug, const size_t expectedCount)
 	{
 		fitnessWeights = ConfigLoader::loadFitnessWeights(slug, expectedCount);
+		validateObjectiveGroups(SelectionConstants::objectiveGroups, expectedCount, slug);
+		objectiveGroups = SelectionConstants::objectiveGroups;
 	}
 
 	void Solution::evaluate()
@@ -79,6 +82,7 @@ namespace neat_dnfs
 			throw;
 		}
 		clearPhenotype();
+		parameters.objectives = groupObjectives(parameters.partialFitness, objectiveGroups, fitnessWeights);
 	}
 
 	void Solution::initialize()

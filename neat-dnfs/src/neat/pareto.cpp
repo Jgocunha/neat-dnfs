@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <format>
 #include <limits>
 #include <numeric>
 #include <stdexcept>
@@ -229,6 +230,45 @@ namespace neat_dnfs
                 : plainSum / static_cast<double>(group.size()));
         }
         return objectives;
+    }
+
+    void validateObjectiveGroups(const std::vector<std::vector<size_t>>& groups, const size_t partialCount, const std::string_view taskName)
+    {
+        if (groups.empty())
+        {
+            return;
+        }
+
+        const auto fail = [&](const std::string& reason)
+        {
+            throw std::runtime_error(std::format(
+                "SelectionConstants.objectiveGroups for task '{}' must partition its {} partial-fitness indices: {}.",
+                taskName, partialCount, reason));
+        };
+
+        std::vector<int> timesUsed(partialCount, 0);
+        for (const auto& group : groups)
+        {
+            if (group.empty())
+            {
+                fail("a group is empty");
+            }
+            for (const size_t index : group)
+            {
+                if (index >= partialCount)
+                {
+                    fail(std::format("index {} is out of range", index));
+                }
+                ++timesUsed[index];
+            }
+        }
+        for (size_t index = 0; index < partialCount; ++index)
+        {
+            if (timesUsed[index] != 1)
+            {
+                fail(std::format("index {} is used {} times", index, timesUsed[index]));
+            }
+        }
     }
 
     ParetoArchive::ParetoArchive(const size_t capacity)

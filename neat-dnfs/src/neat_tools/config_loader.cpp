@@ -166,6 +166,7 @@ namespace neat_dnfs
 				"GaussKernelConstants", "MexicanHatKernelConstants", "CompatibilityCoefficients",
 				"GenomeMutationConstants", "FieldGeneConstants", "ConnectionGeneConstants",
 				"SolutionConstants", "AblationConstants", "PopulationConstants",
+				"SelectionConstants",
 			};
 			for (const auto& item : j.items())
 			{
@@ -174,6 +175,89 @@ namespace neat_dnfs
 					throw std::runtime_error("ConfigLoader: '" + path + "' has unknown top-level key '"
 						+ item.key() + "'; check for a typo in the struct name.");
 				}
+			}
+		}
+
+		SelectionMode parseSelectionMode(const std::string& name)
+		{
+			if (name == "scalar")
+			{
+				return SelectionMode::Scalar;
+			}
+			if (name == "pareto")
+			{
+				return SelectionMode::Pareto;
+			}
+			throw std::runtime_error("ConfigLoader: SelectionConstants.mode '" + name
+				+ "' is unknown; expected \"scalar\" or \"pareto\".");
+		}
+
+		void requireInRange(const char* key, const double value, const double min, const double maxExclusive)
+		{
+			if (value < min || value >= maxExclusive)
+			{
+				throw std::runtime_error(std::format(
+					"ConfigLoader: SelectionConstants.{} is {}, outside the valid range [{}, {}).",
+					key, value, min, maxExclusive));
+			}
+		}
+
+		// Unlike every other block, SelectionConstants is optional and so is each
+		// of its keys (backwards compatibility with configs written before it
+		// existed). Optional keys would hide a typo, so unknown keys are rejected
+		// here even though the other blocks tolerate them.
+		void checkNoUnknownSelectionKeys(const nlohmann::json& block)
+		{
+			static const std::set<std::string> known = {
+				"mode", "objectiveGroups", "dominanceEpsilon", "feasibilityFloor", "archiveCapacity",
+			};
+			for (const auto& item : block.items())
+			{
+				if (!known.contains(item.key()))
+				{
+					throw std::runtime_error("ConfigLoader: SelectionConstants has unknown key '"
+						+ item.key() + "'; check for a typo.");
+				}
+			}
+		}
+
+		void applySelectionConstants(const nlohmann::json& j)
+		{
+			SelectionConstants::reset();
+			if (!j.contains("SelectionConstants"))
+			{
+				return;
+			}
+
+			const auto& block = j.at("SelectionConstants");
+			checkNoUnknownSelectionKeys(block);
+			if (block.contains("mode"))
+			{
+				SelectionConstants::mode = parseSelectionMode(block.at("mode").get<std::string>());
+			}
+			if (block.contains("objectiveGroups"))
+			{
+				ConfigLoader::field(block, "objectiveGroups", &SelectionConstants::objectiveGroups);
+			}
+			if (block.contains("dominanceEpsilon"))
+			{
+				ConfigLoader::field(block, "dominanceEpsilon", &SelectionConstants::dominanceEpsilon);
+				requireInRange("dominanceEpsilon", SelectionConstants::dominanceEpsilon, 0.0, 0.5);
+			}
+			if (block.contains("feasibilityFloor"))
+			{
+				ConfigLoader::field(block, "feasibilityFloor", &SelectionConstants::feasibilityFloor);
+				requireInRange("feasibilityFloor", SelectionConstants::feasibilityFloor, 0.0, 1.0);
+			}
+			if (block.contains("archiveCapacity"))
+			{
+				const auto capacity = block.at("archiveCapacity").get<long long>();
+				if (capacity < 1)
+				{
+					throw std::runtime_error(std::format(
+						"ConfigLoader: SelectionConstants.archiveCapacity is {}; it must be at least 1.", capacity));
+				}
+				SelectionConstants::archiveCapacity = static_cast<size_t>(capacity);
 			}
 		}
 	}
@@ -366,6 +450,9 @@ namespace neat_dnfs
 			field(pc, "saveSolutions", &PopulationConstants::saveSolutions);
 			field(pc, "saveSpecies", &PopulationConstants::saveSpecies);
 			field(pc, "saveStructuredOverview", &PopulationConstants::saveStructuredOverview);
+			PopulationConstants::saveObjectives = pc.value("saveObjectives", true);
+
+			applySelectionConstants(j);
 		}
 		catch (const nlohmann::json::exception& e)
 		{
