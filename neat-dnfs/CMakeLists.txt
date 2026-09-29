@@ -144,6 +144,7 @@ set(header
         "include/neat/population_file_manager.h"
         "include/neat/solution.h"
         "include/neat/species.h"
+        "include/neat/pareto.h"
 
         "include/solutions/detection_instability.h"
         "include/solutions/memory_instability.h"
@@ -174,6 +175,7 @@ set(src
         "src/neat/population_file_manager.cpp"
         "src/neat/solution.cpp"
         "src/neat/species.cpp"
+        "src/neat/pareto.cpp"
 
         "src/solutions/detection_instability.cpp"
         "src/solutions/memory_instability.cpp"
@@ -387,6 +389,7 @@ add_executable(${TEST_PROJECT}
     "tests/test_solution.cpp"
     "tests/test_solutions_tasks.cpp"
     "tests/test_species.cpp"
+    "tests/test_pareto.cpp"
     "tests/test_population.cpp"
     "tests/test_population_file_manager.cpp"
     "tests/test_speciation.cpp"
