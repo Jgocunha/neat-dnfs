@@ -1,6 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
 
 #include <filesystem>
+#include <numeric>
 
 #include <dnf_composer/exceptions/exception.h>
 
@@ -12,6 +14,7 @@
 #include "solutions/and.h"
 #include "solutions/xor.h"
 #include "solutions/hri_packaging_task.h"
+#include "neat_tools/config_loader.h"
 #include "neat_tools/resource_paths.h"
 #include "neat_tools/solution_registry.h"
 #include "test_helpers.h"
@@ -239,6 +242,32 @@ TEST_CASE("HRIPackagingTask is registered with three inputs and one output", "[S
     REQUIRE(task->templateFile == "hri-packaging-task.dnf");
     REQUIRE(task->inputs == 3);
     REQUIRE(task->outputs == 1);
+}
+
+// Population::endConditionMet() stops a run once every *recorded* partial
+// fitness passes the target, while the fitness it reports is the weighted sum
+// testPhenotype() computed. If a task records a different term than it weighs,
+// a run can stop early on a solution whose fitness never reached the target.
+TEST_CASE("Every registered task's fitness is the weighted sum of the partial fitness it records", "[Solutions][SolutionRegistry]")
+{
+    for (const auto& task : taskEntries())
+    {
+        DYNAMIC_SECTION("task: " << task.slug)
+        {
+            resetGlobalState();
+            const ScopedTaskConfig taskConfig{ std::string(task.slug) };
+
+            const auto solution = task.makeFromTopology(defaultTopologyFor(task));
+            solution->initialize();
+            solution->evaluate();
+
+            const auto& recorded = solution->getParameters().partialFitness;
+            const auto weights = ConfigLoader::loadFitnessWeights(std::string(task.slug), recorded.size());
+            const double weightedSum = std::inner_product(recorded.begin(), recorded.end(), weights.begin(), 0.0);
+
+            REQUIRE(solution->getFitness() == Catch::Approx(weightedSum).margin(1e-9));
+        }
+    }
 }
 
 TEST_CASE("Every registered task's template file exists under templates/", "[SolutionRegistry]")

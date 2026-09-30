@@ -61,7 +61,7 @@ namespace neat_dnfs
 		const double f2 = preShapednessAtPosition("nf 3", position, 10.0, 0.1f);
 		//noBumps("nf 3", BumpFitnessDefaults::noBumpsDecayRate);
 		parameters.partialFitness.emplace_back(f1);
-		parameters.partialFitness.emplace_back(f1);
+		parameters.partialFitness.emplace_back(f2);
 
 		removeGaussianStimuli();
 		addGaussianStimulus("nf 2",
