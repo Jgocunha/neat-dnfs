@@ -29,7 +29,7 @@ Every binary supports `--list` (print available tasks and ablations) and
 | `--config PATH` | all | Reference hyperparameter JSON | `config/neat_dnfs.json` |
 
 Available tasks: `and`, `xor`, `detection-instability`, `memory-instability`,
-`selection-instability`, `memory-trace`, `dmts`, `ior`.
+`selection-instability`, `memory-trace`, `dmts`, `ior`, `hri-packaging`.
 
 Available ablations: `no-growth-io-only`, `no-growth-reference-hidden-field-count`,
 `no-speciation`, `no-crossover`, `random-initial-topology`.
