@@ -1,6 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
+#include <algorithm>
 #include <cmath>
+#include <vector>
 
 #include "neat_tools/utils.h"
 
@@ -184,6 +186,40 @@ TEST_CASE("normalizeWithGaussian peaks at the target and decays away from it", "
     REQUIRE(near < 1.0);
     REQUIRE(near > far);
     REQUIRE(far == Catch::Approx(0.0).margin(1e-6));
+}
+
+TEST_CASE("closenessOfActivationToRestingLevel ignores zero-mean noise inside the tolerance", "[closenessOfActivationToRestingLevel]")
+{
+    using neat_dnfs::tools::utils::closenessOfActivationToRestingLevel;
+
+    const std::vector<double> noisyAtRest{ -5.05, -4.95, -5.05, -4.95 };
+
+    REQUIRE(closenessOfActivationToRestingLevel(noisyAtRest, -5.0, 0.25) == Catch::Approx(1.0));
+}
+
+TEST_CASE("closenessOfActivationToRestingLevel scores a uniform offset by its size", "[closenessOfActivationToRestingLevel]")
+{
+    using neat_dnfs::tools::utils::closenessOfActivationToRestingLevel;
+
+    const std::vector<double> liftedByTwo(100, -3.0);
+    const std::vector<double> loweredByTwo(100, -7.0);
+
+    REQUIRE(closenessOfActivationToRestingLevel(liftedByTwo, -5.0, 0.25) == Catch::Approx(1.0 / 3.0));
+    REQUIRE(closenessOfActivationToRestingLevel(loweredByTwo, -5.0, 0.25) == Catch::Approx(1.0 / 3.0));
+}
+
+// A peak whose inhibitory surround balances it leaves the signed mean exactly
+// at the resting level. Scoring the mean alone gave such a field a perfect
+// 1.0 although no cell in it is at rest.
+TEST_CASE("closenessOfActivationToRestingLevel penalises a peak balanced by an inhibitory surround", "[closenessOfActivationToRestingLevel]")
+{
+    using neat_dnfs::tools::utils::closenessOfActivationToRestingLevel;
+
+    std::vector<double> peakWithSurround(100, -6.0); // surround: 1 below rest
+    std::fill_n(peakWithSurround.begin() + 45, 10, 4.0); // peak: 9 above rest
+
+    // Mean distance from rest beyond the tolerance: (10 * 8.75 + 90 * 0.75) / 100 = 1.55.
+    REQUIRE(closenessOfActivationToRestingLevel(peakWithSurround, -5.0, 0.25) == Catch::Approx(1.0 / 2.55));
 }
 
 TEST_CASE("normalizeWithFlatheadGaussian is 1.0 inside the flat region", "[normalizeWithFlatheadGaussian]")

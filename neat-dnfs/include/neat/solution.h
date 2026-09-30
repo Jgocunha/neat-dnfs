@@ -49,6 +49,7 @@ namespace neat_dnfs
 		inline constexpr double preShapednessEpsilon = 0.01;
 		inline constexpr double negativePreShapednessEpsilon = 0.15;
 		inline constexpr double negativePreShapednessWidth = 10.0;
+		inline constexpr double restingLevelNoiseTolerance = 0.25;
 
 		/// @brief Default weights for Solution::oneBumpAtPositionWithAmplitudeAndWidth.
 		/// @return The weight set {0.45, 0.45, 0.05, 0.05}.
@@ -283,10 +284,15 @@ namespace neat_dnfs
 		///
 		/// closenessToRestingLevel scores the single highest cell, and the maximum of many
 		/// zero-mean noisy cells always sits above rest, so a field at rest cannot score 1.0
-		/// under noise. The mean over every cell is not lifted by zero-mean noise.
+		/// under noise. The mean over every cell is not lifted by zero-mean noise. A peak
+		/// balanced by an inhibitory surround would cancel out in that mean, so cells further
+		/// from rest than @p noiseTolerance are also counted, without cancelling.
 		/// @param fieldName Name of the neural field to score.
-		/// @return 1 / (1 + |mean activation - resting level|).
-		double closenessOfMeanActivationToRestingLevel(const std::string& fieldName) const;
+		/// @param noiseTolerance Distance from rest a cell may have before it counts as off rest.
+		/// @return 1 / (1 + d), where d is the larger of |mean activation - resting level| and
+		/// the mean distance of the cells from rest beyond @p noiseTolerance.
+		double closenessOfMeanActivationToRestingLevel(const std::string& fieldName,
+			double noiseTolerance = BumpFitnessDefaults::restingLevelNoiseTolerance) const;
 
 		// validated but could be improved
 		/// @brief Fitness score for a single bump at @p position with the given amplitude and width.

@@ -6,7 +6,6 @@
 #include <limits>
 #include <cmath>
 #include <algorithm>
-#include <numeric>
 #include <charconv>
 #include <string_view>
 
@@ -895,15 +894,14 @@ namespace neat_dnfs
 		return result;
 	}
 
-	double Solution::closenessOfMeanActivationToRestingLevel(const std::string& fieldName) const
+	double Solution::closenessOfMeanActivationToRestingLevel(const std::string& fieldName, const double noiseTolerance) const
 	{
 		const auto neuralField = getNeuralFieldOrThrow(fieldName, "closenessOfMeanActivationToRestingLevel");
 
 		const auto& activation = neuralField->getComponents()->at("activation");
-		const double meanActivation = std::accumulate(activation.begin(), activation.end(), 0.0) / static_cast<double>(activation.size());
 		const double restingLevel = neuralField->getParameters().startingRestingLevel;
 
-		return 1.0 / (1.0 + std::abs(meanActivation - restingLevel));
+		return tools::utils::closenessOfActivationToRestingLevel(activation, restingLevel, noiseTolerance);
 	}
 
 	double Solution::noBumps(const std::string& fieldName, const double decayRate) const
