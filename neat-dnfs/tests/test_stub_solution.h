@@ -889,8 +889,10 @@ private:
 // Stand-in that runs a full simulation on "nf 1" and scores it with
 // closenessOfMeanActivationToRestingLevel. With holdFieldOffRest false the
 // field receives no stimulus, so it sits at its resting level and only noise
-// moves it; with it true a Gaussian stimulus holds the field well above rest,
-// which the helper must still penalise.
+// moves it; with it true an inhibitory stimulus far wider than the field holds
+// every cell well below rest, which the helper must still penalise. The field
+// is pushed down rather than up on purpose: below rest its output is ~0, so
+// the randomly drawn kernel cannot react and pull the mean back towards rest.
 class RestingLevelClosenessSolution final : public Solution
 {
 public:
@@ -924,8 +926,9 @@ private:
         initSimulation();
         if (holdFieldOffRest)
         {
+            const double fieldWideWidth = 100.0 * DimensionConstants::xSize;
             addGaussianStimulus("nf 1",
-                dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+                dnf_composer::element::GaussStimulusParameters{ fieldWideWidth, -GaussStimulusConstants::amplitude, 50.0,
                     GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
                 dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
         }

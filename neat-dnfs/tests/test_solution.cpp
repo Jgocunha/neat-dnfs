@@ -743,8 +743,9 @@ TEST_CASE("Solution closenessOfMeanActivationToRestingLevel scores a noisy field
 }
 
 // Tolerating noise must not mean tolerating a field that is genuinely off
-// rest: with a stimulus holding the field up, the mean-activation score must
-// fall below what the old max-based helper gave a field that was only noisy.
+// rest: with a stimulus holding the whole field below rest, the mean-activation
+// score must fall below what the old max-based helper gave a field that was
+// only noisy.
 TEST_CASE("Solution closenessOfMeanActivationToRestingLevel still penalises a field held off rest", "[Solution]")
 {
     RestingLevelClosenessSolution solution(makeTopology(1, 1), true);
