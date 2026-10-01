@@ -244,6 +244,22 @@ TEST_CASE("HRIPackagingTask is registered with three inputs and one output", "[S
     REQUIRE(task->outputs == 1);
 }
 
+// ConfigLoader::loadConfig() sets every process-wide constant a task's config
+// names, not just the field size. Leaving any of them behind would run every
+// later test in the same process under that task's settings.
+TEST_CASE("ScopedTaskConfig restores every constant the task's config overrode", "[SolutionRegistry]")
+{
+    const double deltaTBefore = SimulationConstants::deltaT;
+    const int xSizeBefore = DimensionConstants::xSize;
+    {
+        const ScopedTaskConfig taskConfig{ "hri-packaging" };
+        REQUIRE(SimulationConstants::deltaT != deltaTBefore);
+        REQUIRE(DimensionConstants::xSize != xSizeBefore);
+    }
+    REQUIRE(SimulationConstants::deltaT == deltaTBefore);
+    REQUIRE(DimensionConstants::xSize == xSizeBefore);
+}
+
 // Population::endConditionMet() stops a run once every *recorded* partial
 // fitness passes the target, while the fitness it reports is the weighted sum
 // testPhenotype() computed. If a task records a different term than it weighs,
