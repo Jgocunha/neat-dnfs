@@ -25,6 +25,7 @@
 #include <chrono>
 #include <charconv>
 #include <optional>
+#include <span>
 #include <string_view>
 
 namespace neat_dnfs
@@ -251,6 +252,31 @@ namespace neat_dnfs
             inline double normalizeWithGaussian(const double value, const double target, const double width)
             {
 	            return exp(-0.5 * pow((value - target) / width, 2));
+            }
+
+            /// @brief Score in [0,1] for how close a field's activation sits to its resting level.
+            ///
+            /// Two distances are measured and the larger one decides the score. The signed mean
+            /// distance is not lifted by zero-mean noise, but a peak balanced by an inhibitory
+            /// surround cancels out in it. The mean distance beyond @p noiseTolerance does not
+            /// cancel, and ignores cells that are off rest by no more than noise.
+            /// @param activation Activation of every cell of the field.
+            /// @param restingLevel Resting level the cells are compared against.
+            /// @param noiseTolerance Distance from rest a cell may have before it counts as off rest.
+            /// @return 1 / (1 + the larger of the two distances).
+            [[nodiscard]] inline double closenessOfActivationToRestingLevel(const std::span<const double> activation, const double restingLevel, const double noiseTolerance)
+            {
+                double signedDistance = 0.0;
+                double distanceBeyondTolerance = 0.0;
+                for (const double cell : activation)
+                {
+                    const double distance = cell - restingLevel;
+                    signedDistance += distance;
+                    distanceBeyondTolerance += std::max(std::abs(distance) - noiseTolerance, 0.0);
+                }
+                const auto cellCount = static_cast<double>(activation.size());
+                const double deviation = std::max(std::abs(signedDistance / cellCount), distanceBeyondTolerance / cellCount);
+                return 1.0 / (1.0 + deviation);
             }
 
             inline int generateRandomSignal()

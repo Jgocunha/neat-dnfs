@@ -42,10 +42,10 @@ namespace neat_dnfs
 
 		static constexpr double left = 20.0;
 		static constexpr double right = 80.0;
-		static constexpr double in_amp = 8.0;
+		static constexpr double in_amp = 9.0;
 		static constexpr double in_width = 10.0;
-		static constexpr double out_amp = 6.0;
-		static constexpr double out_width = 5.0;
+		static constexpr double out_amp = 5.5;
+		static constexpr double out_width = 10.0;
 
 		initSimulation();
 		addGaussianStimulus("nf 1",
@@ -58,17 +58,17 @@ namespace neat_dnfs
 
 		const double f1 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1",
 			left, in_amp, in_width,
-			right, in_amp, in_width);
+			right, in_amp, in_width, BumpFitnessWeights{ 0.70, 0.20, 0.05, 0.05 });
 		parameters.partialFitness.emplace_back(f1);
 		const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 2",
-			{ left, right }, out_amp, out_width);
+			{ left, right }, out_amp, out_width, BumpFitnessWeights{ 0.50, 0.30, 0.10, 0.10 });
 		parameters.partialFitness.emplace_back(f2);
 
 		removeGaussianStimuli();
 		runSimulation(iterations);
 
-		const double f3 = closenessToRestingLevel("nf 1");
-		const double f4 = closenessToRestingLevel("nf 2");
+		const double f3 = closenessOfMeanActivationToRestingLevel("nf 1");
+		const double f4 = closenessOfMeanActivationToRestingLevel("nf 2");
 		parameters.partialFitness.emplace_back(f3);
 		parameters.partialFitness.emplace_back(f4);
 

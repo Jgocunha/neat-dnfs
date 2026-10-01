@@ -13,6 +13,7 @@
 #include "solutions/memory_trace.h"
 #include "solutions/delayed_match_to_sample.h"
 #include "solutions/inhibition_of_return.h"
+#include "solutions/hri_packaging_task.h"
 
 namespace neat_dnfs
 {
@@ -41,14 +42,15 @@ namespace neat_dnfs
 	const std::vector<TaskEntry>& taskEntries()
 	{
 		static const std::vector<TaskEntry> entries{
-			entry<AND>("and", "and.json", 2, 1),
-			entry<XOR>("xor", "xor.json", 2, 1),
-			entry<DetectionInstability>("detection-instability", "detection-instability.json", 1, 1),
-			entry<MemoryInstability>("memory-instability", "memory-instability.json", 1, 1),
-			entry<SelectionInstability>("selection-instability", "selection-instability.json", 1, 1),
-			entry<MemoryTrace>("memory-trace", "memory-trace.json", 2, 1),
-			entry<DelayedMatchToSample>("dmts", "delayed-match-to-sample.json", 1, 1),
-			entry<InhibitionOfReturn>("ior", "inhibition-of-return.json", 1, 1),
+			entry<AND>("and", "and.dnf", 2, 1),
+			entry<XOR>("xor", "xor.dnf", 2, 1),
+			entry<DetectionInstability>("detection-instability", "detection-instability.dnf", 1, 1),
+			entry<MemoryInstability>("memory-instability", "memory-instability.dnf", 1, 1),
+			entry<SelectionInstability>("selection-instability", "selection-instability.dnf", 1, 1),
+			entry<MemoryTrace>("memory-trace", "memory-trace.dnf", 2, 1),
+			entry<DelayedMatchToSample>("dmts", "delayed-match-to-sample.dnf", 1, 1),
+			entry<InhibitionOfReturn>("ior", "inhibition-of-return.dnf", 1, 1),
+			entry<HRIPackagingTask>("hri-packaging", "hri-packaging-task.dnf", 3, 1),
 		};
 		return entries;
 	}

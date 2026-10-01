@@ -47,8 +47,12 @@ namespace neat_dnfs
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations); // enough to encode the memory of the sample
-		const double f1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 1", {50.0}, 15.0, 12.0);
-		const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 2", {50.0}, 9.0, 12.0);
+		const double f1 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 1",
+			 {50.0}, 15.0, 12.0, 
+			 BumpFitnessWeights{ 0.55, 0.35, 0.05, 0.05 });
+		const double f2 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 2", 
+			{50.0}, 9.0, 12.0, 
+			BumpFitnessWeights{ 0.55, 0.35, 0.05, 0.05 });
 		parameters.partialFitness.push_back(f1);
 		parameters.partialFitness.push_back(f2);
 
@@ -58,11 +62,13 @@ namespace neat_dnfs
 		const double f3 = closenessToRestingLevel("nf 1");
 		parameters.partialFitness.push_back(f3);
 		// make sure some kind of self-sustained activation exists within
-		double f4_1 = 0.5 * noBumps("nf 2");
-		double f4_2 = 0.5 * preShapednessAtPosition("nf 2", 50.0); //u_tar: -4.2
+		double f4_1 = 0.5 * noBumps("nf 2", BumpFitnessDefaults::noBumpsDecayRate);
+		double f4_2 = 0.5 * preShapednessAtPosition("nf 2", 50.0, 
+			BumpFitnessDefaults::preShapednessSigma, BumpFitnessDefaults::preShapednessEpsilon); //u_tar: -4.2
 		runSimulation(iterations*4);
-		f4_1 += 0.5 * noBumps("nf 2");
-		f4_2 += 0.5 * preShapednessAtPosition("nf 2", 50.0); //u_tar: -4.2
+		f4_1 += 0.5 * noBumps("nf 2", BumpFitnessDefaults::noBumpsDecayRate);
+		f4_2 += 0.5 * preShapednessAtPosition("nf 2", 50.0, 
+			BumpFitnessDefaults::preShapednessSigma, BumpFitnessDefaults::preShapednessEpsilon); //u_tar: -4.2
 		const double f4 = 0.2f * f4_1 + 0.8f * f4_2;
 		parameters.partialFitness.push_back(f4);
 
@@ -77,8 +83,9 @@ namespace neat_dnfs
 					dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(iterations);
 		const double f5 = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1", 50, 15, 12,
-																					100, 15, 12);
-		const double f6 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 2", {50}, 9, 12);
+					100, 15, 12, BumpFitnessWeights{ 0.70, 0.20, 0.05, 0.05 });
+		const double f6 = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 2",
+			 {50}, 9, 12, BumpFitnessWeights{ 0.55, 0.35, 0.05, 0.05 });
 		parameters.partialFitness.emplace_back(f5);
 		parameters.partialFitness.emplace_back(f6);
 

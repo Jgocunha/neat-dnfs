@@ -1,4 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
+
+#include <filesystem>
+#include <numeric>
 
 #include <dnf_composer/exceptions/exception.h>
 
@@ -9,6 +13,10 @@
 #include "solutions/inhibition_of_return.h"
 #include "solutions/and.h"
 #include "solutions/xor.h"
+#include "solutions/hri_packaging_task.h"
+#include "neat_tools/config_loader.h"
+#include "neat_tools/resource_paths.h"
+#include "neat_tools/solution_registry.h"
 #include "test_helpers.h"
 
 using namespace neat_dnfs;
@@ -207,4 +215,87 @@ TEST_CASE("XOR evaluate produces a bounded fitness", "[Solutions][XOR]")
     REQUIRE(solution.getFitness() >= 0.0);
     REQUIRE(solution.getFitness() <= 1.0);
     REQUIRE(solution.getParameters().partialFitness.size() == 4);
+}
+
+TEST_CASE("HRIPackagingTask contract", "[Solutions][HRIPackagingTask]")
+{
+    resetGlobalState();
+    checkSolutionContract<HRIPackagingTask>(makeTopology(3, 1)); // nf1, nf2, nf3 inputs; nf4 output
+}
+
+TEST_CASE("HRIPackagingTask evaluate produces a bounded fitness", "[Solutions][HRIPackagingTask]")
+{
+    resetGlobalState();
+    HRIPackagingTask solution(makeTopology(3, 1));
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    REQUIRE(solution.getFitness() >= 0.0);
+    REQUIRE(solution.getFitness() <= 1.0);
+    REQUIRE(solution.getParameters().partialFitness.size() == 7);
+}
+
+TEST_CASE("HRIPackagingTask is registered with three inputs and one output", "[SolutionRegistry]")
+{
+    const auto* task = findTask("hri-packaging");
+    REQUIRE(task != nullptr);
+    REQUIRE(task->templateFile == "hri-packaging-task.dnf");
+    REQUIRE(task->inputs == 3);
+    REQUIRE(task->outputs == 1);
+}
+
+// ConfigLoader::loadConfig() sets every process-wide constant a task's config
+// names, not just the field size. Leaving any of them behind would run every
+// later test in the same process under that task's settings.
+TEST_CASE("ScopedTaskConfig restores every constant the task's config overrode", "[SolutionRegistry]")
+{
+    const double deltaTBefore = SimulationConstants::deltaT;
+    const int xSizeBefore = DimensionConstants::xSize;
+    {
+        const ScopedTaskConfig taskConfig{ "hri-packaging" };
+        REQUIRE(SimulationConstants::deltaT != deltaTBefore);
+        REQUIRE(DimensionConstants::xSize != xSizeBefore);
+    }
+    REQUIRE(SimulationConstants::deltaT == deltaTBefore);
+    REQUIRE(DimensionConstants::xSize == xSizeBefore);
+}
+
+// Population::endConditionMet() stops a run once every *recorded* partial
+// fitness passes the target, while the fitness it reports is the weighted sum
+// testPhenotype() computed. If a task records a different term than it weighs,
+// a run can stop early on a solution whose fitness never reached the target.
+TEST_CASE("Every registered task's fitness is the weighted sum of the partial fitness it records", "[Solutions][SolutionRegistry]")
+{
+    for (const auto& task : taskEntries())
+    {
+        DYNAMIC_SECTION("task: " << task.slug)
+        {
+            resetGlobalState();
+            const ScopedTaskConfig taskConfig{ std::string(task.slug) };
+
+            const auto solution = task.makeFromTopology(defaultTopologyFor(task));
+            solution->initialize();
+            solution->evaluate();
+
+            const auto& recorded = solution->getParameters().partialFitness;
+            const auto weights = ConfigLoader::loadFitnessWeights(std::string(task.slug), recorded.size());
+            const double weightedSum = std::inner_product(recorded.begin(), recorded.end(), weights.begin(), 0.0);
+
+            REQUIRE(solution->getFitness() == Catch::Approx(weightedSum).margin(1e-9));
+        }
+    }
+}
+
+TEST_CASE("Every registered task's template file exists under templates/", "[SolutionRegistry]")
+{
+    // The registry names each task's starting template by filename, but nothing
+    // resolved it until neat-dnfs-sol-eval / neat-dnfs-inc-evol ran. Renaming or
+    // replacing a template therefore broke both binaries at runtime with the
+    // suite still green.
+    for (const auto& task : taskEntries())
+    {
+        const auto templatePath = paths::resourceRoot() / "templates" / std::string(task.templateFile);
+        INFO("task '" << task.slug << "' references missing template " << task.templateFile);
+        REQUIRE(std::filesystem::exists(templatePath));
+    }
 }

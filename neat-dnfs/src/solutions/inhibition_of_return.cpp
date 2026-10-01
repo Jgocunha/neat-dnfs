@@ -49,8 +49,8 @@ namespace neat_dnfs
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 				dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(500);
-		const double f1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", left, 15.0, 12.0);
-		const double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", left, 8.0, 12.0);
+		const double f1 = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", left, 15.0, 12.0, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
+		const double f2 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", left, 8.0, 12.0, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
 		parameters.partialFitness.push_back(f1);
 		parameters.partialFitness.push_back(f2);
 
@@ -58,8 +58,8 @@ namespace neat_dnfs
 		removeGaussianStimuli();
 		runSimulation(1000); //1000
 		const double f3 = closenessToRestingLevel("nf 1");
-		const double f4_1 = noBumps("nf 2");
-		const double f4_2 = negativePreShapednessAtPosition("nf 2", left);
+		const double f4_1 = noBumps("nf 2", BumpFitnessDefaults::noBumpsDecayRate);
+		const double f4_2 = negativePreShapednessAtPosition("nf 2", left, BumpFitnessDefaults::negativePreShapednessEpsilon, BumpFitnessDefaults::negativePreShapednessWidth);
 		const double f4 =  0.2f * f4_1 + 0.8f * f4_2;
 		parameters.partialFitness.push_back(f3);
 		parameters.partialFitness.push_back(f4);
@@ -70,7 +70,7 @@ namespace neat_dnfs
 				GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 				dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		runSimulation(500);
-		const double f5 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", left, 6.0, 10.0);
+		const double f5 = oneBumpAtPositionWithAmplitudeAndWidth("nf 2", left, 6.0, 10.0, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
 		parameters.partialFitness.push_back(f5);
 
 		const auto& w = fitnessWeights;

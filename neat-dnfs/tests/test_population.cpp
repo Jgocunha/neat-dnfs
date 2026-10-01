@@ -106,6 +106,39 @@ TEST_CASE("Population::evolve runs without error and respects generation limit",
     REQUIRE(validEndCondition);
 }
 
+// Population size must exceed 5 per species for elitism to carry an evaluated
+// champion into the next generation; below that, every solution is a freshly
+// bred offspring when endConditionMet() runs and the fitness stop never fires.
+TEST_CASE("Population end condition requires every partial fitness above target", "[Population][endCondition]")
+{
+    SECTION("overall fitness above target but one partial below keeps evolving to the generation limit")
+    {
+        // mean = 0.76 > target 0.7, but the third partial (0.3) is not
+        const PopulationParameters parameters(10, 3, 0.7);
+        Population population(parameters,
+            std::make_shared<FixedPartialFitnessSolution>(makeTopology(1, 1), std::vector{ 0.99, 0.99, 0.3 }), false);
+        population.initialize();
+
+        REQUIRE_NOTHROW(population.evolve());
+
+        REQUIRE(population.getCurrentGeneration() == parameters.numGenerations);
+    }
+
+    SECTION("every partial above target stops evolution before the generation limit")
+    {
+        const PopulationParameters parameters(10, 50, 0.9);
+        Population population(parameters,
+            std::make_shared<FixedPartialFitnessSolution>(makeTopology(1, 1), std::vector{ 0.95, 0.95, 0.95 }), false);
+        population.initialize();
+
+        REQUIRE_NOTHROW(population.evolve());
+
+        REQUIRE(population.getCurrentGeneration() < parameters.numGenerations);
+        for (const double partial : population.getBestSolution()->getParameters().partialFitness)
+            REQUIRE(partial > parameters.targetFitness);
+    }
+}
+
 TEST_CASE("Population::evolve - all solutions have non-negative fitness", "[Population]")
 {
     const PopulationParameters parameters(10, 2, 0.9);

@@ -1,7 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include <cmath>
+#include <limits>
 #include <type_traits>
 
 #include "neat/solution.h"
@@ -271,6 +273,125 @@ TEST_CASE("Solution preShapednessAtPosition does not read past the end of the fi
     REQUIRE(solution.getFitness() <= 1.0);
 }
 
+TEST_CASE("Solution moveGaussianStimulusContinuously simulates a leftward move as long as a rightward one", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    MovingStimulusSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    const auto& durations = solution.getParameters().partialFitness;
+    REQUIRE(durations.size() == 2);
+    const double leftwardDuration = durations[0];
+    const double rightwardDuration = durations[1];
+
+    REQUIRE(rightwardDuration > 0.0);
+    REQUIRE(leftwardDuration == rightwardDuration);
+}
+
+TEST_CASE("Solution negativePreShapingDepthAtPosition scores trough depth below rest, not against the field's peak", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    NegativePreShapingDepthSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    const auto& scores = solution.getParameters().partialFitness;
+    REQUIRE(scores.size() == 2);
+
+    REQUIRE(scores[0] == Catch::Approx(1.0).margin(1e-9));
+    REQUIRE(scores[1] == Catch::Approx(std::exp(-0.5)).margin(1e-9));
+}
+
+TEST_CASE("Solution moveGaussianStimulusContinuously throws for a stimulus that does not exist", "[Solution][MoveStimulus]")
+{
+    MoveScenarioSolution solution(makeTopology(1, 1), MoveScenario{ "gs nf 1 30.000000", 30.0, 10.0, -5.0 });
+    solution.initialize();
+
+    REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
+}
+
+TEST_CASE("Solution moveGaussianStimulusContinuously throws for a step pointing away from the target", "[Solution][MoveStimulus]")
+{
+    MoveScenarioSolution solution(makeTopology(1, 1), MoveScenario{ "gs nf 1 30", 30.0, 10.0, 5.0 });
+    solution.initialize();
+
+    REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
+}
+
+TEST_CASE("Solution moveGaussianStimulusContinuously throws for a zero step", "[Solution][MoveStimulus]")
+{
+    MoveScenarioSolution solution(makeTopology(1, 1), MoveScenario{ "gs nf 1 30", 30.0, 10.0, 0.0 });
+    solution.initialize();
+
+    REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
+}
+
+TEST_CASE("Solution moveGaussianStimulusContinuously lands on a target that is not a whole number of steps away", "[Solution][MoveStimulus]")
+{
+    MoveScenarioSolution solution(makeTopology(1, 1), MoveScenario{ "gs nf 1 30", 30.0, 12.0, -5.0 });
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    const auto& recorded = solution.getParameters().partialFitness;
+    const double finalPosition = recorded[0];
+    const double moveDuration = recorded[1];
+    REQUIRE(finalPosition == Catch::Approx(12.0).margin(1e-9));
+    REQUIRE(moveDuration > 0.0);
+}
+
+TEST_CASE("Solution moveGaussianStimulusContinuously does nothing when the stimulus is already at the target", "[Solution][MoveStimulus]")
+{
+    MoveScenarioSolution solution(makeTopology(1, 1), MoveScenario{ "gs nf 1 30", 30.0, 30.0, 5.0 });
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    const auto& recorded = solution.getParameters().partialFitness;
+    const double finalPosition = recorded[0];
+    const double moveDuration = recorded[1];
+    REQUIRE(finalPosition == Catch::Approx(30.0).margin(1e-9));
+    REQUIRE(moveDuration == 0.0);
+}
+
+TEST_CASE("Solution moveGaussianStimulusContinuously throws for a step that is not finite", "[Solution][MoveStimulus]")
+{
+    const double step = GENERATE(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity());
+    MoveScenarioSolution solution(makeTopology(1, 1), MoveScenario{ "gs nf 1 30", 30.0, 50.0, step });
+    solution.initialize();
+
+    REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
+}
+
+// The simulation steps per increment are the step budget divided by the
+// number of increments; a step small enough to need more increments than
+// the budget truncated that to zero, so the stimulus moved without the
+// field ever being simulated.
+TEST_CASE("Solution moveGaussianStimulusContinuously simulates a move with more increments than simulation steps", "[Solution][MoveStimulus]")
+{
+    const double step = 20.0 / (2.0 * SimulationConstants::maxSimulationSteps);
+    MoveScenarioSolution solution(makeTopology(1, 1), MoveScenario{ "gs nf 1 30", 30.0, 50.0, step });
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    const auto& recorded = solution.getParameters().partialFitness;
+    const double finalPosition = recorded[0];
+    const double moveDuration = recorded[1];
+    REQUIRE(finalPosition == Catch::Approx(50.0).margin(1e-6));
+    REQUIRE(moveDuration > 0.0);
+}
+
+// Every bump-matching function documents a score in [0,1]. Shares that sum
+// to 1 but include a negative one can push the score above 1, e.g. a matched
+// position weighted 2.0 with a mismatched amplitude weighted -1.0.
+TEST_CASE("Solution bump-matching functions reject a negative weight share", "[Solution]")
+{
+    const auto function = GENERATE(BumpFunction::OneBump, BumpFunction::TwoBumps, BumpFunction::JustOneBump);
+    BumpWeightsSolution solution(makeTopology(1, 1), function, BumpFitnessWeights{ 0.0, 2.0, -1.0, 0.0 });
+    solution.initialize();
+
+    REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
+}
+
 // Issue #53: unlike oneBumpAtPositionWithAmplitudeAndWidth (which returns 0.0
 // immediately when the field has zero bumps), twoBumpsAtPositionWithAmplitudeAndWidth
 // had no such guard -- on an empty field the bump-matching loop never runs and
@@ -282,17 +403,6 @@ TEST_CASE("Solution twoBumpsAtPositionWithAmplitudeAndWidth yields no bump credi
 {
     const auto topology = makeTopology(1, 1);
     EmptyFieldTwoBumpsSolution solution(topology);
-    solution.initialize();
-
-    REQUIRE_NOTHROW(solution.evaluate());
-    REQUIRE(solution.getFitness() == 0.0);
-}
-
-// Same as above, for threeBumpsAtPositionWithAmplitudeAndWidth.
-TEST_CASE("Solution threeBumpsAtPositionWithAmplitudeAndWidth yields no bump credit for an empty field", "[Solution]")
-{
-    const auto topology = makeTopology(1, 1);
-    EmptyFieldThreeBumpsSolution solution(topology);
     solution.initialize();
 
     REQUIRE_NOTHROW(solution.evaluate());
@@ -349,7 +459,7 @@ TEST_CASE("Solution twoBumpsAtPositionWithAmplitudeAndWidth does not credit the 
 }
 
 // Issue #68: oneBumpAtPositionWithAmplitudeAndWidth's own zero-bump case had
-// never been directly asserted -- only twoBumps/threeBumps had. A field that
+// never been directly asserted -- only twoBumps had. A field that
 // never receives a stimulus must score 0.0, same as the multi-bump helpers.
 TEST_CASE("Solution oneBumpAtPositionWithAmplitudeAndWidth yields no bump credit for an empty field", "[Solution]")
 {
@@ -388,51 +498,6 @@ TEST_CASE("Solution oneBumpAtPositionWithAmplitudeAndWidth scores the theoretica
     REQUIRE_NOTHROW(solution.evaluate());
     REQUIRE(solution.observedBumps.size() == 1);
     REQUIRE(solution.getFitness() == Catch::Approx(1.0).margin(1e-9));
-}
-
-// Issue #68: the missing-field-name guard, checked directly against
-// threeBumpsAtPositionWithAmplitudeAndWidth.
-TEST_CASE("Solution threeBumpsAtPositionWithAmplitudeAndWidth throws on a field name that doesn't exist", "[Solution]")
-{
-    const auto topology = makeTopology(1, 1);
-    MissingFieldThreeBumpsSolution solution(topology);
-    solution.initialize();
-
-    REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
-    REQUIRE(solution.getPhenotype().getNumberOfElements() == 0);
-}
-
-// Issue #68 / #53: the injective-matching fix must also prevent a single real
-// bump from being triple-counted against three identical target slots, not
-// just double-counted against two. Targets equal the bump's own observed
-// values, so only the first matched slot contributes a nonzero distance term;
-// the second and third find an empty candidate pool (matchClosestBump returns
-// std::nullopt) and contribute nothing.
-TEST_CASE("Solution threeBumpsAtPositionWithAmplitudeAndWidth does not credit the same bump for all three target positions", "[Solution]")
-{
-    const auto topology = makeTopology(1, 1);
-    SingleBumpThreeBumpsSolution solution(topology);
-    solution.initialize();
-
-    REQUIRE_NOTHROW(solution.evaluate());
-    REQUIRE(solution.observedBumps.size() == 1);
-
-    // Same weights as Solution::threeBumpsAtPositionWithAmplitudeAndWidth.
-    static constexpr int targetNumberOfBumps = 3;
-    static constexpr double weightBumps = 0.40;
-    static constexpr double weightPos   = 0.20 / targetNumberOfBumps;
-    static constexpr double weightAmp   = 0.20 / targetNumberOfBumps;
-    static constexpr double weightWidth = 0.20 / targetNumberOfBumps;
-
-    const double bumpsTerm = weightBumps / (1.0 + std::abs(targetNumberOfBumps - 1));
-    // Target equals the observed bump exactly, so every distance term is zero.
-    const double matchedBumpTerm = weightPos + weightAmp + weightWidth;
-
-    const double tripleCountedFitness = bumpsTerm + 3.0 * matchedBumpTerm;
-    const double expectedFitness = bumpsTerm + matchedBumpTerm;
-
-    REQUIRE(solution.getFitness() == Catch::Approx(expectedFitness).margin(1e-9));
-    REQUIRE(solution.getFitness() < tripleCountedFitness - 1e-9);
 }
 
 // Issue #68: the missing-field-name guard, checked directly against
@@ -682,4 +747,51 @@ TEST_CASE("Solution::crossover inherits field genes from the fitter parent", "[S
     // Every offspring field gene must trace back to the fitter parent.
     for (const auto& gene : offspring->getGenome().getFieldGenes())
         REQUIRE(fitterParent->getGenome().containsFieldGene(gene));
+}
+
+TEST_CASE("SolutionParameters::toString separates partial fitness from species with a comma", "[Solution]")
+{
+    // The analysis dashboard parses this line with a regex anchored on "), spec.:".
+    // A std::format refactor once dropped that comma, which silently made every new
+    // per_generation_overview.txt unreadable while the C++ suite stayed green.
+    SolutionParameters parameters{ 0.5, 0.25, 3 };
+    parameters.speciesId = 7;
+    parameters.partialFitness = { 0.25, 0.75 };
+
+    const std::string text = parameters.toString();
+
+    REQUIRE(text.find("), spec.: 7") != std::string::npos);
+}
+
+// closenessToRestingLevel scores the single highest cell of a field. The
+// maximum of ~100 zero-mean noisy cells sits ~2.5 sd above rest, so under
+// selection-instability's regime (noise amplitude 0.2, deltaT 10) a field
+// sitting exactly at its resting level scored ~0.92 instead of ~1.0, capping
+// that task's p3/p4 no matter how good the solution was. Scoring the mean
+// activation must put a field at rest near 1.0 under the same noise.
+TEST_CASE("Solution closenessOfMeanActivationToRestingLevel scores a noisy field at rest near 1.0", "[Solution]")
+{
+    const ScopedNoiseAndTimestep noisyRegime{ 0.2, 10.0 };
+    RestingLevelClosenessSolution solution(makeTopology(1, 1), false);
+    solution.initialize();
+
+    static constexpr int evaluations = 20;
+    for (int i = 0; i < evaluations; ++i)
+    {
+        solution.evaluate();
+        REQUIRE(solution.getFitness() >= 0.98);
+    }
+}
+
+// Tolerating noise must not mean tolerating a field that is genuinely off
+// rest: with a stimulus holding the whole field below rest, the mean-activation
+// score must fall below what the old max-based helper gave a field that was
+// only noisy.
+TEST_CASE("Solution closenessOfMeanActivationToRestingLevel still penalises a field held off rest", "[Solution]")
+{
+    RestingLevelClosenessSolution solution(makeTopology(1, 1), true);
+    solution.initialize();
+    solution.evaluate();
+
+    REQUIRE(solution.getFitness() < 0.9);
 }

@@ -24,6 +24,55 @@ namespace neat_dnfs
 		}
 	};
 
+	/// @brief Relative credit a bump-matching fitness function gives to each measured property.
+	///
+	/// The four shares must be non-negative and sum to 1.0; the bump-matching functions validate
+	/// this and throw std::invalid_argument otherwise. For the multi-bump functions the position, amplitude
+	/// and width shares are split evenly across the target bumps, so the sum is checked after
+	/// that split is undone.
+	struct BumpFitnessWeights
+	{
+		double bumps;
+		double position;
+		double amplitude;
+		double width;
+	};
+
+	/// @brief Default weights and shape constants for the bump-matching fitness functions.
+	///
+	/// These reproduce the values that used to be hardcoded inside each function, so a caller
+	/// that omits them keeps the previous behaviour.
+	namespace BumpFitnessDefaults
+	{
+		inline constexpr double noBumpsDecayRate = 10.0;
+		inline constexpr double preShapednessSigma = 10.0;
+		inline constexpr double preShapednessEpsilon = 0.01;
+		inline constexpr double negativePreShapednessEpsilon = 0.15;
+		inline constexpr double negativePreShapednessWidth = 10.0;
+		inline constexpr double restingLevelNoiseTolerance = 0.25;
+
+		/// @brief Default weights for Solution::oneBumpAtPositionWithAmplitudeAndWidth.
+		/// @return The weight set {0.45, 0.45, 0.05, 0.05}.
+		[[nodiscard]] constexpr BumpFitnessWeights oneBump()
+		{
+			return BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 };
+		}
+
+		/// @brief Default weights for Solution::twoBumpsAtPositionWithAmplitudeAndWidth.
+		/// @return The weight set {0.70, 0.20, 0.05, 0.05}.
+		[[nodiscard]] constexpr BumpFitnessWeights twoBumps()
+		{
+			return BumpFitnessWeights{ 0.70, 0.20, 0.05, 0.05 };
+		}
+
+		/// @brief Default weights for Solution::justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth.
+		/// @return The weight set {0.55, 0.35, 0.05, 0.05}.
+		[[nodiscard]] constexpr BumpFitnessWeights justOneBump()
+		{
+			return BumpFitnessWeights{ 0.55, 0.35, 0.05, 0.05 };
+		}
+	}
+
 	struct SolutionParameters
 	{
 		double fitness;
@@ -55,7 +104,7 @@ namespace neat_dnfs
             partials += std::format("{}, ", partial);
         }
 
-        return std::format(" fit.: {}, part.: ({}) spec.: {}, adj.fit.: {}, age: {}", 
+        return std::format(" fit.: {}, part.: ({}), spec.: {}, adj.fit.: {}, age: {}", 
             fitness, 
             partials, 
             speciesId, 
@@ -226,30 +275,100 @@ namespace neat_dnfs
 		void setGaussianStimulusParameters(const std::string& stimulusName, const dnf_composer::element::GaussStimulusParameters& parameters) const;
 		/// @brief Fitness score in [0,1] reflecting how close the field activity is to its resting level (no bump).
 		double closenessToRestingLevel(const std::string& fieldName) const;
-		/// @brief Returns 1.0 if the field has no active bump, 0.0 otherwise.
-		double noBumps(const std::string& fieldName) const;
-		/// @brief Fitness score that rewards forming a bump within @p targetIterations; penalises exceeding @p maxIterations.
-		double iterationsUntilBump(const std::string& fieldName, double targetIterations, double maxIterations, double tolerance);
-		/// @brief Fitness score that rewards losing a bump within @p targetIterations; penalises exceeding @p maxIterations.
-		double iterationsUntilNoBump(const std::string& fieldName, double targetIterations, double maxIterations, double tolerance);
+		/// @brief Returns a decaying score in [0,1] that is highest when the field has no active bump.
+		/// @param fieldName Name of the neural field to score.
+		/// @param decayRate How sharply the score falls off as activation rises above the resting level.
+		/// @return Fitness score in [0,1].
+		double noBumps(const std::string& fieldName, double decayRate = BumpFitnessDefaults::noBumpsDecayRate) const;
+		/// @brief Fitness score in [0,1] from how far the field's mean activation sits from its resting level.
+		///
+		/// closenessToRestingLevel scores the single highest cell, and the maximum of many
+		/// zero-mean noisy cells always sits above rest, so a field at rest cannot score 1.0
+		/// under noise. The mean over every cell is not lifted by zero-mean noise. A peak
+		/// balanced by an inhibitory surround would cancel out in that mean, so cells further
+		/// from rest than @p noiseTolerance are also counted, without cancelling.
+		/// @param fieldName Name of the neural field to score.
+		/// @param noiseTolerance Distance from rest a cell may have before it counts as off rest.
+		/// @return 1 / (1 + d), where d is the larger of |mean activation - resting level| and
+		/// the mean distance of the cells from rest beyond @p noiseTolerance.
+		double closenessOfMeanActivationToRestingLevel(const std::string& fieldName,
+			double noiseTolerance = BumpFitnessDefaults::restingLevelNoiseTolerance) const;
 
 		// validated but could be improved
+		/// @brief Fitness score for a single bump at @p position with the given amplitude and width.
+		/// @param fieldName Name of the neural field to score.
+		/// @param position Target bump centroid.
+		/// @param amplitude Target bump amplitude.
+		/// @param width Target bump width.
+		/// @param weights Relative credit given to bump count, position, amplitude and width.
+		/// @return Fitness score in [0,1].
 		double oneBumpAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
-			const double& position, const double& amplitude, const double& width) const;
+			const double& position, const double& amplitude, const double& width,
+			const BumpFitnessWeights& weights = BumpFitnessDefaults::oneBump()) const;
+		/// @brief Fitness score for two bumps at the given positions, amplitudes and widths.
+		/// @param fieldName Name of the neural field to score.
+		/// @param position1 Target centroid of the first bump.
+		/// @param amplitude1 Target amplitude of the first bump.
+		/// @param width1 Target width of the first bump.
+		/// @param position2 Target centroid of the second bump.
+		/// @param amplitude2 Target amplitude of the second bump.
+		/// @param width2 Target width of the second bump.
+		/// @param weights Relative credit given to bump count, position, amplitude and width. The
+		/// position, amplitude and width shares are split evenly across the two bumps.
+		/// @return Fitness score in [0,1].
 		double twoBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
 						const double& position1, const double& amplitude1, const double& width1,
-						const double& position2, const double& amplitude2, const double& width2) const;
-		double threeBumpsAtPositionWithAmplitudeAndWidth(const std::string& fieldName,
-									const double& position1, const double& amplitude1, const double& width1,
-									const double& position2, const double& amplitude2, const double& width2,
-									const double& position3, const double& amplitude3, const double& width3) const;
-		double preShapednessAtPosition(const std::string& fieldName, double position ) const;
-		double negativePreShapednessAtPosition(const std::string& fieldName, const double& position) const;
+						const double& position2, const double& amplitude2, const double& width2,
+						const BumpFitnessWeights& weights = BumpFitnessDefaults::twoBumps()) const;
+		/// @brief Fitness score rewarding a sub-threshold (pre-shaped) activation peak at @p position.
+		/// @param fieldName Name of the neural field to score.
+		/// @param position Position at which pre-shapedness is measured.
+		/// @param sigma Width of the Gaussian profile the activation is compared against.
+		/// @param epsilon Minimum activation magnitude below which the score is zero.
+		/// @return Fitness score in [0,1].
+		double preShapednessAtPosition(const std::string& fieldName, double position,
+			double sigma = BumpFitnessDefaults::preShapednessSigma,
+			double epsilon = BumpFitnessDefaults::preShapednessEpsilon) const;
+		/// @brief Fitness score rewarding a negative (inhibited) activation trough at @p position.
+		/// @param fieldName Name of the neural field to score.
+		/// @param position Position at which the trough is measured.
+		/// @param epsilon Minimum trough depth below which the score is zero.
+		/// @param width Width of the profile the trough is compared against.
+		/// @return Fitness score in [0,1].
+		double negativePreShapednessAtPosition(const std::string& fieldName, const double& position,
+			double epsilon = BumpFitnessDefaults::negativePreShapednessEpsilon,
+			double width = BumpFitnessDefaults::negativePreShapednessWidth) const;
+		/// @brief Fitness score rewarding an inhibited trough of a given depth below the resting level at @p position.
+		/// Unlike negativePreShapednessAtPosition(), the target is anchored to the field's resting level, so a
+		/// peak elsewhere in the field does not move it.
+		/// @param fieldName Name of the neural field to score.
+		/// @param position Position at which the trough is measured.
+		/// @param targetDepth Desired distance of the activation at @p position below the resting level.
+		/// @param width Width of the Gaussian the measured depth is compared against.
+		/// @return Fitness score in [0,1]; 1 when the trough is exactly @p targetDepth deep.
+		double negativePreShapingDepthAtPosition(const std::string& fieldName, double position,
+			double targetDepth, double width) const;
+		/// @brief Fitness score for exactly one bump at any one of @p positions.
+		/// @param fieldName Name of the neural field to score.
+		/// @param positions Accepted target centroids; the closest one is credited.
+		/// @param amplitude Target bump amplitude.
+		/// @param width Target bump width.
+		/// @param weights Relative credit given to bump count, position, amplitude and width.
+		/// @return Fitness score in [0,1].
 		double justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth(const std::string& fieldName,
-		                                                                    const std::vector<double>& positions, const double& amplitude, const double& width) const;
+		                                                                    const std::vector<double>& positions, const double& amplitude, const double& width,
+		                                                                    const BumpFitnessWeights& weights = BumpFitnessDefaults::justOneBump()) const;
 
 
+		/// @brief Moves a Gaussian stimulus to @p targetPosition in increments of @p step, simulating after each one.
+		/// The whole move takes roughly SimulationConstants::maxSimulationSteps simulation steps, spread evenly
+		/// over the increments, and at least one per increment; the last increment is shortened so the
+		/// stimulus lands exactly on the target. Does nothing if the stimulus is already at @p targetPosition.
+		/// @param name Unique name of the GaussStimulus to move, as created by addGaussianStimulus().
+		/// @param targetPosition Position the stimulus ends at.
+		/// @param step Signed increment per move: negative moves left, positive moves right.
+		/// @throws std::invalid_argument If @p name is not a GaussStimulus in the phenotype, or @p step is not
+		/// finite, is zero, or points away from @p targetPosition.
 		void moveGaussianStimulusContinuously(const std::string& name, double targetPosition, double step);
-		double negativeBaseline(const std::string& fieldName) const;
 	};
 }

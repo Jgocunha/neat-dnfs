@@ -1,7 +1,11 @@
 #pragma once
 #include <atomic>
+#include <format>
+#include <string>
 #include <thread>
+#include <numeric>
 #include <stdexcept>
+#include <vector>
 
 #include "neat/solution.h"
 #include "test_helpers.h"
@@ -146,6 +150,51 @@ private:
     void createPhenotypeEnvironment() override {}
 };
 
+// Stand-in whose partial fitnesses are set directly by the test, with overall
+// fitness their plain mean, so Population's end condition can be driven through
+// evolve() into "overall above target, one partial below" deterministically.
+class FixedPartialFitnessSolution final : public Solution
+{
+public:
+    FixedPartialFitnessSolution(const SolutionTopology& topology, std::vector<double> partialFitness)
+        : Solution(topology), partialFitnessToReport(std::move(partialFitness))
+    {
+        name = "FixedPartialFitness";
+    }
+
+    FixedPartialFitnessSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "FixedPartialFitness";
+    }
+
+    SolutionPtr clone() const override
+    {
+        FixedPartialFitnessSolution solution(initialTopology, partialFitnessToReport);
+        return std::make_shared<FixedPartialFitnessSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        FixedPartialFitnessSolution solution(initialTopology, phenotype);
+        solution.partialFitnessToReport = partialFitnessToReport;
+        return std::make_shared<FixedPartialFitnessSolution>(solution);
+    }
+
+private:
+    std::vector<double> partialFitnessToReport;
+
+    void testPhenotype() override
+    {
+        parameters.partialFitness = partialFitnessToReport;
+        parameters.fitness = partialFitnessToReport.empty() ? 0.0
+            : std::accumulate(partialFitnessToReport.begin(), partialFitnessToReport.end(), 0.0)
+              / static_cast<double>(partialFitnessToReport.size());
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
 // Stand-in whose testPhenotype() calls a fitness helper with a field name
 // that doesn't exist in its own topology, used to verify that the shared
 // null-field guard (Solution::getNeuralFieldOrThrow) raises an indicative
@@ -270,7 +319,7 @@ private:
     {
         initSimulation();
         parameters.fitness = twoBumpsAtPositionWithAmplitudeAndWidth(
-            "this field does not exist", 30.0, 10.0, 10.0, 70.0, 10.0, 10.0);
+            "this field does not exist", 30.0, 10.0, 10.0, 70.0, 10.0, 10.0, BumpFitnessWeights{ 0.70, 0.20, 0.05, 0.05 });
     }
 
     void createPhenotypeEnvironment() override {}
@@ -312,7 +361,7 @@ private:
     void testPhenotype() override
     {
         initSimulation();
-        parameters.fitness = preShapednessAtPosition("nf 1", static_cast<double>(DimensionConstants::xSize));
+        parameters.fitness = preShapednessAtPosition("nf 1", static_cast<double>(DimensionConstants::xSize), BumpFitnessDefaults::preShapednessSigma, BumpFitnessDefaults::preShapednessEpsilon);
     }
 
     void createPhenotypeEnvironment() override {}
@@ -353,51 +402,13 @@ private:
     void testPhenotype() override
     {
         initSimulation();
-        parameters.fitness = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1", 30.0, 10.0, 10.0, 70.0, 10.0, 10.0);
+        parameters.fitness = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1", 30.0, 10.0, 10.0, 70.0, 10.0, 10.0, BumpFitnessWeights{ 0.70, 0.20, 0.05, 0.05 });
     }
 
     void createPhenotypeEnvironment() override {}
 };
 
 // Same as EmptyFieldTwoBumpsSolution, but for the three-bump helper.
-class EmptyFieldThreeBumpsSolution final : public Solution
-{
-public:
-    explicit EmptyFieldThreeBumpsSolution(const SolutionTopology& topology)
-        : Solution(topology)
-    {
-        name = "EmptyFieldThreeBumps";
-    }
-
-    EmptyFieldThreeBumpsSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
-        : Solution(initialTopology, phenotype)
-    {
-        name = "EmptyFieldThreeBumps";
-    }
-
-    SolutionPtr clone() const override
-    {
-        EmptyFieldThreeBumpsSolution solution(initialTopology);
-        return std::make_shared<EmptyFieldThreeBumpsSolution>(solution);
-    }
-
-    SolutionPtr copy() const override
-    {
-        EmptyFieldThreeBumpsSolution solution(initialTopology, phenotype);
-        return std::make_shared<EmptyFieldThreeBumpsSolution>(solution);
-    }
-
-private:
-    void testPhenotype() override
-    {
-        initSimulation();
-        parameters.fitness = threeBumpsAtPositionWithAmplitudeAndWidth(
-            "nf 1", 20.0, 10.0, 10.0, 50.0, 10.0, 10.0, 80.0, 10.0, 10.0);
-    }
-
-    void createPhenotypeEnvironment() override {}
-};
-
 // Stand-in that drives a single field with one Gaussian stimulus so exactly
 // one real bump forms, then queries twoBumpsAtPositionWithAmplitudeAndWidth
 // with position1 == position2 (both targeting that same bump). Used to prove
@@ -491,7 +502,7 @@ private:
 
         parameters.fitness = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1",
             targetPosition, targetAmplitude, targetWidth,
-            targetPosition, targetAmplitude, targetWidth);
+            targetPosition, targetAmplitude, targetWidth, BumpFitnessWeights{ 0.70, 0.20, 0.05, 0.05 });
     }
 
     void createPhenotypeEnvironment() override {}
@@ -531,7 +542,7 @@ private:
     void testPhenotype() override
     {
         initSimulation();
-        parameters.fitness = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 10.0, 10.0);
+        parameters.fitness = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 10.0, 10.0, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
     }
 
     void createPhenotypeEnvironment() override {}
@@ -571,7 +582,7 @@ private:
     void testPhenotype() override
     {
         initSimulation();
-        parameters.fitness = oneBumpAtPositionWithAmplitudeAndWidth("this field does not exist", 50.0, 10.0, 10.0);
+        parameters.fitness = oneBumpAtPositionWithAmplitudeAndWidth("this field does not exist", 50.0, 10.0, 10.0, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
     }
 
     void createPhenotypeEnvironment() override {}
@@ -656,57 +667,12 @@ private:
 
         const auto& bump = observedBumps.front();
         parameters.fitness = oneBumpAtPositionWithAmplitudeAndWidth("nf 1",
-            bump.centroid, bump.amplitude, bump.width);
+            bump.centroid, bump.amplitude, bump.width, BumpFitnessWeights{ 0.45, 0.45, 0.05, 0.05 });
     }
 
     void createPhenotypeEnvironment() override {}
 };
 
-// Same guard as MissingFieldTwoBumpsSolution, checked directly against
-// threeBumpsAtPositionWithAmplitudeAndWidth.
-class MissingFieldThreeBumpsSolution final : public Solution
-{
-public:
-    explicit MissingFieldThreeBumpsSolution(const SolutionTopology& topology)
-        : Solution(topology)
-    {
-        name = "MissingFieldThreeBumps";
-    }
-
-    MissingFieldThreeBumpsSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
-        : Solution(initialTopology, phenotype)
-    {
-        name = "MissingFieldThreeBumps";
-    }
-
-    SolutionPtr clone() const override
-    {
-        MissingFieldThreeBumpsSolution solution(initialTopology);
-        return std::make_shared<MissingFieldThreeBumpsSolution>(solution);
-    }
-
-    SolutionPtr copy() const override
-    {
-        MissingFieldThreeBumpsSolution solution(initialTopology, phenotype);
-        return std::make_shared<MissingFieldThreeBumpsSolution>(solution);
-    }
-
-private:
-    void testPhenotype() override
-    {
-        initSimulation();
-        parameters.fitness = threeBumpsAtPositionWithAmplitudeAndWidth(
-            "this field does not exist",
-            20.0, 10.0, 10.0, 50.0, 10.0, 10.0, 80.0, 10.0, 10.0);
-    }
-
-    void createPhenotypeEnvironment() override {}
-};
-
-// Same idea as SingleBumpTwoBumpsSolution, but for the three-bump helper: one
-// real bump is queried against three target slots that all point at that same
-// bump, proving matchClosestBump's injective consumption (issue #53) also
-// prevents a single bump from being triple-counted, not just double-counted.
 // Targets equal the bump's own observed values so every matched distance term
 // is exactly zero, making the expected fitness computable independently of
 // simulation jitter.
@@ -715,75 +681,6 @@ private:
 // as SingleBumpOneBumpSolution above: an unseeded genome draws random field/
 // kernel parameters and roughly 2% of those draws never form a bump, which
 // would make `observedBumps.front()` below undefined behaviour.
-class SingleBumpThreeBumpsSolution final : public Solution
-{
-public:
-    explicit SingleBumpThreeBumpsSolution(const SolutionTopology& topology)
-        : Solution(topology)
-    {
-        name = "SingleBumpThreeBumps";
-        seedFixedGenes();
-    }
-
-    SingleBumpThreeBumpsSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
-        : Solution(initialTopology, phenotype)
-    {
-        name = "SingleBumpThreeBumps";
-        seedFixedGenes();
-    }
-
-    SolutionPtr clone() const override
-    {
-        SingleBumpThreeBumpsSolution solution(initialTopology);
-        return std::make_shared<SingleBumpThreeBumpsSolution>(solution);
-    }
-
-    SolutionPtr copy() const override
-    {
-        SingleBumpThreeBumpsSolution solution(initialTopology, phenotype);
-        return std::make_shared<SingleBumpThreeBumpsSolution>(solution);
-    }
-
-    std::vector<dnf_composer::element::NeuralFieldBump> observedBumps;
-
-private:
-    // Seeds one INPUT ("nf 1") and one OUTPUT ("nf 2") gene with fixed field and
-    // kernel parameters, so the field this fixture drives is identical on every
-    // construction. Guarded on isEmpty() because the phenotype-taking
-    // constructor is used by copy(), where the genome may already be populated.
-    void seedFixedGenes()
-    {
-        if (!genome.isEmpty())
-        {
-            return;
-        }
-        addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
-        addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
-    }
-
-    void testPhenotype() override
-    {
-        using namespace dnf_composer::element;
-
-        initSimulation();
-        addGaussianStimulus("nf 1",
-            GaussStimulusParameters{ 5.0, 15.0, 50.0, true, false },
-            ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
-        runSimulation(SimulationConstants::maxSimulationSteps);
-
-        const auto neuralField = std::dynamic_pointer_cast<NeuralField>(phenotype.getElement("nf 1"));
-        observedBumps = neuralField->getBumps();
-
-        const auto& bump = observedBumps.front();
-        parameters.fitness = threeBumpsAtPositionWithAmplitudeAndWidth("nf 1",
-            bump.centroid, bump.amplitude, bump.width,
-            bump.centroid, bump.amplitude, bump.width,
-            bump.centroid, bump.amplitude, bump.width);
-    }
-
-    void createPhenotypeEnvironment() override {}
-};
-
 // Same guard as MissingFieldSolution, checked directly against
 // preShapednessAtPosition rather than closenessToRestingLevel.
 class MissingFieldPreShapednessSolution final : public Solution
@@ -817,7 +714,7 @@ private:
     void testPhenotype() override
     {
         initSimulation();
-        parameters.fitness = preShapednessAtPosition("this field does not exist", 50.0);
+        parameters.fitness = preShapednessAtPosition("this field does not exist", 50.0, BumpFitnessDefaults::preShapednessSigma, BumpFitnessDefaults::preShapednessEpsilon);
     }
 
     void createPhenotypeEnvironment() override {}
@@ -860,7 +757,7 @@ private:
     void testPhenotype() override
     {
         initSimulation();
-        parameters.fitness = preShapednessAtPosition("nf 1", 50.0);
+        parameters.fitness = preShapednessAtPosition("nf 1", 50.0, BumpFitnessDefaults::preShapednessSigma, BumpFitnessDefaults::preShapednessEpsilon);
     }
 
     void createPhenotypeEnvironment() override {}
@@ -899,7 +796,7 @@ private:
     void testPhenotype() override
     {
         initSimulation();
-        parameters.fitness = negativePreShapednessAtPosition("this field does not exist", 50.0);
+        parameters.fitness = negativePreShapednessAtPosition("this field does not exist", 50.0, BumpFitnessDefaults::negativePreShapednessEpsilon, BumpFitnessDefaults::negativePreShapednessWidth);
     }
 
     void createPhenotypeEnvironment() override {}
@@ -941,7 +838,7 @@ private:
     void testPhenotype() override
     {
         initSimulation();
-        parameters.fitness = negativePreShapednessAtPosition("nf 1", 50.0);
+        parameters.fitness = negativePreShapednessAtPosition("nf 1", 50.0, BumpFitnessDefaults::negativePreShapednessEpsilon, BumpFitnessDefaults::negativePreShapednessWidth);
     }
 
     void createPhenotypeEnvironment() override {}
@@ -983,10 +880,339 @@ private:
     void testPhenotype() override
     {
         initSimulation();
-        parameters.fitness = negativePreShapednessAtPosition("nf 1", static_cast<double>(DimensionConstants::xSize));
+        parameters.fitness = negativePreShapednessAtPosition("nf 1", static_cast<double>(DimensionConstants::xSize), BumpFitnessDefaults::negativePreShapednessEpsilon, BumpFitnessDefaults::negativePreShapednessWidth);
     }
 
     void createPhenotypeEnvironment() override {}
+};
+
+// Stand-in that runs a full simulation on "nf 1" and scores it with
+// closenessOfMeanActivationToRestingLevel. With holdFieldOffRest false the
+// field receives no stimulus, so it sits at its resting level and only noise
+// moves it; with it true an inhibitory stimulus far wider than the field holds
+// every cell well below rest, which the helper must still penalise. The field
+// is pushed down rather than up on purpose: below rest its output is ~0, so
+// the kernel cannot react and pull the mean back towards rest.
+//
+// Its genes are seeded with makeFixedFieldGene() rather than left to
+// Solution::initialize(): a random draw can give a tau small enough that
+// deltaT 10 integration diverges, a tau near 1 whose noise swings cells
+// further from rest than noise should, or a resting level so close to
+// threshold that the kernel lifts the whole field. None of those is a field
+// at rest, so each made the noisy-field test fail intermittently.
+class RestingLevelClosenessSolution final : public Solution
+{
+public:
+    RestingLevelClosenessSolution(const SolutionTopology& topology, const bool holdFieldOffRest)
+        : Solution(topology), holdFieldOffRest(holdFieldOffRest)
+    {
+        name = "RestingLevelCloseness";
+        seedFixedGenes();
+    }
+
+    RestingLevelClosenessSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype, const bool holdFieldOffRest)
+        : Solution(initialTopology, phenotype), holdFieldOffRest(holdFieldOffRest)
+    {
+        name = "RestingLevelCloseness";
+        seedFixedGenes();
+    }
+
+    SolutionPtr clone() const override
+    {
+        RestingLevelClosenessSolution solution(initialTopology, holdFieldOffRest);
+        return std::make_shared<RestingLevelClosenessSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        RestingLevelClosenessSolution solution(initialTopology, phenotype, holdFieldOffRest);
+        return std::make_shared<RestingLevelClosenessSolution>(solution);
+    }
+
+private:
+    void testPhenotype() override
+    {
+        initSimulation();
+        if (holdFieldOffRest)
+        {
+            const double fieldWideWidth = 100.0 * DimensionConstants::xSize;
+            addGaussianStimulus("nf 1",
+                dnf_composer::element::GaussStimulusParameters{ fieldWideWidth, -GaussStimulusConstants::amplitude, 50.0,
+                    GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+                dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+        }
+        runSimulation(static_cast<int>(SimulationConstants::maxSimulationSteps));
+
+        parameters.fitness = closenessOfMeanActivationToRestingLevel("nf 1");
+    }
+
+    void createPhenotypeEnvironment() override {}
+
+    // Seeds one INPUT ("nf 1") and one OUTPUT ("nf 2") gene with fixed field and
+    // kernel parameters. Guarded on isEmpty() because the phenotype-taking
+    // constructor is used by copy(), where the genome may already be populated.
+    void seedFixedGenes()
+    {
+        if (!genome.isEmpty())
+        {
+            return;
+        }
+        addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+        addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    }
+
+    bool holdFieldOffRest;
+};
+
+// Stand-in whose testPhenotype() moves one stimulus the same distance leftward
+// and then rightward with moveGaussianStimulusContinuously(), recording the
+// simulation time each move consumed in partialFitness: [0] leftward, [1]
+// rightward. A move in either direction must run the simulation for the same
+// duration; a negative step must not skip simulating the move altogether.
+class MovingStimulusSolution final : public Solution
+{
+public:
+    explicit MovingStimulusSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "MovingStimulus";
+    }
+
+    MovingStimulusSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "MovingStimulus";
+    }
+
+    SolutionPtr clone() const override
+    {
+        MovingStimulusSolution solution(initialTopology);
+        return std::make_shared<MovingStimulusSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        MovingStimulusSolution solution(initialTopology, phenotype);
+        return std::make_shared<MovingStimulusSolution>(solution);
+    }
+
+private:
+    void testPhenotype() override
+    {
+        static constexpr double start = 30.0;
+        static constexpr double end = 10.0;
+        static constexpr double step = 5.0;
+
+        initSimulation();
+        addGaussianStimulus("nf 1",
+            dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, start,
+                GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+            dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+        const std::string stimulus = std::format("gs nf 1 {}", start);
+
+        const double beforeLeftward = phenotype.getT();
+        moveGaussianStimulusContinuously(stimulus, end, -step);
+        const double leftwardDuration = phenotype.getT() - beforeLeftward;
+
+        const double beforeRightward = phenotype.getT();
+        moveGaussianStimulusContinuously(stimulus, start, step);
+        const double rightwardDuration = phenotype.getT() - beforeRightward;
+
+        parameters.partialFitness = { leftwardDuration, rightwardDuration };
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
+// Stand-in whose testPhenotype() inhibits "nf 1" at one position while
+// driving a peak elsewhere, measures the resulting trough depth below the
+// resting level, and records negativePreShapingDepthAtPosition() in
+// partialFitness: [0] with the target set to the measured depth, [1] with the
+// target one width further away. The peak must not move the target.
+class NegativePreShapingDepthSolution final : public Solution
+{
+public:
+    static constexpr double width = 2.0;
+
+    explicit NegativePreShapingDepthSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "NegativePreShapingDepth";
+    }
+
+    NegativePreShapingDepthSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "NegativePreShapingDepth";
+    }
+
+    SolutionPtr clone() const override
+    {
+        NegativePreShapingDepthSolution solution(initialTopology);
+        return std::make_shared<NegativePreShapingDepthSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        NegativePreShapingDepthSolution solution(initialTopology, phenotype);
+        return std::make_shared<NegativePreShapingDepthSolution>(solution);
+    }
+
+private:
+    void testPhenotype() override
+    {
+        static constexpr double troughPosition = 30.0;
+        static constexpr double peakPosition = 80.0;
+
+        initSimulation();
+        addGaussianStimulus("nf 1",
+            dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, -GaussStimulusConstants::amplitude, troughPosition,
+                GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+            dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+        addGaussianStimulus("nf 1",
+            dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, 3.0 * GaussStimulusConstants::amplitude, peakPosition,
+                GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+            dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+        runSimulation(SimulationConstants::maxSimulationSteps);
+
+        const auto field = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(phenotype.getElement("nf 1"));
+        const int troughIndex = static_cast<int>(troughPosition / DimensionConstants::dx);
+        const double measuredDepth = field->getParameters().startingRestingLevel - field->getComponent("activation")[troughIndex];
+
+        parameters.partialFitness = {
+            negativePreShapingDepthAtPosition("nf 1", troughPosition, measuredDepth, width),
+            negativePreShapingDepthAtPosition("nf 1", troughPosition, measuredDepth + width, width)
+        };
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
+// One call to moveGaussianStimulusContinuously(), described as data so each
+// test can pick its own stimulus name, start, target and step.
+struct MoveScenario
+{
+    std::string stimulusName;
+    double start;
+    double target;
+    double step;
+};
+
+// Stand-in whose testPhenotype() adds a stimulus on "nf 1" at scenario.start,
+// then moves the stimulus named scenario.stimulusName to scenario.target in
+// steps of scenario.step. Records in partialFitness: [0] the stimulus's final
+// position, [1] the simulation time the move consumed.
+class MoveScenarioSolution final : public Solution
+{
+public:
+    MoveScenarioSolution(const SolutionTopology& topology, MoveScenario scenario)
+        : Solution(topology), scenario(std::move(scenario))
+    {
+        name = "MoveScenario";
+    }
+
+    MoveScenarioSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype, MoveScenario scenario)
+        : Solution(initialTopology, phenotype), scenario(std::move(scenario))
+    {
+        name = "MoveScenario";
+    }
+
+    SolutionPtr clone() const override
+    {
+        MoveScenarioSolution solution(initialTopology, scenario);
+        return std::make_shared<MoveScenarioSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        MoveScenarioSolution solution(initialTopology, phenotype, scenario);
+        return std::make_shared<MoveScenarioSolution>(solution);
+    }
+
+private:
+    void testPhenotype() override
+    {
+        initSimulation();
+        addGaussianStimulus("nf 1",
+            dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, scenario.start,
+                GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+            dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+
+        const double beforeMove = phenotype.getT();
+        moveGaussianStimulusContinuously(scenario.stimulusName, scenario.target, scenario.step);
+        const double moveDuration = phenotype.getT() - beforeMove;
+
+        const auto stimulus = std::dynamic_pointer_cast<dnf_composer::element::GaussStimulus>(
+            phenotype.getElement(std::format("gs nf 1 {}", scenario.start)));
+        parameters.partialFitness = { stimulus->getParameters().position, moveDuration };
+    }
+
+    void createPhenotypeEnvironment() override {}
+
+    MoveScenario scenario;
+};
+
+// Which bump-matching function BumpWeightsSolution scores "nf 1" with.
+enum class BumpFunction
+{
+    OneBump,
+    TwoBumps,
+    JustOneBump
+};
+
+// Stand-in whose testPhenotype() scores "nf 1" with one of the bump-matching
+// functions, passing the given weights through unchanged, so a test can check
+// how that function validates its weights.
+class BumpWeightsSolution final : public Solution
+{
+public:
+    BumpWeightsSolution(const SolutionTopology& topology, const BumpFunction function, const BumpFitnessWeights& weights)
+        : Solution(topology), function(function), weights(weights)
+    {
+        name = "BumpWeights";
+    }
+
+    BumpWeightsSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype,
+        const BumpFunction function, const BumpFitnessWeights& weights)
+        : Solution(initialTopology, phenotype), function(function), weights(weights)
+    {
+        name = "BumpWeights";
+    }
+
+    SolutionPtr clone() const override
+    {
+        BumpWeightsSolution solution(initialTopology, function, weights);
+        return std::make_shared<BumpWeightsSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        BumpWeightsSolution solution(initialTopology, phenotype, function, weights);
+        return std::make_shared<BumpWeightsSolution>(solution);
+    }
+
+private:
+    void testPhenotype() override
+    {
+        initSimulation();
+        switch (function)
+        {
+        case BumpFunction::OneBump:
+            parameters.fitness = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 10.0, 10.0, weights);
+            break;
+        case BumpFunction::TwoBumps:
+            parameters.fitness = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1", 30.0, 10.0, 10.0, 70.0, 10.0, 10.0, weights);
+            break;
+        case BumpFunction::JustOneBump:
+            parameters.fitness = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 1", { 30.0, 70.0 }, 10.0, 10.0, weights);
+            break;
+        }
+    }
+
+    void createPhenotypeEnvironment() override {}
+
+    BumpFunction function;
+    BumpFitnessWeights weights;
 };
 
 } // namespace neat_dnfs::test

@@ -5,7 +5,10 @@
 #include <fstream>
 #include <ctime>
 #include <array>
+#include <string>
+#include <system_error>
 #include <unordered_set>
+#include <utility>
 
 #include "neat/population.h"
 #include "neat_tools/resource_paths.h"
@@ -27,28 +30,28 @@ using namespace neat_dnfs::test;
 namespace
 {
     // FixedFitnessSolution hardcodes name = "FixedFitness", which the
-    // run_metadata.json test above already claims. Both tests do real file IO
-    // into <data root>/data/<name>/<timestamp>/, so under a parallel ctest run
-    // two tests sharing a name can compute the same second-resolution timestamp
-    // and race each other's writes and cleanup. Renaming this one keeps them
-    // in separate directories.
+    // run_metadata.json test above already claims. Every test here does real
+    // file IO into <data root>/data/<name>/<timestamp>/, so under a parallel
+    // ctest run two tests sharing a name can compute the same second-resolution
+    // timestamp and race each other's writes and cleanup. The name is therefore
+    // a constructor argument: each test that uses this class passes its own.
     class JsonOverviewSolution final : public Solution
     {
     public:
-        JsonOverviewSolution(const SolutionTopology& topology, const double fitness)
+        JsonOverviewSolution(const SolutionTopology& topology, const double fitness, std::string solutionName)
             : Solution(topology), fitnessToReport(fitness)
         {
-            name = "FixedFitnessJsonOverview";
+            name = std::move(solutionName);
         }
 
         SolutionPtr clone() const override
         {
-            return std::make_shared<JsonOverviewSolution>(initialTopology, fitnessToReport);
+            return std::make_shared<JsonOverviewSolution>(initialTopology, fitnessToReport, name);
         }
 
         SolutionPtr copy() const override
         {
-            return std::make_shared<JsonOverviewSolution>(initialTopology, fitnessToReport);
+            return std::make_shared<JsonOverviewSolution>(initialTopology, fitnessToReport, name);
         }
 
     private:
@@ -115,6 +118,37 @@ namespace
         }
         return dirs;
     }
+
+    // Restores the two solution-saving flags and removes the run directory on
+    // scope exit, so a failing REQUIRE cannot leave either behind for later tests.
+    class SaveFlagsAndRunDirectoryGuard
+    {
+    public:
+        SaveFlagsAndRunDirectoryGuard()
+            : previousSaveSolutions(PopulationConstants::saveSolutions),
+            previousSaveBestSolutions(PopulationConstants::saveBestSolutions)
+        {}
+
+        SaveFlagsAndRunDirectoryGuard(const SaveFlagsAndRunDirectoryGuard&) = delete;
+        SaveFlagsAndRunDirectoryGuard& operator=(const SaveFlagsAndRunDirectoryGuard&) = delete;
+
+        ~SaveFlagsAndRunDirectoryGuard()
+        {
+            if (!runDirectory.empty())
+            {
+                std::error_code ignored;
+                std::filesystem::remove_all(runDirectory, ignored);
+            }
+            PopulationConstants::saveSolutions = previousSaveSolutions;
+            PopulationConstants::saveBestSolutions = previousSaveBestSolutions;
+        }
+
+        std::string runDirectory;
+
+    private:
+        bool previousSaveSolutions;
+        bool previousSaveBestSolutions;
+    };
 }
 
 TEST_CASE("PopulationFileManager writes per-generation artifacts to disk", "[PopulationFileManager]")
@@ -158,6 +192,31 @@ TEST_CASE("PopulationFileManager writes per-generation artifacts to disk", "[Pop
     // Remove only this run's own timestamped directory, not the whole shared
     // data/Counting/ root, so other/concurrent runs under that name are untouched.
     std::filesystem::remove_all(runDirectory);
+}
+
+// best_solutions/last_generation/ is the end-of-run counterpart of
+// best_solutions/prev_generations/, so it must follow saveBestSolutions --
+// it used to be gated on saveSolutions, which left the directory missing
+// under the shipped config (saveBestSolutions true, saveSolutions false).
+TEST_CASE("PopulationFileManager writes best_solutions/last_generation under saveBestSolutions", "[PopulationFileManager]")
+{
+    SaveFlagsAndRunDirectoryGuard guard;
+    PopulationConstants::saveSolutions = false;
+    PopulationConstants::saveBestSolutions = true;
+
+    const PopulationParameters parameters(5, 2, 1.1);
+    const std::string solutionName = "FixedFitnessLastGeneration";
+    const auto preExistingRunDirs = existingRunDirs(solutionName);
+
+    Population population(parameters, std::make_shared<JsonOverviewSolution>(makeTopology(1, 1), 0.5, solutionName));
+    population.initialize();
+
+    REQUIRE_NOTHROW(population.evolve());
+
+    guard.runDirectory = newlyCreatedRunDirectory(solutionName, preExistingRunDirs);
+    REQUIRE_FALSE(guard.runDirectory.empty());
+
+    REQUIRE(std::filesystem::exists(guard.runDirectory + "best_solutions/last_generation/"));
 }
 
 TEST_CASE("PopulationFileManager writes run_metadata.json with build, dependency, machine and run-parameter facts", "[PopulationFileManager]")
@@ -205,7 +264,7 @@ TEST_CASE("PopulationFileManager writes overview.jsonl as line-delimited JSON pe
     // parallel-test-directory-collision reason documented on the
     // run_metadata.json test.
     const std::string solutionName = "FixedFitnessJsonOverview";
-    const auto initialSolution = std::make_shared<JsonOverviewSolution>(makeTopology(1, 1), 0.5);
+    const auto initialSolution = std::make_shared<JsonOverviewSolution>(makeTopology(1, 1), 0.5, solutionName);
 
     Population population(parameters, initialSolution);
     population.initialize();

@@ -153,6 +153,7 @@ set(header
         "include/solutions/inhibition_of_return.h"
         "include/solutions/and.h"
         "include/solutions/xor.h"
+        "include/solutions/hri_packaging_task.h"
 
         "include/neat_tools/logger.h"
         "include/neat_tools/utils.h"
@@ -183,6 +184,7 @@ set(src
         "src/solutions/inhibition_of_return.cpp"
         "src/solutions/and.cpp"
         "src/solutions/xor.cpp"
+        "src/solutions/hri_packaging_task.cpp"
 
         "src/neat_tools/logger.cpp"
         "src/neat_tools/ablation_presets.cpp"

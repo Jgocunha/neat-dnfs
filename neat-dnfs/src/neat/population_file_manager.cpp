@@ -76,7 +76,7 @@ namespace neat_dnfs
 
 	void PopulationFileManager::saveEndOfRunData() const
 	{
-		if (PopulationConstants::saveSolutions && population->bestSolution != nullptr)
+		if (PopulationConstants::saveBestSolutions && population->bestSolution != nullptr)
 		{
 			saveAllSolutionsWithFitnessAbove(population->bestSolution->getFitness() - 0.1);
 		}
