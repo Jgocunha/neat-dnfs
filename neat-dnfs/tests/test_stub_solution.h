@@ -892,7 +892,14 @@ private:
 // moves it; with it true an inhibitory stimulus far wider than the field holds
 // every cell well below rest, which the helper must still penalise. The field
 // is pushed down rather than up on purpose: below rest its output is ~0, so
-// the randomly drawn kernel cannot react and pull the mean back towards rest.
+// the kernel cannot react and pull the mean back towards rest.
+//
+// Its genes are seeded with makeFixedFieldGene() rather than left to
+// Solution::initialize(): a random draw can give a tau small enough that
+// deltaT 10 integration diverges, a tau near 1 whose noise swings cells
+// further from rest than noise should, or a resting level so close to
+// threshold that the kernel lifts the whole field. None of those is a field
+// at rest, so each made the noisy-field test fail intermittently.
 class RestingLevelClosenessSolution final : public Solution
 {
 public:
@@ -900,12 +907,14 @@ public:
         : Solution(topology), holdFieldOffRest(holdFieldOffRest)
     {
         name = "RestingLevelCloseness";
+        seedFixedGenes();
     }
 
     RestingLevelClosenessSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype, const bool holdFieldOffRest)
         : Solution(initialTopology, phenotype), holdFieldOffRest(holdFieldOffRest)
     {
         name = "RestingLevelCloseness";
+        seedFixedGenes();
     }
 
     SolutionPtr clone() const override
@@ -938,6 +947,19 @@ private:
     }
 
     void createPhenotypeEnvironment() override {}
+
+    // Seeds one INPUT ("nf 1") and one OUTPUT ("nf 2") gene with fixed field and
+    // kernel parameters. Guarded on isEmpty() because the phenotype-taking
+    // constructor is used by copy(), where the genome may already be populated.
+    void seedFixedGenes()
+    {
+        if (!genome.isEmpty())
+        {
+            return;
+        }
+        addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+        addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    }
 
     bool holdFieldOffRest;
 };
