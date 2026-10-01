@@ -1152,4 +1152,67 @@ private:
     MoveScenario scenario;
 };
 
+// Which bump-matching function BumpWeightsSolution scores "nf 1" with.
+enum class BumpFunction
+{
+    OneBump,
+    TwoBumps,
+    JustOneBump
+};
+
+// Stand-in whose testPhenotype() scores "nf 1" with one of the bump-matching
+// functions, passing the given weights through unchanged, so a test can check
+// how that function validates its weights.
+class BumpWeightsSolution final : public Solution
+{
+public:
+    BumpWeightsSolution(const SolutionTopology& topology, const BumpFunction function, const BumpFitnessWeights& weights)
+        : Solution(topology), function(function), weights(weights)
+    {
+        name = "BumpWeights";
+    }
+
+    BumpWeightsSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype,
+        const BumpFunction function, const BumpFitnessWeights& weights)
+        : Solution(initialTopology, phenotype), function(function), weights(weights)
+    {
+        name = "BumpWeights";
+    }
+
+    SolutionPtr clone() const override
+    {
+        BumpWeightsSolution solution(initialTopology, function, weights);
+        return std::make_shared<BumpWeightsSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        BumpWeightsSolution solution(initialTopology, phenotype, function, weights);
+        return std::make_shared<BumpWeightsSolution>(solution);
+    }
+
+private:
+    void testPhenotype() override
+    {
+        initSimulation();
+        switch (function)
+        {
+        case BumpFunction::OneBump:
+            parameters.fitness = oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, 10.0, 10.0, weights);
+            break;
+        case BumpFunction::TwoBumps:
+            parameters.fitness = twoBumpsAtPositionWithAmplitudeAndWidth("nf 1", 30.0, 10.0, 10.0, 70.0, 10.0, 10.0, weights);
+            break;
+        case BumpFunction::JustOneBump:
+            parameters.fitness = justOneBumpAtOneOfTheFollowingPositionsWithAmplitudeAndWidth("nf 1", { 30.0, 70.0 }, 10.0, 10.0, weights);
+            break;
+        }
+    }
+
+    void createPhenotypeEnvironment() override {}
+
+    BumpFunction function;
+    BumpFitnessWeights weights;
+};
+
 } // namespace neat_dnfs::test

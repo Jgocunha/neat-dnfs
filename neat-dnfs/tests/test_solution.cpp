@@ -380,6 +380,18 @@ TEST_CASE("Solution moveGaussianStimulusContinuously simulates a move with more 
     REQUIRE(moveDuration > 0.0);
 }
 
+// Every bump-matching function documents a score in [0,1]. Shares that sum
+// to 1 but include a negative one can push the score above 1, e.g. a matched
+// position weighted 2.0 with a mismatched amplitude weighted -1.0.
+TEST_CASE("Solution bump-matching functions reject a negative weight share", "[Solution]")
+{
+    const auto function = GENERATE(BumpFunction::OneBump, BumpFunction::TwoBumps, BumpFunction::JustOneBump);
+    BumpWeightsSolution solution(makeTopology(1, 1), function, BumpFitnessWeights{ 0.0, 2.0, -1.0, 0.0 });
+    solution.initialize();
+
+    REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
+}
+
 // Issue #53: unlike oneBumpAtPositionWithAmplitudeAndWidth (which returns 0.0
 // immediately when the field has zero bumps), twoBumpsAtPositionWithAmplitudeAndWidth
 // had no such guard -- on an empty field the bump-matching loop never runs and

@@ -26,8 +26,8 @@ namespace neat_dnfs
 
 	/// @brief Relative credit a bump-matching fitness function gives to each measured property.
 	///
-	/// The four shares must sum to 1.0; the bump-matching functions validate this and throw
-	/// std::invalid_argument otherwise. For the multi-bump functions the position, amplitude
+	/// The four shares must be non-negative and sum to 1.0; the bump-matching functions validate
+	/// this and throw std::invalid_argument otherwise. For the multi-bump functions the position, amplitude
 	/// and width shares are split evenly across the target bumps, so the sum is checked after
 	/// that split is undone.
 	struct BumpFitnessWeights

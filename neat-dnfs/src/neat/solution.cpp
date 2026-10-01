@@ -11,6 +11,19 @@
 
 namespace neat_dnfs
 {
+	namespace
+	{
+		// Shares that sum to 1 can still push a bump score outside [0,1] if one
+		// of them is negative, so every bump-matching function checks this too.
+		void requireNonNegativeShares(const BumpFitnessWeights& weights)
+		{
+			if (weights.bumps < 0.0 || weights.position < 0.0 || weights.amplitude < 0.0 || weights.width < 0.0)
+			{
+				throw std::invalid_argument("Weights must not be negative");
+			}
+		}
+	}
+
 	Solution::Solution(const SolutionTopology& initialTopology)
 		: id(uniqueIdentifierCounter++),
 		name("undefined"),
@@ -935,6 +948,7 @@ namespace neat_dnfs
 		{
 			throw std::invalid_argument("Sum of weights must be 1.0");
 		}
+		requireNonNegativeShares(weights);
 
 		const int n = static_cast<int>(neuralField->getBumps().size());
 		if (n == 0)
@@ -988,6 +1002,7 @@ namespace neat_dnfs
 		{
 			throw std::invalid_argument("Sum of weights must be 1.0");
 		}
+		requireNonNegativeShares(weights);
 
 		static constexpr int targetNumberOfBumps = 1;
 		double fitness = 0.0;
@@ -1032,6 +1047,7 @@ namespace neat_dnfs
 		{
 			throw std::invalid_argument("Sum of weights must be 1.0");
 		}
+		requireNonNegativeShares(weights);
 		double fitness = 0.0;
 
 		using namespace dnf_composer::element;
