@@ -1148,14 +1148,14 @@ namespace neat_dnfs
 		{
 			return;
 		}
-		if (step == 0.0 || std::signbit(step) != std::signbit(distance))
+		if (!std::isfinite(step) || step == 0.0 || std::signbit(step) != std::signbit(distance))
 		{
 			throw std::invalid_argument(std::format(
 				"moveGaussianStimulusContinuously: a step of {} cannot move stimulus '{}' from {} to {}.", step, name, startPosition, targetPosition));
 		}
 
 		const double steps_x = std::abs(distance) / std::abs(step);
-		const int steps_t = static_cast<int>(static_cast<double>(SimulationConstants::maxSimulationSteps) / steps_x);
+		const int steps_t = std::max(1, static_cast<int>(static_cast<double>(SimulationConstants::maxSimulationSteps) / steps_x));
 
 		double newPosition = startPosition;
 		do

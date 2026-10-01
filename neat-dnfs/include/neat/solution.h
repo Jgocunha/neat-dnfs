@@ -362,13 +362,13 @@ namespace neat_dnfs
 
 		/// @brief Moves a Gaussian stimulus to @p targetPosition in increments of @p step, simulating after each one.
 		/// The whole move takes roughly SimulationConstants::maxSimulationSteps simulation steps, spread evenly
-		/// over the increments; the last increment is shortened so the stimulus lands exactly on the target.
-		/// Does nothing if the stimulus is already at @p targetPosition.
+		/// over the increments, and at least one per increment; the last increment is shortened so the
+		/// stimulus lands exactly on the target. Does nothing if the stimulus is already at @p targetPosition.
 		/// @param name Unique name of the GaussStimulus to move, as created by addGaussianStimulus().
 		/// @param targetPosition Position the stimulus ends at.
 		/// @param step Signed increment per move: negative moves left, positive moves right.
-		/// @throws std::invalid_argument If @p name is not a GaussStimulus in the phenotype, or @p step is zero
-		/// or points away from @p targetPosition.
+		/// @throws std::invalid_argument If @p name is not a GaussStimulus in the phenotype, or @p step is not
+		/// finite, is zero, or points away from @p targetPosition.
 		void moveGaussianStimulusContinuously(const std::string& name, double targetPosition, double step);
 	};
 }

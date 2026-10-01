@@ -1,7 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include <cmath>
+#include <limits>
 #include <type_traits>
 
 #include "neat/solution.h"
@@ -349,6 +351,33 @@ TEST_CASE("Solution moveGaussianStimulusContinuously does nothing when the stimu
     const double moveDuration = recorded[1];
     REQUIRE(finalPosition == Catch::Approx(30.0).margin(1e-9));
     REQUIRE(moveDuration == 0.0);
+}
+
+TEST_CASE("Solution moveGaussianStimulusContinuously throws for a step that is not finite", "[Solution][MoveStimulus]")
+{
+    const double step = GENERATE(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity());
+    MoveScenarioSolution solution(makeTopology(1, 1), MoveScenario{ "gs nf 1 30", 30.0, 50.0, step });
+    solution.initialize();
+
+    REQUIRE_THROWS_AS(solution.evaluate(), std::invalid_argument);
+}
+
+// The simulation steps per increment are the step budget divided by the
+// number of increments; a step small enough to need more increments than
+// the budget truncated that to zero, so the stimulus moved without the
+// field ever being simulated.
+TEST_CASE("Solution moveGaussianStimulusContinuously simulates a move with more increments than simulation steps", "[Solution][MoveStimulus]")
+{
+    const double step = 20.0 / (2.0 * SimulationConstants::maxSimulationSteps);
+    MoveScenarioSolution solution(makeTopology(1, 1), MoveScenario{ "gs nf 1 30", 30.0, 50.0, step });
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    const auto& recorded = solution.getParameters().partialFitness;
+    const double finalPosition = recorded[0];
+    const double moveDuration = recorded[1];
+    REQUIRE(finalPosition == Catch::Approx(50.0).margin(1e-6));
+    REQUIRE(moveDuration > 0.0);
 }
 
 // Issue #53: unlike oneBumpAtPositionWithAmplitudeAndWidth (which returns 0.0
