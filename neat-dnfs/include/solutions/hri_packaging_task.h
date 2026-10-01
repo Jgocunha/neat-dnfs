@@ -51,9 +51,18 @@ namespace neat_dnfs
     class HRIPackagingTask final : public Solution
     {
     public:
+        /// @brief Builds a task solution whose genome is created from @p topology.
+        /// @param topology Fields to start from: the three inputs and the output.
         explicit HRIPackagingTask(const SolutionTopology& topology);
+        /// @brief Builds a task solution whose genome is decoded from an existing phenotype, such as a template.
+        /// @param initialTopology Fields the task declares: the three inputs and the output.
+        /// @param phenotype Simulation the genome is translated from.
         HRIPackagingTask(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
+        /// @brief Creates an independent solution with this one's phenotype and a new id.
+        /// @return The new solution.
         SolutionPtr clone() const override;
+        /// @brief Creates an independent solution with this one's phenotype and a new id.
+        /// @return The new solution.
         SolutionPtr copy() const override;
     private:
         void testPhenotype() override;
