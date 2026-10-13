@@ -83,7 +83,7 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DCMAKE_PREFIX_PATH="deps/ipk-install;deps/dnfc-install"
+            -DCMAKE_PREFIX_PATH="deps/ipk-install/release;deps/dnfc-install/release"
 
       - name: Run clang-tidy
         working-directory: ./neat-dnfs

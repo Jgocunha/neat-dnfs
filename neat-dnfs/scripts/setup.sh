@@ -28,6 +28,7 @@ else
     TRIPLET="x64-linux"
 fi
 echo "Using vcpkg triplet: $TRIPLET"
+PARALLEL=$( [ "$OS" = "Darwin" ] && sysctl -n hw.logicalcpu || nproc )
 
 # ── vcpkg packages ────────────────────────────────────────────────────────────
 echo "Installing vcpkg packages..."
@@ -65,50 +66,93 @@ invalidate_if_stale() {
     fi
 }
 
+# Which configuration(s) to build. Release only by default, matching
+# scripts/build.sh; NEAT_DNFS_RELEASE_ONLY=1 forces Release only regardless of
+# the argument, matching the env var's meaning in scripts/setup.bat and
+# scripts/build.bat.
+CONFIG="${1:-release}"
+case "$CONFIG" in
+    release|debug|all) ;;
+    *)
+        echo "ERROR: unknown setup configuration \"$CONFIG\" (expected \"release\", \"debug\", \"all\", or no argument for release)."
+        exit 1
+        ;;
+esac
+if [ "$NEAT_DNFS_RELEASE_ONLY" = "1" ]; then
+    CONFIG=release
+fi
+[ "$CONFIG" = all ] && CONFIGS="release debug" || CONFIGS="$CONFIG"
+
+# Migration: before per-configuration installs, deps/ipk-install/ and
+# deps/dnfc-install/ each held a single flat Release tree. deps/ is
+# gitignored, so a developer pulling this change keeps that flat tree; the
+# per-configuration guards below would see the directory exist, skip the
+# build entirely, and the project build would then fail at find_package with
+# nothing pointing at why. .revision cannot catch this -- it only fires when
+# IPK_REF/DNFC_REF are set, i.e. in CI. A flat tree is recognised by share/
+# sitting directly under the install root; in the new layout share/ only ever
+# exists one level down, under release/ or debug/.
+migrate_flat_layout() {
+    local install_dir="$1"
+    if [ -d "$install_dir/share" ]; then
+        echo "$(basename "$install_dir")/ uses the pre-per-configuration flat layout; removing it so it can be rebuilt per configuration."
+        rm -rf "$install_dir"
+    fi
+}
+
 # ── imgui-platform-kit ────────────────────────────────────────────────────────
 IPK_SRC="$DEPS_DIR/imgui-platform-kit"
 IPK_INSTALL="$DEPS_DIR/ipk-install"
-PARALLEL=$( [ "$OS" = "Darwin" ] && sysctl -n hw.logicalcpu || nproc )
+IPK_URL=https://github.com/Jgocunha/imgui-platform-kit.git
 
-invalidate_if_stale "$IPK_INSTALL" "$IPK_REF"
+migrate_flat_layout "$IPK_INSTALL"
 
-if [ ! -d "$IPK_INSTALL" ]; then
-    clone_at_ref "$IPK_SRC" https://github.com/Jgocunha/imgui-platform-kit.git "$IPK_REF"
-    echo "Building imgui-platform-kit..."
-    cmake -S "$IPK_SRC/imgui-platform-kit" -B "$IPK_SRC/build" \
+for cfg in $CONFIGS; do
+    [ "$cfg" = debug ] && cmake_cfg=Debug || cmake_cfg=Release
+    invalidate_if_stale "$IPK_INSTALL/$cfg" "$IPK_REF"
+    if [ -d "$IPK_INSTALL/$cfg" ]; then
+        echo "imgui-platform-kit $cfg already installed, skipping."
+        continue
+    fi
+    clone_at_ref "$IPK_SRC" "$IPK_URL" "$IPK_REF"
+    echo "Building imgui-platform-kit $cfg..."
+    cmake -S "$IPK_SRC/imgui-platform-kit" -B "$IPK_SRC/build-$cfg" \
         -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
         -DVCPKG_TARGET_TRIPLET="$TRIPLET" \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX="$IPK_INSTALL"
-    cmake --build "$IPK_SRC/build" --parallel "$PARALLEL"
-    cmake --install "$IPK_SRC/build"
-    [ -n "$IPK_REF" ] && echo "$IPK_REF" > "$IPK_INSTALL/.revision"
-else
-    echo "imgui-platform-kit already installed, skipping."
-fi
+        -DCMAKE_BUILD_TYPE="$cmake_cfg" \
+        -DCMAKE_INSTALL_PREFIX="$IPK_INSTALL/$cfg"
+    cmake --build "$IPK_SRC/build-$cfg" --parallel "$PARALLEL"
+    cmake --install "$IPK_SRC/build-$cfg"
+    [ -n "$IPK_REF" ] && echo "$IPK_REF" > "$IPK_INSTALL/$cfg/.revision"
+done
 
 # ── dynamic-neural-field-composer ─────────────────────────────────────────────
 DNFC_SRC="$DEPS_DIR/dynamic-neural-field-composer"
 DNFC_INSTALL="$DEPS_DIR/dnfc-install"
+DNFC_URL=https://github.com/Jgocunha/dynamic-neural-field-composer.git
 
-invalidate_if_stale "$DNFC_INSTALL" "$DNFC_REF"
+migrate_flat_layout "$DNFC_INSTALL"
 
-if [ ! -d "$DNFC_INSTALL" ]; then
-    clone_at_ref "$DNFC_SRC" https://github.com/Jgocunha/dynamic-neural-field-composer.git "$DNFC_REF"
-    echo "Building dynamic-neural-field-composer..."
-    cmake -S "$DNFC_SRC/dynamic-neural-field-composer" -B "$DNFC_SRC/build" \
+for cfg in $CONFIGS; do
+    [ "$cfg" = debug ] && cmake_cfg=Debug || cmake_cfg=Release
+    invalidate_if_stale "$DNFC_INSTALL/$cfg" "$DNFC_REF"
+    if [ -d "$DNFC_INSTALL/$cfg" ]; then
+        echo "dynamic-neural-field-composer $cfg already installed, skipping."
+        continue
+    fi
+    clone_at_ref "$DNFC_SRC" "$DNFC_URL" "$DNFC_REF"
+    echo "Building dynamic-neural-field-composer $cfg..."
+    cmake -S "$DNFC_SRC/dynamic-neural-field-composer" -B "$DNFC_SRC/build-$cfg" \
         -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
         -DVCPKG_TARGET_TRIPLET="$TRIPLET" \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_PREFIX_PATH="$IPK_INSTALL" \
-        -DCMAKE_INSTALL_PREFIX="$DNFC_INSTALL" \
+        -DCMAKE_BUILD_TYPE="$cmake_cfg" \
+        -DCMAKE_PREFIX_PATH="$IPK_INSTALL/$cfg" \
+        -DCMAKE_INSTALL_PREFIX="$DNFC_INSTALL/$cfg" \
         -DDNF_COMPOSER_BUILD_TESTS=OFF
-    cmake --build "$DNFC_SRC/build" --parallel "$PARALLEL"
-    cmake --install "$DNFC_SRC/build"
-    [ -n "$DNFC_REF" ] && echo "$DNFC_REF" > "$DNFC_INSTALL/.revision"
-else
-    echo "dynamic-neural-field-composer already installed, skipping."
-fi
+    cmake --build "$DNFC_SRC/build-$cfg" --parallel "$PARALLEL"
+    cmake --install "$DNFC_SRC/build-$cfg"
+    [ -n "$DNFC_REF" ] && echo "$DNFC_REF" > "$DNFC_INSTALL/$cfg/.revision"
+done
 
 echo ""
 echo "Setup complete. Run ./scripts/build.sh (Linux) or ./scripts/build_macos.sh (macOS) to build the project."

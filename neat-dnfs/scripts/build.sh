@@ -13,12 +13,38 @@ if [ -z "$VCPKG_ROOT" ]; then
     exit 1
 fi
 
-BUILD_DIR="$PROJECT_ROOT/build/linux-release"
-mkdir -p "$BUILD_DIR"
+# Which configuration(s) to build. Release only by default, matching
+# scripts/setup.sh's own default.
+CONFIG="${1:-release}"
+case "$CONFIG" in
+    release|debug|all) ;;
+    *)
+        echo "ERROR: unknown build configuration \"$CONFIG\" (expected \"release\", \"debug\", \"all\", or no argument for release)."
+        exit 1
+        ;;
+esac
+[ "$CONFIG" = all ] && CONFIGS="release debug" || CONFIGS="$CONFIG"
 
-cmake -S "$PROJECT_ROOT" -B "$BUILD_DIR" \
-    -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_PREFIX_PATH="$IPK_INSTALL;$DNFC_INSTALL"
+PARALLEL="$(nproc)"
 
-cmake --build "$BUILD_DIR" --parallel "$(nproc)"
+for cfg in $CONFIGS; do
+    [ "$cfg" = debug ] && cmake_cfg=Debug || cmake_cfg=Release
+    ipk="$IPK_INSTALL/$cfg"
+    dnfc="$DNFC_INSTALL/$cfg"
+    # deps/ipk-install and deps/dnfc-install used to be single flat Release
+    # trees. A developer who pulled that change but has not re-run setup.sh
+    # would otherwise fail deep inside find_package with no hint about what
+    # to do.
+    if [ ! -d "$ipk" ] || [ ! -d "$dnfc" ]; then
+        echo "ERROR: no $cfg install at $ipk and/or $dnfc."
+        echo "Run ./scripts/setup.sh $cfg (or ./scripts/setup.sh all) first."
+        exit 1
+    fi
+    build_dir="$PROJECT_ROOT/build/linux-$cfg"
+    mkdir -p "$build_dir"
+    cmake -S "$PROJECT_ROOT" -B "$build_dir" \
+        -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+        -DCMAKE_BUILD_TYPE="$cmake_cfg" \
+        -DCMAKE_PREFIX_PATH="$ipk;$dnfc"
+    cmake --build "$build_dir" --parallel "$PARALLEL"
+done

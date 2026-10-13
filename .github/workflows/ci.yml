@@ -373,6 +373,9 @@ jobs:
           key: deps-${{ runner.os }}-${{ env.VCPKG_DEFAULT_TRIPLET }}-${{ steps.deps.outputs.ipk }}-${{ steps.deps.outputs.dnfc }}-${{ hashFiles('neat-dnfs/scripts/setup.sh') }}
 
       # ── Dependencies ───────────────────────────────────────────────────────
+      # This job builds Debug (below); deps/ipk-install and deps/dnfc-install
+      # are per-configuration now, and setup.sh's own no-argument default is
+      # Release only, so the Debug configuration must be requested explicitly.
       - name: Setup dependencies
         working-directory: ./neat-dnfs
         env:
@@ -380,7 +383,7 @@ jobs:
           DNFC_REF: ${{ steps.deps.outputs.dnfc }}
         run: |
           chmod +x scripts/setup.sh
-          ./scripts/setup.sh
+          ./scripts/setup.sh debug
 
       # ── Build with coverage instrumentation ───────────────────────────────
       - name: Build
@@ -394,7 +397,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_CXX_FLAGS="--coverage -fprofile-update=atomic" \
             -DCMAKE_EXE_LINKER_FLAGS="--coverage" \
-            -DCMAKE_PREFIX_PATH="$DEPS_DIR/ipk-install;$DEPS_DIR/dnfc-install"
+            -DCMAKE_PREFIX_PATH="$DEPS_DIR/ipk-install/debug;$DEPS_DIR/dnfc-install/debug"
           cmake --build "$BUILD_DIR" --parallel $(nproc)
 
       # ── Run tests ─────────────────────────────────────────────────────────
@@ -494,6 +497,9 @@ jobs:
           key: deps-${{ runner.os }}-${{ env.VCPKG_DEFAULT_TRIPLET }}-${{ steps.deps.outputs.ipk }}-${{ steps.deps.outputs.dnfc }}-${{ hashFiles('neat-dnfs/scripts/setup.sh') }}
 
       # ── Dependencies ───────────────────────────────────────────────────────
+      # This job builds Debug (below); deps/ipk-install and deps/dnfc-install
+      # are per-configuration now, and setup.sh's own no-argument default is
+      # Release only, so the Debug configuration must be requested explicitly.
       - name: Setup dependencies
         working-directory: ./neat-dnfs
         env:
@@ -501,7 +507,7 @@ jobs:
           DNFC_REF: ${{ steps.deps.outputs.dnfc }}
         run: |
           chmod +x scripts/setup.sh
-          ./scripts/setup.sh
+          ./scripts/setup.sh debug
 
       # ── Build with sanitizer instrumentation ────────────────────────────────
       - name: Build
@@ -514,7 +520,7 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
             -DCMAKE_BUILD_TYPE=Debug \
             -DNEAT_DNFS_SANITIZER=${{ matrix.sanitizer }} \
-            -DCMAKE_PREFIX_PATH="$DEPS_DIR/ipk-install;$DEPS_DIR/dnfc-install"
+            -DCMAKE_PREFIX_PATH="$DEPS_DIR/ipk-install/debug;$DEPS_DIR/dnfc-install/debug"
           cmake --build "$BUILD_DIR" --parallel $(nproc)
 
       # ── Run tests ─────────────────────────────────────────────────────────
