@@ -163,10 +163,17 @@ To build an archive yourself from a Release build tree, run `scripts/package.sh`
 
 ```bash
 export VCPKG_ROOT=/path/to/vcpkg
-mkdir build && cd build
-cmake ..
-cmake --build . --config Release
+chmod +x scripts/setup.sh scripts/build.sh   # scripts/build_macos.sh on macOS
+./scripts/setup.sh
+./scripts/build.sh
 ```
+
+`setup.sh` installs the vcpkg packages above plus `imgui-platform-kit` and
+`dynamic-neural-field-composer` (built from source into `deps/`); `build.sh` then
+configures and builds into `build/linux-release/` (`build/macos-release/` via
+`build_macos.sh`). Both accept an optional `release`/`debug`/`all` argument (default
+`release`). On Windows, use `scripts\setup.bat` and `scripts\build.bat` instead (the
+latter builds both configurations by default).
 
 ---
 
