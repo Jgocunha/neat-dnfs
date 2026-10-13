@@ -16,20 +16,28 @@ set(NEAT_DNFS_VERSION_MINOR 3 CACHE STRING "minor version" FORCE)
 set(NEAT_DNFS_VERSION_PATCH 0 CACHE STRING "patch version" FORCE)
 set(NEAT_DNFS_VERSION ${NEAT_DNFS_VERSION_MAJOR}.${NEAT_DNFS_VERSION_MINOR}.${NEAT_DNFS_VERSION_PATCH} CACHE STRING "version" FORCE)
 
-# Library build type prefix
-set(NEAT_DNFS_LIB_PREFIX "release")
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(NEAT_DNFS_LIB_PREFIX "debug")
-endif()
+# Library build type prefix. A generator expression, not a CMAKE_BUILD_TYPE
+# test: CMAKE_BUILD_TYPE is empty under a multi-config generator (Visual
+# Studio), which is why scripts/setup.bat configuring the sibling dnfc/ipk
+# dependencies with no -G/-DCMAKE_BUILD_TYPE always resolved this to
+# "release" even for a --config Debug build. Anything that is not Debug
+# folds into "release" -- the spelling this project has always used, so no
+# consumer's CMAKE_PREFIX_PATH has to change.
+set(NEAT_DNFS_LIB_PREFIX "$<IF:$<CONFIG:Debug>,debug,release>")
 
-# Installation directories
-set(NEAT_DNFS_INC_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include")
-set(NEAT_DNFS_RUNTIME_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
-set(NEAT_DNFS_LIBRARY_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib/${NEAT_DNFS_LIB_PREFIX}")
-set(NEAT_DNFS_ARCHIVE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib/${NEAT_DNFS_LIB_PREFIX}")
-set(NEAT_DNFS_FRAMEWORK_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
-set(NEAT_DNFS_CMAKE_CONFIG_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME}")
-set(NEAT_DNFS_ADDITIONAL_FILES_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/${CMAKE_PROJECT_NAME}")
+# Installation directories. Relative, resolved against CMAKE_INSTALL_PREFIX at
+# install time -- see the "runtime" component below for why: an absolute
+# "${CMAKE_INSTALL_PREFIX}/..." spelling makes CMake bake a literal
+# build-machine path into the generated package config and INTERFACE_INCLUDE_DIRECTORIES
+# instead of computing it from the config file's own install location, and
+# `cmake --install --prefix` silently ignores it.
+set(NEAT_DNFS_INC_INSTALL_DIR "include")
+set(NEAT_DNFS_RUNTIME_INSTALL_DIR "bin")
+set(NEAT_DNFS_LIBRARY_INSTALL_DIR "lib/${NEAT_DNFS_LIB_PREFIX}")
+set(NEAT_DNFS_ARCHIVE_INSTALL_DIR "lib/${NEAT_DNFS_LIB_PREFIX}")
+set(NEAT_DNFS_FRAMEWORK_INSTALL_DIR "bin")
+set(NEAT_DNFS_CMAKE_CONFIG_INSTALL_DIR "share/${CMAKE_PROJECT_NAME}")
+set(NEAT_DNFS_ADDITIONAL_FILES_INSTALL_DIR "share/${CMAKE_PROJECT_NAME}")
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 20)
