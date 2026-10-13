@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `NEAT_DNFS_LIB_PREFIX` (the `lib/release` vs `lib/debug` install subdirectory) is now
+  chosen with the generator expression `$<CONFIG>` instead of a
+  `CMAKE_BUILD_TYPE STREQUAL "Debug"` test. `CMAKE_BUILD_TYPE` is empty under a
+  multi-config generator (Visual Studio), which `scripts/setup.bat` uses to build the
+  `imgui-platform-kit`/`dynamic-neural-field-composer` sibling dependencies, so a Debug
+  build previously installed into `lib/release`.
+- Install destinations (the `dev` component: library, headers, package config) are now
+  relative to `CMAKE_INSTALL_PREFIX` instead of absolute, matching the `runtime`
+  component, which was already relative. An absolute destination bakes a literal
+  build-machine path into the generated package config instead of computing it from the
+  config file's own install location, and `cmake --install --prefix` silently ignored it.
+- `scripts/setup.bat` now passes `-DCMAKE_BUILD_TYPE` when configuring
+  `imgui-platform-kit` and `dynamic-neural-field-composer`, for the same reason as
+  above — confirmed on disk as a Debug `.lib` installed into
+  `deps/dnfc-install/debug/lib/release/`.
+- `scripts/setup.sh`, `build.sh` and `build_macos.sh` gain per-configuration
+  `deps/ipk-install/{release,debug}/` and `deps/dnfc-install/{release,debug}/` on Linux
+  and macOS, matching the layout Windows has always used, plus a `release|debug|all`
+  argument (default `release`, matching `scripts/build.bat`'s default of both only by
+  coincidence of that script always building both). `setup.sh` auto-migrates a
+  pre-existing flat `deps/` layout from before this change.
+- Corrected the unbuildable manual CMake recipe in `README.md` (`mkdir build && cmake ..`
+  had no build type and no `CMAKE_PREFIX_PATH` for the sibling dependencies) to use
+  `scripts/setup.sh`/`build.sh`.
+
 ---
 
 ## [0.3.0] - 2026-09-01
