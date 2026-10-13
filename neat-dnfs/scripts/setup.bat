@@ -42,8 +42,14 @@ if not exist "%IPK_INSTALL%\release" (
     if errorlevel 1 exit /b 1
 
     echo Building imgui-platform-kit Release...
+    :: CMAKE_BUILD_TYPE alongside the multi-config generator used here (no -G
+    :: is passed): imgui-platform-kit's own CMakeLists.txt keys its lib/<cfg>
+    :: subdirectory off CMAKE_BUILD_TYPE as a plain variable test, which is
+    :: otherwise empty under this generator and always resolved to "release"
+    :: -- including for a --config Debug build below.
     cmake -S "%IPK_SRC%\imgui-platform-kit" -B "%IPK_SRC%\build-release" ^
         -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake" ^
+        -DCMAKE_BUILD_TYPE=Release ^
         -DCMAKE_INSTALL_PREFIX="%IPK_INSTALL%\release"
     if errorlevel 1 ( echo ERROR: imgui-platform-kit Release configure failed. & exit /b 1 )
     cmake --build "%IPK_SRC%\build-release" --config Release --parallel
@@ -66,6 +72,7 @@ if "%NEAT_DNFS_RELEASE_ONLY%"=="1" (
         echo Building imgui-platform-kit Debug...
         cmake -S "%IPK_SRC%\imgui-platform-kit" -B "%IPK_SRC%\build-debug" ^
             -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake" ^
+            -DCMAKE_BUILD_TYPE=Debug ^
             -DCMAKE_INSTALL_PREFIX="%IPK_INSTALL%\debug"
         if errorlevel 1 ( echo ERROR: imgui-platform-kit Debug configure failed. & exit /b 1 )
         cmake --build "%IPK_SRC%\build-debug" --config Debug --parallel
@@ -89,8 +96,15 @@ if not exist "%DNFC_INSTALL%\release" (
     if errorlevel 1 exit /b 1
 
     echo Building dynamic-neural-field-composer Release...
+    :: CMAKE_BUILD_TYPE alongside --config, mirroring the imgui-platform-kit
+    :: block above for the same reason: this is a multi-config generator (no
+    :: -G passed), where CMAKE_BUILD_TYPE plays no part in what actually gets
+    :: compiled, but keeping both sibling-dependency blocks uniform is one
+    :: less thing to reason about if either project's install layout ever
+    :: goes back to testing it directly.
     cmake -S "%DNFC_SRC%\dynamic-neural-field-composer" -B "%DNFC_SRC%\build-release" ^
         -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake" ^
+        -DCMAKE_BUILD_TYPE=Release ^
         -DCMAKE_INSTALL_PREFIX="%DNFC_INSTALL%\release" ^
         -DCMAKE_PREFIX_PATH="%IPK_INSTALL%\release" ^
         -DCMAKE_MAP_IMPORTED_CONFIG_MINSIZEREL=Release ^
@@ -117,6 +131,7 @@ if "%NEAT_DNFS_RELEASE_ONLY%"=="1" (
         echo Building dynamic-neural-field-composer Debug...
         cmake -S "%DNFC_SRC%\dynamic-neural-field-composer" -B "%DNFC_SRC%\build-debug" ^
             -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake" ^
+            -DCMAKE_BUILD_TYPE=Debug ^
             -DCMAKE_INSTALL_PREFIX="%DNFC_INSTALL%\debug" ^
             -DCMAKE_PREFIX_PATH="%IPK_INSTALL%\debug" ^
             -DCMAKE_MAP_IMPORTED_CONFIG_MINSIZEREL=Debug ^
