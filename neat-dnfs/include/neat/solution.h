@@ -81,6 +81,9 @@ namespace neat_dnfs
 		int speciesId{-1};
 		std::vector<double> partialFitness;
 		std::vector<dnf_composer::element::NeuralFieldBump> bumps;
+		/// What the last evaluation observed, as a JSON document, for tasks that record one; empty otherwise.
+		/// Saved with the best solution of each generation, so a run can be diagnosed without re-simulating.
+		std::string evaluationTrace;
 
 		SolutionParameters(double fitness = 0.0,
 			double adjustedFitness = 0.0, int age = 0)
@@ -215,17 +218,6 @@ namespace neat_dnfs
 		void createSeededConnectionGenes();
 		void translateGenesToPhenotype();
 		void translateConnectionGenesToPhenotype();
-		/// @brief Casts the named phenotype element to a NeuralField, or throws
-		/// std::invalid_argument if it doesn't exist or isn't a NeuralField --
-		/// fitness helpers are always called with field names from the
-		/// solution's own topology, so a miss means a genuine configuration bug.
-		/// @param fieldName   Unique name of the phenotype element to look up.
-		/// @param callerName  Name of the calling fitness helper, included in the
-		///                    exception message to identify which computation failed.
-		/// @return The field, guaranteed non-null.
-		/// @throws std::invalid_argument if no element named @p fieldName exists in
-		///         the phenotype, or if it exists but isn't a NeuralField.
-		std::shared_ptr<dnf_composer::element::NeuralField> getNeuralFieldOrThrow(const std::string& fieldName, const std::string& callerName) const;
 
 		/// @brief Converts a spatial position into a valid index into @p neuralField's
 		/// component vectors (e.g. "activation"), clamping to the field's sample range.
@@ -255,6 +247,18 @@ namespace neat_dnfs
 	protected:
 		/// @brief Run the simulation and write the result into @c parameters.fitness. Called by @c evaluate().
 		virtual void testPhenotype() = 0;
+
+		/// @brief Casts the named phenotype element to a NeuralField, or throws
+		/// std::invalid_argument if it doesn't exist or isn't a NeuralField --
+		/// fitness helpers are always called with field names from the
+		/// solution's own topology, so a miss means a genuine configuration bug.
+		/// @param fieldName   Unique name of the phenotype element to look up.
+		/// @param callerName  Name of the calling fitness helper, included in the
+		///                    exception message to identify which computation failed.
+		/// @return The field, guaranteed non-null.
+		/// @throws std::invalid_argument if no element named @p fieldName exists in
+		///         the phenotype, or if it exists but isn't a NeuralField.
+		std::shared_ptr<dnf_composer::element::NeuralField> getNeuralFieldOrThrow(const std::string& fieldName, const std::string& callerName) const;
 
 		/// @brief Fills @c fitnessWeights from config/solutions/<slug>.json.
 		/// Every subclass constructor calls this with its task slug and the number

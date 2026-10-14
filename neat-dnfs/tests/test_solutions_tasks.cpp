@@ -14,6 +14,7 @@
 #include "solutions/and.h"
 #include "solutions/xor.h"
 #include "solutions/hri_packaging_task.h"
+#include "solutions/sequence_timing.h"
 #include "neat_tools/config_loader.h"
 #include "neat_tools/resource_paths.h"
 #include "neat_tools/solution_registry.h"
@@ -241,6 +242,83 @@ TEST_CASE("HRIPackagingTask is registered with three inputs and one output", "[S
     REQUIRE(task != nullptr);
     REQUIRE(task->templateFile == "hri-packaging-task.dnf");
     REQUIRE(task->inputs == 3);
+    REQUIRE(task->outputs == 1);
+}
+
+TEST_CASE("SequenceTiming contract", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    checkSolutionContract<SequenceTiming>(makeTopology(1, 1));
+}
+
+// Like dmts, SequenceTiming places stimuli beyond the global default xSize=100
+// (events at 120 and 180), so the topology is built at the live xSize that
+// config/solutions/sequence-timing.json sets rather than via makeTopology().
+static SolutionTopology sequenceTimingTopology()
+{
+    using dnf_composer::element::ElementDimensions;
+    const ElementDimensions dims{ DimensionConstants::xSize, DimensionConstants::dx };
+    return SolutionTopology({
+        { FieldGeneType::INPUT, dims },
+        { FieldGeneType::OUTPUT, dims }
+    });
+}
+
+TEST_CASE("SequenceTiming evaluate produces a bounded fitness", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing" };
+
+    SequenceTiming solution(sequenceTimingTopology());
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    REQUIRE(solution.getFitness() >= 0.0);
+    REQUIRE(solution.getFitness() <= 1.0);
+    REQUIRE(solution.getParameters().partialFitness.size() == 6);
+}
+
+// With no connection into the output field, nothing can ever drive a peak
+// there: the output must earn full credit for staying silent while the
+// sequence is demonstrated, and none of the three recall terms.
+TEST_CASE("SequenceTiming gives no recall credit to an output field that never peaks", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing" };
+
+    // Fixed genes draw no random numbers, so the output field cannot ignite
+    // on its own through a randomly drawn high resting level.
+    SequenceTiming solution(sequenceTimingTopology());
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 6);
+    CHECK(partials[2] == Catch::Approx(1.0)); // output silent during demonstration
+    CHECK(partials[3] == 0.0);                // recalled events present
+    CHECK(partials[4] == 0.0);                // recalled intervals
+    CHECK(partials[5] == 0.0);                // recalled peaks one at a time
+
+    const auto trace = nlohmann::json::parse(solution.getParameters().evaluationTrace);
+    REQUIRE(trace.at("trials").size() == 4); // three recall trials and the probe
+    for (const auto& trial : trace.at("trials"))
+    {
+        if (trial.at("kind") == "recall")
+        {
+            CHECK(trial.at("recall").at("risingPeakCount") == 0);
+            CHECK(trial.at("recall").at("onsets").at("D").is_null());
+        }
+    }
+}
+
+TEST_CASE("SequenceTiming is registered with one input and one output", "[SolutionRegistry]")
+{
+    const auto* task = findTask("sequence-timing");
+    REQUIRE(task != nullptr);
+    REQUIRE(task->templateFile == "sequence-timing.dnf");
+    REQUIRE(task->inputs == 1);
     REQUIRE(task->outputs == 1);
 }
 

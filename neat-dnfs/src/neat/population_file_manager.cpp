@@ -449,6 +449,11 @@ namespace neat_dnfs
 				{"parentIds", {parent1, parent2}},
 				{"partialFitness", population->bestSolution->getParameters().partialFitness}
 			};
+			const std::string& trace = population->bestSolution->getParameters().evaluationTrace;
+			if (!trace.empty())
+			{
+				record["bestSolution"]["evaluationTrace"] = nlohmann::json::parse(trace);
+			}
 		}
 		else
 		{

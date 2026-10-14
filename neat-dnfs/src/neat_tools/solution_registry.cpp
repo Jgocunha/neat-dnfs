@@ -14,6 +14,7 @@
 #include "solutions/delayed_match_to_sample.h"
 #include "solutions/inhibition_of_return.h"
 #include "solutions/hri_packaging_task.h"
+#include "solutions/sequence_timing.h"
 
 namespace neat_dnfs
 {
@@ -51,6 +52,7 @@ namespace neat_dnfs
 			entry<DelayedMatchToSample>("dmts", "delayed-match-to-sample.dnf", 1, 1),
 			entry<InhibitionOfReturn>("ior", "inhibition-of-return.dnf", 1, 1),
 			entry<HRIPackagingTask>("hri-packaging", "hri-packaging-task.dnf", 3, 1),
+			entry<SequenceTiming>("sequence-timing", "sequence-timing.dnf", 1, 1),
 		};
 		return entries;
 	}
