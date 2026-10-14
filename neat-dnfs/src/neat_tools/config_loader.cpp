@@ -223,6 +223,7 @@ namespace neat_dnfs
 			field(nf, "tauMinVal", &NeuralFieldConstants::tauMinVal);
 			field(nf, "tauMaxVal", &NeuralFieldConstants::tauMaxVal);
 			field(nf, "tauStep", &NeuralFieldConstants::tauStep);
+			optionalField(nf, "tauMutationFactor", &NeuralFieldConstants::tauMutationFactor);
 			field(nf, "restingLevelMinVal", &NeuralFieldConstants::restingLevelMinVal);
 			field(nf, "restingLevelMaxVal", &NeuralFieldConstants::restingLevelMaxVal);
 			field(nf, "restingLevelStep", &NeuralFieldConstants::restingLevelStep);
@@ -319,6 +320,12 @@ namespace neat_dnfs
 			field(cg, "mutateConnectionGeneMexicanHatKernelWidthExcProbability", &ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelWidthExcProbability);
 			field(cg, "mutateConnectionGeneMexicanHatKernelWidthInhProbability", &ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelWidthInhProbability);
 			field(cg, "mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability", &ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability);
+			optionalField(cg, "ampGlobalMinVal", &ConnectionGeneConstants::ampGlobalMinVal);
+			optionalField(cg, "ampGlobalMaxVal", &ConnectionGeneConstants::ampGlobalMaxVal);
+			optionalField(cg, "ampGlobalStep", &ConnectionGeneConstants::ampGlobalStep);
+			optionalField(cg, "gaussAmpMinVal", &ConnectionGeneConstants::gaussAmpMinVal);
+			optionalField(cg, "gaussAmpMaxVal", &ConnectionGeneConstants::gaussAmpMaxVal);
+			optionalField(cg, "gaussAmpMutationFactor", &ConnectionGeneConstants::gaussAmpMutationFactor);
 
 			const auto& sc = j.at("SolutionConstants");
 			field(sc, "minInitialInputGenes", &SolutionConstants::minInitialInputGenes);

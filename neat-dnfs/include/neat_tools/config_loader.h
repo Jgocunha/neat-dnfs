@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -32,6 +33,19 @@ namespace neat_dnfs
 		static void field(const nlohmann::json& j, const char* key, T* target)
 		{
 			*target = j.at(key).get<T>();
+		}
+
+		/// @brief Assigns j[key] into *target if @p key is present, and resets *target to empty otherwise.
+		/// @details For keys added after configs were already in use: a config written before the key
+		/// existed keeps its previous behaviour instead of failing to load.
+		/// @param j JSON object to read from.
+		/// @param key Key to look up in @p j.
+		/// @param target Optional to fill, or to reset when @p key is absent.
+		/// @throws nlohmann::json::type_error if the value cannot convert to T.
+		template <typename T>
+		static void optionalField(const nlohmann::json& j, const char* key, std::optional<T>* target)
+		{
+			*target = j.contains(key) ? std::optional<T>{ j.at(key).get<T>() } : std::nullopt;
 		}
 
 		/// @brief Reads a fitness-weight array, checking it has exactly

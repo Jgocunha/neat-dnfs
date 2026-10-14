@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Optional `ConnectionGeneConstants.gaussAmpMinVal` / `gaussAmpMaxVal` / `gaussAmpMutationFactor` give Gauss connection kernels their own amplitude range, drawn log-uniformly and mutated multiplicatively when the factor is set, and `ampGlobalStep` their own global-amplitude step. When absent, connections keep sharing the field kernels' range and steps
+- Optional `ConnectionGeneConstants.ampGlobalMinVal` / `ampGlobalMaxVal` bound a connection kernel's global amplitude separately from a field's own kernel, so a task can let connections carry uniform excitation without giving fields runaway self-excitation. When absent, connections keep sharing the field kernels' bounds, so existing configs behave as before
+- Optional `NeuralFieldConstants.tauMutationFactor`: when set, a field's tau is drawn log-uniformly in `[tauMinVal, tauMaxVal]` and mutates by multiplying or dividing by the factor, so one range can span time scales orders of magnitude apart. When absent, tau keeps its uniform draw and additive `tauStep`
+
 ---
 
 ## [0.3.0] - 2026-09-01

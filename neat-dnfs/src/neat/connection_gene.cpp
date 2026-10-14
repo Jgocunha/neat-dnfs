@@ -1,8 +1,38 @@
 #include "neat/connection_gene.h"
+#include <cmath>
 #include <format>
 
 namespace neat_dnfs
 {
+	namespace
+	{
+		double gaussAmplitudeMin()
+		{
+			return ConnectionGeneConstants::gaussAmpMinVal.value_or(GaussKernelConstants::ampMinVal);
+		}
+
+		double gaussAmplitudeMax()
+		{
+			return ConnectionGeneConstants::gaussAmpMaxVal.value_or(GaussKernelConstants::ampMaxVal);
+		}
+
+		double randomGaussAmplitudeMagnitude()
+		{
+			using tools::utils::generateRandomDouble;
+			return ConnectionGeneConstants::gaussAmpMutationFactor
+				? std::exp(generateRandomDouble(std::log(gaussAmplitudeMin()), std::log(gaussAmplitudeMax())))
+				: generateRandomDouble(gaussAmplitudeMin(), gaussAmplitudeMax());
+		}
+
+		double mutatedGaussAmplitudeMagnitude(const double magnitude, const int signal)
+		{
+			const double mutated = ConnectionGeneConstants::gaussAmpMutationFactor
+				? magnitude * std::pow(*ConnectionGeneConstants::gaussAmpMutationFactor, signal)
+				: magnitude + GaussKernelConstants::ampStep * signal;
+			return std::clamp(mutated, gaussAmplitudeMin(), gaussAmplitudeMax());
+		}
+	}
+
 	ConnectionTuple::ConnectionTuple(const int inFieldGeneId, const int outFieldGeneId)
 		: inFieldGeneId(inFieldGeneId), outFieldGeneId(outFieldGeneId)
 	{}
@@ -339,7 +369,7 @@ namespace neat_dnfs
 
 		const int amplitude_sign = generateRandomSignal();
 		const double width = generateRandomDouble(GaussKernelConstants::widthMinVal, GaussKernelConstants::widthMaxVal);
-		const double amplitude = amplitude_sign * generateRandomDouble(GaussKernelConstants::ampMinVal, GaussKernelConstants::ampMaxVal);
+		const double amplitude = amplitude_sign * randomGaussAmplitudeMagnitude();
 		constexpr double amplitudeGlobal = 0.0;
 		const GaussKernelParameters gkp{ width,
 										amplitude,
@@ -451,18 +481,20 @@ namespace neat_dnfs
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneGaussKernelAmplitudeProbability)
 		{
-			gkp.amplitude = amp_sign * std::clamp(std::abs(gkp.amplitude) + GaussKernelConstants::ampStep * signal,
-				GaussKernelConstants::ampMinVal,
-				GaussKernelConstants::ampMaxVal);
-			mutationsInLastGeneration += std::format("(cg gk amp. {})", GaussKernelConstants::ampStep * signal);
+			const double magnitude = std::abs(gkp.amplitude);
+			gkp.amplitude = amp_sign * mutatedGaussAmplitudeMagnitude(magnitude, signal);
+			mutationsInLastGeneration += ConnectionGeneConstants::gaussAmpMutationFactor
+				? std::format("(cg gk amp. x{})", std::pow(*ConnectionGeneConstants::gaussAmpMutationFactor, signal))
+				: std::format("(cg gk amp. {})", GaussKernelConstants::ampStep * signal);
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneGaussKernelGlobalAmplitudeProbability)
 		{
-			gkp.amplitudeGlobal = std::clamp(gkp.amplitudeGlobal + GaussKernelConstants::ampGlobalStep * signal,
-				GaussKernelConstants::ampGlobalMinVal,
-				GaussKernelConstants::ampGlobalMaxVal);
-			mutationsInLastGeneration += std::format("(cg gk amp. glob. {})", GaussKernelConstants::ampGlobalStep * signal);
+			const double step = ConnectionGeneConstants::ampGlobalStep.value_or(GaussKernelConstants::ampGlobalStep);
+			gkp.amplitudeGlobal = std::clamp(gkp.amplitudeGlobal + step * signal,
+				ConnectionGeneConstants::ampGlobalMinVal.value_or(GaussKernelConstants::ampGlobalMinVal),
+				ConnectionGeneConstants::ampGlobalMaxVal.value_or(GaussKernelConstants::ampGlobalMaxVal));
+			mutationsInLastGeneration += std::format("(cg gk amp. glob. {})", step * signal);
 		}
 		std::dynamic_pointer_cast<GaussKernel>(kernel)->setParameters(gkp);
 	}
@@ -512,10 +544,11 @@ namespace neat_dnfs
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability)
 		{
-			mhkp.amplitudeGlobal = std::clamp(mhkp.amplitudeGlobal + MexicanHatKernelConstants::ampGlobStep * signal,
-				MexicanHatKernelConstants::ampGlobMin,
-				MexicanHatKernelConstants::ampGlobMax);
-			mutationsInLastGeneration += std::format("(cg mhk amp. glob. {})", MexicanHatKernelConstants::ampGlobStep * signal);
+			const double step = ConnectionGeneConstants::ampGlobalStep.value_or(MexicanHatKernelConstants::ampGlobStep);
+			mhkp.amplitudeGlobal = std::clamp(mhkp.amplitudeGlobal + step * signal,
+				ConnectionGeneConstants::ampGlobalMinVal.value_or(MexicanHatKernelConstants::ampGlobMin),
+				ConnectionGeneConstants::ampGlobalMaxVal.value_or(MexicanHatKernelConstants::ampGlobMax));
+			mutationsInLastGeneration += std::format("(cg mhk amp. glob. {})", step * signal);
 		}
 		std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->setParameters(mhkp);
 	}

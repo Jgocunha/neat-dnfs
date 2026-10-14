@@ -1,4 +1,6 @@
 #include "neat/field_gene.h"
+
+#include <cmath>
 #include <format> 
 
 namespace neat_dnfs
@@ -224,7 +226,9 @@ namespace neat_dnfs
 
 		if(FieldGeneConstants::variableParameters)
 		{
-			const double tau = generateRandomDouble(NeuralFieldConstants::tauMinVal, NeuralFieldConstants::tauMaxVal);
+			const double tau = NeuralFieldConstants::tauMutationFactor
+				? std::exp(generateRandomDouble(std::log(NeuralFieldConstants::tauMinVal), std::log(NeuralFieldConstants::tauMaxVal)))
+				: generateRandomDouble(NeuralFieldConstants::tauMinVal, NeuralFieldConstants::tauMaxVal);
 			const double restingLevel = generateRandomDouble(NeuralFieldConstants::restingLevelMinVal, NeuralFieldConstants::restingLevelMaxVal);
 
 			const NeuralFieldParameters nfp{ tau, restingLevel, NeuralFieldConstants::activationFunction };
@@ -487,11 +491,14 @@ namespace neat_dnfs
 				FieldGeneConstants::mutateFieldGeneNeuralFieldParametersTauProbability)
 			{
 				const double tau = neuralField->getParameters().tau;
-				nfp.tau = std::clamp(tau + NeuralFieldConstants::tauStep * signal,
-													NeuralFieldConstants::tauMinVal,
-													NeuralFieldConstants::tauMaxVal);
+				const double mutatedTau = NeuralFieldConstants::tauMutationFactor
+					? tau * std::pow(*NeuralFieldConstants::tauMutationFactor, signal)
+					: tau + NeuralFieldConstants::tauStep * signal;
+				nfp.tau = std::clamp(mutatedTau, NeuralFieldConstants::tauMinVal, NeuralFieldConstants::tauMaxVal);
 				neuralField->setParameters(nfp);
-				mutationsInLastGeneration += std::format("(fg nf tau {})", NeuralFieldConstants::tauStep * signal);
+				mutationsInLastGeneration += NeuralFieldConstants::tauMutationFactor
+					? std::format("(fg nf tau x{})", std::pow(*NeuralFieldConstants::tauMutationFactor, signal))
+					: std::format("(fg nf tau {})", NeuralFieldConstants::tauStep * signal);
 			}
 
 			if (tools::utils::generateRandomDouble(0.0, 1.0) <

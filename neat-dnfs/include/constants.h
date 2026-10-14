@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -74,6 +75,10 @@ namespace neat_dnfs
 		inline static double tauMinVal;
 		inline static double tauMaxVal;
 		inline static double tauStep;
+		// Optional. When set, tau is drawn log-uniformly in [tauMinVal, tauMaxVal] and mutates by
+		// multiplying or dividing by this factor, and tauStep is unused. Lets one range span time
+		// scales several orders of magnitude apart, which a single additive step cannot serve.
+		inline static std::optional<double> tauMutationFactor;
 
 		inline static double restingLevelMinVal;
 		inline static double restingLevelMaxVal;
@@ -274,6 +279,25 @@ namespace neat_dnfs
 		inline static double mutateConnectionGeneMexicanHatKernelWidthExcProbability;
 		inline static double mutateConnectionGeneMexicanHatKernelWidthInhProbability;
 		inline static double mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability;
+
+		// Bounds on a connection kernel's global amplitude, for both kernel types. Optional:
+		// when unset, connections share the field kernels' bounds (GaussKernelConstants /
+		// MexicanHatKernelConstants), as they did before these keys existed. Setting them lets a
+		// connection carry uniform excitation without giving the same to a field's own kernel.
+		inline static std::optional<double> ampGlobalMinVal;
+		inline static std::optional<double> ampGlobalMaxVal;
+		// Step of a connection kernel's global-amplitude mutation, for both kernel types. Optional:
+		// when unset, connections use the field kernels' step.
+		inline static std::optional<double> ampGlobalStep;
+
+		// Range of a Gauss connection kernel's amplitude magnitude. Optional: when unset, connections
+		// share the field kernels' range (GaussKernelConstants). Lets a connection drive much harder
+		// than a field may excite itself.
+		inline static std::optional<double> gaussAmpMinVal;
+		inline static std::optional<double> gaussAmpMaxVal;
+		// Optional. When set, a Gauss connection's amplitude magnitude is drawn log-uniformly and
+		// mutates by multiplying or dividing by this factor instead of by GaussKernelConstants::ampStep.
+		inline static std::optional<double> gaussAmpMutationFactor;
 	};
 
 	struct SolutionConstants
