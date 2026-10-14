@@ -1,4 +1,5 @@
 #include "neat/genome.h"
+#include <algorithm>
 #include <format>
 
 namespace neat_dnfs
@@ -599,6 +600,12 @@ namespace neat_dnfs
 		// create new innovation number
 		connectionTupleAndInnovationNumberWithinGeneration[connectionTuple] = globalInnovationNumber;
 		return globalInnovationNumber++;
+	}
+
+	void Genome::reserveInnovationNumber(const int innovationNumber)
+	{
+		std::scoped_lock lock(innovationMutex);
+		globalInnovationNumber = std::max(globalInnovationNumber, innovationNumber + 1);
 	}
 
 	void Genome::addConnectionGene(ConnectionTuple connectionTuple)

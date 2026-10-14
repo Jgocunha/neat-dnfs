@@ -505,6 +505,8 @@ namespace neat_dnfs
 					// generational allocation addConnectionGene(ConnectionTuple)
 					// uses for a freshly mutated connection, so two genomes decoding
 					// the same tuple in one generation agree.
+					// Either way the number is reserved, so connections added by
+					// later mutations are never given it again.
 					const auto parsedName = element->getLabel() == ElementLabel::GAUSS_KERNEL
 						? tools::utils::parseConnectionKernelName(element->getUniqueName(),
 							GaussKernelConstants::namePrefix, GaussKernelConstants::namePrefixConnectionGene)
@@ -513,6 +515,7 @@ namespace neat_dnfs
 					const int innovationNumber = (parsedName && parsedName->innovationNumber)
 						? *parsedName->innovationNumber
 						: Genome::allocateInnovationNumber(connectionTuple);
+					Genome::reserveInnovationNumber(innovationNumber);
 
 					// Get the kernel parameters based on type
 					switch (element->getLabel())

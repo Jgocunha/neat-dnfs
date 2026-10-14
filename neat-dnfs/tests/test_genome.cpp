@@ -220,6 +220,20 @@ TEST_CASE("Mutate Genome", "[Genome]")
     }
 }
 
+TEST_CASE("Genome::reserveInnovationNumber only ever moves the counter forward", "[Genome]")
+{
+    Genome::resetGlobalInnovationNumber();
+    Genome::clearGenerationalInnovations();
+
+    Genome::reserveInnovationNumber(4);
+    REQUIRE(Genome::getGlobalInnovationNumber() == 5);
+
+    Genome::reserveInnovationNumber(2);
+    REQUIRE(Genome::getGlobalInnovationNumber() == 5);
+
+    REQUIRE(Genome::allocateInnovationNumber(ConnectionTuple(1, 2)) == 5);
+}
+
 // Regression test for issue #3 (innovation number thread safety). The
 // statics globalInnovationNumber and connectionTupleAndInnovationNumberWithinGeneration
 // are guarded by Genome::innovationMutex (see genome.cpp addConnectionGene/addGene).

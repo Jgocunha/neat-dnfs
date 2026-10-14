@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optional `ConnectionGeneConstants.ampGlobalMinVal` / `ampGlobalMaxVal` bound a connection kernel's global amplitude separately from a field's own kernel, so a task can let connections carry uniform excitation without giving fields runaway self-excitation. When absent, connections keep sharing the field kernels' bounds, so existing configs behave as before
 - Optional `NeuralFieldConstants.tauMutationFactor`: when set, a field's tau is drawn log-uniformly in `[tauMinVal, tauMaxVal]` and mutates by multiplying or dividing by the factor, so one range can span time scales orders of magnitude apart. When absent, tau keeps its uniform draw and additive `tauStep`
 
+### Fixed
+- Decoding a phenotype whose connection names carry innovation numbers (`gk cg 1-3 7`) now reserves those numbers, so connections added by later mutations are never given them again. Before, an incremental-evolution run seeded from a saved solution could give two different connections the same innovation number, corrupting compatibility distances and crossover alignment
+
 ---
 
 ## [0.3.0] - 2026-09-01

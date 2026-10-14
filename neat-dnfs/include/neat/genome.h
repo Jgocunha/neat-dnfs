@@ -72,6 +72,11 @@ namespace neat_dnfs
 		/// @param connectionTuple Source and target field gene ids.
 		/// @return The innovation number for this tuple in the current generation.
 		[[nodiscard]] static int allocateInnovationNumber(ConnectionTuple connectionTuple);
+		/// @brief Marks @p innovationNumber as taken, so later allocations start above it.
+		/// Used when decoding a connection gene that brings its own number from a saved
+		/// phenotype, which never went through allocateInnovationNumber in this process.
+		/// @param innovationNumber An innovation number already in use.
+		static void reserveInnovationNumber(int innovationNumber);
 		/// @brief Adds every legal (source, target) connection tuple as a new
 		/// connection gene. Used by ablation presets that freeze structure but
 		/// need the genome to start fully connected (see AblationConstants).

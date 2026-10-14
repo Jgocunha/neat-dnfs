@@ -705,6 +705,27 @@ TEST_CASE("Solution::translatePhenotypeToGenome recovers the exact original fiel
     }
 }
 
+TEST_CASE("Solution::translatePhenotypeToGenome keeps new innovation numbers clear of decoded ones", "[Solution]")
+{
+    // A template decoded at the start of incremental evolution carries its own
+    // innovation numbers in its connection names ("gk cg 1-2 7"). Connections
+    // added by mutation afterwards must not be given those numbers again, or
+    // two different connections would share one and corrupt compatibility and
+    // crossover alignment.
+    resetGlobalState();
+    const auto topology = makeTopology(1, 1);
+    DetectionInstability solution(topology);
+    solution.initialize();
+    solution.addConnectionGene(ConnectionGene({ 1, 2 }, 7));
+    solution.buildPhenotype();
+
+    resetGlobalState();
+    REQUIRE_NOTHROW(solution.translatePhenotypeToGenome());
+    REQUIRE(solution.getGenome().getConnectionGenes().front().getInnovationNumber() == 7);
+
+    CHECK(Genome::allocateInnovationNumber({ 2, 1 }) > 7);
+}
+
 TEST_CASE("Solution::crossover with identical parents yields a matching-topology child", "[Solution]")
 {
     resetGlobalState();
