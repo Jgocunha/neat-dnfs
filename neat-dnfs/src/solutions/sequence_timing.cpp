@@ -40,6 +40,9 @@ namespace neat_dnfs
 
 		// Scalar timing: the tolerated error grows with the time elapsed since the cue.
 		constexpr double weberFraction = 0.2;
+		// Consecutive onsets at least this far apart earn full order credit; the closest demonstrated pair is 200 apart.
+		constexpr double minimumOnsetSeparation = 100.0;
+		constexpr double orderCreditShare = 0.5;
 		// Events are at least 30 apart, so a bump within 10 belongs to one event only.
 		constexpr double onsetPositionTolerance = 10.0;
 		constexpr double isolationSettleTime = 50.0;
@@ -59,26 +62,27 @@ namespace neat_dnfs
 	}
 
 	SequenceTiming::SequenceTiming(const SolutionTopology& topology)
-		: SequenceTiming(topology, StartCue::gaussianPulse, "Sequence Timing", "sequence-timing")
+		: SequenceTiming(topology, StartCue::gaussianPulse, TimingCredit::exactOnsets, "Sequence Timing", "sequence-timing")
 	{
 	}
 
 	SequenceTiming::SequenceTiming(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
-		: SequenceTiming(initialTopology, phenotype, StartCue::gaussianPulse, "Sequence Timing", "sequence-timing")
+		: SequenceTiming(initialTopology, phenotype, StartCue::gaussianPulse, TimingCredit::exactOnsets, "Sequence Timing",
+			"sequence-timing")
 	{
 	}
 
-	SequenceTiming::SequenceTiming(const SolutionTopology& topology, const StartCue startCue, const std::string& taskName,
-		const std::string& slug)
-		: Solution(topology), startCue(startCue)
+	SequenceTiming::SequenceTiming(const SolutionTopology& topology, const StartCue startCue, const TimingCredit timingCredit,
+		const std::string& taskName, const std::string& slug)
+		: Solution(topology), startCue(startCue), timingCredit(timingCredit)
 	{
 		name = taskName;
 		loadFitnessWeights(slug, 6);
 	}
 
 	SequenceTiming::SequenceTiming(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype,
-		const StartCue startCue, const std::string& taskName, const std::string& slug)
-		: Solution(initialTopology, phenotype), startCue(startCue)
+		const StartCue startCue, const TimingCredit timingCredit, const std::string& taskName, const std::string& slug)
+		: Solution(initialTopology, phenotype), startCue(startCue), timingCredit(timingCredit)
 	{
 		name = taskName;
 		loadFitnessWeights(slug, 6);
@@ -137,7 +141,7 @@ namespace neat_dnfs
 
 		const RecallObservation recall = recallSequence(scores);
 		scores.recalledEvents += recallCreditGate * recalledEventsScore(recall);
-		scores.recalledTiming += recallCreditGate * recalledTimingScore(recall);
+		scores.recalledTiming += recallCreditGate * timingTermScore(recall);
 		scores.oneAtATime += recallCreditGate * oneAtATimeScore(recall);
 		++scores.recallTrials;
 
@@ -352,6 +356,7 @@ namespace neat_dnfs
 		return {
 			{ "onsets", onsets },
 			{ "isolation", isolation },
+			{ "order", orderScore(observation) },
 			{ "lastPeakDecay", observation.lastPeakDecay },
 			{ "risingPeakCount", observation.risingPeakCount },
 			{ "risingPeaks", observation.risingPeaks }
@@ -383,6 +388,31 @@ namespace neat_dnfs
 			}
 		}
 		return total / recalledEventCount;
+	}
+
+	double SequenceTiming::orderScore(const RecallObservation& observation)
+	{
+		double total = 0.0;
+		for (size_t i = 0; i + 1 < recalledEventCount; ++i)
+		{
+			const auto& earlier = observation.onsetSteps[i];
+			const auto& later = observation.onsetSteps[i + 1];
+			if (earlier && later)
+			{
+				const double separation = (*later - *earlier) * SimulationConstants::deltaT;
+				total += std::clamp(separation / minimumOnsetSeparation, 0.0, 1.0);
+			}
+		}
+		return total / (recalledEventCount - 1);
+	}
+
+	double SequenceTiming::timingTermScore(const RecallObservation& observation) const
+	{
+		if (timingCredit == TimingCredit::orderAndOnsets)
+		{
+			return orderCreditShare * orderScore(observation) + (1.0 - orderCreditShare) * recalledTimingScore(observation);
+		}
+		return recalledTimingScore(observation);
 	}
 
 	double SequenceTiming::oneAtATimeScore(const RecallObservation& observation)
@@ -427,12 +457,13 @@ namespace neat_dnfs
 	}
 
 	SequenceTimingBoost::SequenceTimingBoost(const SolutionTopology& topology)
-		: SequenceTiming(topology, StartCue::boost, "Sequence Timing Boost", "sequence-timing-boost")
+		: SequenceTiming(topology, StartCue::boost, TimingCredit::exactOnsets, "Sequence Timing Boost", "sequence-timing-boost")
 	{
 	}
 
 	SequenceTimingBoost::SequenceTimingBoost(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
-		: SequenceTiming(initialTopology, phenotype, StartCue::boost, "Sequence Timing Boost", "sequence-timing-boost")
+		: SequenceTiming(initialTopology, phenotype, StartCue::boost, TimingCredit::exactOnsets, "Sequence Timing Boost",
+			"sequence-timing-boost")
 	{
 	}
 
@@ -446,5 +477,30 @@ namespace neat_dnfs
 	{
 		SequenceTimingBoost solution(initialTopology, phenotype);
 		return std::make_shared<SequenceTimingBoost>(solution);
+	}
+
+	SequenceTimingBoostOrder::SequenceTimingBoostOrder(const SolutionTopology& topology)
+		: SequenceTiming(topology, StartCue::boost, TimingCredit::orderAndOnsets, "Sequence Timing Boost Order",
+			"sequence-timing-boost-order")
+	{
+	}
+
+	SequenceTimingBoostOrder::SequenceTimingBoostOrder(const SolutionTopology& initialTopology,
+		const dnf_composer::Simulation& phenotype)
+		: SequenceTiming(initialTopology, phenotype, StartCue::boost, TimingCredit::orderAndOnsets,
+			"Sequence Timing Boost Order", "sequence-timing-boost-order")
+	{
+	}
+
+	SolutionPtr SequenceTimingBoostOrder::clone() const
+	{
+		SequenceTimingBoostOrder solution(initialTopology);
+		return std::make_shared<SequenceTimingBoostOrder>(solution);
+	}
+
+	SolutionPtr SequenceTimingBoostOrder::copy() const
+	{
+		SequenceTimingBoostOrder solution(initialTopology, phenotype);
+		return std::make_shared<SequenceTimingBoostOrder>(solution);
 	}
 }

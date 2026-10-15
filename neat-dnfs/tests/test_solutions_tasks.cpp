@@ -433,6 +433,78 @@ TEST_CASE("SequenceTimingBoost is registered with one input and one output", "[S
     REQUIRE(task->outputs == 1);
 }
 
+// Order credit of each recall trial, read from the evaluation trace.
+static std::vector<double> recallOrderCredits(const Solution& solution)
+{
+    std::vector<double> credits;
+    const auto trace = nlohmann::json::parse(solution.getParameters().evaluationTrace);
+    for (const auto& trial : trace.at("trials"))
+    {
+        if (trial.at("kind") == "recall")
+        {
+            credits.push_back(trial.at("recall").at("order").get<double>());
+        }
+    }
+    return credits;
+}
+
+TEST_CASE("SequenceTimingBoostOrder contract", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    checkSolutionContract<SequenceTimingBoostOrder>(makeTopology(1, 1));
+}
+
+TEST_CASE("SequenceTimingBoostOrder gives full order credit to the hand-built reference", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-boost-order" };
+
+    auto solution = loadSequenceTimingFixture<SequenceTimingBoostOrder>("sequence-timing-boost-handbuilt.dnf");
+    solution.evaluate();
+
+    CHECK(solution.getFitness() > 0.9);
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 6);
+    CHECK(partials[4] > 0.9);
+    const auto credits = recallOrderCredits(solution);
+    REQUIRE(credits.size() == 3);
+    for (const double credit : credits)
+    {
+        CHECK(credit == Catch::Approx(1.0));
+    }
+}
+
+// Saved from a from-scratch boost run: a few hundred time units after the cue the output ignites at many
+// positions at once, so every event gets a rising peak, but all of them at about the same time.
+TEST_CASE("SequenceTimingBoostOrder gives almost no order credit to a burst of simultaneous peaks", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-boost-order" };
+
+    auto solution = loadSequenceTimingFixture<SequenceTimingBoostOrder>("sequence-timing-boost-burst.dnf");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 6);
+    REQUIRE(partials[3] > 0.9); // the burst does put a rising peak on every event
+    const auto credits = recallOrderCredits(solution);
+    REQUIRE(credits.size() == 3);
+    for (const double credit : credits)
+    {
+        CHECK(credit < 0.3);
+    }
+    CHECK(partials[4] < 0.3);
+}
+
+TEST_CASE("SequenceTimingBoostOrder is registered with the boost template", "[SolutionRegistry]")
+{
+    const auto* task = findTask("sequence-timing-boost-order");
+    REQUIRE(task != nullptr);
+    REQUIRE(task->templateFile == "sequence-timing-boost.dnf");
+    REQUIRE(task->inputs == 1);
+    REQUIRE(task->outputs == 1);
+}
+
 TEST_CASE("SequenceTiming is registered with one input and one output", "[SolutionRegistry]")
 {
     const auto* task = findTask("sequence-timing");

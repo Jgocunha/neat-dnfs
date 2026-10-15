@@ -97,22 +97,33 @@ namespace neat_dnfs
 			boost          ///< A transient homogeneous boost of the whole input field.
 		};
 
+		/// @brief What the recalled-timing term (f5) gives credit for.
+		enum class TimingCredit
+		{
+			exactOnsets,   ///< Each onset against its demonstrated onset only.
+			orderAndOnsets ///< Half for the events rising one after another, half for exact onsets.
+		};
+
 		/// @brief Builds a task variant whose genome is created from @p topology.
 		/// @param topology Fields to start from: the input and the output.
 		/// @param startCue How X is delivered.
+		/// @param timingCredit What the recalled-timing term gives credit for.
 		/// @param taskName Display name, which also names the run's data folder.
 		/// @param slug Task slug whose config supplies the fitness weights.
-		SequenceTiming(const SolutionTopology& topology, StartCue startCue, const std::string& taskName, const std::string& slug);
+		SequenceTiming(const SolutionTopology& topology, StartCue startCue, TimingCredit timingCredit,
+			const std::string& taskName, const std::string& slug);
 		/// @brief Builds a task variant whose genome is decoded from an existing phenotype, such as a template.
 		/// @param initialTopology Fields the task declares: the input and the output.
 		/// @param phenotype Simulation the genome is translated from.
 		/// @param startCue How X is delivered.
+		/// @param timingCredit What the recalled-timing term gives credit for.
 		/// @param taskName Display name, which also names the run's data folder.
 		/// @param slug Task slug whose config supplies the fitness weights.
 		SequenceTiming(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype,
-			StartCue startCue, const std::string& taskName, const std::string& slug);
+			StartCue startCue, TimingCredit timingCredit, const std::string& taskName, const std::string& slug);
 	private:
 		StartCue startCue;
+		TimingCredit timingCredit;
 
 		/// @brief Running sums behind the six partial fitness terms, accumulated across trials.
 		struct TaskScores
@@ -209,7 +220,7 @@ namespace neat_dnfs
 			const std::vector<dnf_composer::element::NeuralFieldBump>& bumps, RecallObservation& observation);
 		/// @brief Converts one recall's observation into its trace.
 		/// @param observation What the output field did during the recall.
-		/// @return Onsets and isolation per event, last-peak decay, and the output peaks that rose.
+		/// @return Onsets, isolation per event and order credit, last-peak decay, and the output peaks that rose.
 		[[nodiscard]] static nlohmann::json traceOf(const RecallObservation& observation);
 		/// @brief Mean output-silence score over the steps run between two snapshots of the scores.
 		/// @param from Scores before the phase.
@@ -224,6 +235,15 @@ namespace neat_dnfs
 		/// @param observation What the output field did during recall.
 		/// @return Fitness score in [0,1]; a missing event scores 0.
 		[[nodiscard]] static double recalledTimingScore(const RecallObservation& observation);
+		/// @brief How far the recalled events rose one after another, in the demonstrated order.
+		/// @param observation What the output field did during recall.
+		/// @return Fitness score in [0,1]: per consecutive pair, the time between their onsets as a fraction of a
+		/// minimum separation, capped at 1; a missing or reversed pair scores 0.
+		[[nodiscard]] static double orderScore(const RecallObservation& observation);
+		/// @brief The recalled-timing term (f5) for this variant's timing credit.
+		/// @param observation What the output field did during recall.
+		/// @return Fitness score in [0,1].
+		[[nodiscard]] double timingTermScore(const RecallObservation& observation) const;
 		/// @brief Mean of the isolation scores of the recalled events and the decay of the last peak.
 		/// @param observation What the output field did during recall.
 		/// @return Fitness score in [0,1].
@@ -254,6 +274,32 @@ namespace neat_dnfs
 		/// @param initialTopology Fields the task declares: the input and the output.
 		/// @param phenotype Simulation the genome is translated from.
 		SequenceTimingBoost(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
+		/// @brief Creates a solution with a fresh genome built from this one's initial topology and a new id.
+		/// @return The new solution.
+		SolutionPtr clone() const override;
+		/// @brief Creates an independent solution with this one's phenotype and a new id.
+		/// @return The new solution.
+		SolutionPtr copy() const override;
+	};
+
+	/// @brief SequenceTimingBoost whose recalled-timing term (f5) is half order credit and half exact onsets.
+	///
+	/// @details A stepping stone for evolving the boost task from scratch. An output that ignites at
+	/// every event at once earns full recall credit (f4) and some exact-timing credit, but nothing
+	/// rewards pulling its peaks apart. Order credit does: each consecutive pair of events earns the
+	/// time between their onsets as a fraction of a minimum separation, so simultaneous peaks earn
+	/// almost nothing and every step towards a sequence earns more. A solution that recalls the
+	/// sequence at the demonstrated times scores the same as in SequenceTimingBoost.
+	class SequenceTimingBoostOrder final : public SequenceTiming
+	{
+	public:
+		/// @brief Builds a task solution whose genome is created from @p topology.
+		/// @param topology Fields to start from: the input and the output.
+		explicit SequenceTimingBoostOrder(const SolutionTopology& topology);
+		/// @brief Builds a task solution whose genome is decoded from an existing phenotype, such as a template.
+		/// @param initialTopology Fields the task declares: the input and the output.
+		/// @param phenotype Simulation the genome is translated from.
+		SequenceTimingBoostOrder(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
 		/// @brief Creates a solution with a fresh genome built from this one's initial topology and a new id.
 		/// @return The new solution.
 		SolutionPtr clone() const override;

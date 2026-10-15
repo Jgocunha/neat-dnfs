@@ -54,6 +54,7 @@ namespace neat_dnfs
 			entry<HRIPackagingTask>("hri-packaging", "hri-packaging-task.dnf", 3, 1),
 			entry<SequenceTiming>("sequence-timing", "sequence-timing.dnf", 1, 1),
 			entry<SequenceTimingBoost>("sequence-timing-boost", "sequence-timing-boost.dnf", 1, 1),
+			entry<SequenceTimingBoostOrder>("sequence-timing-boost-order", "sequence-timing-boost.dnf", 1, 1),
 		};
 		return entries;
 	}
