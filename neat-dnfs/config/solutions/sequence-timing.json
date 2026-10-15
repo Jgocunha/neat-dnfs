@@ -32,7 +32,12 @@
   },
   "GenomeMutationConstants": {
     "addFieldGeneProbability": 0.01,
-    "addConnectionGeneProbability": 0.3
+    "addConnectionGeneProbability": 0.3,
+    "toggleConnectionGeneProbability": 0.005,
+    "mutateFieldGenesPerGenomeProbability": 0.5,
+    "mutateConnectionGenesProbability": 0.5,
+    "mutateFieldGenePerGeneProbability": 0.4,
+    "mutateConnectionGeneProbability": 0.4
   },
   "ConnectionGeneConstants": {
     "ampGlobalMinVal": -2.5,
@@ -40,11 +45,43 @@
     "ampGlobalStep": 0.1,
     "gaussAmpMinVal": 1.0,
     "gaussAmpMaxVal": 1000.0,
-    "gaussAmpMutationFactor": 1.3
+    "gaussAmpMutationFactor": 1.3,
+    "mutateConnectionGeneKernelProbability": 0.93,
+    "mutateConnectionGeneConnectionSignalProbability": 0.05,
+    "mutateConnectionGeneKernelTypeProbability": 0.02,
+    "mutateConnectionGeneGaussKernelAmplitudeProbability": 0.5,
+    "mutateConnectionGeneGaussKernelWidthProbability": 0.3,
+    "mutateConnectionGeneGaussKernelGlobalAmplitudeProbability": 0.1,
+    "mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability": 0.5,
+    "mutateConnectionGeneMexicanHatKernelAmplitudeInhProbability": 0.5,
+    "mutateConnectionGeneMexicanHatKernelWidthExcProbability": 0.3,
+    "mutateConnectionGeneMexicanHatKernelWidthInhProbability": 0.3,
+    "mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability": 0.1
   },
   "CompatibilityCoefficients": {
     "compatibilityThreshold": 4.0,
     "averageConnectionDifferenceCompatibilityWeight": 0.5,
     "amplitudeDifferenceCoefficient": 0.002
+  },
+  "FieldGeneConstants": {
+    "mutateFieldGeneKernelProbability": 0.78,
+    "mutateFieldGeneNeuralFieldProbability": 0.2,
+    "mutateFieldGeneKernelTypeProbability": 0.02,
+    "mutateFieldGeneGaussKernelAmplitudeProbability": 0.5,
+    "mutateFieldGeneGaussKernelWidthProbability": 0.3,
+    "mutateFieldGeneGaussKernelGlobalAmplitudeProbability": 0.1,
+    "mutateFieldGeneMexicanHatKernelAmplitudeExcProbability": 0.5,
+    "mutateFieldGeneMexicanHatKernelAmplitudeInhProbability": 0.5,
+    "mutateFieldGeneMexicanHatKernelWidthExcProbability": 0.3,
+    "mutateFieldGeneMexicanHatKernelWidthInhProbability": 0.3,
+    "mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability": 0.1,
+    "mutateFieldGeneNeuralFieldGenerateRandomParametersProbability": 0.02,
+    "mutateFieldGeneNeuralFieldParametersTauProbability": 0.15,
+    "mutateFieldGeneNeuralFieldParametersRestingLevelProbability": 0.5,
+    "mutateFieldGeneNeuralFieldParametersProbability": 0.98
+  },
+  "PopulationConstants": {
+    "generationsWithoutImprovementThresholdInPopulation": 15,
+    "generationsWithoutImprovementThresholdInSpecies": 5
   }
 }
