@@ -2,6 +2,7 @@
 
 #include "neat/solution.h"
 #include "neat_tools/config_loader.h"
+#include <dnf_composer/elements/boost_stimulus.h>
 #include <format>
 #include <limits>
 #include <cmath>
@@ -826,6 +827,33 @@ namespace neat_dnfs
 		for (const auto& element : phenotype.getElements())
 		{
 			if (element->getLabel() == GAUSS_STIMULUS)
+			{
+				element->removeInputs();
+				element->removeOutputs();
+				phenotype.removeElement(element->getUniqueName());
+			}
+		}
+	}
+
+	void Solution::addBoostStimulus(const std::string& targetElement, const double amplitude,
+		const dnf_composer::element::ElementDimensions& dimensions)
+	{
+		using namespace dnf_composer::element;
+
+		const std::string bsId = std::format("bs {}", targetElement);
+		const auto boostStimulus = std::make_shared<BoostStimulus>(BoostStimulus{ { bsId, dimensions }, BoostStimulusParameters{ amplitude } });
+		phenotype.addElement(boostStimulus);
+		phenotype.createInteraction(bsId, "output", targetElement);
+		boostStimulus->init();
+	}
+
+	void Solution::removeBoostStimuli()
+	{
+		using namespace dnf_composer::element;
+
+		for (const auto& element : phenotype.getElements())
+		{
+			if (element->getLabel() == BOOST_STIMULUS)
 			{
 				element->removeInputs();
 				element->removeOutputs();

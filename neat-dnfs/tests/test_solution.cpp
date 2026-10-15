@@ -289,6 +289,20 @@ TEST_CASE("Solution moveGaussianStimulusContinuously simulates a leftward move a
     REQUIRE(leftwardDuration == rightwardDuration);
 }
 
+TEST_CASE("Solution addBoostStimulus lifts the whole field and removeBoostStimuli lets it return to rest", "[Solution]")
+{
+    const auto topology = makeTopology(1, 1);
+    BoostStimulusSolution solution(topology);
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    const auto& lift = solution.getParameters().partialFitness;
+    REQUIRE(lift.size() == 2);
+    // Noise moves single cells by a few hundredths, so a uniform lift shows within a tenth of the amplitude.
+    CHECK(lift[0] > 0.9 * BoostStimulusSolution::boostAmplitude);
+    CHECK(lift[1] < 0.1 * BoostStimulusSolution::boostAmplitude);
+}
+
 TEST_CASE("Solution negativePreShapingDepthAtPosition scores trough depth below rest, not against the field's peak", "[Solution]")
 {
     const auto topology = makeTopology(1, 1);

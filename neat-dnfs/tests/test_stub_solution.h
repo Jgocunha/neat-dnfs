@@ -1,5 +1,7 @@
 #pragma once
+#include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <format>
 #include <string>
 #include <thread>
@@ -1019,6 +1021,76 @@ private:
         const double rightwardDuration = phenotype.getT() - beforeRightward;
 
         parameters.partialFitness = { leftwardDuration, rightwardDuration };
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
+// Stand-in whose testPhenotype() boosts "nf 1" with addBoostStimulus(), then removes the boost with
+// removeBoostStimuli(), recording in partialFitness: [0] how far the boost lifted the lowest activation above
+// the resting level, [1] how far the highest activation sits above the resting level once the boost is gone.
+class BoostStimulusSolution final : public Solution
+{
+public:
+    static constexpr double boostAmplitude = 3.0;
+
+    explicit BoostStimulusSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "BoostStimulus";
+        seedFixedGenes();
+    }
+
+    BoostStimulusSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "BoostStimulus";
+        seedFixedGenes();
+    }
+
+    SolutionPtr clone() const override
+    {
+        BoostStimulusSolution solution(initialTopology);
+        return std::make_shared<BoostStimulusSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        BoostStimulusSolution solution(initialTopology, phenotype);
+        return std::make_shared<BoostStimulusSolution>(solution);
+    }
+
+private:
+    // Fixed field genes (see SingleBumpTwoBumpsSolution): a random self-kernel could amplify the boost into a bump.
+    void seedFixedGenes()
+    {
+        if (!genome.isEmpty())
+        {
+            return;
+        }
+        addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+        addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    }
+
+    void testPhenotype() override
+    {
+        // Five time constants: within 1% of the new steady state.
+        const int settleSteps = static_cast<int>(std::ceil(5.0 * NeuralFieldConstants::tau / SimulationConstants::deltaT));
+        const auto field = getNeuralFieldOrThrow("nf 1", "BoostStimulusSolution");
+        const double restingLevel = field->getParameters().startingRestingLevel;
+        const auto& activation = field->getComponents()->at("activation");
+
+        initSimulation();
+        addBoostStimulus("nf 1", boostAmplitude,
+            dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+        runSimulation(settleSteps);
+        const double lowestWhileBoosted = *std::ranges::min_element(activation);
+
+        removeBoostStimuli();
+        runSimulation(settleSteps);
+        const double highestAfterBoost = *std::ranges::max_element(activation);
+
+        parameters.partialFitness = { lowestWhileBoosted - restingLevel, highestAfterBoost - restingLevel };
     }
 
     void createPhenotypeEnvironment() override {}

@@ -276,6 +276,14 @@ namespace neat_dnfs
 		);
 		void removeGaussianStimuli();
 		void removeGaussianStimuliFromField(const std::string& fieldName);
+		/// @brief Adds a boost stimulus, a homogeneous input of @p amplitude across the whole of @p targetElement.
+		/// @param targetElement Name of the neural field to boost.
+		/// @param amplitude Input added to every position of the field.
+		/// @param dimensions Dimensions of the target field.
+		void addBoostStimulus(const std::string& targetElement, double amplitude,
+			const dnf_composer::element::ElementDimensions& dimensions);
+		/// @brief Removes every boost stimulus from the phenotype.
+		void removeBoostStimuli();
 		void setGaussianStimulusParameters(const std::string& stimulusName, const dnf_composer::element::GaussStimulusParameters& parameters) const;
 		/// @brief Fitness score in [0,1] reflecting how close the field activity is to its resting level (no bump).
 		double closenessToRestingLevel(const std::string& fieldName) const;

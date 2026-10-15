@@ -34,14 +34,16 @@ namespace neat_dnfs
 	/// once the pulse ends, so it cannot itself be the memory. The output field must stay
 	/// silent: the robot is observing, not acting.
 	///
-	/// Recall trials (three) -- after a gap of 300, 900 or 1500 time units, during which the output
-	/// stays silent, only X is pulsed. Without any further input, the output field must form a
-	/// peak at D, C, A and B in turn, each at the demonstrated interval after the previous one,
-	/// each giving way to the next, and the last one, B, dying out before recall ends. Because
-	/// the gap differs between trials, only timing measured from X can be right in all of them: a
-	/// delayed replay of the demonstration matches one at most.
+	/// Recall trials (three) -- after a gap during which the output stays silent, only X is
+	/// pulsed. Without any further input, the output field must form a peak at D, C, A and B in
+	/// turn, each at the demonstrated interval after the previous one, each giving way to the
+	/// next, and the last one, B, dying out before recall ends. The three gaps are drawn afresh
+	/// on every evaluation, one from each third of 300-1500. Because the gap differs between
+	/// trials, only timing measured from X can be right in all of them: a delayed replay of the
+	/// demonstration matches one at most, and fresh draws stop a solution from tuning itself to a
+	/// fixed set of gaps.
 	///
-	/// Probe trial (one) -- after the shorter gap, X is never given. The output must stay
+	/// Probe trial (one) -- after the first trial's gap, X is never given. The output must stay
 	/// silent for as long as a recall would take, so recall cannot start without its cue.
 	///
 	/// The six partial fitness terms, in order:
@@ -59,14 +61,16 @@ namespace neat_dnfs
 	/// - f6, one peak at a time: shortly after each recalled onset, the output holds a single
 	///   bump, at that event; and, if B appeared, the output is silent again when recall ends.
 	///
-	/// f4 to f6 are averaged over the three recall trials.
+	/// f4 to f6 are averaged over the three recall trials. Each trial's credit is scaled by how
+	/// silent the output stayed before its cue (demonstration and gap together), so an output that
+	/// is always active cannot earn recall credit from peaks that happen to sweep past the events.
 	///
 	/// Every evaluation also records a trace in SolutionParameters::evaluationTrace: per trial, how
 	/// silent the output stayed in each phase and, for recall trials, each event's onset and isolation
 	/// and every output peak that rose after the cue (time and position). Neural fields here are translation
 	/// invariant and carry no spatial bias of their own, so the event positions can only come
 	/// from the demonstration: no genome can hardwire the recalled peaks.
-	class SequenceTiming final : public Solution
+	class SequenceTiming : public Solution
 	{
 	public:
 		/// @brief Number of events recalled after the start cue: D, C, A and B.
@@ -85,7 +89,31 @@ namespace neat_dnfs
 		/// @brief Creates an independent solution with this one's phenotype and a new id.
 		/// @return The new solution.
 		SolutionPtr copy() const override;
+	protected:
+		/// @brief How the start event X is delivered to the input field.
+		enum class StartCue
+		{
+			gaussianPulse, ///< A transient Gaussian at X's position, like every other event.
+			boost          ///< A transient homogeneous boost of the whole input field.
+		};
+
+		/// @brief Builds a task variant whose genome is created from @p topology.
+		/// @param topology Fields to start from: the input and the output.
+		/// @param startCue How X is delivered.
+		/// @param taskName Display name, which also names the run's data folder.
+		/// @param slug Task slug whose config supplies the fitness weights.
+		SequenceTiming(const SolutionTopology& topology, StartCue startCue, const std::string& taskName, const std::string& slug);
+		/// @brief Builds a task variant whose genome is decoded from an existing phenotype, such as a template.
+		/// @param initialTopology Fields the task declares: the input and the output.
+		/// @param phenotype Simulation the genome is translated from.
+		/// @param startCue How X is delivered.
+		/// @param taskName Display name, which also names the run's data folder.
+		/// @param slug Task slug whose config supplies the fitness weights.
+		SequenceTiming(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype,
+			StartCue startCue, const std::string& taskName, const std::string& slug);
 	private:
+		StartCue startCue;
+
 		/// @brief Running sums behind the six partial fitness terms, accumulated across trials.
 		struct TaskScores
 		{
@@ -120,10 +148,11 @@ namespace neat_dnfs
 		/// @param scores Accumulates every partial fitness term.
 		/// @return The trial's trace: output silence per phase and what the recall did.
 		nlohmann::json runRecallTrial(double gap, TaskScores& scores);
-		/// @brief Demonstrates the sequence, then waits a whole recall's length without the start cue.
+		/// @brief Demonstrates the sequence, then waits @p gap and a whole recall's length without the start cue.
+		/// @param gap Simulation time a recall trial would wait before its cue.
 		/// @param scores Accumulates the input and output-silence terms.
 		/// @return The trial's trace: output silence during the demonstration and without the cue.
-		nlohmann::json runProbeTrial(TaskScores& scores);
+		nlohmann::json runProbeTrial(double gap, TaskScores& scores);
 		/// @brief Resets the simulation and pulses X, D, C, A and B at their onset times.
 		/// @param scores Accumulates the input and output-silence terms.
 		void demonstrateSequence(TaskScores& scores);
@@ -131,6 +160,14 @@ namespace neat_dnfs
 		/// @param scores Accumulates the input terms.
 		/// @return Onset step, isolation and last-peak decay of the recall.
 		RecallObservation recallSequence(TaskScores& scores);
+		/// @brief Delivers the start cue for the pulse duration, keeping the output silent.
+		/// @param scores Accumulates the output-silence term, and the input representation term for a Gaussian cue.
+		void pulseStartCue(TaskScores& scores);
+		/// @brief Starts delivering the start cue X to the input field.
+		void startStartCue();
+		/// @brief Stops delivering the start cue; a Gaussian cue also scores the input's bump at X.
+		/// @param scores Accumulates the input representation term for a Gaussian cue.
+		void endStartCue(TaskScores& scores);
 		/// @brief Applies an event stimulus for the pulse duration, keeping the output silent, then scores the input.
 		/// @param position Position of the event in the input field.
 		/// @param scores Accumulates the input representation and output-silence terms.
@@ -191,9 +228,37 @@ namespace neat_dnfs
 		/// @param observation What the output field did during recall.
 		/// @return Fitness score in [0,1].
 		[[nodiscard]] static double oneAtATimeScore(const RecallObservation& observation);
+		/// @brief Draws one recall gap from each third of the gap range, shortest first.
+		/// @return The gaps for this evaluation's three recall trials.
+		[[nodiscard]] static std::array<double, 3> drawRecallGaps();
 		/// @brief Number of simulation steps that cover @p duration at the configured deltaT.
 		/// @param duration Simulation time.
 		/// @return The step count, rounded to the nearest step.
 		[[nodiscard]] static int stepsFor(double duration);
+	};
+
+	/// @brief SequenceTiming with the start event X delivered as a homogeneous boost of the input
+	/// field instead of a Gaussian at position 50.
+	///
+	/// @details X then carries no position: it can only act through couplings that respond to the
+	/// input field's total activity. Everything else -- the events, the trials, the six partial
+	/// fitness terms -- is the same as SequenceTiming, except that input representation (f1) scores
+	/// the event pulses only, since the boost is not meant to form a bump.
+	class SequenceTimingBoost final : public SequenceTiming
+	{
+	public:
+		/// @brief Builds a task solution whose genome is created from @p topology.
+		/// @param topology Fields to start from: the input and the output.
+		explicit SequenceTimingBoost(const SolutionTopology& topology);
+		/// @brief Builds a task solution whose genome is decoded from an existing phenotype, such as a template.
+		/// @param initialTopology Fields the task declares: the input and the output.
+		/// @param phenotype Simulation the genome is translated from.
+		SequenceTimingBoost(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
+		/// @brief Creates a solution with a fresh genome built from this one's initial topology and a new id.
+		/// @return The new solution.
+		SolutionPtr clone() const override;
+		/// @brief Creates an independent solution with this one's phenotype and a new id.
+		/// @return The new solution.
+		SolutionPtr copy() const override;
 	};
 }

@@ -32,8 +32,10 @@ namespace neat_dnfs
 		} };
 
 		constexpr double pulseDuration = 50.0;
-		// Three gaps, so that a fixed delay after the demonstration can match the recall timing in one trial at most.
-		constexpr std::array<double, 3> recallGaps{ 300.0, 900.0, 1500.0 };
+		// Three gaps, one drawn from each third of this range on every evaluation, so that a fixed delay after the
+		// demonstration can match the recall timing in one trial at most and no fixed set of gaps can be learned.
+		constexpr double shortestRecallGap = 300.0;
+		constexpr double longestRecallGap = 1500.0;
 		constexpr double recallDuration = recalledEvents.back().onset + 500.0;
 
 		// Scalar timing: the tolerated error grows with the time elapsed since the cue.
@@ -57,17 +59,29 @@ namespace neat_dnfs
 	}
 
 	SequenceTiming::SequenceTiming(const SolutionTopology& topology)
-		: Solution(topology)
+		: SequenceTiming(topology, StartCue::gaussianPulse, "Sequence Timing", "sequence-timing")
 	{
-		name = "Sequence Timing";
-		loadFitnessWeights("sequence-timing", 6);
 	}
 
 	SequenceTiming::SequenceTiming(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
-		: Solution(initialTopology, phenotype)
+		: SequenceTiming(initialTopology, phenotype, StartCue::gaussianPulse, "Sequence Timing", "sequence-timing")
 	{
-		name = "Sequence Timing";
-		loadFitnessWeights("sequence-timing", 6);
+	}
+
+	SequenceTiming::SequenceTiming(const SolutionTopology& topology, const StartCue startCue, const std::string& taskName,
+		const std::string& slug)
+		: Solution(topology), startCue(startCue)
+	{
+		name = taskName;
+		loadFitnessWeights(slug, 6);
+	}
+
+	SequenceTiming::SequenceTiming(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype,
+		const StartCue startCue, const std::string& taskName, const std::string& slug)
+		: Solution(initialTopology, phenotype), startCue(startCue)
+	{
+		name = taskName;
+		loadFitnessWeights(slug, 6);
 	}
 
 	SolutionPtr SequenceTiming::clone() const
@@ -89,11 +103,12 @@ namespace neat_dnfs
 
 		TaskScores scores;
 		nlohmann::json trials = nlohmann::json::array();
+		const auto recallGaps = drawRecallGaps();
 		for (const double gap : recallGaps)
 		{
 			trials.push_back(runRecallTrial(gap, scores));
 		}
-		trials.push_back(runProbeTrial(scores));
+		trials.push_back(runProbeTrial(recallGaps.front(), scores));
 
 		parameters.partialFitness = {
 			scores.inputRepresentation / scores.pulses,
@@ -116,28 +131,31 @@ namespace neat_dnfs
 		const TaskScores gapStart = scores;
 		runWhileOutputSilent(gap, scores);
 		const double gapSilence = meanOutputSilence(gapStart, scores);
+		// Recall credit only counts as far as the output was silent until the cue.
+		const double recallCreditGate = meanOutputSilence(trialStart, scores);
 		sampleInputRest(scores);
 
 		const RecallObservation recall = recallSequence(scores);
-		scores.recalledEvents += recalledEventsScore(recall);
-		scores.recalledTiming += recalledTimingScore(recall);
-		scores.oneAtATime += oneAtATimeScore(recall);
+		scores.recalledEvents += recallCreditGate * recalledEventsScore(recall);
+		scores.recalledTiming += recallCreditGate * recalledTimingScore(recall);
+		scores.oneAtATime += recallCreditGate * oneAtATimeScore(recall);
 		++scores.recallTrials;
 
 		return {
 			{ "kind", "recall" },
 			{ "gap", gap },
 			{ "outputSilence", { { "demonstration", meanOutputSilence(trialStart, gapStart) }, { "gap", gapSilence } } },
+			{ "recallCreditGate", recallCreditGate },
 			{ "recall", traceOf(recall) }
 		};
 	}
 
-	nlohmann::json SequenceTiming::runProbeTrial(TaskScores& scores)
+	nlohmann::json SequenceTiming::runProbeTrial(const double gap, TaskScores& scores)
 	{
 		const TaskScores trialStart = scores;
 		demonstrateSequence(scores);
 		const TaskScores waitStart = scores;
-		runWhileOutputSilent(recallGaps.front() + recallDuration, scores);
+		runWhileOutputSilent(gap + recallDuration, scores);
 		sampleInputRest(scores);
 
 		return {
@@ -152,7 +170,14 @@ namespace neat_dnfs
 		initSimulation();
 		for (size_t i = 0; i < demonstratedEvents.size(); ++i)
 		{
-			pulseEvent(demonstratedEvents[i].position, scores);
+			if (i == 0)
+			{
+				pulseStartCue(scores);
+			}
+			else
+			{
+				pulseEvent(demonstratedEvents[i].position, scores);
+			}
 			const bool isLastEvent = i + 1 == demonstratedEvents.size();
 			if (!isLastEvent)
 			{
@@ -169,13 +194,13 @@ namespace neat_dnfs
 		RecallObservation observation;
 		std::vector<dnf_composer::element::NeuralFieldBump> previousBumps;
 
-		startPulse(startEvent.position);
+		startStartCue();
 		for (int step = 1; step <= stepsFor(recallDuration); ++step)
 		{
 			runSimulation(1);
 			if (step == pulseSteps)
 			{
-				endPulse(startEvent.position, scores);
+				endStartCue(scores);
 			}
 			const auto bumps = output->getBumps();
 			detectOnsets(step, bumps, observation);
@@ -192,6 +217,34 @@ namespace neat_dnfs
 			observation.lastPeakDecay = noBumps(outputField);
 		}
 		return observation;
+	}
+
+	void SequenceTiming::pulseStartCue(TaskScores& scores)
+	{
+		startStartCue();
+		runWhileOutputSilent(pulseDuration, scores);
+		endStartCue(scores);
+	}
+
+	void SequenceTiming::startStartCue()
+	{
+		if (startCue == StartCue::boost)
+		{
+			addBoostStimulus(inputField, GaussStimulusConstants::amplitude,
+				dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+			return;
+		}
+		startPulse(startEvent.position);
+	}
+
+	void SequenceTiming::endStartCue(TaskScores& scores)
+	{
+		if (startCue == StartCue::boost)
+		{
+			removeBoostStimuli();
+			return;
+		}
+		endPulse(startEvent.position, scores);
 	}
 
 	void SequenceTiming::pulseEvent(const double position, TaskScores& scores)
@@ -338,6 +391,18 @@ namespace neat_dnfs
 		return (isolation + observation.lastPeakDecay) / (recalledEventCount + 1);
 	}
 
+	std::array<double, 3> SequenceTiming::drawRecallGaps()
+	{
+		std::array<double, 3> gaps{};
+		const double third = (longestRecallGap - shortestRecallGap) / static_cast<double>(gaps.size());
+		for (size_t i = 0; i < gaps.size(); ++i)
+		{
+			const double from = shortestRecallGap + third * static_cast<double>(i);
+			gaps[i] = tools::utils::generateRandomDouble(from, from + third);
+		}
+		return gaps;
+	}
+
 	int SequenceTiming::stepsFor(const double duration)
 	{
 		return static_cast<int>(std::lround(duration / SimulationConstants::deltaT));
@@ -347,7 +412,11 @@ namespace neat_dnfs
 	{
 		// The start cue at full strength, as recall begins; the other events at zero
 		// amplitude, so a saved solution carries every stimulus ready to switch on.
-		startPulse(startEvent.position);
+		// A boost cue is not saved: it is switched on and off around each delivery.
+		if (startCue == StartCue::gaussianPulse)
+		{
+			startPulse(startEvent.position);
+		}
 		for (const auto& event : recalledEvents)
 		{
 			addGaussianStimulus(inputField,
@@ -355,5 +424,27 @@ namespace neat_dnfs
 					GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
 				dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
 		}
+	}
+
+	SequenceTimingBoost::SequenceTimingBoost(const SolutionTopology& topology)
+		: SequenceTiming(topology, StartCue::boost, "Sequence Timing Boost", "sequence-timing-boost")
+	{
+	}
+
+	SequenceTimingBoost::SequenceTimingBoost(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+		: SequenceTiming(initialTopology, phenotype, StartCue::boost, "Sequence Timing Boost", "sequence-timing-boost")
+	{
+	}
+
+	SolutionPtr SequenceTimingBoost::clone() const
+	{
+		SequenceTimingBoost solution(initialTopology);
+		return std::make_shared<SequenceTimingBoost>(solution);
+	}
+
+	SolutionPtr SequenceTimingBoost::copy() const
+	{
+		SequenceTimingBoost solution(initialTopology, phenotype);
+		return std::make_shared<SequenceTimingBoost>(solution);
 	}
 }

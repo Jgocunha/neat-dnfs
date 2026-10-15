@@ -5,6 +5,7 @@
 #include <numeric>
 
 #include <dnf_composer/exceptions/exception.h>
+#include <dnf_composer/simulation/simulation_file_manager.h>
 
 #include "solutions/memory_instability.h"
 #include "solutions/selection_instability.h"
@@ -311,6 +312,123 @@ TEST_CASE("SequenceTiming gives no recall credit to an output field that never p
             CHECK(trial.at("recall").at("onsets").at("D").is_null());
         }
     }
+}
+
+// Fresh gaps on every evaluation stop a solution from tuning its timing to a fixed set of gaps.
+// One gap is drawn from each third of 300-1500, so every evaluation still spans short and long gaps.
+TEST_CASE("SequenceTiming draws a fresh recall gap from each third of 300-1500 on every evaluation", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing" };
+
+    SequenceTiming solution(sequenceTimingTopology());
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+
+    const auto recallGaps = [&solution]() {
+        solution.evaluate();
+        std::vector<double> gaps;
+        const auto trace = nlohmann::json::parse(solution.getParameters().evaluationTrace);
+        for (const auto& trial : trace.at("trials"))
+        {
+            if (trial.at("kind") == "recall")
+            {
+                gaps.push_back(trial.at("gap").get<double>());
+            }
+        }
+        return gaps;
+    };
+
+    const auto first = recallGaps();
+    const auto second = recallGaps();
+    REQUIRE(first.size() == 3);
+    REQUIRE(second.size() == 3);
+    for (size_t i = 0; i < first.size(); ++i)
+    {
+        CHECK(first[i] >= 300.0 + 400.0 * static_cast<double>(i));
+        CHECK(first[i] <= 700.0 + 400.0 * static_cast<double>(i));
+    }
+    CHECK(first != second);
+}
+
+// Loads a saved solution for a sequence-timing task from tests/fixtures.
+template <typename Task>
+static Task loadSequenceTimingFixture(const std::string& fileName)
+{
+    const auto simulation = std::make_shared<dnf_composer::Simulation>();
+    const dnf_composer::SimulationFileManager sfm(simulation,
+        (std::filesystem::path(PROJECT_DIR) / "tests" / "fixtures" / fileName).generic_string());
+    sfm.loadElementsFromJson();
+    return Task(sequenceTimingTopology(), *simulation);
+}
+
+// Saved from a from-scratch run: the output is active almost everywhere, all the time, and after the cue
+// travelling waves sweep the field, so each event position sees a peak "rise". Recall credit is gated by how
+// silent the output stayed before the cue, so this earns none of it.
+TEST_CASE("SequenceTiming gives no recall credit to an output that is never silent before the cue", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing" };
+
+    auto solution = loadSequenceTimingFixture<SequenceTiming>("sequence-timing-wave-exploit.dnf");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 6);
+    REQUIRE(partials[2] < 0.1); // the output is active outside recall
+    CHECK(partials[3] < 0.05);
+    CHECK(partials[4] < 0.05);
+    CHECK(partials[5] < 0.05);
+}
+
+TEST_CASE("SequenceTimingBoost contract", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    checkSolutionContract<SequenceTimingBoost>(makeTopology(1, 1));
+}
+
+TEST_CASE("SequenceTimingBoost gives no recall credit to an output field that never peaks", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-boost" };
+
+    SequenceTimingBoost solution(sequenceTimingTopology());
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 6);
+    CHECK(partials[2] == Catch::Approx(1.0));
+    CHECK(partials[3] == 0.0);
+    CHECK(partials[4] == 0.0);
+    CHECK(partials[5] == 0.0);
+}
+
+// The hand-built boost-triggered reference: a clamp set by the first event and reset by the boost freezes
+// the integrator's traces between demonstration and recall. It must solve the task in the evaluator too.
+TEST_CASE("SequenceTimingBoost scores the hand-built boost-triggered reference above 0.9", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-boost" };
+
+    auto solution = loadSequenceTimingFixture<SequenceTimingBoost>("sequence-timing-boost-handbuilt.dnf");
+    solution.evaluate();
+
+    CHECK(solution.getFitness() > 0.9);
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 6);
+    CHECK(partials[3] > 0.95); // every event recalled
+    CHECK(partials[4] > 0.9);  // at the demonstrated time after X
+}
+
+TEST_CASE("SequenceTimingBoost is registered with one input and one output", "[SolutionRegistry]")
+{
+    const auto* task = findTask("sequence-timing-boost");
+    REQUIRE(task != nullptr);
+    REQUIRE(task->templateFile == "sequence-timing-boost.dnf");
+    REQUIRE(task->inputs == 1);
+    REQUIRE(task->outputs == 1);
 }
 
 TEST_CASE("SequenceTiming is registered with one input and one output", "[SolutionRegistry]")
