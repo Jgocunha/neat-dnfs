@@ -405,8 +405,10 @@ TEST_CASE("SequenceTimingBoost gives no recall credit to an output field that ne
     CHECK(partials[5] == 0.0);
 }
 
-// The hand-built boost-triggered reference: a clamp set by the first event and reset by the boost freezes
-// the integrator's traces between demonstration and recall. It must solve the task in the evaluator too.
+// The hand-built boost-triggered reference: a uniform clamp, set by the first event and reset by the boost,
+// freezes the integrator's traces between demonstration and recall, and a latch set by the boost stores the
+// time from X to the first event. Every parameter lies inside the task's evolvable ranges. It must solve the
+// task in the evaluator too.
 TEST_CASE("SequenceTimingBoost scores the hand-built boost-triggered reference above 0.9", "[Solutions][SequenceTiming]")
 {
     resetGlobalState();

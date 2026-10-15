@@ -107,7 +107,7 @@
             "d_y": 1.0,
             "inputs": [
                 [
-                    "mhk 4",
+                    "gk 4",
                     "output"
                 ],
                 [
@@ -123,7 +123,7 @@
                 1,
                 "neural field"
             ],
-            "restingLevel": -5,
+            "restingLevel": -1.5,
             "tau": 10,
             "uniqueName": "nf 4",
             "x_max": 200,
@@ -167,7 +167,7 @@
                 1,
                 "neural field"
             ],
-            "restingLevel": -2.0,
+            "restingLevel": -0.6,
             "tau": 100000.0,
             "uniqueName": "nf 5",
             "x_max": 200,
@@ -228,6 +228,10 @@
                 ],
                 [
                     "gk cg 3-7",
+                    "output"
+                ],
+                [
+                    "gk cg 4-7",
                     "output"
                 ]
             ],
@@ -359,18 +363,16 @@
                 ]
             ],
             "normalized": true,
-            "uniqueName": "mhk 4",
+            "uniqueName": "gk 4",
             "x_max": 200,
             "y_max": 1,
             "label": [
-                5,
-                "mexican hat kernel"
+                4,
+                "gauss kernel"
             ],
-            "amplitudeExc": 20.0,
-            "amplitudeInh": 12.0,
-            "amplitudeGlobal": -0.3,
-            "widthExc": 2.5,
-            "widthInh": 6.0
+            "amplitude": 25.0,
+            "amplitudeGlobal": 0.0,
+            "width": 10.0
         },
         {
             "amplitude": 0.01,
@@ -533,7 +535,7 @@
                 "gauss kernel"
             ],
             "amplitude": 9.0,
-            "amplitudeGlobal": -0.15,
+            "amplitudeGlobal": -0.25,
             "width": 2.0
         },
         {
@@ -576,8 +578,8 @@
                 4,
                 "gauss kernel"
             ],
-            "amplitude": 0.0,
-            "amplitudeGlobal": -196.0,
+            "amplitude": -975.0,
+            "amplitudeGlobal": 0.0,
             "width": 2.0
         },
         {
@@ -687,7 +689,7 @@
                 "gauss kernel"
             ],
             "amplitude": 1.0,
-            "amplitudeGlobal": -1.0,
+            "amplitudeGlobal": -0.25,
             "width": 2.0
         },
         {
@@ -708,8 +710,30 @@
                 4,
                 "gauss kernel"
             ],
-            "amplitude": 1.0,
-            "amplitudeGlobal": -4.9,
+            "amplitude": -980.0,
+            "amplitudeGlobal": 0.0,
+            "width": 2.0
+        },
+        {
+            "circular": true,
+            "d_x": 1.0,
+            "d_y": 1.0,
+            "inputs": [
+                [
+                    "nf 4",
+                    "output"
+                ]
+            ],
+            "normalized": true,
+            "uniqueName": "gk cg 4-7",
+            "x_max": 200,
+            "y_max": 1,
+            "label": [
+                4,
+                "gauss kernel"
+            ],
+            "amplitude": -20.0,
+            "amplitudeGlobal": 0.0,
             "width": 2.0
         },
         {
@@ -730,11 +754,11 @@
                 4,
                 "gauss kernel"
             ],
-            "amplitude": 1.0,
-            "amplitudeGlobal": 13.4,
+            "amplitude": 1000.0,
+            "amplitudeGlobal": 0.0,
             "width": 2.0
         }
     ],
     "formatVersion": 1,
-    "identifier": "sequence timing - boost-triggered hand-built design"
+    "identifier": "sequence timing - boost-triggered hand-built design v2 (in-range)"
 }
