@@ -602,7 +602,6 @@ namespace neat_dnfs
 		if (bestSolution->getFitness() > previousBestFitness)
 		{
 			previousBestFitness = bestSolution->getFitness();
-			previousBestSolution = bestSolution;
 			generationsWithoutImprovement = 0;
 			hasFitnessImproved = true;
 			return true;
@@ -807,11 +806,14 @@ namespace neat_dnfs
 
 	void Population::preserveGlobalBestSolution()
 	{
-		if (!PopulationConstants::elitism || previousBestSolution == nullptr)
+		if (!PopulationConstants::elitism || bestSolution == nullptr)
 		{
 			return;
 		}
-		if (std::ranges::find(solutions, previousBestSolution) != solutions.end())
+		// The best of the generation just evaluated, not the genome holding the all-time high-water mark: when
+		// evaluation is noisy that mark can come from one lucky evaluation of a genome that is no longer the best.
+		elite = bestSolution;
+		if (std::ranges::find(solutions, elite) != solutions.end())
 		{
 			return; // already survived reproduction on its own
 		}
@@ -837,8 +839,8 @@ namespace neat_dnfs
 		// solution uses -- never insert into a species by positional
 		// convenience, since that would corrupt that species' genetic
 		// coherence and its adjusted-fitness-based offspring allocation.
-		solutions.push_back(previousBestSolution);
-		assignToSpecies(previousBestSolution);
+		solutions.push_back(elite);
+		assignToSpecies(elite);
 	}
 
 	void Population::mutate()
@@ -847,8 +849,8 @@ namespace neat_dnfs
 		upkeepChampions();
 		for (const auto& solution : solutions)
 		{
-			// if champion, do not mutate
-			if (solution != bestSolution && !std::ranges::any_of(champions,
+			// if champion or the elite, do not mutate
+			if (solution != bestSolution && solution != elite && !std::ranges::any_of(champions,
 																 [&solution](const auto& champion)
 																 { return champion == solution; }))
 			{
@@ -869,40 +871,20 @@ namespace neat_dnfs
 
 	void Population::validateElitism()
 	{
-		// Nothing to compare against yet -- previousBestSolution/previousBestFitness
-		// only hold meaningful state once hasFitnessImprovedOverTheLastGenerations()
-		// has recorded a first improvement. Guarding on currentGeneration instead
-		// would be off-by-one: it increments in updateGenerationAndAges(), which runs
-		// after this check within the same upkeep() call, so currentGeneration == 1
-		// is already the *second* generation's check, not the first.
-		if (previousBestSolution == nullptr)
+		// Elitism carries each generation's best into the next one unchanged. What it guarantees is that genome's
+		// survival, not that its re-measured fitness stays put: the DNF simulation's noise, and tasks that draw
+		// their trials afresh on every evaluation, both move it.
+		if (elite == nullptr)
 		{
 			return;
 		}
-
-		const double bestFitness = bestSolution->getFitness();
-		if (bestFitness >= previousBestFitness - PopulationConstants::elitismFitnessEpsilon)
-		{
-			return;
-		}
-
-		// Fitness dropped beyond jitter tolerance, which the DNF simulation's
-		// noise can cause on its own (e.g. a bump forming or not near a
-		// solution's decision boundary swings a partial-fitness term far more
-		// than typical re-evaluation jitter). What elitism actually guarantees
-		// is that the previous best genome itself survives reproduction, not
-		// that its re-measured fitness stays within a fixed tolerance -- so
-		// this is only a genuine violation if that genome is gone.
-		const bool previousBestStillPresent = std::ranges::any_of(solutions,
-			[this](const SolutionPtr& solution) { return solution == previousBestSolution; });
-		if (previousBestStillPresent)
+		if (std::ranges::find(solutions, elite) != solutions.end())
 		{
 			return;
 		}
 
 		reportViolation(ValidationCheck::Elitism, std::format(
-			"Best fitness decreased and the previous best solution was lost. previous={} current={}",
-			previousBestFitness, bestFitness));
+			"The previous generation's best solution (id {}, fitness {}) was lost.", elite->getId(), elite->getFitness()));
 	}
 
 	void Population::validateUniqueSolutions()

@@ -19,6 +19,8 @@ public:
     static void reproduceAndSelect(Population& population) { population.reproduceAndSelect(); }
     static std::vector<std::shared_ptr<Species>>& speciesList(Population& population) { return population.speciesList; }
     static void setBestSolution(Population& population, const SolutionPtr& solution) { population.bestSolution = solution; }
+    static std::vector<SolutionPtr>& solutions(Population& population) { return population.solutions; }
+    static void setHighWaterFitness(Population& population, const double fitness) { population.previousBestFitness = fitness; }
 };
 
 } // namespace neat_dnfs::test

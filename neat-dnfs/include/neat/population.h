@@ -138,7 +138,7 @@ namespace neat_dnfs
 		bool hasFitnessImproved{};
 		int generationsWithoutImprovement = 0;
 		double previousBestFitness = 0.0;
-		SolutionPtr previousBestSolution;
+		SolutionPtr elite; // the best solution of the last generation reproduced, carried into the next one unchanged
 		std::vector<double> bestFitnessHistory;
 		std::vector<int> bestSolutionIdHistory;
 		std::vector<Genome> bestSolutionGenomeHistory;

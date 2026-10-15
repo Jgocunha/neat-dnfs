@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <thread>
 #include <set>
@@ -315,10 +316,72 @@ TEST_CASE("Population::reproduceAndSelect erases extinct species from the specie
     // Assert the healthy species is still there, not just that nothing extinct
     // remains -- the loop below passes vacuously on an empty speciesList, so it
     // would not catch a regression that erased every species indiscriminately.
-    REQUIRE(PopulationTestAccess::speciesList(population).size() == 1);
-    REQUIRE(PopulationTestAccess::speciesList(population).front() == healthySpecies);
-    for (const auto& species : PopulationTestAccess::speciesList(population))
+    // Elitism carries healthySolution, the best, into the next generation; if its
+    // mutated offspring no longer matches it, it founds a second species.
+    const auto& survivors = PopulationTestAccess::speciesList(population);
+    REQUIRE(std::ranges::find(survivors, healthySpecies) != survivors.end());
+    REQUIRE(std::ranges::find(survivors, extinctSpecies) == survivors.end());
+    for (const auto& species : survivors)
         REQUIRE_FALSE(species->isExtinct());
+}
+
+// Regression test for elitism under noisy fitness: elitism re-inserted the genome holding the all-time
+// fitness high-water mark -- possibly set by one lucky evaluation many generations ago -- instead of the
+// current generation's best. When the current best sat in a species of five or fewer, per-species elitism
+// did not keep it either, so it was replaced by its offspring and lost. Observed in sequence-timing-boost
+// runs, where fresh recall gaps make every evaluation noisy and the low compatibility threshold makes
+// species small.
+TEST_CASE("Population::reproduceAndSelect keeps the current best unchanged even when an older genome set the high-water mark", "[Population]")
+{
+    resetGlobalState();
+    const auto topology = makeTopology(1, 1);
+    constexpr int populationSize = 8;
+    const PopulationParameters parameters(populationSize, 5, 1.1, false);
+    Population population(parameters, std::make_shared<FixedFitnessSolution>(topology, 0.5), false);
+    population.initialize();
+
+    const auto evaluated = [&topology](const double fitness) {
+        const auto solution = std::make_shared<FixedFitnessSolution>(topology, fitness);
+        solution->initialize();
+        solution->evaluate();
+        solution->setAdjustedFitness(fitness);
+        return solution;
+    };
+
+    // A large species holding the genome that once set the high-water mark (0.9) but now scores 0.4.
+    const auto formerRecordHolder = evaluated(0.4);
+    const auto largeSpecies = std::make_shared<Species>();
+    largeSpecies->addSolution(formerRecordHolder);
+    for (int i = 0; i < populationSize - 2; ++i)
+    {
+        largeSpecies->addSolution(evaluated(0.5));
+    }
+    largeSpecies->setRepresentative(formerRecordHolder);
+    largeSpecies->assignChampion();
+
+    // The current best, alone in its species, so per-species elitism does not apply to it.
+    const auto currentBest = evaluated(0.86);
+    const auto smallSpecies = std::make_shared<Species>();
+    smallSpecies->addSolution(currentBest);
+    smallSpecies->setRepresentative(currentBest);
+    smallSpecies->assignChampion();
+
+    auto& speciesList = PopulationTestAccess::speciesList(population);
+    speciesList = { largeSpecies, smallSpecies };
+    auto& solutions = PopulationTestAccess::solutions(population);
+    solutions = largeSpecies->getMembers();
+    solutions.push_back(currentBest);
+
+    PopulationTestAccess::setBestSolution(population, currentBest);
+    PopulationTestAccess::setHighWaterFitness(population, 0.9);
+    const Genome currentBestGenome = currentBest->getGenome();
+
+    PopulationTestAccess::reproduceAndSelect(population);
+
+    const auto& next = population.getSolutions();
+    REQUIRE(std::ranges::find(next, currentBest) != next.end());
+    CHECK(currentBest->getGenome() == currentBestGenome);
+    CHECK(next.size() == static_cast<size_t>(populationSize));
 }
 
 TEST_CASE("PopulationParameters - parallelEvolution defaults to true", "[Population]")

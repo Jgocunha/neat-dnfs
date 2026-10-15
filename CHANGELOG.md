@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Decoding a phenotype whose connection names carry innovation numbers (`gk cg 1-3 7`) now reserves those numbers, so connections added by later mutations are never given them again. Before, an incremental-evolution run seeded from a saved solution could give two different connections the same innovation number, corrupting compatibility distances and crossover alignment
+- Elitism now carries each generation's best solution into the next one, unchanged. It used to re-insert the genome holding the all-time fitness high-water mark, which under noisy evaluation (the DNF simulation's noise, or tasks that draw their trials afresh on every evaluation) can come from one lucky evaluation of a genome that is no longer the best; that genome was then mutated in place, while the actual current best was lost whenever its species had five members or fewer. The elitism validation check now verifies that the previous generation's best survived
 - A new hidden field gene now takes an id one above the largest existing id, instead of "field count + 1". A genome whose field ids have gaps - a template that skips ids, such as `nf 1, 2, 3, 5, 7`, or a crossover offspring - used to get a duplicate id, so the field could not be built ("already exists in phenotype") and its connections duplicated existing ones. Genomes with contiguous ids get the same ids as before
 
 ---
