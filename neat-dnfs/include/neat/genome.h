@@ -113,6 +113,9 @@ namespace neat_dnfs
 		[[nodiscard]] static bool isLegalConnectionSource(FieldGeneType type);
 		/// @brief Whether a field gene of @p type may be the target of a connection.
 		[[nodiscard]] static bool isLegalConnectionTarget(FieldGeneType type);
+		/// @brief An id no field gene has yet: one above the largest, since a decoded template can skip ids.
+		/// @return The id for the next hidden field gene.
+		[[nodiscard]] int getNextHiddenGeneId() const;
 		[[nodiscard]] int getRandomGeneId() const;
 		[[nodiscard]] int getRandomGeneIdByType(FieldGeneType type) const;
 		[[nodiscard]] int getRandomGeneIdByTypes(const std::vector<FieldGeneType>& types) const;

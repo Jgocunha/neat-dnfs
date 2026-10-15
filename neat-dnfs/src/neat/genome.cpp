@@ -1,6 +1,7 @@
 #include "neat/genome.h"
 #include <algorithm>
 #include <format>
+#include <ranges>
 
 namespace neat_dnfs
 {
@@ -23,15 +24,18 @@ namespace neat_dnfs
 
 	void Genome::addHiddenGene(const FieldGene& gene)
 	{
-		const auto index = fieldGenes.size() + 1;
-		fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN,
-					static_cast<int>(index) }, gene));
+		fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN, getNextHiddenGeneId() }, gene));
 	}
 
 	void Genome::addHiddenGene(const dnf_composer::element::ElementDimensions& dimensions)
 	{
-		const auto index = fieldGenes.size() + 1;
-		fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN, static_cast<int>(index) }, dimensions));
+		fieldGenes.push_back(FieldGene({ FieldGeneType::HIDDEN, getNextHiddenGeneId() }, dimensions));
+	}
+
+	int Genome::getNextHiddenGeneId() const
+	{
+		const auto ids = fieldGenes | std::views::transform([](const FieldGene& gene) { return gene.getParameters().id; });
+		return ids.empty() ? 1 : std::ranges::max(ids) + 1;
 	}
 
 	void Genome::mutate()

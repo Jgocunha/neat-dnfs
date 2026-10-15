@@ -234,6 +234,25 @@ TEST_CASE("Genome::reserveInnovationNumber only ever moves the counter forward",
     REQUIRE(Genome::allocateInnovationNumber(ConnectionTuple(1, 2)) == 5);
 }
 
+TEST_CASE("Genome::addHiddenGene gives a new id when field ids have gaps", "[Genome]")
+{
+    // A template can skip field ids (nf 1, nf 2, nf 4), so the field count + 1 may already be taken.
+    Genome genome;
+    genome.addInputGene(kDim);
+    genome.addOutputGene(kDim);
+    genome.addFieldGene(FieldGene({ FieldGeneType::HIDDEN, 4 }));
+
+    genome.addHiddenGene(kDim);
+    genome.addHiddenGene(genome.getFieldGeneById(4));
+
+    std::vector<int> ids;
+    for (const auto& fieldGene : genome.getFieldGenes())
+    {
+        ids.push_back(fieldGene.getParameters().id);
+    }
+    REQUIRE(ids == std::vector<int>{ 1, 2, 4, 5, 6 });
+}
+
 // Regression test for issue #3 (innovation number thread safety). The
 // statics globalInnovationNumber and connectionTupleAndInnovationNumberWithinGeneration
 // are guarded by Genome::innovationMutex (see genome.cpp addConnectionGene/addGene).
