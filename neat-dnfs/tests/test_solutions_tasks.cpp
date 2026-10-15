@@ -505,6 +505,55 @@ TEST_CASE("SequenceTimingBoostOrder is registered with the boost template", "[So
     REQUIRE(task->outputs == 1);
 }
 
+TEST_CASE("SequenceTimingBoostOrderOnly contract", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    checkSolutionContract<SequenceTimingBoostOrderOnly>(makeTopology(1, 1));
+}
+
+TEST_CASE("SequenceTimingBoostOrderOnly scores recalled timing as order credit alone", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-boost-order-only" };
+
+    auto solution = loadSequenceTimingFixture<SequenceTimingBoostOrderOnly>("sequence-timing-boost-handbuilt.dnf");
+    solution.evaluate();
+
+    CHECK(solution.getFitness() > 0.9);
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 6);
+    CHECK(partials[4] > 0.95);
+}
+
+// The burst stays silent before the cue, so no recall credit is gated away and the timing term is exactly the
+// mean order credit of the three recall trials.
+TEST_CASE("SequenceTimingBoostOrderOnly gives a burst of simultaneous peaks only its order credit for timing", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-boost-order-only" };
+
+    auto solution = loadSequenceTimingFixture<SequenceTimingBoostOrderOnly>("sequence-timing-boost-burst.dnf");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 6);
+    REQUIRE(partials[2] == Catch::Approx(1.0));
+    const auto credits = recallOrderCredits(solution);
+    REQUIRE(credits.size() == 3);
+    const double meanCredit = std::accumulate(credits.begin(), credits.end(), 0.0) / static_cast<double>(credits.size());
+    CHECK(partials[4] == Catch::Approx(meanCredit).margin(1e-9));
+    CHECK(partials[4] < 0.3);
+}
+
+TEST_CASE("SequenceTimingBoostOrderOnly is registered with the boost template", "[SolutionRegistry]")
+{
+    const auto* task = findTask("sequence-timing-boost-order-only");
+    REQUIRE(task != nullptr);
+    REQUIRE(task->templateFile == "sequence-timing-boost.dnf");
+    REQUIRE(task->inputs == 1);
+    REQUIRE(task->outputs == 1);
+}
+
 TEST_CASE("SequenceTiming is registered with one input and one output", "[SolutionRegistry]")
 {
     const auto* task = findTask("sequence-timing");

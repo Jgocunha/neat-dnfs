@@ -101,7 +101,8 @@ namespace neat_dnfs
 		enum class TimingCredit
 		{
 			exactOnsets,   ///< Each onset against its demonstrated onset only.
-			orderAndOnsets ///< Half for the events rising one after another, half for exact onsets.
+			orderAndOnsets, ///< Half for the events rising one after another, half for exact onsets.
+			orderOnly       ///< Only for the events rising one after another, whenever they do.
 		};
 
 		/// @brief Builds a task variant whose genome is created from @p topology.
@@ -300,6 +301,31 @@ namespace neat_dnfs
 		/// @param initialTopology Fields the task declares: the input and the output.
 		/// @param phenotype Simulation the genome is translated from.
 		SequenceTimingBoostOrder(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
+		/// @brief Creates a solution with a fresh genome built from this one's initial topology and a new id.
+		/// @return The new solution.
+		SolutionPtr clone() const override;
+		/// @brief Creates an independent solution with this one's phenotype and a new id.
+		/// @return The new solution.
+		SolutionPtr copy() const override;
+	};
+
+	/// @brief SequenceTimingBoost whose recalled-timing term (f5) is order credit alone.
+	///
+	/// @details The first stage of a curriculum for evolving the boost task from scratch. In
+	/// SequenceTimingBoostOrder, exact timing pulls the first event (D, due 100 after X) out of an
+	/// early burst of simultaneous peaks, which reverses the first pair and cancels the order credit.
+	/// Without the exact-onset half, every peak that rises after its predecessor earns credit wherever
+	/// it lands. Its champions then seed SequenceTimingBoost, where exact onsets are scored.
+	class SequenceTimingBoostOrderOnly final : public SequenceTiming
+	{
+	public:
+		/// @brief Builds a task solution whose genome is created from @p topology.
+		/// @param topology Fields to start from: the input and the output.
+		explicit SequenceTimingBoostOrderOnly(const SolutionTopology& topology);
+		/// @brief Builds a task solution whose genome is decoded from an existing phenotype, such as a template.
+		/// @param initialTopology Fields the task declares: the input and the output.
+		/// @param phenotype Simulation the genome is translated from.
+		SequenceTimingBoostOrderOnly(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
 		/// @brief Creates a solution with a fresh genome built from this one's initial topology and a new id.
 		/// @return The new solution.
 		SolutionPtr clone() const override;

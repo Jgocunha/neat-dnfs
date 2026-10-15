@@ -408,9 +408,14 @@ namespace neat_dnfs
 
 	double SequenceTiming::timingTermScore(const RecallObservation& observation) const
 	{
-		if (timingCredit == TimingCredit::orderAndOnsets)
+		switch (timingCredit)
 		{
+		case TimingCredit::orderAndOnsets:
 			return orderCreditShare * orderScore(observation) + (1.0 - orderCreditShare) * recalledTimingScore(observation);
+		case TimingCredit::orderOnly:
+			return orderScore(observation);
+		case TimingCredit::exactOnsets:
+			break;
 		}
 		return recalledTimingScore(observation);
 	}
@@ -502,5 +507,30 @@ namespace neat_dnfs
 	{
 		SequenceTimingBoostOrder solution(initialTopology, phenotype);
 		return std::make_shared<SequenceTimingBoostOrder>(solution);
+	}
+
+	SequenceTimingBoostOrderOnly::SequenceTimingBoostOrderOnly(const SolutionTopology& topology)
+		: SequenceTiming(topology, StartCue::boost, TimingCredit::orderOnly, "Sequence Timing Boost Order Only",
+			"sequence-timing-boost-order-only")
+	{
+	}
+
+	SequenceTimingBoostOrderOnly::SequenceTimingBoostOrderOnly(const SolutionTopology& initialTopology,
+		const dnf_composer::Simulation& phenotype)
+		: SequenceTiming(initialTopology, phenotype, StartCue::boost, TimingCredit::orderOnly,
+			"Sequence Timing Boost Order Only", "sequence-timing-boost-order-only")
+	{
+	}
+
+	SolutionPtr SequenceTimingBoostOrderOnly::clone() const
+	{
+		SequenceTimingBoostOrderOnly solution(initialTopology);
+		return std::make_shared<SequenceTimingBoostOrderOnly>(solution);
+	}
+
+	SolutionPtr SequenceTimingBoostOrderOnly::copy() const
+	{
+		SequenceTimingBoostOrderOnly solution(initialTopology, phenotype);
+		return std::make_shared<SequenceTimingBoostOrderOnly>(solution);
 	}
 }
