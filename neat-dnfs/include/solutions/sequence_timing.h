@@ -46,7 +46,7 @@ namespace neat_dnfs
 	/// Probe trial (one) -- after the first trial's gap, X is never given. The output must stay
 	/// silent for as long as a recall would take, so recall cannot start without its cue.
 	///
-	/// The six partial fitness terms, in order:
+	/// The seven partial fitness terms, in order:
 	///
 	/// - f1, input representation: a bump at the pulse position at the end of every pulse.
 	/// - f2, input returns to rest: the input field at rest between events and after each trial.
@@ -60,6 +60,10 @@ namespace neat_dnfs
 	///   scores 0.
 	/// - f6, one peak at a time: shortly after each recalled onset, the output holds a single
 	///   bump, at that event; and, if B appeared, the output is silent again when recall ends.
+	/// - f7, output near rest: how far the output field's lowest activation lies below its resting
+	///   level, averaged over every step outside recall and, separately, during recall. Full credit
+	///   within 60 below rest, falling as 60 / depth beyond it; the two phases are averaged. Couplings
+	///   that hold the output hundreds below rest otherwise pass as silence.
 	///
 	/// f4 to f6 are averaged over the three recall trials. Each trial's credit is scaled by how
 	/// silent the output stayed before its cue (demonstration and gap together), so an output that
@@ -126,7 +130,7 @@ namespace neat_dnfs
 		StartCue startCue;
 		TimingCredit timingCredit;
 
-		/// @brief Running sums behind the six partial fitness terms, accumulated across trials.
+		/// @brief Running sums behind the seven partial fitness terms, accumulated across trials.
 		struct TaskScores
 		{
 			double inputRepresentation = 0.0;
@@ -139,6 +143,10 @@ namespace neat_dnfs
 			double recalledTiming = 0.0;
 			double oneAtATime = 0.0;
 			int recallTrials = 0;
+			double outputDepthOutsideRecall = 0.0; // per step, how far the output's lowest activation is below rest
+			int outputDepthStepsOutsideRecall = 0;
+			double outputDepthDuringRecall = 0.0;
+			int outputDepthStepsDuringRecall = 0;
 		};
 
 		/// @brief What the output field did during one recall, one slot per recalled event.
@@ -195,6 +203,9 @@ namespace neat_dnfs
 		/// @param duration Simulation time to run.
 		/// @param scores Accumulates the output-silence term.
 		void runWhileOutputSilent(double duration, TaskScores& scores);
+		/// @brief How far the output field's lowest activation lies below its resting level, now.
+		/// @return The depth below rest; 0 if no activation lies below it.
+		[[nodiscard]] double outputDepthBelowRest() const;
 		/// @brief Samples how close the input field is to its resting level.
 		/// @param scores Accumulates the input-rest term.
 		void sampleInputRest(TaskScores& scores) const;
@@ -223,6 +234,11 @@ namespace neat_dnfs
 		/// @param observation What the output field did during the recall.
 		/// @return Onsets, isolation per event and order credit, last-peak decay, and the output peaks that rose.
 		[[nodiscard]] static nlohmann::json traceOf(const RecallObservation& observation);
+		/// @brief Credit for the output staying near its resting level over one phase.
+		/// @param depthSum Per-step depths of the output below rest, summed over the phase.
+		/// @param steps Number of steps summed.
+		/// @return 1 while the mean depth is within the tolerated depth, then tolerated depth / mean depth.
+		[[nodiscard]] static double outputLevelScore(double depthSum, int steps);
 		/// @brief Mean output-silence score over the steps run between two snapshots of the scores.
 		/// @param from Scores before the phase.
 		/// @param to Scores after the phase.
@@ -262,7 +278,7 @@ namespace neat_dnfs
 	/// field instead of a Gaussian at position 50.
 	///
 	/// @details X then carries no position: it can only act through couplings that respond to the
-	/// input field's total activity. Everything else -- the events, the trials, the six partial
+	/// input field's total activity. Everything else -- the events, the trials, the seven partial
 	/// fitness terms -- is the same as SequenceTiming, except that input representation (f1) scores
 	/// the event pulses only, since the boost is not meant to form a bump.
 	class SequenceTimingBoost final : public SequenceTiming

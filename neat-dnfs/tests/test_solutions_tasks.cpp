@@ -276,7 +276,7 @@ TEST_CASE("SequenceTiming evaluate produces a bounded fitness", "[Solutions][Seq
     REQUIRE_NOTHROW(solution.evaluate());
     REQUIRE(solution.getFitness() >= 0.0);
     REQUIRE(solution.getFitness() <= 1.0);
-    REQUIRE(solution.getParameters().partialFitness.size() == 6);
+    REQUIRE(solution.getParameters().partialFitness.size() == 7);
 }
 
 // With no connection into the output field, nothing can ever drive a peak
@@ -296,7 +296,7 @@ TEST_CASE("SequenceTiming gives no recall credit to an output field that never p
     solution.evaluate();
 
     const auto& partials = solution.getParameters().partialFitness;
-    REQUIRE(partials.size() == 6);
+    REQUIRE(partials.size() == 7);
     CHECK(partials[2] == Catch::Approx(1.0)); // output silent during demonstration
     CHECK(partials[3] == 0.0);                // recalled events present
     CHECK(partials[4] == 0.0);                // recalled intervals
@@ -374,7 +374,7 @@ TEST_CASE("SequenceTiming gives no recall credit to an output that is never sile
     solution.evaluate();
 
     const auto& partials = solution.getParameters().partialFitness;
-    REQUIRE(partials.size() == 6);
+    REQUIRE(partials.size() == 7);
     REQUIRE(partials[2] < 0.1); // the output is active outside recall
     CHECK(partials[3] < 0.05);
     CHECK(partials[4] < 0.05);
@@ -398,7 +398,7 @@ TEST_CASE("SequenceTimingBoost gives no recall credit to an output field that ne
     solution.evaluate();
 
     const auto& partials = solution.getParameters().partialFitness;
-    REQUIRE(partials.size() == 6);
+    REQUIRE(partials.size() == 7);
     CHECK(partials[2] == Catch::Approx(1.0));
     CHECK(partials[3] == 0.0);
     CHECK(partials[4] == 0.0);
@@ -419,9 +419,43 @@ TEST_CASE("SequenceTimingBoost scores the hand-built boost-triggered reference a
 
     CHECK(solution.getFitness() > 0.9);
     const auto& partials = solution.getParameters().partialFitness;
-    REQUIRE(partials.size() == 6);
+    REQUIRE(partials.size() == 7);
     CHECK(partials[3] > 0.95); // every event recalled
     CHECK(partials[4] > 0.9);  // at the demonstrated time after X
+}
+
+// Saved from evolved b2 runs. Run 18's output stays at its resting level between peaks; run 20 recalls the sequence
+// at the right times, but its output sits about 650 below rest from the start.
+TEST_CASE("SequenceTimingBoost gives full output-level credit to outputs that stay near their resting level", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-boost" };
+
+    for (const auto* fixture : { "sequence-timing-boost-handbuilt.dnf", "sequence-timing-boost-evolved-b2.dnf" })
+    {
+        auto solution = loadSequenceTimingFixture<SequenceTimingBoost>(fixture);
+        solution.evaluate();
+
+        const auto& partials = solution.getParameters().partialFitness;
+        REQUIRE(partials.size() == 7);
+        CHECK(partials[6] == Catch::Approx(1.0));
+    }
+}
+
+TEST_CASE("SequenceTimingBoost gives little output-level credit to an output sunk hundreds below its resting level", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-boost" };
+
+    auto sunken = loadSequenceTimingFixture<SequenceTimingBoost>("sequence-timing-boost-sunken-output.dnf");
+    sunken.evaluate();
+    auto atRest = loadSequenceTimingFixture<SequenceTimingBoost>("sequence-timing-boost-evolved-b2.dnf");
+    atRest.evaluate();
+
+    const auto& partials = sunken.getParameters().partialFitness;
+    REQUIRE(partials.size() == 7);
+    CHECK(partials[6] < 0.2);
+    CHECK(sunken.getFitness() < atRest.getFitness());
 }
 
 TEST_CASE("SequenceTimingBoost is registered with one input and one output", "[SolutionRegistry]")
@@ -464,7 +498,7 @@ TEST_CASE("SequenceTimingBoostOrder gives full order credit to the hand-built re
 
     CHECK(solution.getFitness() > 0.9);
     const auto& partials = solution.getParameters().partialFitness;
-    REQUIRE(partials.size() == 6);
+    REQUIRE(partials.size() == 7);
     CHECK(partials[4] > 0.9);
     const auto credits = recallOrderCredits(solution);
     REQUIRE(credits.size() == 3);
@@ -485,7 +519,7 @@ TEST_CASE("SequenceTimingBoostOrder gives almost no order credit to a burst of s
     solution.evaluate();
 
     const auto& partials = solution.getParameters().partialFitness;
-    REQUIRE(partials.size() == 6);
+    REQUIRE(partials.size() == 7);
     REQUIRE(partials[3] > 0.9); // the burst does put a rising peak on every event
     const auto credits = recallOrderCredits(solution);
     REQUIRE(credits.size() == 3);
@@ -521,7 +555,7 @@ TEST_CASE("SequenceTimingBoostOrderOnly scores recalled timing as order credit a
 
     CHECK(solution.getFitness() > 0.9);
     const auto& partials = solution.getParameters().partialFitness;
-    REQUIRE(partials.size() == 6);
+    REQUIRE(partials.size() == 7);
     CHECK(partials[4] > 0.95);
 }
 
@@ -536,7 +570,7 @@ TEST_CASE("SequenceTimingBoostOrderOnly gives a burst of simultaneous peaks only
     solution.evaluate();
 
     const auto& partials = solution.getParameters().partialFitness;
-    REQUIRE(partials.size() == 6);
+    REQUIRE(partials.size() == 7);
     REQUIRE(partials[2] == Catch::Approx(1.0));
     const auto credits = recallOrderCredits(solution);
     REQUIRE(credits.size() == 3);

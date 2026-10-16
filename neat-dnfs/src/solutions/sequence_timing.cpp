@@ -50,6 +50,9 @@ namespace neat_dnfs
 		constexpr double samePeakDistance = 5.0;
 		constexpr size_t maxTracedRisingPeaks = 16;
 
+		// Outputs that look right in dnf-composer sink at most about 50 below rest on average; run 20's sat about 650 below.
+		constexpr double toleratedOutputDepth = 60.0;
+
 		constexpr double inputBumpAmplitude = 5.0;
 		constexpr double inputBumpWidth = 5.0;
 
@@ -77,7 +80,7 @@ namespace neat_dnfs
 		: Solution(topology), startCue(startCue), timingCredit(timingCredit)
 	{
 		name = taskName;
-		loadFitnessWeights(slug, 6);
+		loadFitnessWeights(slug, 7);
 	}
 
 	SequenceTiming::SequenceTiming(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype,
@@ -85,7 +88,7 @@ namespace neat_dnfs
 		: Solution(initialTopology, phenotype), startCue(startCue), timingCredit(timingCredit)
 	{
 		name = taskName;
-		loadFitnessWeights(slug, 6);
+		loadFitnessWeights(slug, 7);
 	}
 
 	SolutionPtr SequenceTiming::clone() const
@@ -120,7 +123,9 @@ namespace neat_dnfs
 			scores.outputSilence / scores.silentSteps,
 			scores.recalledEvents / scores.recallTrials,
 			scores.recalledTiming / scores.recallTrials,
-			scores.oneAtATime / scores.recallTrials
+			scores.oneAtATime / scores.recallTrials,
+			0.5 * (outputLevelScore(scores.outputDepthOutsideRecall, scores.outputDepthStepsOutsideRecall)
+				+ outputLevelScore(scores.outputDepthDuringRecall, scores.outputDepthStepsDuringRecall))
 		};
 
 		parameters.fitness = std::inner_product(parameters.partialFitness.begin(), parameters.partialFitness.end(),
@@ -206,6 +211,8 @@ namespace neat_dnfs
 			{
 				endStartCue(scores);
 			}
+			scores.outputDepthDuringRecall += outputDepthBelowRest();
+			++scores.outputDepthStepsDuringRecall;
 			const auto bumps = output->getBumps();
 			detectOnsets(step, bumps, observation);
 			scoreIsolation(step, bumps, observation);
@@ -280,7 +287,21 @@ namespace neat_dnfs
 			runSimulation(1);
 			scores.outputSilence += noBumps(outputField);
 			++scores.silentSteps;
+			scores.outputDepthOutsideRecall += outputDepthBelowRest();
+			++scores.outputDepthStepsOutsideRecall;
 		}
+	}
+
+	double SequenceTiming::outputDepthBelowRest() const
+	{
+		const auto output = getNeuralFieldOrThrow(outputField, "outputDepthBelowRest");
+		return std::max(0.0, output->getParameters().startingRestingLevel - output->getLowestActivation());
+	}
+
+	double SequenceTiming::outputLevelScore(const double depthSum, const int steps)
+	{
+		const double meanDepth = steps > 0 ? depthSum / steps : 0.0;
+		return meanDepth <= toleratedOutputDepth ? 1.0 : toleratedOutputDepth / meanDepth;
 	}
 
 	void SequenceTiming::sampleInputRest(TaskScores& scores) const
