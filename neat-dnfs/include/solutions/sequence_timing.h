@@ -147,8 +147,6 @@ namespace neat_dnfs
 			std::array<std::optional<int>, recalledEventCount> onsetSteps{};
 			std::array<bool, recalledEventCount> absentSinceCue{};
 			std::array<double, recalledEventCount> isolation{};
-			std::array<double, recalledEventCount> peakAmplitude{}; // highest, soon after onset
-			std::array<double, recalledEventCount> peakWidth{};     // at the highest amplitude
 			double lastPeakDecay = 0.0;
 			std::vector<std::pair<double, double>> risingPeaks; // (time since the cue, position), first few only
 			int risingPeakCount = 0;
@@ -213,12 +211,6 @@ namespace neat_dnfs
 		/// @param observation Onsets recorded so far; isolation scores are written in place.
 		static void scoreIsolation(int step, const std::vector<dnf_composer::element::NeuralFieldBump>& bumps,
 			RecallObservation& observation);
-		/// @brief Records each recalled event's highest peak amplitude, and the width at it, soon after its onset.
-		/// @param step Recall step just simulated.
-		/// @param bumps Output field bumps at this step.
-		/// @param observation Updated with the peak amplitudes and widths.
-		static void recordPeakShapes(int step, const std::vector<dnf_composer::element::NeuralFieldBump>& bumps,
-			RecallObservation& observation);
 
 		/// @brief Records every output bump that was not up on the previous step.
 		/// @param step Steps elapsed since the start cue.
@@ -240,12 +232,6 @@ namespace neat_dnfs
 		/// @param observation What the output field did during recall.
 		/// @return Fitness score in [0,1].
 		[[nodiscard]] static double recalledEventsScore(const RecallObservation& observation);
-		/// @brief Credit for a recalled event's peak, mostly for existing at all and a little for matching the others.
-		/// @param observation What the output field did during recall.
-		/// @param event Index of the recalled event.
-		/// @return Credit in [0,1]: the bump-matching weights' share for amplitude and width is scaled by the peak's
-		/// amplitude and width as a share of the largest recalled peak's; the rest is given for the peak existing.
-		[[nodiscard]] static double peakShapeScore(const RecallObservation& observation, size_t event);
 		/// @brief Mean agreement of each recalled onset, measured from the start cue, with the demonstrated one.
 		/// @param observation What the output field did during recall.
 		/// @return Fitness score in [0,1]; a missing event scores 0.

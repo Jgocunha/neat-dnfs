@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <numeric>
-#include <span>
 
 namespace neat_dnfs
 {
@@ -54,21 +53,11 @@ namespace neat_dnfs
 		constexpr double inputBumpAmplitude = 5.0;
 		constexpr double inputBumpWidth = 5.0;
 
-		// A recalled peak's amplitude and width are measured over this long after its onset.
-		constexpr double peakShapeWindow = 200.0;
-
 		bool hasBumpAt(const std::vector<dnf_composer::element::NeuralFieldBump>& bumps, const double position)
 		{
 			return std::ranges::any_of(bumps, [position](const auto& bump) {
 				return std::abs(bump.centroid - position) <= onsetPositionTolerance;
 			});
-		}
-
-		// A recalled peak's value as a share of the largest among the recalled peaks: equal peaks score 1 at any height.
-		double shareOfLargest(const std::span<const double> values, const size_t event)
-		{
-			const double largest = std::ranges::max(values);
-			return largest > 0.0 ? values[event] / largest : 1.0;
 		}
 	}
 
@@ -220,7 +209,6 @@ namespace neat_dnfs
 			const auto bumps = output->getBumps();
 			detectOnsets(step, bumps, observation);
 			scoreIsolation(step, bumps, observation);
-			recordPeakShapes(step, bumps, observation);
 			recordRisingPeaks(step, previousBumps, bumps, observation);
 			previousBumps = bumps;
 		}
@@ -335,28 +323,6 @@ namespace neat_dnfs
 		}
 	}
 
-	void SequenceTiming::recordPeakShapes(const int step, const std::vector<dnf_composer::element::NeuralFieldBump>& bumps,
-		RecallObservation& observation)
-	{
-		for (size_t i = 0; i < recalledEventCount; ++i)
-		{
-			const auto& onset = observation.onsetSteps[i];
-			if (!onset || step > *onset + stepsFor(peakShapeWindow))
-			{
-				continue;
-			}
-			for (const auto& bump : bumps)
-			{
-				if (std::abs(bump.centroid - recalledEvents[i].position) <= onsetPositionTolerance
-					&& bump.amplitude > observation.peakAmplitude[i])
-				{
-					observation.peakAmplitude[i] = bump.amplitude;
-					observation.peakWidth[i] = bump.width;
-				}
-			}
-		}
-	}
-
 	void SequenceTiming::recordRisingPeaks(const int step, const std::vector<dnf_composer::element::NeuralFieldBump>& previousBumps,
 		const std::vector<dnf_composer::element::NeuralFieldBump>& bumps, RecallObservation& observation)
 	{
@@ -381,22 +347,15 @@ namespace neat_dnfs
 	{
 		nlohmann::json onsets;
 		nlohmann::json isolation;
-		nlohmann::json peakAmplitude;
-		nlohmann::json peakWidth;
 		for (size_t i = 0; i < recalledEventCount; ++i)
 		{
 			const auto& onsetStep = observation.onsetSteps[i];
-			const std::string& label = recalledEvents[i].label;
-			onsets[label] = onsetStep ? nlohmann::json(*onsetStep * SimulationConstants::deltaT) : nlohmann::json(nullptr);
-			isolation[label] = observation.isolation[i];
-			peakAmplitude[label] = observation.peakAmplitude[i];
-			peakWidth[label] = observation.peakWidth[i];
+			onsets[recalledEvents[i].label] = onsetStep ? nlohmann::json(*onsetStep * SimulationConstants::deltaT) : nlohmann::json(nullptr);
+			isolation[recalledEvents[i].label] = observation.isolation[i];
 		}
 		return {
 			{ "onsets", onsets },
 			{ "isolation", isolation },
-			{ "peakAmplitude", peakAmplitude },
-			{ "peakWidth", peakWidth },
 			{ "order", orderScore(observation) },
 			{ "lastPeakDecay", observation.lastPeakDecay },
 			{ "risingPeakCount", observation.risingPeakCount },
@@ -412,15 +371,8 @@ namespace neat_dnfs
 
 	double SequenceTiming::recalledEventsScore(const RecallObservation& observation)
 	{
-		double total = 0.0;
-		for (size_t i = 0; i < recalledEventCount; ++i)
-		{
-			if (observation.onsetSteps[i])
-			{
-				total += peakShapeScore(observation, i);
-			}
-		}
-		return total / recalledEventCount;
+		const auto recalled = std::ranges::count_if(observation.onsetSteps, [](const auto& onset) { return onset.has_value(); });
+		return static_cast<double>(recalled) / recalledEventCount;
 	}
 
 	double SequenceTiming::recalledTimingScore(const RecallObservation& observation)
@@ -432,20 +384,10 @@ namespace neat_dnfs
 			if (onsetStep)
 			{
 				const double expectedOnset = recalledEvents[i].onset;
-				total += peakShapeScore(observation, i)
-					* tools::utils::normalizeWithGaussian(*onsetStep * SimulationConstants::deltaT, expectedOnset, weberFraction * expectedOnset);
+				total += tools::utils::normalizeWithGaussian(*onsetStep * SimulationConstants::deltaT, expectedOnset, weberFraction * expectedOnset);
 			}
 		}
 		return total / recalledEventCount;
-	}
-
-	double SequenceTiming::peakShapeScore(const RecallObservation& observation, const size_t event)
-	{
-		const auto [bumps, position, amplitude, width] = BumpFitnessDefaults::oneBump();
-		const double existence = 1.0 - amplitude - width;
-		return existence
-			+ amplitude * shareOfLargest(observation.peakAmplitude, event)
-			+ width * shareOfLargest(observation.peakWidth, event);
 	}
 
 	double SequenceTiming::orderScore(const RecallObservation& observation)
@@ -480,11 +422,7 @@ namespace neat_dnfs
 
 	double SequenceTiming::oneAtATimeScore(const RecallObservation& observation)
 	{
-		double isolation = 0.0;
-		for (size_t i = 0; i < recalledEventCount; ++i)
-		{
-			isolation += peakShapeScore(observation, i) * observation.isolation[i];
-		}
+		const double isolation = std::accumulate(observation.isolation.begin(), observation.isolation.end(), 0.0);
 		return (isolation + observation.lastPeakDecay) / (recalledEventCount + 1);
 	}
 
