@@ -424,6 +424,90 @@ TEST_CASE("SequenceTimingBoost scores the hand-built boost-triggered reference a
     CHECK(partials[4] > 0.9);  // at the demonstrated time after X
 }
 
+// A recall trace's per-event values for one key ("peakAmplitude" or "peakWidth"), across all recall trials.
+static std::vector<double> recallPeakValues(const Solution& solution, const std::string& key)
+{
+    std::vector<double> values;
+    const auto trace = nlohmann::json::parse(solution.getParameters().evaluationTrace);
+    for (const auto& trial : trace.at("trials"))
+    {
+        if (trial.at("kind") == "recall")
+        {
+            for (const auto& [label, value] : trial.at("recall").at(key).items())
+            {
+                values.push_back(value.get<double>());
+            }
+        }
+    }
+    return values;
+}
+
+TEST_CASE("SequenceTimingBoost records each recalled peak's amplitude and width", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-boost" };
+
+    auto solution = loadSequenceTimingFixture<SequenceTimingBoost>("sequence-timing-boost-handbuilt.dnf");
+    solution.evaluate();
+
+    const auto amplitudes = recallPeakValues(solution, "peakAmplitude");
+    const auto widths = recallPeakValues(solution, "peakWidth");
+    REQUIRE(amplitudes.size() == 12);
+    REQUIRE(widths.size() == 12);
+    for (const double amplitude : amplitudes)
+    {
+        CHECK(amplitude > 9.0);
+    }
+    for (const double width : widths)
+    {
+        CHECK(width > 4.0);
+    }
+}
+
+TEST_CASE("SequenceTimingBoost gives recall peaks of even height and width nearly full recall credit", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-boost" };
+
+    auto solution = loadSequenceTimingFixture<SequenceTimingBoost>("sequence-timing-boost-handbuilt.dnf");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 6);
+    CHECK(partials[3] > 0.98);
+}
+
+// Saved from an evolved b2 run (run 20): the events are recalled at the right times, one at a time, but every
+// peak after the first stays at a third to a half of the first one's amplitude.
+TEST_CASE("SequenceTimingBoost gives uneven recall peaks less credit than even ones", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-boost" };
+
+    auto weak = loadSequenceTimingFixture<SequenceTimingBoost>("sequence-timing-boost-weak-peaks.dnf");
+    weak.evaluate();
+    auto full = loadSequenceTimingFixture<SequenceTimingBoost>("sequence-timing-boost-handbuilt.dnf");
+    full.evaluate();
+
+    for (const double amplitude : recallPeakValues(weak, "peakAmplitude"))
+    {
+        CHECK(amplitude < 7.0);
+    }
+    CHECK(weak.getFitness() < full.getFitness());
+}
+
+// Saved from an evolved b2 run (run 18): it grew a clamp field and memory erasure, and its recall peaks are full height.
+TEST_CASE("SequenceTimingBoost scores the evolved b2 solution above 0.95", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-boost" };
+
+    auto solution = loadSequenceTimingFixture<SequenceTimingBoost>("sequence-timing-boost-evolved-b2.dnf");
+    solution.evaluate();
+
+    CHECK(solution.getFitness() > 0.95);
+}
+
 TEST_CASE("SequenceTimingBoost is registered with one input and one output", "[SolutionRegistry]")
 {
     const auto* task = findTask("sequence-timing-boost");
