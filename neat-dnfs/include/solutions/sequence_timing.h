@@ -68,6 +68,9 @@ namespace neat_dnfs
 	/// f4 to f6 are averaged over the three recall trials. Each trial's credit is scaled by how
 	/// silent the output stayed before its cue (demonstration and gap together), so an output that
 	/// is always active cannot earn recall credit from peaks that happen to sweep past the events.
+	/// f4 to f6 are also scaled by how silent the output stayed in the probe trial after its
+	/// demonstration, so peaks that rise without X, such as a replay at a fixed lag after the
+	/// demonstration, cannot earn recall credit in the trials where X happens to precede them.
 	///
 	/// Every evaluation also records a trace in SolutionParameters::evaluationTrace: per trial, how
 	/// silent the output stayed in each phase and, for recall trials, each event's onset and isolation
@@ -143,6 +146,7 @@ namespace neat_dnfs
 			double recalledTiming = 0.0;
 			double oneAtATime = 0.0;
 			int recallTrials = 0;
+			double probeSilence = 1.0; // output silence in the probe trial, after its demonstration
 			double outputDepthOutsideRecall = 0.0; // per step, how far the output's lowest activation is below rest
 			int outputDepthStepsOutsideRecall = 0;
 			double outputDepthDuringRecall = 0.0;
@@ -170,7 +174,8 @@ namespace neat_dnfs
 		nlohmann::json runRecallTrial(double gap, TaskScores& scores);
 		/// @brief Demonstrates the sequence, then waits @p gap and a whole recall's length without the start cue.
 		/// @param gap Simulation time a recall trial would wait before its cue.
-		/// @param scores Accumulates the input and output-silence terms.
+		/// @param scores Accumulates the input and output-silence terms, and records the silence without the cue
+		/// that scales recall credit.
 		/// @return The trial's trace: output silence during the demonstration and without the cue.
 		nlohmann::json runProbeTrial(double gap, TaskScores& scores);
 		/// @brief Resets the simulation and pulses X, D, C, A and B at their onset times.

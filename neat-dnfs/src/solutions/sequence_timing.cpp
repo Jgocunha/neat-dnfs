@@ -121,9 +121,9 @@ namespace neat_dnfs
 			scores.inputRepresentation / scores.pulses,
 			scores.inputRest / scores.restSamples,
 			scores.outputSilence / scores.silentSteps,
-			scores.recalledEvents / scores.recallTrials,
-			scores.recalledTiming / scores.recallTrials,
-			scores.oneAtATime / scores.recallTrials,
+			scores.probeSilence * scores.recalledEvents / scores.recallTrials,
+			scores.probeSilence * scores.recalledTiming / scores.recallTrials,
+			scores.probeSilence * scores.oneAtATime / scores.recallTrials,
 			0.5 * (outputLevelScore(scores.outputDepthOutsideRecall, scores.outputDepthStepsOutsideRecall)
 				+ outputLevelScore(scores.outputDepthDuringRecall, scores.outputDepthStepsDuringRecall))
 		};
@@ -165,12 +165,13 @@ namespace neat_dnfs
 		demonstrateSequence(scores);
 		const TaskScores waitStart = scores;
 		runWhileOutputSilent(gap + recallDuration, scores);
+		scores.probeSilence = meanOutputSilence(waitStart, scores);
 		sampleInputRest(scores);
 
 		return {
 			{ "kind", "probe" },
 			{ "outputSilence", { { "demonstration", meanOutputSilence(trialStart, waitStart) },
-				{ "withoutCue", meanOutputSilence(waitStart, scores) } } }
+				{ "withoutCue", scores.probeSilence } } }
 		};
 	}
 

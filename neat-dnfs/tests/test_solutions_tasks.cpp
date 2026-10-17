@@ -458,6 +458,34 @@ TEST_CASE("SequenceTimingBoost gives little output-level credit to an output sun
     CHECK(sunken.getFitness() < atRest.getFitness());
 }
 
+// Saved from a from-scratch run (run 23): it recalls D, C, A, B in order at a fixed lag after the demonstration,
+// and its output also fires when X never comes.
+TEST_CASE("SequenceTiming scales recall credit by how silent the output stays in the probe trial without X", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-boost-order" };
+
+    auto solution = loadSequenceTimingFixture<SequenceTimingBoostOrder>("sequence-timing-boost-fixed-lag.dnf");
+    solution.evaluate();
+
+    const auto trace = nlohmann::json::parse(solution.getParameters().evaluationTrace);
+    double probeSilence = 1.0;
+    for (const auto& trial : trace.at("trials"))
+    {
+        if (trial.at("kind") == "probe")
+        {
+            probeSilence = trial.at("outputSilence").at("withoutCue").get<double>();
+        }
+    }
+    REQUIRE(probeSilence < 0.9);
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 7);
+    CHECK(partials[3] <= probeSilence + 1e-9);
+    CHECK(partials[4] <= probeSilence + 1e-9);
+    CHECK(partials[5] <= probeSilence + 1e-9);
+}
+
 TEST_CASE("SequenceTimingBoost is registered with one input and one output", "[SolutionRegistry]")
 {
     const auto* task = findTask("sequence-timing-boost");
