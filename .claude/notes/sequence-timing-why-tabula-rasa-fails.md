@@ -113,3 +113,4 @@ Useful when a new run reports a suspiciously high score: check its output in dnf
 | Replay tuned to a fixed set of gaps | level-2 runs | Gaps drawn afresh from each third of 300-1500 |
 | Output held hundreds below rest, so it passed as silent and its peaks were tiny | run 20 | f7, output near rest (`d16e95f`) |
 | Fixed-lag replay from the demonstration, firing without X | run 23 | Probe gate on f4-f6 (`0cf8fb5`) |
+| Chaotic sweep: many broad peaks all over the output for a few hundred after each X, crossing the event positions by chance; best-of-population selection keeps its lucky evaluations (reported 0.81, re-evaluated 0.67) | serial-order run 2 | None yet: recall terms do not penalise peaks away from the event positions |
