@@ -721,6 +721,79 @@ TEST_CASE("SerialOrder scores the hand-built design above 0.95, recalling the or
     }
 }
 
+static bool withinRange(const double value, const double min, const double max)
+{
+    return value >= min && value <= max;
+}
+
+// A new connection starts with no global amplitude, and mutation moves it in fixed steps, so only multiples of the
+// step are reachable.
+static bool onConnectionGlobalStep(const double amplitudeGlobal)
+{
+    const double step = ConnectionGeneConstants::ampGlobalStep.value_or(GaussKernelConstants::ampGlobalStep);
+    return std::abs(std::remainder(amplitudeGlobal, step)) < 1e-9;
+}
+
+static void checkFieldGeneEvolvable(const FieldGene& gene)
+{
+    using namespace dnf_composer::element;
+    const auto field = gene.getNeuralField()->getParameters();
+    INFO("field " << gene.getParameters().id);
+    CHECK(withinRange(field.tau, NeuralFieldConstants::tauMinVal, NeuralFieldConstants::tauMaxVal));
+    CHECK(withinRange(field.startingRestingLevel, NeuralFieldConstants::restingLevelMinVal, NeuralFieldConstants::restingLevelMaxVal));
+
+    if (const auto gauss = std::dynamic_pointer_cast<GaussKernel>(gene.getKernel()))
+    {
+        const auto kernel = gauss->getParameters();
+        CHECK(withinRange(kernel.width, GaussKernelConstants::widthMinVal, GaussKernelConstants::widthMaxVal));
+        CHECK(withinRange(kernel.amplitude, GaussKernelConstants::ampMinVal, GaussKernelConstants::ampMaxVal));
+        CHECK(withinRange(kernel.amplitudeGlobal, GaussKernelConstants::ampGlobalMinVal, GaussKernelConstants::ampGlobalMaxVal));
+        return;
+    }
+    const auto mexicanHat = std::dynamic_pointer_cast<MexicanHatKernel>(gene.getKernel());
+    REQUIRE(mexicanHat != nullptr);
+    const auto kernel = mexicanHat->getParameters();
+    CHECK(withinRange(kernel.widthExc, MexicanHatKernelConstants::widthExcMinVal, MexicanHatKernelConstants::widthExcMaxVal));
+    CHECK(withinRange(kernel.amplitudeExc, MexicanHatKernelConstants::ampExcMinVal, MexicanHatKernelConstants::ampExcMaxVal));
+    CHECK(withinRange(kernel.widthInh, MexicanHatKernelConstants::widthInhMinVal, MexicanHatKernelConstants::widthInhMaxVal));
+    CHECK(withinRange(kernel.amplitudeInh, MexicanHatKernelConstants::ampInhMinVal, MexicanHatKernelConstants::ampInhMaxVal));
+    CHECK(withinRange(kernel.amplitudeGlobal, MexicanHatKernelConstants::ampGlobMin, MexicanHatKernelConstants::ampGlobMax));
+}
+
+static void checkConnectionGeneEvolvable(const ConnectionGene& gene)
+{
+    const auto gauss = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(gene.getKernel());
+    INFO("connection " << gene.getInFieldGeneId() << "-" << gene.getOutFieldGeneId());
+    REQUIRE(gauss != nullptr);
+    const auto kernel = gauss->getParameters();
+    CHECK(withinRange(kernel.width, GaussKernelConstants::widthMinVal, GaussKernelConstants::widthMaxVal));
+    CHECK(withinRange(std::abs(kernel.amplitude),
+        ConnectionGeneConstants::gaussAmpMinVal.value_or(GaussKernelConstants::ampMinVal),
+        ConnectionGeneConstants::gaussAmpMaxVal.value_or(GaussKernelConstants::ampMaxVal)));
+    CHECK(withinRange(kernel.amplitudeGlobal,
+        ConnectionGeneConstants::ampGlobalMinVal.value_or(GaussKernelConstants::ampGlobalMinVal),
+        ConnectionGeneConstants::ampGlobalMaxVal.value_or(GaussKernelConstants::ampGlobalMaxVal)));
+    CHECK(onConnectionGlobalStep(kernel.amplitudeGlobal));
+}
+
+// Evolving serial order from scratch is only a fair test if the search space contains a known solution.
+TEST_CASE("SerialOrder's evolvable ranges reach every setting of the hand-built design", "[Solutions][SerialOrder]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order" };
+
+    const auto solution = loadSequenceTimingFixture<SerialOrder>("serial-order-handbuilt.dnf");
+
+    for (const auto& gene : solution.getGenome().getFieldGenes())
+    {
+        checkFieldGeneEvolvable(gene);
+    }
+    for (const auto& gene : solution.getGenome().getConnectionGenes())
+    {
+        checkConnectionGeneEvolvable(gene);
+    }
+}
+
 // The same design without the X boost clearing its done field: the sequence plays on the first trigger only.
 TEST_CASE("SerialOrder gives a sequence recalled on the first trigger only a third of the recall credit", "[Solutions][SerialOrder]")
 {
