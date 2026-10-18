@@ -223,6 +223,7 @@ namespace neat_dnfs
 			detectOnsets(step, bumps, observation);
 			scoreIsolation(step, bumps, observation);
 			recordRisingPeaks(step, previousBumps, bumps, observation);
+			countActivityAtEvents(observation);
 			previousBumps = bumps;
 		}
 		sampleInputRest(scores);
@@ -370,6 +371,24 @@ namespace neat_dnfs
 		}
 	}
 
+	void SequenceTiming::countActivityAtEvents(RecallObservation& observation) const
+	{
+		const auto output = getNeuralFieldOrThrow(outputField, "countActivityAtEvents");
+		const auto& activation = output->getComponents()->at("activation");
+		for (size_t site = 0; site < activation.size(); ++site)
+		{
+			const double position = static_cast<double>(site) * DimensionConstants::dx;
+			const bool nearEvent = std::ranges::any_of(recalledEvents, [position](const TaskEvent& event) {
+				return std::abs(position - event.position) <= onsetPositionTolerance;
+			});
+			const bool active = activation[site] > 0.0;
+			++observation.outputSites;
+			observation.outputSitesAtEvents += nearEvent;
+			observation.activeOutputSites += active;
+			observation.activeOutputSitesAtEvents += active && nearEvent;
+		}
+	}
+
 	nlohmann::json SequenceTiming::traceOf(const RecallObservation& observation)
 	{
 		nlohmann::json onsets;
@@ -386,7 +405,8 @@ namespace neat_dnfs
 			{ "order", orderScore(observation) },
 			{ "lastPeakDecay", observation.lastPeakDecay },
 			{ "risingPeakCount", observation.risingPeakCount },
-			{ "risingPeaks", observation.risingPeaks }
+			{ "risingPeaks", observation.risingPeaks },
+			{ "activityAtEvents", activityAtEvents(observation) }
 		};
 	}
 
@@ -445,6 +465,17 @@ namespace neat_dnfs
 			break;
 		}
 		return recalledTimingScore(observation);
+	}
+
+	double SequenceTiming::activityAtEvents(const RecallObservation& observation)
+	{
+		if (observation.activeOutputSites == 0)
+		{
+			return 1.0;
+		}
+		const double activeShare = static_cast<double>(observation.activeOutputSitesAtEvents) / observation.activeOutputSites;
+		const double chance = static_cast<double>(observation.outputSitesAtEvents) / observation.outputSites;
+		return std::max(0.0, (activeShare - chance) / (1.0 - chance));
 	}
 
 	double SequenceTiming::oneAtATimeScore(const RecallObservation& observation)

@@ -24,7 +24,10 @@ namespace neat_dnfs
 	///
 	/// The seven partial fitness terms are those of SequenceTiming, with each recall cycle scored like one recall
 	/// trial, f5 giving order credit only (each consecutive pair rising one after another, fully at 100 or more
-	/// apart), and f4 to f6 averaged over the three cycles.
+	/// apart), and f4 to f6 averaged over the three cycles. Each cycle's f4 to f6 are also scaled by how far the
+	/// output's activity during that cycle lies near the event positions, beyond what activity spread evenly over
+	/// the field would (SequenceTiming::activityAtEvents), so peaks sweeping across the whole field cannot earn
+	/// recall credit by crossing the events by chance.
 	class SerialOrder final : public SequenceTiming
 	{
 	public:

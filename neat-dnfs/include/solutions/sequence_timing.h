@@ -73,8 +73,9 @@ namespace neat_dnfs
 	/// demonstration, cannot earn recall credit in the trials where X happens to precede them.
 	///
 	/// Every evaluation also records a trace in SolutionParameters::evaluationTrace: per trial, how
-	/// silent the output stayed in each phase and, for recall trials, each event's onset and isolation
-	/// and every output peak that rose after the cue (time and position). Neural fields here are translation
+	/// silent the output stayed in each phase and, for recall trials, each event's onset and isolation,
+	/// every output peak that rose after the cue (time and position), and the share of output activity
+	/// that lay at the event positions. Neural fields here are translation
 	/// invariant and carry no spatial bias of their own, so the event positions can only come
 	/// from the demonstration: no genome can hardwire the recalled peaks.
 	class SequenceTiming : public Solution
@@ -158,6 +159,10 @@ namespace neat_dnfs
 			double lastPeakDecay = 0.0;
 			std::vector<std::pair<double, double>> risingPeaks; // (time since the cue, position), first few only
 			int risingPeakCount = 0;
+			int activeOutputSites = 0; // output positions above threshold, counted again on every step
+			int activeOutputSitesAtEvents = 0; // those of them near a recalled event's position
+			int outputSites = 0; // every output position, counted again on every step
+			int outputSitesAtEvents = 0; // those of them near a recalled event's position
 		};
 
 		void testPhenotype() override;
@@ -236,9 +241,13 @@ namespace neat_dnfs
 		/// @param observation Rising peaks recorded so far; updated in place.
 		static void recordRisingPeaks(int step, const std::vector<dnf_composer::element::NeuralFieldBump>& previousBumps,
 			const std::vector<dnf_composer::element::NeuralFieldBump>& bumps, RecallObservation& observation);
+		/// @brief Counts the output positions, and those above threshold now, overall and near a recalled event.
+		/// @param observation Active-site counts so far; updated in place.
+		void countActivityAtEvents(RecallObservation& observation) const;
 		/// @brief Converts one recall's observation into its trace.
 		/// @param observation What the output field did during the recall.
-		/// @return Onsets, isolation per event and order credit, last-peak decay, and the output peaks that rose.
+		/// @return Onsets, isolation per event and order credit, last-peak decay, the output peaks that rose, and
+		/// the share of output activity at the event positions.
 		[[nodiscard]] static nlohmann::json traceOf(const RecallObservation& observation);
 		/// @brief Credit for the output staying near its resting level over one phase.
 		/// @param depthSum Per-step depths of the output below rest, summed over the phase.
@@ -267,6 +276,14 @@ namespace neat_dnfs
 		/// @param observation What the output field did during recall.
 		/// @return Fitness score in [0,1].
 		[[nodiscard]] double timingTermScore(const RecallObservation& observation) const;
+		/// @brief How far the output's activity during recall is concentrated near the recalled events' positions,
+		/// beyond what activity spread evenly over the field would show.
+		/// @details The share of active sites (summed over every step) that lie near an event is compared with the
+		/// share of all sites that do: (active share - chance) / (1 - chance).
+		/// @param observation What the output field did during recall.
+		/// @return Score in [0,1]: 1 when all activity is near the events, 0 when it is no more concentrated there
+		/// than chance; 1 if the output was never active.
+		[[nodiscard]] static double activityAtEvents(const RecallObservation& observation);
 		/// @brief Mean of the isolation scores of the recalled events and the decay of the last peak.
 		/// @param observation What the output field did during recall.
 		/// @return Fitness score in [0,1].

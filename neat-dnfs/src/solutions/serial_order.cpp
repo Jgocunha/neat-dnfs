@@ -66,9 +66,11 @@ namespace neat_dnfs
 		for (const double length : cycleLengths)
 		{
 			const RecallObservation recall = recallSequence(scores, length);
-			scores.recalledEvents += recallCreditGate * recalledEventsScore(recall);
-			scores.recalledTiming += recallCreditGate * orderScore(recall);
-			scores.oneAtATime += recallCreditGate * oneAtATimeScore(recall);
+			// Activity away from the events would let output sweeping across the field earn credit by chance.
+			const double cycleCreditGate = recallCreditGate * activityAtEvents(recall);
+			scores.recalledEvents += cycleCreditGate * recalledEventsScore(recall);
+			scores.recalledTiming += cycleCreditGate * orderScore(recall);
+			scores.oneAtATime += cycleCreditGate * oneAtATimeScore(recall);
 			++scores.recallTrials;
 			cycles.push_back({ { "length", length }, { "recall", traceOf(recall) } });
 		}

@@ -720,6 +720,7 @@ TEST_CASE("SerialOrder scores the hand-built design above 0.95, recalling the or
         const auto& recall = cycle.at("recall");
         CHECK(recall.at("order").get<double>() == Catch::Approx(1.0));
         CHECK(recall.at("onsets").size() == 4);
+        CHECK(recall.at("activityAtEvents").get<double>() == Catch::Approx(1.0));
     }
 }
 
@@ -794,6 +795,30 @@ TEST_CASE("SerialOrder's evolvable ranges reach every setting of the hand-built 
     {
         checkConnectionGeneEvolvable(gene);
     }
+}
+
+// Saved from serial-order run 2: for a few hundred after each X the output holds many broad peaks all over the field,
+// which cross the event positions by chance. Re-evaluated it averaged 0.67, with f4 near 0.95. Recall credit is scaled
+// by the share of output activity that lies at the event positions, so this earns little of it.
+TEST_CASE("SerialOrder gives little recall credit to peaks sweeping all over the output after X", "[Solutions][SerialOrder]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order" };
+
+    auto solution = loadSequenceTimingFixture<SerialOrder>("serial-order-chaotic-sweep.dnf");
+    solution.evaluate();
+
+    const auto recallTrial = serialOrderRecallTrial(solution);
+    REQUIRE(recallTrial.at("cycles").size() == SerialOrder::recallCycleCount);
+    for (const auto& cycle : recallTrial.at("cycles"))
+    {
+        CHECK(cycle.at("recall").at("activityAtEvents").get<double>() < 0.5);
+    }
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 7);
+    CHECK(partials[3] < 0.25);
+    CHECK(partials[4] < 0.25);
+    CHECK(partials[5] < 0.25);
 }
 
 // The same design without the X boost clearing its done field: the sequence plays on the first trigger only.
