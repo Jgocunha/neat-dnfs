@@ -713,7 +713,9 @@ TEST_CASE("SerialOrder scores the hand-built design above 0.95, recalling the or
     solution.evaluate();
 
     CHECK(solution.getFitness() > 0.95);
-    for (const auto& cycle : serialOrderRecallTrial(solution).at("cycles"))
+    const auto recallTrial = serialOrderRecallTrial(solution);
+    REQUIRE(recallTrial.at("cycles").size() == SerialOrder::recallCycleCount);
+    for (const auto& cycle : recallTrial.at("cycles"))
     {
         const auto& recall = cycle.at("recall");
         CHECK(recall.at("order").get<double>() == Catch::Approx(1.0));
