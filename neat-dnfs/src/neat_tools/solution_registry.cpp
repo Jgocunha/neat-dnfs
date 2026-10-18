@@ -15,6 +15,7 @@
 #include "solutions/inhibition_of_return.h"
 #include "solutions/hri_packaging_task.h"
 #include "solutions/sequence_timing.h"
+#include "solutions/serial_order.h"
 
 namespace neat_dnfs
 {
@@ -56,6 +57,7 @@ namespace neat_dnfs
 			entry<SequenceTimingBoost>("sequence-timing-boost", "sequence-timing-boost.dnf", 1, 1),
 			entry<SequenceTimingBoostOrder>("sequence-timing-boost-order", "sequence-timing-boost.dnf", 1, 1),
 			entry<SequenceTimingBoostOrderOnly>("sequence-timing-boost-order-only", "sequence-timing-boost.dnf", 1, 1),
+			entry<SerialOrder>("serial-order", "serial-order.dnf", 1, 1),
 		};
 		return entries;
 	}

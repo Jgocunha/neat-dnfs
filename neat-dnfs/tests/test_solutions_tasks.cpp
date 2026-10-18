@@ -16,6 +16,7 @@
 #include "solutions/xor.h"
 #include "solutions/hri_packaging_task.h"
 #include "solutions/sequence_timing.h"
+#include "solutions/serial_order.h"
 #include "neat_tools/config_loader.h"
 #include "neat_tools/resource_paths.h"
 #include "neat_tools/solution_registry.h"
@@ -612,6 +613,134 @@ TEST_CASE("SequenceTimingBoostOrderOnly is registered with the boost template", 
     const auto* task = findTask("sequence-timing-boost-order-only");
     REQUIRE(task != nullptr);
     REQUIRE(task->templateFile == "sequence-timing-boost.dnf");
+    REQUIRE(task->inputs == 1);
+    REQUIRE(task->outputs == 1);
+}
+
+TEST_CASE("SerialOrder contract", "[Solutions][SerialOrder]")
+{
+    resetGlobalState();
+    checkSolutionContract<SerialOrder>(makeTopology(1, 1));
+}
+
+TEST_CASE("SerialOrder evaluate produces a bounded fitness", "[Solutions][SerialOrder]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order" };
+
+    SerialOrder solution(sequenceTimingTopology());
+    solution.initialize();
+
+    REQUIRE_NOTHROW(solution.evaluate());
+    REQUIRE(solution.getFitness() >= 0.0);
+    REQUIRE(solution.getFitness() <= 1.0);
+    REQUIRE(solution.getParameters().partialFitness.size() == 7);
+}
+
+TEST_CASE("SerialOrder gives no recall credit to an output field that never peaks", "[Solutions][SerialOrder]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order" };
+
+    SerialOrder solution(sequenceTimingTopology());
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 7);
+    CHECK(partials[2] == Catch::Approx(1.0));
+    CHECK(partials[3] == 0.0);
+    CHECK(partials[4] == 0.0);
+    CHECK(partials[5] == 0.0);
+}
+
+// The recall trial of a serial-order evaluation, read from its trace.
+static nlohmann::json serialOrderRecallTrial(const Solution& solution)
+{
+    const auto trace = nlohmann::json::parse(solution.getParameters().evaluationTrace);
+    for (const auto& trial : trace.at("trials"))
+    {
+        if (trial.at("kind") == "recall")
+        {
+            return trial;
+        }
+    }
+    throw std::runtime_error("no recall trial in the trace");
+}
+
+TEST_CASE("SerialOrder cues three recall cycles of fresh random length after one demonstration", "[Solutions][SerialOrder]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order" };
+
+    const auto cycleLengths = [] {
+        SerialOrder solution(sequenceTimingTopology());
+        solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+        solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+        solution.evaluate();
+        const auto trial = serialOrderRecallTrial(solution);
+        CHECK(trial.at("gap").get<double>() >= 300.0);
+        CHECK(trial.at("gap").get<double>() <= 1500.0);
+        std::vector<double> lengths;
+        for (const auto& cycle : trial.at("cycles"))
+        {
+            lengths.push_back(cycle.at("length").get<double>());
+        }
+        return lengths;
+    };
+
+    const auto first = cycleLengths();
+    const auto second = cycleLengths();
+    REQUIRE(first.size() == 3);
+    for (const double length : first)
+    {
+        CHECK(length >= 800.0);
+        CHECK(length <= 1500.0);
+    }
+    CHECK(first != second);
+}
+
+// The hand-built competitive-queuing design: a slow integrator stores a primacy gradient (earlier events sit higher),
+// the output selects the highest remaining item, a done field suppresses each item once recalled, and every X clears
+// the done field, so the whole sequence plays again on every trigger.
+TEST_CASE("SerialOrder scores the hand-built design above 0.95, recalling the order on every trigger", "[Solutions][SerialOrder]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order" };
+
+    auto solution = loadSequenceTimingFixture<SerialOrder>("serial-order-handbuilt.dnf");
+    solution.evaluate();
+
+    CHECK(solution.getFitness() > 0.95);
+    for (const auto& cycle : serialOrderRecallTrial(solution).at("cycles"))
+    {
+        const auto& recall = cycle.at("recall");
+        CHECK(recall.at("order").get<double>() == Catch::Approx(1.0));
+        CHECK(recall.at("onsets").size() == 4);
+    }
+}
+
+// The same design without the X boost clearing its done field: the sequence plays on the first trigger only.
+TEST_CASE("SerialOrder gives a sequence recalled on the first trigger only a third of the recall credit", "[Solutions][SerialOrder]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order" };
+
+    auto solution = loadSequenceTimingFixture<SerialOrder>("serial-order-single-recall.dnf");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 7);
+    CHECK(partials[3] == Catch::Approx(1.0 / 3.0).margin(0.02));
+    CHECK(partials[4] < 0.35);
+}
+
+TEST_CASE("SerialOrder is registered with one input and one output", "[SolutionRegistry]")
+{
+    const auto* task = findTask("serial-order");
+    REQUIRE(task != nullptr);
+    REQUIRE(task->templateFile == "serial-order.dnf");
     REQUIRE(task->inputs == 1);
     REQUIRE(task->outputs == 1);
 }
