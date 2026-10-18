@@ -117,6 +117,11 @@ namespace neat_dnfs
 		}
 		trials.push_back(runProbeTrial(recallGaps.front(), scores));
 
+		recordEvaluation(scores, trials);
+	}
+
+	void SequenceTiming::recordEvaluation(const TaskScores& scores, const nlohmann::json& trials)
+	{
 		parameters.partialFitness = {
 			scores.inputRepresentation / scores.pulses,
 			scores.inputRest / scores.restSamples,
@@ -144,7 +149,7 @@ namespace neat_dnfs
 		const double recallCreditGate = meanOutputSilence(trialStart, scores);
 		sampleInputRest(scores);
 
-		const RecallObservation recall = recallSequence(scores);
+		const RecallObservation recall = recallSequence(scores, recallDuration);
 		scores.recalledEvents += recallCreditGate * recalledEventsScore(recall);
 		scores.recalledTiming += recallCreditGate * timingTermScore(recall);
 		scores.oneAtATime += recallCreditGate * oneAtATimeScore(recall);
@@ -197,7 +202,7 @@ namespace neat_dnfs
 		}
 	}
 
-	SequenceTiming::RecallObservation SequenceTiming::recallSequence(TaskScores& scores)
+	SequenceTiming::RecallObservation SequenceTiming::recallSequence(TaskScores& scores, const double duration)
 	{
 		const auto output = getNeuralFieldOrThrow(outputField, "recallSequence");
 		const int pulseSteps = stepsFor(pulseDuration);
@@ -205,7 +210,7 @@ namespace neat_dnfs
 		std::vector<dnf_composer::element::NeuralFieldBump> previousBumps;
 
 		startStartCue();
-		for (int step = 1; step <= stepsFor(recallDuration); ++step)
+		for (int step = 1; step <= stepsFor(duration); ++step)
 		{
 			runSimulation(1);
 			if (step == pulseSteps)

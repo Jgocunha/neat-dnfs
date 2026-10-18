@@ -129,10 +129,6 @@ namespace neat_dnfs
 		/// @param slug Task slug whose config supplies the fitness weights.
 		SequenceTiming(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype,
 			StartCue startCue, TimingCredit timingCredit, const std::string& taskName, const std::string& slug);
-	private:
-		StartCue startCue;
-		TimingCredit timingCredit;
-
 		/// @brief Running sums behind the seven partial fitness terms, accumulated across trials.
 		struct TaskScores
 		{
@@ -183,8 +179,13 @@ namespace neat_dnfs
 		void demonstrateSequence(TaskScores& scores);
 		/// @brief Pulses X, then records when each event's peak rises in the output and how cleanly.
 		/// @param scores Accumulates the input terms.
+		/// @param duration Simulation time to record for, from the start of the cue.
 		/// @return Onset step, isolation and last-peak decay of the recall.
-		RecallObservation recallSequence(TaskScores& scores);
+		RecallObservation recallSequence(TaskScores& scores, double duration);
+		/// @brief Sets the partial fitness terms, the fitness and the evaluation trace from an evaluation's scores.
+		/// @param scores Every partial fitness term, accumulated over the evaluation.
+		/// @param trials The trace of each trial, in the order they ran.
+		void recordEvaluation(const TaskScores& scores, const nlohmann::json& trials);
 		/// @brief Delivers the start cue for the pulse duration, keeping the output silent.
 		/// @param scores Accumulates the output-silence term, and the input representation term for a Gaussian cue.
 		void pulseStartCue(TaskScores& scores);
@@ -277,6 +278,9 @@ namespace neat_dnfs
 		/// @param duration Simulation time.
 		/// @return The step count, rounded to the nearest step.
 		[[nodiscard]] static int stepsFor(double duration);
+	private:
+		StartCue startCue;
+		TimingCredit timingCredit;
 	};
 
 	/// @brief SequenceTiming with the start event X delivered as a homogeneous boost of the input
