@@ -31,5 +31,9 @@ onsets within a few time units at similar gaps. Two kinds still differ:
 
 A replay is evidence only once its onsets have been checked against the evaluator's trace for the same genome.
 
+Since `cbbf9f6` (19 October 2026), serial order demonstrates D, C, A, B evenly spaced, at 200, 400, 600 and 800 after
+X. A replay of a serial-order genome scored from then on must use those onsets; earlier serial-order runs used the
+sequence-timing onsets. Every trial's trace records the onsets it demonstrated, under `demonstratedOnsets`.
+
 The scripts are `.claude/temp/analysis/all-runs-replays/make_task_replay.py` (one replay) and `build_all.py` (every
 run), both gitignored scratch.

@@ -4,6 +4,10 @@ Experiment report for evolving the `serial-order` task from input and output fie
 reference: `serial-order-handbuilt-design.md`. Earlier from-scratch failures on the timing task:
 `sequence-timing-why-tabula-rasa-fails.md`.
 
+These runs used the first serial-order demonstration (D, C, A, B at 100, 600, 800, 1800 after X) and the old
+isolation check. On 19 October 2026 the demonstration became evenly spaced (`cbbf9f6`), and each peak now has to rise
+alone (`51d03d9`). Their scores are not comparable with runs from then on.
+
 ## Summary
 
 - **No run solved the task.** Eleven runs across two batches, none above 0.71 when re-evaluated. The hand-built

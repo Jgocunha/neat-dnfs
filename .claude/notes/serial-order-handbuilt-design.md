@@ -1,11 +1,16 @@
 # Serial order: the hand-built competitive-queuing design
 
-Reference solution for the `serial-order` task, saved as `neat-dnfs/tests/fixtures/serial-order-handbuilt.dnf`.
-It scores 0.993 in the evaluator (every recall term 1.0). A dnf-composer replay of one evaluation (gap 700, cycles
-1000, 800, 1500; X at t = 2550, 3550, 4350) is `.claude/temp/analysis/serial-order-handbuilt-inrange-replay.dnf`;
-`serial-order-handbuilt-replay.dnf` beside it replays the original, pre-range-fix version. The numpy prototype and
-exporter are `.claude/temp/handbuilt/order_design.py` and `order_export.py` (gitignored scratch). They still write the
-original version; `.claude/temp/inrange/variant.py` applies the in-range edits to the fixture and scores variants.
+Reference solution for the `serial-order` task, saved as `neat-dnfs/tests/fixtures/serial-order-handbuilt.dnf`. Under
+the evaluator of 19 October 2026 it scores 0.994, with every recall term at 1.0, in 50 of 50 evaluations. That
+evaluator has an evenly spaced demonstration (`cbbf9f6`) and requires each peak to rise only once the previous one has
+gone (`51d03d9`).
+
+The serial-order hand-off bundle (`.claude/temp/serial-order-and-timing-experiment/`, gitignored scratch) holds:
+- a dnf-composer replay of one evaluation, at
+  `serial-order/architectures/evenly-spaced/handbuilt-evenly-spaced-replay.dnf` (gap 700, cycles 1000, 800, 1500;
+  X at t = 1550, 2550, 3350);
+- the numpy prototype and exporter, `tools/handbuilt/order_design.py` and `order_export.py`. They still write the
+  original, out-of-range version.
 
 ## How it works
 
@@ -22,15 +27,16 @@ recalled again on every trigger.
 | nf 2 output O | R + M + G input, strong global inhibition: selects the stored item with the highest G level |
 | nf 7 done D | Integrates the winner (tau 75), ignites and suppresses it, so the next-highest item wins. Every X boost clears it (I->D global inhibition), so the sequence starts again |
 
-In dnf-composer each recall cycle shows D, C, A, B one at a time as full peaks (amplitude 6-10.7, width 6), about
-110 apart, with the output silent again about 550 after each X.
+In dnf-composer, each recall cycle shows D, C, A, B one at a time as full peaks (amplitude 5.7-11.7), about 120
+apart. No two are ever up at once: 6-26 pass between one peak going and the next rising. The output is silent again
+about 580 after each X, and stays at most -0.5 during the demonstration.
 
 ## Parameters
 
 | Element | Setting |
 |---|---|
 | nf 1 | tau 10, h -10, gk(2, 3) |
-| nf 2 | tau 10, h -13, gk(2.5, 15, global -1.0) |
+| nf 2 | tau 10, h -15, gk(2.5, 15, global -1.0) |
 | nf 3 | tau 10, h -5, mhk(2.5, 20, 6, 12) |
 | nf 4 | tau 10, h -5, gk(2, 6) |
 | nf 5 | tau 1e5, h +0.6, no self-excitation |
@@ -38,22 +44,56 @@ In dnf-composer each recall cycle shows D, C, A, B one at a time as full peaks (
 | nf 7 | tau 75, h -5, mhk(2.5, 20, 6, 12) |
 | I->M | gk(2, 20, global -0.1) |
 | M->C | gk(2, 1, global +0.5) |
-| M->G, C->G | gk(2, +110), gk(2, -110) |
+| M->G, C->G | gk(2, +220), gk(2, -220) |
 | I->R, C->R | gk(2, 1, global +0.1), gk(2, 5) |
-| R->O, M->O, G->O | gk(2, 9), gk(2, 6), gk(2, 6) |
+| R->O, M->O, G->O | gk(2, 10), gk(2, 5), gk(2, 8) |
 | O->D, D->O | gk(2, 8), gk(3, -30) |
 | I->D | gk(2, -1, global -0.2) |
 
-Robust in the prototype across gaps 300-1500 and cycle lengths 800-1500. It still works with tau(D) 70-85, O->D
-7.5-8.5, G->O 5-7 and h(G) 0.5-0.7. Below tau(D) 65 the items come under 100 apart, so order credit drops slightly.
+## Retuned for the evenly spaced demonstration (19 October 2026)
 
-## Inside the evolvable ranges (since 18 October 2026)
+The demonstration used to put D, C, A, B at 100, 600, 800, 1800 after X. It now puts them 200 apart, at 200, 400,
+600, 800. The design scored 0.73 under the new schedule (f5 0.34, f6 0.6), because neighbouring items tied. Six
+settings changed:
+
+| Setting | Was | Now | Why |
+|---|---|---|---|
+| M->G, C->G | +110, -110 | +220, -220 | Each gradient step is s/tau x the interval. At 200 apart the steps were 0.22 everywhere, the old design's narrowest (C to A); doubling s gives 0.44 |
+| G->O | 6 | 8 | Wider differences between the items' inputs to the output |
+| h(O) | -13 | -15 | Silence at the demonstration's X (below) |
+| M->O | 6 | 5 | Moves lift from the latch to memory (below) |
+| R->O | 9 | 10 | Keeps the lowest item, B, able to rise |
+
+All six stay inside the evolvable ranges; h(O) -15 is the range minimum.
+
+What the field probes showed, step by step (bundle `tools/evaluator-diagnostics/diag_field_probe.cpp.txt`):
+- **The first trigger lifts all items at once.** The latch switches the output's lift on within a few steps. Every
+  stored item jumps above threshold, and the competition only separates two of them if their inputs differ by about
+  2 or more. In the old schedule the first pair, D and C, differed by 2.2. With equal spacing and the old gains it was
+  1.1, so D and C rose together. Later triggers release the items gradually through the done field, so they tolerate
+  smaller differences.
+- **The demonstration's X transiently opens the latch.** The boost drives R to about 20 for a moment, even with memory
+  empty. That lifts the whole output by h(O) + R->O + G->O x sigmoid(h(G)), and the output's global inhibition only
+  holds a uniform field below threshold while that sum is small. Stronger R->O and G->O made the output brush
+  threshold there. M->O is zero at that moment, since nothing is stored yet. So lowering h(O) and raising M->O by the
+  same amount keeps recall unchanged and restores the margin.
+- **The lift on stored items must be balanced.** h(O) + M->O + R->O has to sit between about 0 and +0.5. Below, B
+  never rises. Above, the first two items tie.
+
+Sweeps (bundle `serial-order/architectures/evenly-spaced/sweep*.txt`, 10 evaluations each, script
+`tools/inrange/evenly_spaced_variant.py`):
+- 49 of 81 variants score 0.99 or more, over h(O) -15 to -14, M->O 4-6, G->O 7-9 and that lift sum 0 to +1, with
+  s 220.
+- G->O 7, 8 and 9 all pass 50 of 50 evaluations.
+
+## Inside the evolvable ranges (18 October 2026, old demonstration)
+
+Scores in this section are under the old demonstration (onsets 100, 600, 800, 1800).
 
 The first version had seven settings evolution could not reach. Five were outside the ranges and two were in range but
 off the 0.1 grid that a connection's global amplitude moves on (it starts at 0). Each was fixed in the fixture where an
-equivalent in-range value works, and in `config/solutions/serial-order.json` where none does. The fixture still scores
-0.993 with every recall term 1.0, and the dnf-composer replay shows the same one-at-a-time recall, with peaks of
-amplitude 7-11.7. The test `SerialOrder's evolvable ranges reach every setting of the hand-built design` guards this.
+equivalent in-range value works, and in `config/solutions/serial-order.json` where none does. The test
+`SerialOrder's evolvable ranges reach every setting of the hand-built design` guards this.
 
 | Setting | Was | Now | Where |
 |---|---|---|---|
@@ -74,5 +114,6 @@ What could not be moved into range, from variants scored in the evaluator (10 ev
 - The weakest output peak (B, lowest in the gradient) must still drive the done field to ignition, or B stays on
   and wins the start of the next cycle. O->D of 6.5 fails; 8 works.
 - A slower done field (tau 80+ with I->D global -0.1) is not cleared within the 50-unit boost; I->D -0.2 fixes it.
-- C and A are the closest pair in the gradient (200 apart in the demonstration); with a shallow gradient (s 80) or
-  stronger output global inhibition (-1.6) they rise together.
+- Two neighbouring items whose inputs to the output differ by less than about 2 rise together at the first trigger.
+- Weaker competition (output global -0.6), a weaker done field (D->O -10) and a slower output (tau 20) let each peak
+  rise 30-40 before the previous one has gone. That is now the fixture `serial-order-overlapping-peaks.dnf`.
