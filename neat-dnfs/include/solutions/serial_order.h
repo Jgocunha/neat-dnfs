@@ -10,9 +10,9 @@ namespace neat_dnfs
 	/// after another, every time a start cue is given.
 	///
 	/// @details Serial order on its own, without timing: the first half of the sequence-timing problem. The
-	/// fields, events and demonstration are those of SequenceTimingBoost. The start event X is a homogeneous boost
-	/// of the input field "nf 1", and D (180), C (120), A (20) and B (80) are Gaussian pulses at 100, 600, 800
-	/// and 1800 after it.
+	/// fields and events are those of SequenceTimingBoost, but the demonstration spaces them evenly, since only
+	/// their order is recalled. The start event X is a homogeneous boost of the input field "nf 1", and D (180),
+	/// C (120), A (20) and B (80) are Gaussian pulses at 200, 400, 600 and 800 after it.
 	///
 	/// Recall trial (one) -- after the demonstration and a gap drawn from 300-1500, X is given three times, each
 	/// starting a recall cycle whose length is drawn afresh from 800-1500. After every X, the output field "nf 2"
@@ -54,13 +54,15 @@ namespace neat_dnfs
 		/// @param gap Simulation time between the end of the demonstration and the first cue.
 		/// @param cycleLengths Simulation time from each cue to the next, and from the last cue to the end.
 		/// @param scores Accumulates every partial fitness term.
-		/// @return The trial's trace: output silence before the first cue, and what each recall cycle did.
+		/// @return The trial's trace: the demonstrated onsets, output silence before the first cue, and what each
+		/// recall cycle did.
 		nlohmann::json runCuedTrial(double gap, const std::array<double, recallCycleCount>& cycleLengths, TaskScores& scores);
 		/// @brief Demonstrates the sequence, then waits as long as the cued trial without any cue.
 		/// @param waitingTime Simulation time to wait after the demonstration.
 		/// @param scores Accumulates the input and output-silence terms, and records the silence without a cue
 		/// that scales recall credit.
-		/// @return The trial's trace: output silence during the demonstration and without a cue.
+		/// @return The trial's trace: the demonstrated onsets, and output silence during the demonstration and
+		/// without a cue.
 		nlohmann::json runUncuedTrial(double waitingTime, TaskScores& scores);
 		/// @brief Draws the gap between the demonstration and the first cue.
 		/// @return A gap in the gap range.

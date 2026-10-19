@@ -27,9 +27,9 @@ namespace neat_dnfs
 			{ "A", 20.0, 800.0 },
 			{ "B", 80.0, 1800.0 }
 		} };
-		constexpr std::array<TaskEvent, SequenceTiming::recalledEventCount + 1> demonstratedEvents{ {
-			startEvent, recalledEvents[0], recalledEvents[1], recalledEvents[2], recalledEvents[3]
-		} };
+		constexpr SequenceTiming::EventOnsets sequenceTimingOnsets{
+			recalledEvents[0].onset, recalledEvents[1].onset, recalledEvents[2].onset, recalledEvents[3].onset
+		};
 
 		constexpr double pulseDuration = 50.0;
 		// Three gaps, one drawn from each third of this range on every evaluation, so that a fixed delay after the
@@ -141,7 +141,7 @@ namespace neat_dnfs
 	nlohmann::json SequenceTiming::runRecallTrial(const double gap, TaskScores& scores)
 	{
 		const TaskScores trialStart = scores;
-		demonstrateSequence(scores);
+		const nlohmann::json demonstratedOnsets = demonstrateSequence(scores, sequenceTimingOnsets);
 		const TaskScores gapStart = scores;
 		runWhileOutputSilent(gap, scores);
 		const double gapSilence = meanOutputSilence(gapStart, scores);
@@ -157,6 +157,7 @@ namespace neat_dnfs
 
 		return {
 			{ "kind", "recall" },
+			{ "demonstratedOnsets", demonstratedOnsets },
 			{ "gap", gap },
 			{ "outputSilence", { { "demonstration", meanOutputSilence(trialStart, gapStart) }, { "gap", gapSilence } } },
 			{ "recallCreditGate", recallCreditGate },
@@ -167,7 +168,7 @@ namespace neat_dnfs
 	nlohmann::json SequenceTiming::runProbeTrial(const double gap, TaskScores& scores)
 	{
 		const TaskScores trialStart = scores;
-		demonstrateSequence(scores);
+		const nlohmann::json demonstratedOnsets = demonstrateSequence(scores, sequenceTimingOnsets);
 		const TaskScores waitStart = scores;
 		runWhileOutputSilent(gap + recallDuration, scores);
 		scores.probeSilence = meanOutputSilence(waitStart, scores);
@@ -175,31 +176,28 @@ namespace neat_dnfs
 
 		return {
 			{ "kind", "probe" },
+			{ "demonstratedOnsets", demonstratedOnsets },
 			{ "outputSilence", { { "demonstration", meanOutputSilence(trialStart, waitStart) },
 				{ "withoutCue", scores.probeSilence } } }
 		};
 	}
 
-	void SequenceTiming::demonstrateSequence(TaskScores& scores)
+	nlohmann::json SequenceTiming::demonstrateSequence(TaskScores& scores, const EventOnsets& onsets)
 	{
 		initSimulation();
-		for (size_t i = 0; i < demonstratedEvents.size(); ++i)
+		const double demonstrationStart = phenotype.t;
+		nlohmann::json pulseStarts{ { startEvent.label, phenotype.t - demonstrationStart } };
+		pulseStartCue(scores);
+		double previousOnset = startEvent.onset;
+		for (size_t i = 0; i < recalledEventCount; ++i)
 		{
-			if (i == 0)
-			{
-				pulseStartCue(scores);
-			}
-			else
-			{
-				pulseEvent(demonstratedEvents[i].position, scores);
-			}
-			const bool isLastEvent = i + 1 == demonstratedEvents.size();
-			if (!isLastEvent)
-			{
-				runWhileOutputSilent(demonstratedEvents[i + 1].onset - demonstratedEvents[i].onset - pulseDuration, scores);
-				sampleInputRest(scores);
-			}
+			runWhileOutputSilent(onsets[i] - previousOnset - pulseDuration, scores);
+			sampleInputRest(scores);
+			pulseStarts[recalledEvents[i].label] = phenotype.t - demonstrationStart;
+			pulseEvent(recalledEvents[i].position, scores);
+			previousOnset = onsets[i];
 		}
+		return pulseStarts;
 	}
 
 	SequenceTiming::RecallObservation SequenceTiming::recallSequence(TaskScores& scores, const double duration)

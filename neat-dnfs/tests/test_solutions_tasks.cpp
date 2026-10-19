@@ -2,6 +2,7 @@
 #include <catch2/catch_approx.hpp>
 
 #include <filesystem>
+#include <map>
 #include <numeric>
 
 #include <dnf_composer/exceptions/exception.h>
@@ -313,6 +314,45 @@ TEST_CASE("SequenceTiming gives no recall credit to an output field that never p
             CHECK(trial.at("recall").at("onsets").at("D").is_null());
         }
     }
+}
+
+// Reads, for every trial of an evaluation, when each demonstrated pulse started after the trial began.
+static std::vector<std::map<std::string, double>> demonstratedOnsetsPerTrial(const Solution& solution)
+{
+    std::vector<std::map<std::string, double>> perTrial;
+    const auto trace = nlohmann::json::parse(solution.getParameters().evaluationTrace);
+    for (const auto& trial : trace.at("trials"))
+    {
+        perTrial.push_back(trial.at("demonstratedOnsets").get<std::map<std::string, double>>());
+    }
+    return perTrial;
+}
+
+template <typename Task>
+static void checkSequenceTimingDemonstration(const char* taskSlug)
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ taskSlug };
+
+    Task solution(sequenceTimingTopology());
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    solution.evaluate();
+
+    const std::map<std::string, double> demonstrated{ { "X", 0.0 }, { "D", 100.0 }, { "C", 600.0 }, { "A", 800.0 }, { "B", 1800.0 } };
+    const auto perTrial = demonstratedOnsetsPerTrial(solution);
+    REQUIRE(perTrial.size() == 4);
+    for (const auto& onsets : perTrial)
+    {
+        CHECK(onsets == demonstrated);
+    }
+}
+
+// Serial order demonstrates its events evenly spaced; the sequence-timing tasks must keep their own intervals.
+TEST_CASE("SequenceTiming tasks demonstrate D, C, A and B at 100, 600, 800 and 1800 after X", "[Solutions][SequenceTiming]")
+{
+    checkSequenceTimingDemonstration<SequenceTiming>("sequence-timing");
+    checkSequenceTimingDemonstration<SequenceTimingBoostOrder>("sequence-timing-boost-order");
 }
 
 // Fresh gaps on every evaluation stop a solution from tuning its timing to a fixed set of gaps.
@@ -699,6 +739,27 @@ TEST_CASE("SerialOrder cues three recall cycles of fresh random length after one
         CHECK(length <= 1500.0);
     }
     CHECK(first != second);
+}
+
+// Serial order is scored on order alone, so the demonstration spaces X and the events evenly and closely: no interval
+// stands out, and every evaluation is shorter than with the sequence-timing intervals.
+TEST_CASE("SerialOrder demonstrates X, D, C, A and B evenly spaced, 200 apart", "[Solutions][SerialOrder]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order" };
+
+    SerialOrder solution(sequenceTimingTopology());
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    solution.evaluate();
+
+    const std::map<std::string, double> demonstrated{ { "X", 0.0 }, { "D", 200.0 }, { "C", 400.0 }, { "A", 600.0 }, { "B", 800.0 } };
+    const auto perTrial = demonstratedOnsetsPerTrial(solution);
+    REQUIRE(perTrial.size() == 2); // the cued trial and the probe
+    for (const auto& onsets : perTrial)
+    {
+        CHECK(onsets == demonstrated);
+    }
 }
 
 // The hand-built competitive-queuing design: a slow integrator stores a primacy gradient (earlier events sit higher),

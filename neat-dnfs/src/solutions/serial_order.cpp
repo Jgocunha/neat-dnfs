@@ -6,6 +6,8 @@ namespace neat_dnfs
 {
 	namespace
 	{
+		// X and the four events 200 apart: the order is all the demonstration carries, and it stays short.
+		constexpr SequenceTiming::EventOnsets evenlySpacedOnsets{ 200.0, 400.0, 600.0, 800.0 };
 		constexpr double shortestGap = 300.0;
 		constexpr double longestGap = 1500.0;
 		// Long enough for four peaks one after another; varied so no fixed period between cues can be learned.
@@ -54,7 +56,7 @@ namespace neat_dnfs
 		TaskScores& scores)
 	{
 		const TaskScores trialStart = scores;
-		demonstrateSequence(scores);
+		const nlohmann::json demonstratedOnsets = demonstrateSequence(scores, evenlySpacedOnsets);
 		const TaskScores gapStart = scores;
 		runWhileOutputSilent(gap, scores);
 		const double gapSilence = meanOutputSilence(gapStart, scores);
@@ -77,6 +79,7 @@ namespace neat_dnfs
 
 		return {
 			{ "kind", "recall" },
+			{ "demonstratedOnsets", demonstratedOnsets },
 			{ "gap", gap },
 			{ "outputSilence", { { "demonstration", meanOutputSilence(trialStart, gapStart) }, { "gap", gapSilence } } },
 			{ "recallCreditGate", recallCreditGate },
@@ -87,7 +90,7 @@ namespace neat_dnfs
 	nlohmann::json SerialOrder::runUncuedTrial(const double waitingTime, TaskScores& scores)
 	{
 		const TaskScores trialStart = scores;
-		demonstrateSequence(scores);
+		const nlohmann::json demonstratedOnsets = demonstrateSequence(scores, evenlySpacedOnsets);
 		const TaskScores waitStart = scores;
 		runWhileOutputSilent(waitingTime, scores);
 		scores.probeSilence = meanOutputSilence(waitStart, scores);
@@ -95,6 +98,7 @@ namespace neat_dnfs
 
 		return {
 			{ "kind", "probe" },
+			{ "demonstratedOnsets", demonstratedOnsets },
 			{ "outputSilence", { { "demonstration", meanOutputSilence(trialStart, waitStart) },
 				{ "withoutCue", scores.probeSilence } } }
 		};

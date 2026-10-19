@@ -72,8 +72,9 @@ namespace neat_dnfs
 	/// demonstration, so peaks that rise without X, such as a replay at a fixed lag after the
 	/// demonstration, cannot earn recall credit in the trials where X happens to precede them.
 	///
-	/// Every evaluation also records a trace in SolutionParameters::evaluationTrace: per trial, how
-	/// silent the output stayed in each phase and, for recall trials, each event's onset and isolation,
+	/// Every evaluation also records a trace in SolutionParameters::evaluationTrace: per trial, when
+	/// each demonstrated pulse started, how silent the output stayed in each phase and, for recall
+	/// trials, each event's onset and isolation,
 	/// every output peak that rose after the cue (time and position), and the share of output activity
 	/// that lay at the event positions. Neural fields here are translation
 	/// invariant and carry no spatial bias of their own, so the event positions can only come
@@ -83,6 +84,8 @@ namespace neat_dnfs
 	public:
 		/// @brief Number of events recalled after the start cue: D, C, A and B.
 		static constexpr size_t recalledEventCount = 4;
+		/// @brief Onsets of the recalled events D, C, A and B after the start event X, in simulation time.
+		using EventOnsets = std::array<double, recalledEventCount>;
 
 		/// @brief Builds a task solution whose genome is created from @p topology.
 		/// @param topology Fields to start from: the input and the output.
@@ -171,17 +174,21 @@ namespace neat_dnfs
 		/// @brief Demonstrates the sequence, waits @p gap, then cues and scores a recall.
 		/// @param gap Simulation time between the end of the demonstration and the start cue.
 		/// @param scores Accumulates every partial fitness term.
-		/// @return The trial's trace: output silence per phase and what the recall did.
+		/// @return The trial's trace: the demonstrated onsets, output silence per phase and what the recall did.
 		nlohmann::json runRecallTrial(double gap, TaskScores& scores);
 		/// @brief Demonstrates the sequence, then waits @p gap and a whole recall's length without the start cue.
 		/// @param gap Simulation time a recall trial would wait before its cue.
 		/// @param scores Accumulates the input and output-silence terms, and records the silence without the cue
 		/// that scales recall credit.
-		/// @return The trial's trace: output silence during the demonstration and without the cue.
+		/// @return The trial's trace: the demonstrated onsets, and output silence during the demonstration and
+		/// without the cue.
 		nlohmann::json runProbeTrial(double gap, TaskScores& scores);
-		/// @brief Resets the simulation and pulses X, D, C, A and B at their onset times.
+		/// @brief Resets the simulation, pulses X, then D, C, A and B at @p onsets after it.
 		/// @param scores Accumulates the input and output-silence terms.
-		void demonstrateSequence(TaskScores& scores);
+		/// @param onsets When each event's pulse starts after X's.
+		/// @return When each pulse started after the demonstration began, read from the simulation clock and keyed
+		/// by event label.
+		nlohmann::json demonstrateSequence(TaskScores& scores, const EventOnsets& onsets);
 		/// @brief Pulses X, then records when each event's peak rises in the output and how cleanly.
 		/// @param scores Accumulates the input terms.
 		/// @param duration Simulation time to record for, from the start of the cue.
