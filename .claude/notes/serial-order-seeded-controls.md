@@ -18,6 +18,8 @@ memory holds something. So the gradient seed removes G only.
 ### Under the evaluator of 19 October 2026 (evenly spaced demonstration, strict disappearance)
 
 Built from the design with the competition in the hidden selection field S (score 0.994). Fifty evaluations each.
+Weighting each peak's credit by its height (`f8a1098`) leaves all three unchanged (10 evaluations: 0.358, 0.827,
+0.329), since every peak they make is full height.
 
 | Seed | Field removed | What is missing | Fitness | Partials f4, f5, f6 |
 |---|---|---|---|---|

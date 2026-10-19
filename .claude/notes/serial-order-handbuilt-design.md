@@ -3,7 +3,8 @@
 Reference solution for the `serial-order` task, saved as `neat-dnfs/tests/fixtures/serial-order-handbuilt.dnf`. Under
 the evaluator of 19 October 2026 it scores 0.994, with every recall term at 1.0, in 50 of 50 evaluations. That
 evaluator has an evenly spaced demonstration (`cbbf9f6`) and requires each peak to rise only once the previous one has
-gone (`51d03d9`).
+gone (`51d03d9`). It still scores 0.994 once each peak's credit is weighted by its height (`f8a1098`), since its
+peaks reach about 11 (`serial-order-peak-height-credit.md`).
 
 Every setting is inside the evolvable ranges, and every connection is one evolution can make: none leaves the output
 field (`output-field-cannot-be-a-connection-source.md`). Two tests guard this: `SerialOrder's evolvable ranges reach
