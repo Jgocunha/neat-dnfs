@@ -33,7 +33,7 @@ Available tasks: `and`, `xor`, `detection-instability`, `memory-instability`,
 `sequence-timing-boost`, `sequence-timing-boost-order`, `sequence-timing-boost-order-only`, `serial-order`.
 
 Available ablations: `no-growth-io-only`, `no-growth-reference-hidden-field-count`,
-`no-speciation`, `no-crossover`, `random-initial-topology`.
+`no-speciation`, `no-crossover`, `random-initial-topology`, `compat-threshold-4`.
 
 ## Configuration
 
