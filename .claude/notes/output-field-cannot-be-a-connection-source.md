@@ -18,8 +18,8 @@ Since 19 October 2026:
 - **The rule can be widened** (`7faae6f0`): with `AblationConstants.allowOutputAsConnectionSource` (preset
   `output-feedback`, data folder `<Task> Output Feedback`), mutation and seeding may also start a connection at an
   output field, to hidden fields and other outputs, never to itself. The key is optional and off when absent. In a
-  genome with no hidden field and one output, a draw of the output as source finds no target and gives up, so about
-  half of the add-connection mutations of a minimal start do nothing there.
+  genome with no hidden field and one output, a draw of the output as source finds no target and gives up, so
+  1 in (inputs + 1) add-connection mutations of a minimal start does nothing.
   - `sol-eval` takes no `--ablation`, so it always warns under the default rule.
 
 Hand-built designs that relied on one, found on 19 October 2026:

@@ -14,5 +14,4 @@ The apps are fine: they keep the loaded `shared_ptr<Simulation>` alive while `ma
 `Population` copies from its starting solution's live phenotype. In tests, `loadFixtureSimulation` in
 `tests/test_solutions_tasks.cpp` returns the `shared_ptr` for this reason.
 
-The dnf-composer source is at `C:\dev-files\dynamic-neural-field-composer` on the development machine
-(`src/simulation/simulation.cpp`).
+The behaviour is in dnf-composer's `src/simulation/simulation.cpp` and the elements' `clone()`.
