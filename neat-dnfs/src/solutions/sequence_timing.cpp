@@ -62,6 +62,12 @@ namespace neat_dnfs
 				return std::abs(bump.centroid - position) <= onsetPositionTolerance;
 			});
 		}
+
+		// 1 for a single bump, falling as more bumps share the field.
+		double soleBumpScore(const std::vector<dnf_composer::element::NeuralFieldBump>& bumps)
+		{
+			return 1.0 / (1.0 + std::abs(static_cast<double>(bumps.size()) - 1.0));
+		}
 	}
 
 	SequenceTiming::SequenceTiming(const SolutionTopology& topology)
@@ -331,6 +337,7 @@ namespace neat_dnfs
 			else if (observation.absentSinceCue[i])
 			{
 				observation.onsetSteps[i] = step;
+				observation.isolationAtOnset[i] = soleBumpScore(bumps);
 			}
 		}
 	}
@@ -343,8 +350,7 @@ namespace neat_dnfs
 			const auto& onset = observation.onsetSteps[i];
 			if (onset && *onset + stepsFor(isolationSettleTime) == step)
 			{
-				const double bumpCountScore = 1.0 / (1.0 + std::abs(static_cast<double>(bumps.size()) - 1.0));
-				observation.isolation[i] = hasBumpAt(bumps, recalledEvents[i].position) ? bumpCountScore : 0.0;
+				observation.isolation[i] = hasBumpAt(bumps, recalledEvents[i].position) ? soleBumpScore(bumps) : 0.0;
 			}
 		}
 	}
@@ -391,15 +397,18 @@ namespace neat_dnfs
 	{
 		nlohmann::json onsets;
 		nlohmann::json isolation;
+		nlohmann::json isolationAtOnset;
 		for (size_t i = 0; i < recalledEventCount; ++i)
 		{
 			const auto& onsetStep = observation.onsetSteps[i];
 			onsets[recalledEvents[i].label] = onsetStep ? nlohmann::json(*onsetStep * SimulationConstants::deltaT) : nlohmann::json(nullptr);
 			isolation[recalledEvents[i].label] = observation.isolation[i];
+			isolationAtOnset[recalledEvents[i].label] = observation.isolationAtOnset[i];
 		}
 		return {
 			{ "onsets", onsets },
 			{ "isolation", isolation },
+			{ "isolationAtOnset", isolationAtOnset },
 			{ "order", orderScore(observation) },
 			{ "lastPeakDecay", observation.lastPeakDecay },
 			{ "risingPeakCount", observation.risingPeakCount },
@@ -479,6 +488,16 @@ namespace neat_dnfs
 	double SequenceTiming::oneAtATimeScore(const RecallObservation& observation)
 	{
 		const double isolation = std::accumulate(observation.isolation.begin(), observation.isolation.end(), 0.0);
+		return (isolation + observation.lastPeakDecay) / (recalledEventCount + 1);
+	}
+
+	double SequenceTiming::oneAtATimeFromRiseScore(const RecallObservation& observation)
+	{
+		double isolation = 0.0;
+		for (size_t i = 0; i < recalledEventCount; ++i)
+		{
+			isolation += std::min(observation.isolation[i], observation.isolationAtOnset[i]);
+		}
 		return (isolation + observation.lastPeakDecay) / (recalledEventCount + 1);
 	}
 

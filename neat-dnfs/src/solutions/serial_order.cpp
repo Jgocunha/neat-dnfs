@@ -72,7 +72,7 @@ namespace neat_dnfs
 			const double cycleCreditGate = recallCreditGate * activityAtEvents(recall);
 			scores.recalledEvents += cycleCreditGate * recalledEventsScore(recall);
 			scores.recalledTiming += cycleCreditGate * orderScore(recall);
-			scores.oneAtATime += cycleCreditGate * oneAtATimeScore(recall);
+			scores.oneAtATime += cycleCreditGate * oneAtATimeFromRiseScore(recall);
 			++scores.recallTrials;
 			cycles.push_back({ { "length", length }, { "recall", traceOf(recall) } });
 		}

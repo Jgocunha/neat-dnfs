@@ -159,6 +159,7 @@ namespace neat_dnfs
 			std::array<std::optional<int>, recalledEventCount> onsetSteps{};
 			std::array<bool, recalledEventCount> absentSinceCue{};
 			std::array<double, recalledEventCount> isolation{};
+			std::array<double, recalledEventCount> isolationAtOnset{}; // on the step each event's peak rose
 			double lastPeakDecay = 0.0;
 			std::vector<std::pair<double, double>> risingPeaks; // (time since the cue, position), first few only
 			int risingPeakCount = 0;
@@ -228,10 +229,11 @@ namespace neat_dnfs
 		/// @param scores Accumulates the input-rest term.
 		void sampleInputRest(TaskScores& scores) const;
 
-		/// @brief Records, for every event not yet seen, whether its peak has risen in @p bumps since the cue.
+		/// @brief Records, for every event not yet seen, whether its peak has risen in @p bumps since the cue, and
+		/// for one that just rose, whether it is the only bump in the field.
 		/// @param step Steps elapsed since the start cue.
 		/// @param bumps Bumps currently in the output field.
-		/// @param observation Onsets recorded so far; updated in place.
+		/// @param observation Onsets and isolation at onset recorded so far; updated in place.
 		static void detectOnsets(int step, const std::vector<dnf_composer::element::NeuralFieldBump>& bumps,
 			RecallObservation& observation);
 		/// @brief Scores, for every event whose onset was the settle time before @p step, whether its peak stands alone.
@@ -253,8 +255,8 @@ namespace neat_dnfs
 		void countActivityAtEvents(RecallObservation& observation) const;
 		/// @brief Converts one recall's observation into its trace.
 		/// @param observation What the output field did during the recall.
-		/// @return Onsets, isolation per event and order credit, last-peak decay, the output peaks that rose, and
-		/// the share of output activity at the event positions.
+		/// @return Onsets, isolation per event (after settling and on the step it rose) and order credit, last-peak
+		/// decay, the output peaks that rose, and the share of output activity at the event positions.
 		[[nodiscard]] static nlohmann::json traceOf(const RecallObservation& observation);
 		/// @brief Credit for the output staying near its resting level over one phase.
 		/// @param depthSum Per-step depths of the output below rest, summed over the phase.
@@ -295,6 +297,11 @@ namespace neat_dnfs
 		/// @param observation What the output field did during recall.
 		/// @return Fitness score in [0,1].
 		[[nodiscard]] static double oneAtATimeScore(const RecallObservation& observation);
+		/// @brief Like oneAtATimeScore, but each event's isolation is also taken on the step its peak rises, so a
+		/// peak that rises before the previous one has gone loses credit, however soon that one goes.
+		/// @param observation What the output field did during recall.
+		/// @return Fitness score in [0,1].
+		[[nodiscard]] static double oneAtATimeFromRiseScore(const RecallObservation& observation);
 		/// @brief Draws one recall gap from each third of the gap range, shortest first.
 		/// @return The gaps for this evaluation's three recall trials.
 		[[nodiscard]] static std::array<double, 3> drawRecallGaps();

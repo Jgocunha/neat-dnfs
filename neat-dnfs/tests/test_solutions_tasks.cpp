@@ -782,7 +782,37 @@ TEST_CASE("SerialOrder scores the hand-built design above 0.95, recalling the or
         CHECK(recall.at("order").get<double>() == Catch::Approx(1.0));
         CHECK(recall.at("onsets").size() == 4);
         CHECK(recall.at("activityAtEvents").get<double>() == Catch::Approx(1.0));
+        for (const auto& [label, isolation] : recall.at("isolationAtOnset").items())
+        {
+            INFO("event " << label);
+            CHECK(isolation.get<double>() == Catch::Approx(1.0));
+        }
     }
+}
+
+// The hand-built design with weaker competition in the output, a weaker done field and a slower output: in almost every
+// cycle C rises 30-40 before D has gone, though each peak stands alone 50 after its own onset, which is all the
+// isolation check used to look at. A peak must only rise once the previous one has gone, so this cannot earn full
+// one-at-a-time credit.
+TEST_CASE("SerialOrder gives no full one-at-a-time credit to a peak that rises before the previous one has gone", "[Solutions][SerialOrder]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order" };
+
+    auto solution = loadSequenceTimingFixture<SerialOrder>("serial-order-overlapping-peaks.dnf");
+    solution.evaluate();
+
+    const auto recallTrial = serialOrderRecallTrial(solution);
+    REQUIRE(recallTrial.at("cycles").size() == SerialOrder::recallCycleCount);
+    const auto cyclesWithAPeakRisingOverAnother = std::ranges::count_if(recallTrial.at("cycles"), [](const auto& cycle) {
+        const auto& isolationAtOnset = cycle.at("recall").at("isolationAtOnset");
+        return std::ranges::any_of(isolationAtOnset, [](const auto& isolation) { return isolation.template get<double>() < 1.0; });
+    });
+    CHECK(cyclesWithAPeakRisingOverAnother >= 2);
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 7);
+    CHECK(partials[3] > 0.9); // the events are still recalled
+    CHECK(partials[5] < 0.95);
 }
 
 static bool withinRange(const double value, const double min, const double max)
