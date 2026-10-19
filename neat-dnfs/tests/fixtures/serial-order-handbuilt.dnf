@@ -47,19 +47,7 @@
                     "output"
                 ],
                 [
-                    "gk cg 6-2",
-                    "output"
-                ],
-                [
-                    "gk cg 3-2",
-                    "output"
-                ],
-                [
-                    "gk cg 5-2",
-                    "output"
-                ],
-                [
-                    "gk cg 7-2",
+                    "gk cg 8-2",
                     "output"
                 ]
             ],
@@ -67,7 +55,7 @@
                 1,
                 "neural field"
             ],
-            "restingLevel": -15.0,
+            "restingLevel": -10.0,
             "tau": 10,
             "uniqueName": "nf 2",
             "x_max": 200,
@@ -227,7 +215,7 @@
                     "output"
                 ],
                 [
-                    "gk cg 2-7",
+                    "gk cg 8-7",
                     "output"
                 ],
                 [
@@ -242,6 +230,50 @@
             "restingLevel": -5,
             "tau": 75.0,
             "uniqueName": "nf 7",
+            "x_max": 200,
+            "y_max": 1
+        },
+        {
+            "activationFunction": {
+                "steepness": 5.0,
+                "type": "sigmoid",
+                "x_shift": 0.0
+            },
+            "d_x": 1.0,
+            "d_y": 1.0,
+            "inputs": [
+                [
+                    "gk 8",
+                    "output"
+                ],
+                [
+                    "nn 8",
+                    "output"
+                ],
+                [
+                    "gk cg 6-8",
+                    "output"
+                ],
+                [
+                    "gk cg 3-8",
+                    "output"
+                ],
+                [
+                    "gk cg 5-8",
+                    "output"
+                ],
+                [
+                    "gk cg 7-8",
+                    "output"
+                ]
+            ],
+            "label": [
+                1,
+                "neural field"
+            ],
+            "restingLevel": -15.0,
+            "tau": 10,
+            "uniqueName": "nf 8",
             "x_max": 200,
             "y_max": 1
         },
@@ -298,9 +330,9 @@
                 4,
                 "gauss kernel"
             ],
-            "amplitude": 15.0,
-            "amplitudeGlobal": -1.0,
-            "width": 2.5
+            "amplitude": 8.0,
+            "amplitudeGlobal": -0.01,
+            "width": 2.0
         },
         {
             "amplitude": 0.01,
@@ -500,6 +532,41 @@
             "d_y": 1.0,
             "inputs": [
                 [
+                    "nf 8",
+                    "output"
+                ]
+            ],
+            "normalized": true,
+            "uniqueName": "gk 8",
+            "x_max": 200,
+            "y_max": 1,
+            "label": [
+                4,
+                "gauss kernel"
+            ],
+            "amplitude": 15.0,
+            "amplitudeGlobal": -1.0,
+            "width": 2.5
+        },
+        {
+            "amplitude": 0.01,
+            "d_x": 1.0,
+            "d_y": 1.0,
+            "inputs": null,
+            "label": [
+                8,
+                "normal noise"
+            ],
+            "uniqueName": "nn 8",
+            "x_max": 200,
+            "y_max": 1
+        },
+        {
+            "circular": true,
+            "d_x": 1.0,
+            "d_y": 1.0,
+            "inputs": [
+                [
                     "nf 1",
                     "output"
                 ]
@@ -637,7 +704,7 @@
                 ]
             ],
             "normalized": true,
-            "uniqueName": "gk cg 6-2",
+            "uniqueName": "gk cg 6-8",
             "x_max": 200,
             "y_max": 1,
             "label": [
@@ -659,7 +726,7 @@
                 ]
             ],
             "normalized": true,
-            "uniqueName": "gk cg 3-2",
+            "uniqueName": "gk cg 3-8",
             "x_max": 200,
             "y_max": 1,
             "label": [
@@ -681,7 +748,7 @@
                 ]
             ],
             "normalized": true,
-            "uniqueName": "gk cg 5-2",
+            "uniqueName": "gk cg 5-8",
             "x_max": 200,
             "y_max": 1,
             "label": [
@@ -698,12 +765,12 @@
             "d_y": 1.0,
             "inputs": [
                 [
-                    "nf 2",
+                    "nf 8",
                     "output"
                 ]
             ],
             "normalized": true,
-            "uniqueName": "gk cg 2-7",
+            "uniqueName": "gk cg 8-7",
             "x_max": 200,
             "y_max": 1,
             "label": [
@@ -725,7 +792,7 @@
                 ]
             ],
             "normalized": true,
-            "uniqueName": "gk cg 7-2",
+            "uniqueName": "gk cg 7-8",
             "x_max": 200,
             "y_max": 1,
             "label": [
@@ -757,8 +824,30 @@
             "amplitude": -1.0,
             "amplitudeGlobal": -0.2,
             "width": 2.0
+        },
+        {
+            "circular": true,
+            "d_x": 1.0,
+            "d_y": 1.0,
+            "inputs": [
+                [
+                    "nf 8",
+                    "output"
+                ]
+            ],
+            "normalized": true,
+            "uniqueName": "gk cg 8-2",
+            "x_max": 200,
+            "y_max": 1,
+            "label": [
+                4,
+                "gauss kernel"
+            ],
+            "amplitude": 15.0,
+            "amplitudeGlobal": 0.0,
+            "width": 2.0
         }
     ],
     "formatVersion": 1,
-    "identifier": "serial order - boost-triggered hand-built design"
+    "identifier": "serial order - hand-built design with the competition in a hidden selection field"
 }

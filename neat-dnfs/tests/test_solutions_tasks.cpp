@@ -763,8 +763,8 @@ TEST_CASE("SerialOrder demonstrates X, D, C, A and B evenly spaced, 200 apart", 
 }
 
 // The hand-built competitive-queuing design: a slow integrator stores a primacy gradient (earlier events sit higher),
-// the output selects the highest remaining item, a done field suppresses each item once recalled, and every X clears
-// the done field, so the whole sequence plays again on every trigger.
+// a hidden selection field picks the highest remaining item and the output copies it, a done field suppresses each
+// item once recalled, and every X clears the done field, so the whole sequence plays again on every trigger.
 TEST_CASE("SerialOrder scores the hand-built design above 0.95, recalling the order on every trigger", "[Solutions][SerialOrder]")
 {
     resetGlobalState();
@@ -790,10 +790,10 @@ TEST_CASE("SerialOrder scores the hand-built design above 0.95, recalling the or
     }
 }
 
-// The hand-built design with weaker competition in the output, a weaker done field and a slower output: in almost every
-// cycle C rises 30-40 before D has gone, though each peak stands alone 50 after its own onset, which is all the
-// isolation check used to look at. A peak must only rise once the previous one has gone, so this cannot earn full
-// one-at-a-time credit.
+// The earlier hand-built design, whose output did the competition itself, with weaker competition, a weaker done field
+// and a slower output: in almost every cycle C rises 30-40 before D has gone, though each peak stands alone 50 after
+// its own onset, which is all the isolation check used to look at. A peak must only rise once the previous one has
+// gone, so this cannot earn full one-at-a-time credit.
 TEST_CASE("SerialOrder gives no full one-at-a-time credit to a peak that rises before the previous one has gone", "[Solutions][SerialOrder]")
 {
     resetGlobalState();
@@ -885,6 +885,22 @@ TEST_CASE("SerialOrder's evolvable ranges reach every setting of the hand-built 
     for (const auto& gene : solution.getGenome().getConnectionGenes())
     {
         checkConnectionGeneEvolvable(gene);
+    }
+}
+
+// Evolution never wires a connection out of the output field, but a template is loaded without that check.
+TEST_CASE("SerialOrder's hand-built design uses only connections evolution can make", "[Solutions][SerialOrder]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order" };
+
+    const auto solution = loadSequenceTimingFixture<SerialOrder>("serial-order-handbuilt.dnf");
+
+    const auto legalTuples = solution.getGenome().legalConnectionTuples();
+    for (const auto& gene : solution.getGenome().getConnectionGenes())
+    {
+        INFO("connection " << gene.getInFieldGeneId() << "-" << gene.getOutFieldGeneId());
+        CHECK(std::ranges::find(legalTuples, gene.getParameters().connectionTuple) != legalTuples.end());
     }
 }
 
