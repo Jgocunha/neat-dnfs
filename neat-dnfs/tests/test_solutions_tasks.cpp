@@ -889,19 +889,31 @@ TEST_CASE("SerialOrder's evolvable ranges reach every setting of the hand-built 
 }
 
 // Evolution never wires a connection out of the output field, but a template is loaded without that check.
-TEST_CASE("SerialOrder's hand-built design uses only connections evolution can make", "[Solutions][SerialOrder]")
+static void checkOnlyConnectionsEvolutionCanMake(const Solution& solution)
 {
-    resetGlobalState();
-    const ScopedTaskConfig taskConfig{ "serial-order" };
-
-    const auto solution = loadSequenceTimingFixture<SerialOrder>("serial-order-handbuilt.dnf");
-
     const auto legalTuples = solution.getGenome().legalConnectionTuples();
     for (const auto& gene : solution.getGenome().getConnectionGenes())
     {
         INFO("connection " << gene.getInFieldGeneId() << "-" << gene.getOutFieldGeneId());
         CHECK(std::ranges::find(legalTuples, gene.getParameters().connectionTuple) != legalTuples.end());
     }
+}
+
+TEST_CASE("SerialOrder's hand-built design uses only connections evolution can make", "[Solutions][SerialOrder]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order" };
+
+    checkOnlyConnectionsEvolutionCanMake(loadSequenceTimingFixture<SerialOrder>("serial-order-handbuilt.dnf"));
+}
+
+TEST_CASE("SequenceTimingBoost's hand-built reference uses only connections evolution can make", "[Solutions][SequenceTiming]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-boost" };
+
+    checkOnlyConnectionsEvolutionCanMake(
+        loadSequenceTimingFixture<SequenceTimingBoost>("sequence-timing-boost-handbuilt.dnf"));
 }
 
 // Saved from serial-order run 2: for a few hundred after each X the output holds many broad peaks all over the field,
