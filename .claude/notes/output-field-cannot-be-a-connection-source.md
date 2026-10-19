@@ -10,6 +10,18 @@ The template decoder (`Solution` building a genome from a `.dnf`) does not check
 output-sourced connection loads, its offspring inherit the connection through crossover, and add-field can split it into
 output → new field → target. It is never removed, but evolution could never have built it.
 
+Since 19 October 2026:
+- **Loading a template warns** (`27300248`): `makeFromTemplate`, which `--template` in `neat-dnfs-inc-evol` and
+  `neat-dnfs-sol-eval` goes through, logs one WARNING per connection the rule forbids, naming both fields and their
+  roles. `Genome::connectionTuplesEvolutionCannotMake()` lists them. The decoder does not warn, because it runs again
+  for every copy a population makes of its starting solution.
+- **The rule can be widened** (`7faae6f0`): with `AblationConstants.allowOutputAsConnectionSource` (preset
+  `output-feedback`, data folder `<Task> Output Feedback`), mutation and seeding may also start a connection at an
+  output field, to hidden fields and other outputs, never to itself. The key is optional and off when absent. In a
+  genome with no hidden field and one output, a draw of the output as source finds no target and gives up, so about
+  half of the add-connection mutations of a minimal start do nothing there.
+  - `sol-eval` takes no `--ablation`, so it always warns under the default rule.
+
 Hand-built designs that relied on one, found on 19 October 2026:
 
 | Design | Connection | Role | Now |
