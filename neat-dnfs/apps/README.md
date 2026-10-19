@@ -20,7 +20,7 @@ Every binary supports `--list` (print available tasks and ablations) and
 |---|---|---|---|
 | `--task NAME` | all | Task to run (see `--list`) | `selection-instability` (evol) / `ior` (inc-evol, sol-eval) |
 | `--ablation NAME` | evol, inc-evol | Ablation preset to apply before `initialize()` (see `--list`) | none (baseline) |
-| `--template PATH` | inc-evol, sol-eval | Template JSON to load a starting solution from | the task's own template under `templates/` |
+| `--template PATH` | inc-evol, sol-eval | Template JSON to load a starting solution from. Each connection evolution could not have made (one out of an output field, say) is logged as a warning | the task's own template under `templates/` |
 | `--runs N` | evol, inc-evol | Number of independent `Population::evolve()` runs | `SolutionConstants.numberRuns` from config |
 | `--pop N` | evol, inc-evol | Population size per run | `SolutionConstants.populationSize` from config |
 | `--gens N` | evol, inc-evol | Max generations per run | `SolutionConstants.numberGenerations` from config |

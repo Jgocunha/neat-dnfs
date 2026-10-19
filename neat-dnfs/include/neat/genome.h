@@ -88,6 +88,11 @@ namespace neat_dnfs
 		/// rule (see isLegalConnectionSource/Target), regardless of whether a
 		/// connection gene for it already exists.
 		[[nodiscard]] std::vector<ConnectionTuple> legalConnectionTuples() const;
+		/// @brief The connections of this genome that the connection legality rule forbids, so mutation could never
+		/// have created them: ones out of an output field, for instance, decoded from a hand-built template.
+		/// Offspring inherit such a connection, but no run from scratch can build it.
+		/// @return The (source, target) pair of every such connection gene, in gene order.
+		[[nodiscard]] std::vector<ConnectionTuple> connectionTuplesEvolutionCannotMake() const;
 		[[nodiscard]] int maxLegalConnectionCount() const;
 		[[nodiscard]] bool containsConnectionGene(const ConnectionGene& connectionGene) const;
 		[[nodiscard]] bool containsFieldGene(const FieldGene& fieldGene) const;

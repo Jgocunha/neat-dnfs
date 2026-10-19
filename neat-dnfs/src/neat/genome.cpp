@@ -503,6 +503,21 @@ namespace neat_dnfs
 		return tuples;
 	}
 
+	std::vector<ConnectionTuple> Genome::connectionTuplesEvolutionCannotMake() const
+	{
+		const auto legalTuples = legalConnectionTuples();
+		std::vector<ConnectionTuple> tuples;
+		for (const auto& connectionGene : connectionGenes)
+		{
+			const auto& tuple = connectionGene.getParameters().connectionTuple;
+			if (std::ranges::find(legalTuples, tuple) == legalTuples.end())
+			{
+				tuples.push_back(tuple);
+			}
+		}
+		return tuples;
+	}
+
 	int Genome::maxLegalConnectionCount() const
 	{
 		return static_cast<int>(legalConnectionTuples().size());

@@ -2,8 +2,11 @@
 #include <catch2/catch_approx.hpp>
 
 #include <filesystem>
+#include <functional>
+#include <iostream>
 #include <map>
 #include <numeric>
+#include <sstream>
 
 #include <dnf_composer/exceptions/exception.h>
 #include <dnf_composer/simulation/simulation_file_manager.h>
@@ -392,14 +395,22 @@ TEST_CASE("SequenceTiming draws a fresh recall gap from each third of 300-1500 o
     CHECK(first != second);
 }
 
-// Loads a saved solution for a sequence-timing task from tests/fixtures.
-template <typename Task>
-static Task loadSequenceTimingFixture(const std::string& fileName)
+// Loads a saved phenotype from tests/fixtures. Keep it alive while a Solution decodes a copy of it: a copied
+// Simulation's elements still point at the original's, which its destructor disconnects.
+static std::shared_ptr<dnf_composer::Simulation> loadFixtureSimulation(const std::string& fileName)
 {
     const auto simulation = std::make_shared<dnf_composer::Simulation>();
     const dnf_composer::SimulationFileManager sfm(simulation,
         (std::filesystem::path(PROJECT_DIR) / "tests" / "fixtures" / fileName).generic_string());
     sfm.loadElementsFromJson();
+    return simulation;
+}
+
+// Loads a saved solution for a sequence-timing task from tests/fixtures.
+template <typename Task>
+static Task loadSequenceTimingFixture(const std::string& fileName)
+{
+    const auto simulation = loadFixtureSimulation(fileName);
     return Task(sequenceTimingTopology(), *simulation);
 }
 
@@ -914,6 +925,65 @@ TEST_CASE("SequenceTimingBoost's hand-built reference uses only connections evol
 
     checkOnlyConnectionsEvolutionCanMake(
         loadSequenceTimingFixture<SequenceTimingBoost>("sequence-timing-boost-handbuilt.dnf"));
+}
+
+TEST_CASE("Genome lists the connections evolution cannot make, honouring allowOutputAsConnectionSource", "[genome][legal_connections]")
+{
+    AblationFlagGuard guard;
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order" };
+
+    // Built from the earlier serial-order design, whose output fed its done field (gk cg 2-7).
+    const auto outputFedDone = loadSequenceTimingFixture<SerialOrder>("serial-order-overlapping-peaks.dnf");
+    const auto handBuilt = loadSequenceTimingFixture<SerialOrder>("serial-order-handbuilt.dnf");
+
+    CHECK(outputFedDone.getGenome().connectionTuplesEvolutionCannotMake() == std::vector{ ConnectionTuple{ 2, 7 } });
+    CHECK(handBuilt.getGenome().connectionTuplesEvolutionCannotMake().empty());
+
+    AblationConstants::allowOutputAsConnectionSource = true;
+    CHECK(outputFedDone.getGenome().connectionTuplesEvolutionCannotMake().empty());
+}
+
+// Everything written to std::cout while @p action runs, which is where the logger prints.
+static std::string consoleOutputOf(const std::function<void()>& action)
+{
+    std::ostringstream captured;
+    std::streambuf* const originalCoutBuffer = std::cout.rdbuf(captured.rdbuf());
+    try
+    {
+        action();
+    }
+    catch (...)
+    {
+        std::cout.rdbuf(originalCoutBuffer);
+        throw;
+    }
+    std::cout.rdbuf(originalCoutBuffer);
+    return captured.str();
+}
+
+// A template is where a structure evolution could not have built enters a run: its offspring keep it.
+TEST_CASE("Loading a template warns about each connection evolution cannot make", "[SolutionRegistry]")
+{
+    AblationFlagGuard guard;
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order" };
+    const auto* task = findTask("serial-order");
+    REQUIRE(task != nullptr);
+    const auto loadTemplate = [task](const std::string& fixture) {
+        const auto simulation = loadFixtureSimulation(fixture);
+        return consoleOutputOf([task, &simulation] {
+            const auto solution = task->makeFromTemplate(defaultTopologyFor(*task), *simulation);
+        });
+    };
+
+    const auto outputFedDone = loadTemplate("serial-order-overlapping-peaks.dnf");
+    CHECK(outputFedDone.find("connection 2-7") != std::string::npos);
+    CHECK(outputFedDone.find("evolution cannot make") != std::string::npos);
+    CHECK(loadTemplate("serial-order-handbuilt.dnf").find("evolution cannot make") == std::string::npos);
+
+    AblationConstants::allowOutputAsConnectionSource = true;
+    CHECK(loadTemplate("serial-order-overlapping-peaks.dnf").find("evolution cannot make") == std::string::npos);
 }
 
 // Saved from serial-order run 2: for a few hundred after each X the output holds many broad peaks all over the field,

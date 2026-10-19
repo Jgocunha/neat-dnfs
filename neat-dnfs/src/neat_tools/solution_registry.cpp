@@ -1,9 +1,11 @@
 #include "neat_tools/solution_registry.h"
 
+#include <format>
 #include <stdexcept>
 
 #include "constants.h"
 #include "neat_tools/ablation_presets.h"
+#include "neat_tools/logger.h"
 
 #include "solutions/and.h"
 #include "solutions/xor.h"
@@ -27,10 +29,46 @@ namespace neat_dnfs
 			return std::make_unique<SolutionType>(topology);
 		}
 
+		std::string_view fieldRole(const FieldGeneType type)
+		{
+			switch (type)
+			{
+			case FieldGeneType::INPUT:
+				return "input";
+			case FieldGeneType::OUTPUT:
+				return "output";
+			case FieldGeneType::HIDDEN:
+				return "hidden";
+			}
+			return "unknown";
+		}
+
+		// A template is decoded as it stands, so it can hold a connection mutation never creates, and every
+		// offspring keeps it. Logged here, once per template load, not in the decoder, which runs again for every
+		// copy a population makes of its starting solution.
+		void warnAboutConnectionsEvolutionCannotMake(const Solution& solution)
+		{
+			const auto& genome = solution.getGenome();
+			const std::string_view sources = AblationConstants::allowOutputAsConnectionSource.value_or(false)
+				? "input, hidden and output" : "input and hidden";
+			for (const auto& tuple : genome.connectionTuplesEvolutionCannotMake())
+			{
+				tools::logger::log(tools::logger::WARNING, std::format(
+					"Template connection {}, from {} field {} to {} field {}, is one evolution cannot make: mutation "
+					"only wires {} fields into hidden and output fields. Offspring inherit it, but no run from "
+					"scratch can build it.", tuple.toString(),
+					fieldRole(genome.getFieldGeneById(tuple.inFieldGeneId).getParameters().type), tuple.inFieldGeneId,
+					fieldRole(genome.getFieldGeneById(tuple.outFieldGeneId).getParameters().type), tuple.outFieldGeneId,
+					sources));
+			}
+		}
+
 		template <typename SolutionType>
 		std::unique_ptr<Solution> makeFromTemplate(const SolutionTopology& topology, const dnf_composer::Simulation& phenotype)
 		{
-			return std::make_unique<SolutionType>(topology, phenotype);
+			auto solution = std::make_unique<SolutionType>(topology, phenotype);
+			warnAboutConnectionsEvolutionCannotMake(*solution);
+			return solution;
 		}
 
 		template <typename SolutionType>
