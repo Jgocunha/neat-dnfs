@@ -68,6 +68,16 @@ private:
     double previousDeltaT;
 };
 
+// AblationConstants are process-wide flags a test sets directly; this puts every one back off when the test ends,
+// even when an assertion aborts it.
+struct AblationFlagGuard
+{
+    ~AblationFlagGuard()
+    {
+        AblationConstants::reset();
+    }
+};
+
 // FieldGene's usual constructor randomizes everything that decides whether a
 // field can hold a bump: tau and restingLevel (FieldGene::initializeNeuralField),
 // the kernel type (80/20 Gauss/Mexican-hat), and the Gauss kernel's width,

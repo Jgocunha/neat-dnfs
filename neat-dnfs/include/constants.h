@@ -172,6 +172,10 @@ namespace neat_dnfs
 		inline static bool disableSpeciation = false;
 		inline static bool disableCrossover  = false;
 
+		// search-space extension (Output Feedback): lets mutation wire connections out of output fields, which it
+		// otherwise never does. Optional in a config file, so one written before it existed still loads; unset is off.
+		inline static std::optional<bool> allowOutputAsConnectionSource;
+
 		// Unlike the flags above -- which default to "no ablation active" and are
 		// only set by a preset -- these two are loaded from config/neat_dnfs.json
 		// and are experiment-specific: the hidden-field count a task needs to
@@ -193,6 +197,7 @@ namespace neat_dnfs
 			seedRandomConnections = false;
 			disableSpeciation = false;
 			disableCrossover = false;
+			allowOutputAsConnectionSource.reset();
 		}
 	};
 

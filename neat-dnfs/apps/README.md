@@ -33,7 +33,11 @@ Available tasks: `and`, `xor`, `detection-instability`, `memory-instability`,
 `sequence-timing-boost`, `sequence-timing-boost-order`, `sequence-timing-boost-order-only`, `serial-order`.
 
 Available ablations: `no-growth-io-only`, `no-growth-reference-hidden-field-count`,
-`no-speciation`, `no-crossover`, `random-initial-topology`, `compat-threshold-4`.
+`no-speciation`, `no-crossover`, `random-initial-topology`, `compat-threshold-4`, `output-feedback`.
+
+`output-feedback` is not an ablation but a wider search space: mutation may also wire
+connections out of output fields (`AblationConstants.allowOutputAsConnectionSource`), which it
+otherwise never does. Its runs go to their own `data/<Task> Output Feedback/` folder.
 
 ## Configuration
 

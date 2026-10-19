@@ -107,11 +107,16 @@ namespace neat_dnfs
 		/// tuple already exists as a connection gene, or no distinct second gene
 		/// could be drawn within the bounded number of retries.
 		[[nodiscard]] ConnectionTuple getNewRandomConnectionGeneTuple() const;
-		/// @brief Whether a field gene of @p type may be the source of a connection.
+		/// @brief Whether a field gene of @p type may be the source of a connection: an input or hidden field, or
+		/// an output field when AblationConstants::allowOutputAsConnectionSource is set.
 		/// Shared by getNewRandomConnectionGeneTuple() (mutation path) and
 		/// legalConnectionTuples() (seeding path) so the two cannot drift apart.
+		/// @param type The field gene's role.
+		/// @return True if mutation and seeding may start a connection there.
 		[[nodiscard]] static bool isLegalConnectionSource(FieldGeneType type);
 		/// @brief Whether a field gene of @p type may be the target of a connection.
+		/// @param type The field gene's role.
+		/// @return True if mutation and seeding may end a connection there.
 		[[nodiscard]] static bool isLegalConnectionTarget(FieldGeneType type);
 		/// @brief An id no field gene has yet: one above the largest, since a decoded template can skip ids.
 		/// @return The id for the next hidden field gene.

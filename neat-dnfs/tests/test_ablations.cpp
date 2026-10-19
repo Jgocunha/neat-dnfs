@@ -1,5 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
+#include <filesystem>
+#include <fstream>
 #include <set>
 #include <utility>
 
@@ -15,14 +18,6 @@ using namespace neat_dnfs::test;
 
 namespace
 {
-    struct AblationFlagGuard
-    {
-        ~AblationFlagGuard()
-        {
-            AblationConstants::reset();
-        }
-    };
-
     // sources = 2 inputs + hiddenCount; targets = hiddenCount + 1 output;
     // hiddenCount self-loops (hidden id as both source and target) are illegal.
     int maxLegalConnectionsFor(int hiddenCount)
@@ -532,4 +527,79 @@ TEST_CASE("Random Initial Topology: structure is not frozen - mutate() can still
     }
 
     REQUIRE(grew);
+}
+
+namespace
+{
+    bool hasConnectionFrom(const Genome& genome, const int sourceId)
+    {
+        return std::ranges::any_of(genome.getConnectionGenes(),
+            [sourceId](const ConnectionGene& cg) { return cg.getInFieldGeneId() == sourceId; });
+    }
+}
+
+TEST_CASE("Output Feedback: legalConnectionTuples() adds the connections out of the output only when allowed", "[genome][legal_connections][output_feedback]")
+{
+    AblationFlagGuard guard;
+    resetGlobalState();
+    const Genome genome = buildGenomeWithHidden(2); // inputs 1, 2; output 3; hidden 4, 5
+
+    const auto withoutFeedback = genome.legalConnectionTuples();
+    AblationConstants::allowOutputAsConnectionSource = true;
+    const auto withFeedback = genome.legalConnectionTuples();
+
+    std::set<std::pair<int, int>> added;
+    for (const auto& tuple : withFeedback)
+        if (std::ranges::find(withoutFeedback, tuple) == withoutFeedback.end())
+            added.emplace(tuple.inFieldGeneId, tuple.outFieldGeneId);
+
+    REQUIRE(static_cast<int>(withoutFeedback.size()) == maxLegalConnectionsFor(2));
+    REQUIRE(withFeedback.size() == withoutFeedback.size() + 2);
+    REQUIRE(added == std::set<std::pair<int, int>>{ {3, 4}, {3, 5} }); // never output -> itself
+}
+
+TEST_CASE("Output Feedback: mutate() grows connections out of the output only when allowed", "[genome][output_feedback]")
+{
+    AblationFlagGuard guard;
+    for (const bool allowed : { false, true })
+    {
+        resetGlobalState();
+        AblationConstants::allowOutputAsConnectionSource = allowed;
+        Genome genome = buildGenomeWithHidden(2); // output 3
+
+        bool grewFromOutput = false;
+        for (int i = 0; i < 2000 && !grewFromOutput; ++i)
+        {
+            genome.mutate();
+            grewFromOutput = hasConnectionFrom(genome, 3);
+        }
+
+        INFO("allowOutputAsConnectionSource " << allowed);
+        CHECK(grewFromOutput == allowed);
+    }
+}
+
+TEST_CASE("Output Feedback: the preset allows connections out of the output and labels its data folder", "[ablations][output_feedback]")
+{
+    AblationFlagGuard guard;
+    REQUIRE(AblationPresets::applyByName("output-feedback"));
+
+    CHECK(AblationConstants::allowOutputAsConnectionSource.value_or(false));
+    CHECK(AblationConstants::label == " Output Feedback");
+}
+
+TEST_CASE("Output Feedback: a config written before allowOutputAsConnectionSource existed still loads, with it off", "[ablations][output_feedback]")
+{
+    AblationFlagGuard guard;
+    auto config = ConfigLoader::loadJsonFile(ConfigLoader::defaultGlobalConfigPath());
+    config.at("AblationConstants").erase("allowOutputAsConnectionSource");
+    const auto path = std::filesystem::temp_directory_path() / "neat-dnfs-config-before-output-feedback.json";
+    std::ofstream(path) << config.dump();
+
+    AblationConstants::allowOutputAsConnectionSource = true;
+    REQUIRE_NOTHROW(ConfigLoader::loadGlobalConfig(path.generic_string()));
+    CHECK_FALSE(AblationConstants::allowOutputAsConnectionSource.value_or(false));
+
+    ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
+    std::filesystem::remove(path);
 }

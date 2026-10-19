@@ -1,10 +1,23 @@
 #include "neat/genome.h"
 #include <algorithm>
+#include <array>
 #include <format>
+#include <iterator>
 #include <ranges>
 
 namespace neat_dnfs
 {
+	namespace
+	{
+		std::vector<FieldGeneType> fieldGeneTypesWhere(bool (*isLegal)(FieldGeneType))
+		{
+			constexpr std::array allTypes{ FieldGeneType::INPUT, FieldGeneType::OUTPUT, FieldGeneType::HIDDEN };
+			std::vector<FieldGeneType> types;
+			std::ranges::copy_if(allTypes, std::back_inserter(types), isLegal);
+			return types;
+		}
+	}
+
 	int Genome::globalInnovationNumber = 0;
 	std::map<ConnectionTuple, int> Genome::connectionTupleAndInnovationNumberWithinGeneration;
 	std::mutex Genome::innovationMutex;
@@ -393,7 +406,8 @@ namespace neat_dnfs
 
 	bool Genome::isLegalConnectionSource(const FieldGeneType type)
 	{
-		return type == FieldGeneType::INPUT || type == FieldGeneType::HIDDEN;
+		return type == FieldGeneType::INPUT || type == FieldGeneType::HIDDEN
+			|| (type == FieldGeneType::OUTPUT && AblationConstants::allowOutputAsConnectionSource.value_or(false));
 	}
 
 	bool Genome::isLegalConnectionTarget(const FieldGeneType type)
@@ -409,7 +423,7 @@ namespace neat_dnfs
 			return { 0, 0 };
 		}
 
-		int geneIndex1 = getRandomGeneIdByTypes({ FieldGeneType::INPUT, FieldGeneType::HIDDEN });
+		int geneIndex1 = getRandomGeneIdByTypes(fieldGeneTypesWhere(isLegalConnectionSource));
 		if (geneIndex1 == -1)
 		{
 			return { 0, 0 };
@@ -420,18 +434,21 @@ namespace neat_dnfs
 		// forever. Cap the attempts and fall back to the sentinel instead of
 		// spinning indefinitely (see issue #57).
 		//
-		// The two pools overlap only on HIDDEN genes, so a collision needs
-		// geneIndex1 to have drawn a HIDDEN gene. Each further draw then repeats
-		// it with probability 1/(hidden + output), making a spurious give-up
-		// 2^-32 in the tightest genome that still has an escape route (one
-		// HIDDEN, one OUTPUT) -- small enough to never cost a real mutation,
-		// while still bounding the loop for the zero-OUTPUT genome that hangs.
+		// The two pools overlap on HIDDEN genes, and on OUTPUT genes too when
+		// AblationConstants::allowOutputAsConnectionSource is set, so a collision
+		// needs geneIndex1 to have drawn one of those. Each further draw then
+		// repeats it with probability 1/(hidden + output), making a spurious
+		// give-up 2^-32 in the tightest genome that still has an escape route
+		// (one HIDDEN, one OUTPUT) -- small enough to never cost a real mutation,
+		// while still bounding the loop for the zero-OUTPUT genome that hangs,
+		// and for an output drawn as the source when it is the only target.
 		constexpr int maxGeneIndex2Attempts = 32;
+		const auto targetTypes = fieldGeneTypesWhere(isLegalConnectionTarget);
 		int geneIndex2 = -1;
 		bool foundDistinctGeneIndex2 = false;
 		for (int attempt = 0; attempt < maxGeneIndex2Attempts; ++attempt)
 		{
-			geneIndex2 = getRandomGeneIdByTypes({ FieldGeneType::HIDDEN, FieldGeneType::OUTPUT });
+			geneIndex2 = getRandomGeneIdByTypes(targetTypes);
 			if (geneIndex2 == -1)
 			{
 				return { 0, 0 };

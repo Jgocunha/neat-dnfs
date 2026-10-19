@@ -356,6 +356,7 @@ namespace neat_dnfs
 			field(ac, "seedRandomConnections", &AblationConstants::seedRandomConnections);
 			field(ac, "disableSpeciation", &AblationConstants::disableSpeciation);
 			field(ac, "disableCrossover", &AblationConstants::disableCrossover);
+			optionalField(ac, "allowOutputAsConnectionSource", &AblationConstants::allowOutputAsConnectionSource);
 
 			const auto& pc = j.at("PopulationConstants");
 			field(pc, "pruneRatio", &PopulationConstants::pruneRatio);
