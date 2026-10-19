@@ -26,7 +26,9 @@ namespace neat_dnfs
 	/// trial, f5 giving order credit only (each consecutive pair rising one after another, fully at 100 or more
 	/// apart), f6 also requiring each peak to be the only one in the output on the step it rises, so the previous
 	/// peak must have gone first (SequenceTiming::oneAtATimeFromRiseScore), and f4 to f6 averaged over the three
-	/// cycles. Each cycle's f4 to f6 are also scaled by how far the
+	/// cycles. Each event's share of f4 to f6 grows with its peak's height, in full from a height of 2
+	/// (SequenceTiming::peakHeightCredit), so an output that only flickers across threshold earns little of it.
+	/// Each cycle's f4 to f6 are also scaled by how far the
 	/// output's activity during that cycle lies near the event positions, beyond what activity spread evenly over
 	/// the field would (SequenceTiming::activityAtEvents), so peaks sweeping across the whole field cannot earn
 	/// recall credit by crossing the events by chance.

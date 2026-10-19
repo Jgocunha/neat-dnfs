@@ -70,9 +70,11 @@ namespace neat_dnfs
 			const RecallObservation recall = recallSequence(scores, length);
 			// Activity away from the events would let output sweeping across the field earn credit by chance.
 			const double cycleCreditGate = recallCreditGate * activityAtEvents(recall);
-			scores.recalledEvents += cycleCreditGate * recalledEventsScore(recall);
-			scores.recalledTiming += cycleCreditGate * orderScore(recall);
-			scores.oneAtATime += cycleCreditGate * oneAtATimeFromRiseScore(recall);
+			// A peak earns its credit by its height, so a flicker across threshold cannot pass for one.
+			const EventCredit heightCredit = peakHeightCredit(recall);
+			scores.recalledEvents += cycleCreditGate * recalledEventsScore(recall, heightCredit);
+			scores.recalledTiming += cycleCreditGate * orderScore(recall, heightCredit);
+			scores.oneAtATime += cycleCreditGate * oneAtATimeFromRiseScore(recall, heightCredit);
 			++scores.recallTrials;
 			cycles.push_back({ { "length", length }, { "recall", traceOf(recall) } });
 		}

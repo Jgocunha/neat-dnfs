@@ -797,6 +797,7 @@ TEST_CASE("SerialOrder scores the hand-built design above 0.95, recalling the or
         {
             INFO("event " << label);
             CHECK(isolation.get<double>() == Catch::Approx(1.0));
+            CHECK(recall.at("peakHeightCredit").at(label).get<double>() == Catch::Approx(1.0));
         }
     }
 }
@@ -1023,6 +1024,61 @@ TEST_CASE("SerialOrder gives a sequence recalled on the first trigger only a thi
     REQUIRE(partials.size() == 7);
     CHECK(partials[3] == Catch::Approx(1.0 / 3.0).margin(0.02));
     CHECK(partials[4] < 0.35);
+}
+
+// Saved from serial-order output-feedback run 2: the output sits just below threshold everywhere and crosses it by
+// 0.0-0.2 at the event positions, in a different order each cycle. While any crossing counted as a recalled peak it
+// re-evaluated at 0.64, with nearly full recalled-event credit for peaks a fiftieth of the hand-built design's.
+TEST_CASE("SerialOrder gives little recall credit to an output that only flickers across threshold", "[Solutions][SerialOrder]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order" };
+
+    auto solution = loadSequenceTimingFixture<SerialOrder>("serial-order-threshold-flicker.dnf");
+    solution.evaluate();
+
+    const auto recallTrial = serialOrderRecallTrial(solution);
+    REQUIRE(recallTrial.at("cycles").size() == SerialOrder::recallCycleCount);
+    for (const auto& cycle : recallTrial.at("cycles"))
+    {
+        for (const auto& [label, height] : cycle.at("recall").at("peakHeight").items())
+        {
+            INFO("event " << label);
+            CHECK(height.get<double>() < 0.5);
+        }
+    }
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 7);
+    CHECK(partials[3] < 0.25);
+    CHECK(partials[4] < 0.1);
+    CHECK(partials[5] < 0.1);
+}
+
+// Saved from output-feedback run 3: on every trigger D rises to about 2.4 and then B to about 1.3, one at a time;
+// A only touches threshold and C never rises. Credit grows with height, so a low peak still earns some.
+TEST_CASE("SerialOrder credits each recalled peak in proportion to its height, in full from a height of 2", "[Solutions][SerialOrder]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order" };
+
+    auto solution = loadSequenceTimingFixture<SerialOrder>("serial-order-low-peaks.dnf");
+    solution.evaluate();
+
+    const auto recallTrial = serialOrderRecallTrial(solution);
+    REQUIRE(recallTrial.at("cycles").size() == SerialOrder::recallCycleCount);
+    bool sawPartialCredit = false;
+    for (const auto& cycle : recallTrial.at("cycles"))
+    {
+        const auto& recall = cycle.at("recall");
+        for (const auto& [label, height] : recall.at("peakHeight").items())
+        {
+            INFO("event " << label << ", peak height " << height.get<double>());
+            const double credit = recall.at("peakHeightCredit").at(label).get<double>();
+            CHECK(credit == Catch::Approx(std::min(1.0, height.get<double>() / 2.0)));
+            sawPartialCredit = sawPartialCredit || (credit > 0.0 && credit < 1.0);
+        }
+    }
+    CHECK(sawPartialCredit);
 }
 
 TEST_CASE("SerialOrder is registered with one input and one output", "[SolutionRegistry]")

@@ -46,6 +46,8 @@ namespace neat_dnfs
 		// Events are at least 30 apart, so a bump within 10 belongs to one event only.
 		constexpr double onsetPositionTolerance = 10.0;
 		constexpr double isolationSettleTime = 50.0;
+		// A recalled peak earns all of its credit from this height up; the hand-built serial-order design's reach 11.
+		constexpr double fullCreditPeakHeight = 2.0;
 		// A bump this close to one on the previous step is the same peak, not a new one.
 		constexpr double samePeakDistance = 5.0;
 		constexpr size_t maxTracedRisingPeaks = 16;
@@ -225,6 +227,7 @@ namespace neat_dnfs
 			++scores.outputDepthStepsDuringRecall;
 			const auto bumps = output->getBumps();
 			detectOnsets(step, bumps, observation);
+			recordPeakHeights(bumps, observation);
 			scoreIsolation(step, bumps, observation);
 			recordRisingPeaks(step, previousBumps, bumps, observation);
 			countActivityAtEvents(observation);
@@ -342,6 +345,25 @@ namespace neat_dnfs
 		}
 	}
 
+	void SequenceTiming::recordPeakHeights(const std::vector<dnf_composer::element::NeuralFieldBump>& bumps,
+		RecallObservation& observation)
+	{
+		for (size_t i = 0; i < recalledEventCount; ++i)
+		{
+			if (!observation.onsetSteps[i])
+			{
+				continue;
+			}
+			for (const auto& bump : bumps)
+			{
+				if (std::abs(bump.centroid - recalledEvents[i].position) <= onsetPositionTolerance)
+				{
+					observation.peakHeight[i] = std::max(observation.peakHeight[i], bump.amplitude);
+				}
+			}
+		}
+	}
+
 	void SequenceTiming::scoreIsolation(const int step, const std::vector<dnf_composer::element::NeuralFieldBump>& bumps,
 		RecallObservation& observation)
 	{
@@ -398,12 +420,17 @@ namespace neat_dnfs
 		nlohmann::json onsets;
 		nlohmann::json isolation;
 		nlohmann::json isolationAtOnset;
+		nlohmann::json peakHeight;
+		nlohmann::json peakHeightCredit;
+		const EventCredit heightCredit = SequenceTiming::peakHeightCredit(observation);
 		for (size_t i = 0; i < recalledEventCount; ++i)
 		{
 			const auto& onsetStep = observation.onsetSteps[i];
 			onsets[recalledEvents[i].label] = onsetStep ? nlohmann::json(*onsetStep * SimulationConstants::deltaT) : nlohmann::json(nullptr);
 			isolation[recalledEvents[i].label] = observation.isolation[i];
 			isolationAtOnset[recalledEvents[i].label] = observation.isolationAtOnset[i];
+			peakHeight[recalledEvents[i].label] = observation.peakHeight[i];
+			peakHeightCredit[recalledEvents[i].label] = heightCredit[i];
 		}
 		return {
 			{ "onsets", onsets },
@@ -413,7 +440,9 @@ namespace neat_dnfs
 			{ "lastPeakDecay", observation.lastPeakDecay },
 			{ "risingPeakCount", observation.risingPeakCount },
 			{ "risingPeaks", observation.risingPeaks },
-			{ "activityAtEvents", activityAtEvents(observation) }
+			{ "activityAtEvents", activityAtEvents(observation) },
+			{ "peakHeight", peakHeight },
+			{ "peakHeightCredit", peakHeightCredit }
 		};
 	}
 
@@ -427,6 +456,19 @@ namespace neat_dnfs
 	{
 		const auto recalled = std::ranges::count_if(observation.onsetSteps, [](const auto& onset) { return onset.has_value(); });
 		return static_cast<double>(recalled) / recalledEventCount;
+	}
+
+	double SequenceTiming::recalledEventsScore(const RecallObservation& observation, const EventCredit& eventCredit)
+	{
+		double recalled = 0.0;
+		for (size_t i = 0; i < recalledEventCount; ++i)
+		{
+			if (observation.onsetSteps[i])
+			{
+				recalled += eventCredit[i];
+			}
+		}
+		return recalled / recalledEventCount;
 	}
 
 	double SequenceTiming::recalledTimingScore(const RecallObservation& observation)
@@ -446,6 +488,13 @@ namespace neat_dnfs
 
 	double SequenceTiming::orderScore(const RecallObservation& observation)
 	{
+		EventCredit fullCredit{};
+		fullCredit.fill(1.0);
+		return orderScore(observation, fullCredit);
+	}
+
+	double SequenceTiming::orderScore(const RecallObservation& observation, const EventCredit& eventCredit)
+	{
 		double total = 0.0;
 		for (size_t i = 0; i + 1 < recalledEventCount; ++i)
 		{
@@ -454,7 +503,7 @@ namespace neat_dnfs
 			if (earlier && later)
 			{
 				const double separation = (*later - *earlier) * SimulationConstants::deltaT;
-				total += std::clamp(separation / minimumOnsetSeparation, 0.0, 1.0);
+				total += std::clamp(separation / minimumOnsetSeparation, 0.0, 1.0) * std::min(eventCredit[i], eventCredit[i + 1]);
 			}
 		}
 		return total / (recalledEventCount - 1);
@@ -493,12 +542,29 @@ namespace neat_dnfs
 
 	double SequenceTiming::oneAtATimeFromRiseScore(const RecallObservation& observation)
 	{
+		EventCredit fullCredit{};
+		fullCredit.fill(1.0);
+		return oneAtATimeFromRiseScore(observation, fullCredit);
+	}
+
+	double SequenceTiming::oneAtATimeFromRiseScore(const RecallObservation& observation, const EventCredit& eventCredit)
+	{
 		double isolation = 0.0;
 		for (size_t i = 0; i < recalledEventCount; ++i)
 		{
-			isolation += std::min(observation.isolation[i], observation.isolationAtOnset[i]);
+			isolation += std::min(observation.isolation[i], observation.isolationAtOnset[i]) * eventCredit[i];
 		}
-		return (isolation + observation.lastPeakDecay) / (recalledEventCount + 1);
+		return (isolation + observation.lastPeakDecay * eventCredit.back()) / (recalledEventCount + 1);
+	}
+
+	SequenceTiming::EventCredit SequenceTiming::peakHeightCredit(const RecallObservation& observation)
+	{
+		EventCredit credit{};
+		for (size_t i = 0; i < recalledEventCount; ++i)
+		{
+			credit[i] = observation.onsetSteps[i] ? std::min(1.0, observation.peakHeight[i] / fullCreditPeakHeight) : 0.0;
+		}
+		return credit;
 	}
 
 	std::array<double, 3> SequenceTiming::drawRecallGaps()

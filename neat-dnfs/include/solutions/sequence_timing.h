@@ -86,6 +86,8 @@ namespace neat_dnfs
 		static constexpr size_t recalledEventCount = 4;
 		/// @brief Onsets of the recalled events D, C, A and B after the start event X, in simulation time.
 		using EventOnsets = std::array<double, recalledEventCount>;
+		/// @brief A share in [0,1] of the credit each of D, C, A and B can earn.
+		using EventCredit = std::array<double, recalledEventCount>;
 
 		/// @brief Builds a task solution whose genome is created from @p topology.
 		/// @param topology Fields to start from: the input and the output.
@@ -160,6 +162,7 @@ namespace neat_dnfs
 			std::array<bool, recalledEventCount> absentSinceCue{};
 			std::array<double, recalledEventCount> isolation{};
 			std::array<double, recalledEventCount> isolationAtOnset{}; // on the step each event's peak rose
+			std::array<double, recalledEventCount> peakHeight{}; // highest activation of each event's peak since it rose
 			double lastPeakDecay = 0.0;
 			std::vector<std::pair<double, double>> risingPeaks; // (time since the cue, position), first few only
 			int risingPeakCount = 0;
@@ -236,6 +239,11 @@ namespace neat_dnfs
 		/// @param observation Onsets and isolation at onset recorded so far; updated in place.
 		static void detectOnsets(int step, const std::vector<dnf_composer::element::NeuralFieldBump>& bumps,
 			RecallObservation& observation);
+		/// @brief Raises each risen event's recorded peak height to its bump's amplitude in @p bumps, if higher.
+		/// @param bumps Bumps currently in the output field.
+		/// @param observation Onsets and peak heights recorded so far; peak heights are updated in place.
+		static void recordPeakHeights(const std::vector<dnf_composer::element::NeuralFieldBump>& bumps,
+			RecallObservation& observation);
 		/// @brief Scores, for every event whose onset was the settle time before @p step, whether its peak stands alone.
 		/// @param step Steps elapsed since the start cue.
 		/// @param bumps Bumps currently in the output field.
@@ -256,7 +264,8 @@ namespace neat_dnfs
 		/// @brief Converts one recall's observation into its trace.
 		/// @param observation What the output field did during the recall.
 		/// @return Onsets, isolation per event (after settling and on the step it rose) and order credit, last-peak
-		/// decay, the output peaks that rose, and the share of output activity at the event positions.
+		/// decay, the output peaks that rose, the share of output activity at the event positions, and each event's
+		/// peak height with the share of credit it earns by it.
 		[[nodiscard]] static nlohmann::json traceOf(const RecallObservation& observation);
 		/// @brief Credit for the output staying near its resting level over one phase.
 		/// @param depthSum Per-step depths of the output below rest, summed over the phase.
@@ -272,6 +281,11 @@ namespace neat_dnfs
 		/// @param observation What the output field did during recall.
 		/// @return Fitness score in [0,1].
 		[[nodiscard]] static double recalledEventsScore(const RecallObservation& observation);
+		/// @brief Like recalledEventsScore, with each recalled event counting only its share of @p eventCredit.
+		/// @param observation What the output field did during recall.
+		/// @param eventCredit The share of credit each event can earn.
+		/// @return Fitness score in [0,1].
+		[[nodiscard]] static double recalledEventsScore(const RecallObservation& observation, const EventCredit& eventCredit);
 		/// @brief Mean agreement of each recalled onset, measured from the start cue, with the demonstrated one.
 		/// @param observation What the output field did during recall.
 		/// @return Fitness score in [0,1]; a missing event scores 0.
@@ -281,6 +295,12 @@ namespace neat_dnfs
 		/// @return Fitness score in [0,1]: per consecutive pair, the time between their onsets as a fraction of a
 		/// minimum separation, capped at 1; a missing or reversed pair scores 0.
 		[[nodiscard]] static double orderScore(const RecallObservation& observation);
+		/// @brief Like orderScore, with each consecutive pair counting only the smaller share of @p eventCredit of
+		/// its two events.
+		/// @param observation What the output field did during recall.
+		/// @param eventCredit The share of credit each event can earn.
+		/// @return Fitness score in [0,1].
+		[[nodiscard]] static double orderScore(const RecallObservation& observation, const EventCredit& eventCredit);
 		/// @brief The recalled-timing term (f5) for this variant's timing credit.
 		/// @param observation What the output field did during recall.
 		/// @return Fitness score in [0,1].
@@ -302,6 +322,17 @@ namespace neat_dnfs
 		/// @param observation What the output field did during recall.
 		/// @return Fitness score in [0,1].
 		[[nodiscard]] static double oneAtATimeFromRiseScore(const RecallObservation& observation);
+		/// @brief Like oneAtATimeFromRiseScore, with each event's isolation counting only its share of
+		/// @p eventCredit, and the last peak's decay only B's share.
+		/// @param observation What the output field did during recall.
+		/// @param eventCredit The share of credit each event can earn.
+		/// @return Fitness score in [0,1].
+		[[nodiscard]] static double oneAtATimeFromRiseScore(const RecallObservation& observation, const EventCredit& eventCredit);
+		/// @brief How much of a recalled event's credit its peak earns by its height: all of it once the peak has
+		/// reached a full-credit height, proportionally less below, so a flicker across threshold earns almost none.
+		/// @param observation What the output field did during recall.
+		/// @return Per event, min(1, peak height / full-credit height); 0 for an event whose peak never rose.
+		[[nodiscard]] static EventCredit peakHeightCredit(const RecallObservation& observation);
 		/// @brief Draws one recall gap from each third of the gap range, shortest first.
 		/// @return The gaps for this evaluation's three recall trials.
 		[[nodiscard]] static std::array<double, 3> drawRecallGaps();
