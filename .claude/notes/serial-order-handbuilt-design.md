@@ -5,10 +5,17 @@ the evaluator of 19 October 2026 it scores 0.994, with every recall term at 1.0,
 evaluator has an evenly spaced demonstration (`cbbf9f6`) and requires each peak to rise only once the previous one has
 gone (`51d03d9`).
 
+Every setting is inside the evolvable ranges, and every connection is one evolution can make: none leaves the output
+field (`output-field-cannot-be-a-connection-source.md`). Two tests guard this: `SerialOrder's evolvable ranges reach
+every setting of the hand-built design` and `SerialOrder's hand-built design uses only connections evolution can make`.
+
 The serial-order hand-off bundle (`.claude/temp/serial-order-and-timing-experiment/`, gitignored scratch) holds:
 - a dnf-composer replay of one evaluation, at
-  `serial-order/architectures/evenly-spaced/handbuilt-evenly-spaced-replay.dnf` (gap 700, cycles 1000, 800, 1500;
-  X at t = 1550, 2550, 3350);
+  `serial-order/architectures/reachable/serial-order-handbuilt-reachable-replay.dnf` (gap 700, cycles 1000, 800,
+  1500; X at t = 1550, 2550, 3350), with replays at gaps 300 and 1500 beside it;
+- the earlier design, whose output did the competition and fed the done field, at
+  `serial-order/architectures/evenly-spaced/handbuilt-evenly-spaced-replay.dnf`;
+- the builder that moved the competition into a hidden field, `tools/handbuilt/order_reachable.py`;
 - the numpy prototype and exporter, `tools/handbuilt/order_design.py` and `order_export.py`. They still write the
   original, out-of-range version.
 
@@ -24,31 +31,61 @@ recalled again on every trigger.
 | nf 4 clamp C | Uniform; on as soon as M holds anything (M->C global), and stays on while it does |
 | nf 5 integrator G | tau 1e5. M drives each stored position up at rate s/tau, and C inhibits all of G at the same rate, so each trace freezes when its event is stored: D highest, then C, A, B. That gradient is the order |
 | nf 6 recall latch R | Uniform; latches on when the X boost arrives while C is on, so the demonstration's X never sets it |
-| nf 2 output O | R + M + G input, strong global inhibition: selects the stored item with the highest G level |
-| nf 7 done D | Integrates the winner (tau 75), ignites and suppresses it, so the next-highest item wins. Every X boost clears it (I->D global inhibition), so the sequence starts again |
+| nf 8 selection S | R + M + G input, strong global inhibition: selects the stored item with the highest G level |
+| nf 7 done D | Integrates the winner from S (tau 75), ignites and suppresses it in S, so the next-highest item wins. Every X boost clears it (I->D global inhibition), so the sequence starts again |
+| nf 2 output O | Copies S. It keeps the settings a new output field starts with in this task |
 
-In dnf-composer, each recall cycle shows D, C, A, B one at a time as full peaks (amplitude 5.7-11.7), about 120
-apart. No two are ever up at once: 6-26 pass between one peak going and the next rising. The output is silent again
-about 580 after each X, and stays at most -0.5 during the demonstration.
+In dnf-composer, each recall cycle shows D, C, A, B one at a time in the output as full peaks (amplitude 11.0-12.4),
+about 120 apart, each about 10 after the same peak in S. No two are ever up at once: 8-34 pass between one peak going
+and the next rising. The output is silent again about 590 after each X, and stays at most -9.6 during the
+demonstration. Replays at gaps 300, 700 and 1500 all look the same.
 
 ## Parameters
 
 | Element | Setting |
 |---|---|
 | nf 1 | tau 10, h -10, gk(2, 3) |
-| nf 2 | tau 10, h -15, gk(2.5, 15, global -1.0) |
+| nf 2 | tau 10, h -10, gk(2, 8, global -0.01): the starting output of `templates/serial-order.dnf` |
 | nf 3 | tau 10, h -5, mhk(2.5, 20, 6, 12) |
 | nf 4 | tau 10, h -5, gk(2, 6) |
 | nf 5 | tau 1e5, h +0.6, no self-excitation |
 | nf 6 | tau 10, h -15, gk(2, 15) |
 | nf 7 | tau 75, h -5, mhk(2.5, 20, 6, 12) |
+| nf 8 | tau 10, h -15, gk(2.5, 15, global -1.0) |
 | I->M | gk(2, 20, global -0.1) |
 | M->C | gk(2, 1, global +0.5) |
 | M->G, C->G | gk(2, +220), gk(2, -220) |
 | I->R, C->R | gk(2, 1, global +0.1), gk(2, 5) |
-| R->O, M->O, G->O | gk(2, 10), gk(2, 5), gk(2, 8) |
-| O->D, D->O | gk(2, 8), gk(3, -30) |
+| R->S, M->S, G->S | gk(2, 10), gk(2, 5), gk(2, 8) |
+| S->D, D->S | gk(2, 8), gk(3, -30) |
+| S->O | gk(2, 15) |
 | I->D | gk(2, -1, global -0.2) |
+
+## The competition moved out of the output (19 October 2026)
+
+The earlier design did the competition in the output itself, and the done field read the winner from there
+(`gk cg 2-7`). Evolution can never make a connection out of the output. So the output's settings and connections moved
+unchanged to a new hidden field, the selection field S (nf 8). The done field now reads from S and suppresses S. The
+output became a follower: one connection S->O, and the settings a new output field starts with. S behaves exactly as
+the old output did, and the score is unchanged at 0.994.
+
+How strong S->O must be, with the output otherwise untouched (bundle `serial-order/architectures/reachable/`):
+- At width 2, 12-18 scores 0.994 in 50 of 50 evaluations; 15 is in the middle. 10 never lifts the output (0.341). 20
+  loses a little one-at-a-time credit in 5 of 50 evaluations (min 0.988), and 30 more (0.979).
+- A new connection draws a random sign, a width from 1-10 and an amplitude log-uniformly from 1-1000
+  (`ConnectionGene::initializeKernel`). Every width has a working band, starting at a threshold that rises with the
+  width: 10 at width 1, 12 at 2, 18 at 4, 25 at 6 and 30 at 8, and above 30 at width 10 (`sweep2-copy-width.txt`, 10
+  evaluations each). Below it the output stays silent (0.33). Above it the score falls slowly, to 0.94-0.98 at 100
+  for widths up to 4.
+
+A sweep over the output's own settings (`sweep1.txt`, copy width 2, 10 evaluations each, script
+`order_reachable_sweep.py`) puts the follower's working range at:
+- **Without self-excitation:** every resting level from -15 to -1 works once S->O reaches its threshold: 3 at -1,
+  20 at -15. A stronger copy than needed costs one-at-a-time credit gradually, down to 0.86-0.98 at 100.
+- **With the starting self-excitation (gk 8):** about the same thresholds up to a resting level of -7.5, but a strong
+  copy costs credit sooner. From -5 up, peaks outlast S (0.937) or the output ignites (0.24-0.38).
+
+In the sections below, O means the field that did the competition: the output then, S now.
 
 ## Retuned for the evenly spaced demonstration (19 October 2026)
 

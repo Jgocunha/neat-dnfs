@@ -8,7 +8,8 @@ not known which of its mechanisms from-scratch evolution fails to find. These se
 ## The seeds
 
 Each seed is the hand-built design (`tests/fixtures/serial-order-handbuilt.dnf`) with one field removed, together with
-its kernel, its noise and its three connections. Field ids keep their hand-built numbers; the gap is safe since
+its kernel, its noise and its three connections. No seed holds a connection evolution could not make, and each removed
+field can be rebuilt from connections it can make (`output-field-cannot-be-a-connection-source.md`). Field ids keep their hand-built numbers; the gap is safe since
 `f0d4493`.
 
 Removing the clamp C would take out two mechanisms: C freezes the gradient's traces and also tells the latch that
@@ -16,20 +17,24 @@ memory holds something. So the gradient seed removes G only.
 
 ### Under the evaluator of 19 October 2026 (evenly spaced demonstration, strict disappearance)
 
-Built from the design as retuned for the evenly spaced demonstration (score 0.994). Ten evaluations each.
+Built from the design with the competition in the hidden selection field S (score 0.994). Fifty evaluations each.
 
 | Seed | Field removed | What is missing | Fitness | Partials f4, f5, f6 |
 |---|---|---|---|---|
-| no-done | nf 7 done D | per-item suppression | 0.358 | 0.083, 0, 0.067 |
-| no-gradient | nf 5 integrator G | ranking of the stored items | 0.80 (0.75-0.84) | 1, 0.44, 1 |
-| no-latch | nf 6 recall latch R | lifting the output on X | 0.329 | 0, 0, 0 |
+| no-done | nf 7 done D | per-item suppression | 0.358 | 0.08, 0, 0.07 |
+| no-gradient | nf 5 integrator G | ranking of the stored items | 0.82 (0.77-0.87) | 1, 0.39, 0.99 |
+| no-latch | nf 6 recall latch R | lifting the selection field on X | 0.329 | 0, 0, 0 |
+
+The first seeds of this evaluator were built from the earlier design, whose output did the competition and fed the
+done field (`gk cg 2-7`). They scored the same: 0.358, 0.80 (10 evaluations) and 0.329. They are kept in the bundle
+under `serial-order/architectures/seeds/output-sourced/`. The no-done one was not a fair control: evolution could
+never have rebuilt its done field the same way.
 
 The dnf-composer replays (gap 700, cycles 1000, 800, 1500) agree with the evaluator's traces:
-- **no-done:** D rises about 20 after the first X at full height (11.7) and never switches off. It is still on when
+- **no-done:** D rises about 35 after the first X at full height (12.0) and never switches off. It is still on when
   the next X arrives, so cycles 2 and 3 see no fresh onset.
 - **no-gradient:** all four items rise one at a time and each rises alone (f6 = 1), but in an order set by noise that
-  changes from cycle to cycle. B, the last item stored, usually comes first. Only the ranking is missing, and it is
-  worth the last 0.2.
+  changes from cycle to cycle. Only the ranking is missing, and it is worth the last 0.2.
 - **no-latch:** the output never rises.
 
 ### Under the earlier evaluator (18-19 October 2026, before `cbbf9f6`)
