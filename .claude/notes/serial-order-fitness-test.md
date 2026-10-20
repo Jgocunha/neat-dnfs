@@ -3,8 +3,8 @@
 `SerialOrderFitnessTest` (`include/solutions/serial_order_fitness_test.h`, 20 October 2026) scores the serial-order
 task by how the input and output fields respond at the end of every interval of a fixed schedule, after what a
 reference design does there. The idea: the old serial-order fitness pays nothing until a whole mechanism exists, so
-it should guide evolution better to pay for each stage of the behaviour. It is not registered as a task yet, so the
-apps cannot run it. Its config is `config/solutions/serial-order-fitness-test.json`: serial order's, with seven
+it should guide evolution better to pay for each stage of the behaviour. The apps run it as `--task serial-order-fitness-test`,
+starting from serial order's template (input and output fields only). Its config is `config/solutions/serial-order-fitness-test.json`: serial order's, with seven
 equal weights.
 
 ## The reference and the schedule

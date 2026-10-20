@@ -22,7 +22,7 @@ namespace neat_dnfs
 	///
 	/// The seven partial fitness terms are those stages: f1 the input, f2 the quiet output and f3 its pre-shapes
 	/// during the demonstration, f4 the recalled peaks, f5 the pre-shapes still to come, f6 the troughs during recall
-	/// and f7 the output after recall. Not yet registered as a task.
+	/// and f7 the output after recall.
 	class SerialOrderFitnessTest final : public Solution
 	{
 	public:

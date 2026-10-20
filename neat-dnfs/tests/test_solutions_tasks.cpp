@@ -1210,6 +1210,15 @@ TEST_CASE("SerialOrder is registered with one input and one output", "[SolutionR
     REQUIRE(task->outputs == 1);
 }
 
+TEST_CASE("SerialOrderFitnessTest is registered with one input and one output, starting from serial order's template", "[SolutionRegistry]")
+{
+    const auto* task = findTask("serial-order-fitness-test");
+    REQUIRE(task != nullptr);
+    REQUIRE(task->templateFile == "serial-order.dnf");
+    REQUIRE(task->inputs == 1);
+    REQUIRE(task->outputs == 1);
+}
+
 TEST_CASE("SequenceTiming is registered with one input and one output", "[SolutionRegistry]")
 {
     const auto* task = findTask("sequence-timing");

@@ -18,6 +18,7 @@
 #include "solutions/hri_packaging_task.h"
 #include "solutions/sequence_timing.h"
 #include "solutions/serial_order.h"
+#include "solutions/serial_order_fitness_test.h"
 
 namespace neat_dnfs
 {
@@ -96,6 +97,7 @@ namespace neat_dnfs
 			entry<SequenceTimingBoostOrder>("sequence-timing-boost-order", "sequence-timing-boost.dnf", 1, 1),
 			entry<SequenceTimingBoostOrderOnly>("sequence-timing-boost-order-only", "sequence-timing-boost.dnf", 1, 1),
 			entry<SerialOrder>("serial-order", "serial-order.dnf", 1, 1),
+			entry<SerialOrderFitnessTest>("serial-order-fitness-test", "serial-order.dnf", 1, 1),
 		};
 		return entries;
 	}
