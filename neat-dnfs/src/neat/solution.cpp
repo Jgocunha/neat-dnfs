@@ -1179,6 +1179,49 @@ namespace neat_dnfs
 		return tools::utils::normalizeWithGaussian(depth, targetDepth, width);
 	}
 
+	double Solution::activationsDescendAcrossPositions(const std::string& fieldName, const std::vector<double>& positions) const
+	{
+		if (positions.size() < 2)
+		{
+			throw std::invalid_argument(std::format(
+				"activationsDescendAcrossPositions: an order needs at least two positions, got {}.", positions.size()));
+		}
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "activationsDescendAcrossPositions");
+		const auto& activation = neuralField->getComponents()->at("activation");
+		const auto activationAt = [&](const double position) { return activation[clampedIndexForPosition(neuralField, position)]; };
+
+		int pairsInOrder = 0;
+		for (size_t i = 1; i < positions.size(); ++i)
+		{
+			if (activationAt(positions[i - 1]) > activationAt(positions[i]))
+			{
+				++pairsInOrder;
+			}
+		}
+		return static_cast<double>(pairsInOrder) / static_cast<double>(positions.size() - 1);
+	}
+
+	double Solution::preShapeAboveFieldAtPosition(const std::string& fieldName, const double position, const double fullElevation) const
+	{
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "preShapeAboveFieldAtPosition");
+		const auto& activation = neuralField->getComponents()->at("activation");
+		const double atPosition = activation[clampedIndexForPosition(neuralField, position)];
+		if (atPosition >= 0.0)
+		{
+			return 0.0;
+		}
+		const double elevation = atPosition - tools::utils::median(activation);
+		return std::clamp(elevation / fullElevation, 0.0, 1.0);
+	}
+
+	double Solution::troughBelowFieldAtPosition(const std::string& fieldName, const double position, const double fullDepth) const
+	{
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "troughBelowFieldAtPosition");
+		const auto& activation = neuralField->getComponents()->at("activation");
+		const double depth = tools::utils::median(activation) - activation[clampedIndexForPosition(neuralField, position)];
+		return std::clamp(depth / fullDepth, 0.0, 1.0);
+	}
+
 	void Solution::moveGaussianStimulusContinuously(const std::string& name, const double targetPosition, const double step)
 	{
 		constexpr double epsilon = 1e-6;

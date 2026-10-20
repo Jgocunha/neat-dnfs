@@ -1330,6 +1330,9 @@ public:
     using Solution::oneBumpAtPositionWithAmplitudeAndWidth;
     using Solution::preShapednessAtPosition;
     using Solution::negativePreShapingDepthAtPosition;
+    using Solution::activationsDescendAcrossPositions;
+    using Solution::preShapeAboveFieldAtPosition;
+    using Solution::troughBelowFieldAtPosition;
 
     std::vector<double>& activationOf(const std::string& fieldName)
     {

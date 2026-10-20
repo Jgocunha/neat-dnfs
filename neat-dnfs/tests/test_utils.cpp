@@ -342,3 +342,21 @@ TEST_CASE("parseConnectionKernelName works for the mexican-hat prefixes too (AND
     REQUIRE(parsed->innovationNumber.has_value());
     CHECK(*parsed->innovationNumber == 7);
 }
+
+TEST_CASE("median is the middle value, or the mean of the two middle values, whatever the order", "[median]")
+{
+    using neat_dnfs::tools::utils::median;
+
+    REQUIRE(median(std::vector<double>{ 3.0, -1.0, 7.0 }) == 3.0);
+    REQUIRE(median(std::vector<double>{ 4.0, 1.0, 10.0, 2.0 }) == 3.0);
+    REQUIRE(median(std::vector<double>{ 5.0 }) == 5.0);
+}
+
+TEST_CASE("median is not moved by a few outlying values", "[median]")
+{
+    using neat_dnfs::tools::utils::median;
+
+    std::vector<double> mostlyAtRest(100, -10.0);
+    std::fill_n(mostlyAtRest.begin(), 20, 5.0);
+    REQUIRE(median(mostlyAtRest) == -10.0);
+}

@@ -16,6 +16,7 @@
 #undef ERROR
 #endif
 
+#include <algorithm>
 #include <iostream>
 #include <random>
 #include <cstdint>
@@ -27,6 +28,7 @@
 #include <optional>
 #include <span>
 #include <string_view>
+#include <vector>
 
 namespace neat_dnfs
 {
@@ -277,6 +279,22 @@ namespace neat_dnfs
                 const auto cellCount = static_cast<double>(activation.size());
                 const double deviation = std::max(std::abs(signedDistance / cellCount), distanceBeyondTolerance / cellCount);
                 return 1.0 / (1.0 + deviation);
+            }
+
+            /// @brief Middle value of @p values, unmoved by a minority of outliers such as a few peaks in a field.
+            /// @param values Values to take the median of; at least one. Taken by value, since finding the median
+            /// reorders them.
+            /// @return The middle value, or the mean of the two middle values when there is an even number of them.
+            [[nodiscard]] inline double median(std::vector<double> values)
+            {
+                const auto middle = values.begin() + static_cast<std::ptrdiff_t>(values.size() / 2);
+                std::ranges::nth_element(values, middle);
+                if (values.size() % 2 == 1)
+                {
+                    return *middle;
+                }
+                const double lowerMiddle = *std::ranges::max_element(values.begin(), middle);
+                return (lowerMiddle + *middle) / 2.0;
             }
 
             inline int generateRandomSignal()

@@ -50,6 +50,8 @@ namespace neat_dnfs
 		inline constexpr double negativePreShapednessEpsilon = 0.15;
 		inline constexpr double negativePreShapednessWidth = 10.0;
 		inline constexpr double restingLevelNoiseTolerance = 0.25;
+		inline constexpr double preShapeFullElevation = 2.0;
+		inline constexpr double troughFullDepth = 2.0;
 
 		/// @brief Default weights for Solution::oneBumpAtPositionWithAmplitudeAndWidth.
 		/// @return The weight set {0.45, 0.45, 0.05, 0.05}.
@@ -362,6 +364,36 @@ namespace neat_dnfs
 		/// @return Fitness score in [0,1]; 1 when the trough is exactly @p targetDepth deep.
 		double negativePreShapingDepthAtPosition(const std::string& fieldName, double position,
 			double targetDepth, double width) const;
+		/// @brief Fitness score for how far a field's activations fall in the order of @p positions, highest first.
+		/// @details Each consecutive pair counts as in order when the earlier position's activation is strictly
+		/// higher, so equal activations count as out of order. To score troughs by depth, deepest first, pass the
+		/// positions shallowest first.
+		/// @param fieldName Name of the neural field to score.
+		/// @param positions Field positions in the order their activations should descend; at least two.
+		/// @return The share of consecutive pairs in order, in [0,1].
+		/// @throws std::invalid_argument if fewer than two positions are given.
+		double activationsDescendAcrossPositions(const std::string& fieldName, const std::vector<double>& positions) const;
+		/// @brief Fitness score for a pre-shape at @p position: an activation below threshold, raised above the rest
+		/// of the field.
+		/// @details The rest of the field is its median activation, which a few peaks, pre-shapes or troughs do not
+		/// move. Unlike preShapednessAtPosition(), which scores the activation's level, a field lifted as a whole
+		/// earns nothing.
+		/// @param fieldName Name of the neural field to score.
+		/// @param position Field position of the pre-shape.
+		/// @param fullElevation Height above the field's median from which the pre-shape earns full credit.
+		/// @return 0 at or above threshold, otherwise the height above the median over @p fullElevation, in [0,1].
+		double preShapeAboveFieldAtPosition(const std::string& fieldName, double position,
+			double fullElevation = BumpFitnessDefaults::preShapeFullElevation) const;
+		/// @brief Fitness score for a trough at @p position: an activation pushed below the rest of the field.
+		/// @details The rest of the field is its median activation, which a few peaks, pre-shapes or troughs do not
+		/// move. Unlike negativePreShapingDepthAtPosition(), which measures from the resting level, a trough counts
+		/// in a field lifted above rest, and a field lowered as a whole earns nothing.
+		/// @param fieldName Name of the neural field to score.
+		/// @param position Field position of the trough.
+		/// @param fullDepth Depth below the field's median from which the trough earns full credit.
+		/// @return The depth below the median over @p fullDepth, in [0,1].
+		double troughBelowFieldAtPosition(const std::string& fieldName, double position,
+			double fullDepth = BumpFitnessDefaults::troughFullDepth) const;
 		/// @brief Fitness score for exactly one bump at any one of @p positions.
 		/// @param fieldName Name of the neural field to score.
 		/// @param positions Accepted target centroids; the closest one is credited.

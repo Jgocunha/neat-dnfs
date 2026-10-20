@@ -787,6 +787,166 @@ TEST_CASE("Solution oneBumpAtPositionWithAmplitudeAndWidth gives two bumps half 
     CHECK(score == Catch::Approx(0.45 / 2.0 + 0.45 / (1.0 + std::abs(closest.centroid - 30.0)) + 0.05 + 0.05));
 }
 
+TEST_CASE("Solution preShapeAboveFieldAtPosition scores a sub-threshold activation by its height above the field", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    static constexpr double fullElevation = 2.0;
+    std::vector<double> scores;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        auto& activation = probe.activationOf("nf 1");
+        std::ranges::fill(activation, probe.restingLevelOf("nf 1"));
+        addGaussianProfile(activation, 2.0 * fullElevation, 50.0, oneSampleWidth);
+        addGaussianProfile(activation, 0.5 * fullElevation, 70.0, oneSampleWidth);
+        for (const double position : { 50.0, 70.0, 30.0 })
+        {
+            scores.push_back(probe.preShapeAboveFieldAtPosition("nf 1", position, fullElevation));
+        }
+    });
+
+    REQUIRE(scores.size() == 3);
+    CHECK(scores[0] == Catch::Approx(1.0));
+    CHECK(scores[1] == Catch::Approx(0.5));
+    CHECK(scores[2] == 0.0);
+}
+
+TEST_CASE("Solution preShapeAboveFieldAtPosition measures the height from the field's median, not its resting level", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    static constexpr double fullElevation = 2.0;
+    std::vector<double> scores;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        auto& activation = probe.activationOf("nf 1");
+        const double restingLevel = probe.restingLevelOf("nf 1");
+        std::ranges::fill(activation, restingLevel / 2.0);
+        scores.push_back(probe.preShapeAboveFieldAtPosition("nf 1", 50.0, fullElevation));
+        addGaussianProfile(activation, 0.5 * fullElevation, 50.0, oneSampleWidth);
+        scores.push_back(probe.preShapeAboveFieldAtPosition("nf 1", 50.0, fullElevation));
+    });
+
+    REQUIRE(scores.size() == 2);
+    CHECK(scores[0] == 0.0);
+    CHECK(scores[1] == Catch::Approx(0.5));
+}
+
+TEST_CASE("Solution preShapeAboveFieldAtPosition scores zero at or above the threshold", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    std::vector<double> scores;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        auto& activation = probe.activationOf("nf 1");
+        const double restingLevel = probe.restingLevelOf("nf 1");
+        std::ranges::fill(activation, restingLevel);
+        addGaussianProfile(activation, -restingLevel, 50.0, oneSampleWidth);
+        addGaussianProfile(activation, 1.0 - restingLevel, 70.0, oneSampleWidth);
+        scores.push_back(probe.preShapeAboveFieldAtPosition("nf 1", 50.0));
+        scores.push_back(probe.preShapeAboveFieldAtPosition("nf 1", 70.0));
+    });
+
+    CHECK(scores == std::vector<double>{ 0.0, 0.0 });
+}
+
+TEST_CASE("Solution troughBelowFieldAtPosition scores an activation by its depth below the field", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    static constexpr double fullDepth = 2.0;
+    static constexpr double liftedField = -4.0;
+    std::vector<double> scores;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        auto& activation = probe.activationOf("nf 1");
+        std::ranges::fill(activation, liftedField);
+        addGaussianProfile(activation, -2.0 * fullDepth, 50.0, oneSampleWidth);
+        addGaussianProfile(activation, -0.5 * fullDepth, 70.0, oneSampleWidth);
+        addGaussianProfile(activation, 3.0, 90.0, oneSampleWidth);
+        for (const double position : { 50.0, 70.0, 30.0, 90.0 })
+        {
+            scores.push_back(probe.troughBelowFieldAtPosition("nf 1", position, fullDepth));
+        }
+    });
+
+    REQUIRE(scores.size() == 4);
+    CHECK(scores[0] == Catch::Approx(1.0));
+    CHECK(scores[1] == Catch::Approx(0.5));
+    CHECK(scores[2] == 0.0);
+    CHECK(scores[3] == 0.0);
+}
+
+TEST_CASE("Solution troughBelowFieldAtPosition scores zero for a field lowered as a whole", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    double score = -1.0;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        std::ranges::fill(probe.activationOf("nf 1"), probe.restingLevelOf("nf 1") - 5.0);
+        score = probe.troughBelowFieldAtPosition("nf 1", 50.0);
+    });
+
+    CHECK(score == 0.0);
+}
+
+TEST_CASE("Solution activationsDescendAcrossPositions scores the share of consecutive positions in descending order", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    std::vector<double> scores;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        auto& activation = probe.activationOf("nf 1");
+        std::ranges::fill(activation, probe.restingLevelOf("nf 1"));
+        addGaussianProfile(activation, 8.0, 70.0, 2.0);
+        addGaussianProfile(activation, 6.0, 50.0, 2.0);
+        addGaussianProfile(activation, 4.0, 20.0, 2.0);
+        addGaussianProfile(activation, 2.0, 40.0, 2.0);
+        scores.push_back(probe.activationsDescendAcrossPositions("nf 1", { 70.0, 50.0, 20.0, 40.0 }));
+        scores.push_back(probe.activationsDescendAcrossPositions("nf 1", { 70.0, 20.0, 50.0, 40.0 }));
+        scores.push_back(probe.activationsDescendAcrossPositions("nf 1", { 40.0, 20.0, 50.0, 70.0 }));
+    });
+
+    REQUIRE(scores.size() == 3);
+    CHECK(scores[0] == Catch::Approx(1.0));
+    CHECK(scores[1] == Catch::Approx(2.0 / 3.0));
+    CHECK(scores[2] == Catch::Approx(0.0));
+}
+
+TEST_CASE("Solution activationsDescendAcrossPositions counts two equal activations as out of order", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    double score = -1.0;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        std::ranges::fill(probe.activationOf("nf 1"), probe.restingLevelOf("nf 1"));
+        score = probe.activationsDescendAcrossPositions("nf 1", { 20.0, 40.0 });
+    });
+
+    CHECK(score == 0.0);
+}
+
+TEST_CASE("Solution activationsDescendAcrossPositions reads the activations at the positions it is given", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    double score = -1.0;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        auto& activation = probe.activationOf("nf 1");
+        std::ranges::fill(activation, probe.restingLevelOf("nf 1"));
+        addGaussianProfile(activation, 5.0, 50.0, oneSampleWidth);
+        score = probe.activationsDescendAcrossPositions("nf 1", { 50.0, 49.0 });
+    });
+
+    CHECK(score == 1.0);
+}
+
+TEST_CASE("Solution activationsDescendAcrossPositions throws for fewer than two positions", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    REQUIRE_THROWS_AS(runFieldProbe([](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        static_cast<void>(probe.activationsDescendAcrossPositions("nf 1", { 50.0 }));
+    }), std::invalid_argument);
+}
+
 TEST_CASE("Solution Crossover", "[Solution]")
 {
     auto topology = makeTopology(1, 1);
