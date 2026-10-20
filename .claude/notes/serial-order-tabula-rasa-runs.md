@@ -8,6 +8,9 @@ These runs used the first serial-order demonstration (D, C, A, B at 100, 600, 80
 isolation check. On 19 October 2026 the demonstration became evenly spaced (`cbbf9f6`), and each peak now has to rise
 alone (`51d03d9`). Their scores are not comparable with runs from then on.
 
+The from-scratch runs that followed, with the output allowed as a connection source, are in
+`serial-order-output-feedback-runs.md`.
+
 ## Summary
 
 - **No run solved the task.** Eleven runs across two batches, none above 0.71 when re-evaluated. The hand-built
