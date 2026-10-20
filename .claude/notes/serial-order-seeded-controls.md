@@ -101,7 +101,7 @@ not stopped by luck:
 | Run | Seed | Re-evaluated | Outcome |
 |---|---|---|---|
 | 1b | no-gradient | **0.998** (10 of 10) | **Rediscovered**, above the hand-built 0.994: the clamp field nf 4 holds a primacy gradient (D 184, C 178, A 177, B 172.5 during recall); full peaks of 17.5, one at a time, silent demonstration. 11 fields, 22 connections |
-| 2b | no-done | pending | |
+| 2b | no-done | **0.998** (10 of 10) | **Rediscovered**, above the hand-built 0.994: the same inhibitory S-to-latch connection as run 5 (8-6, -13.8), plus refinements; full peaks of 11, one at a time, silent demonstration. 8 fields, 19 connections |
 | 3b | no-latch | pending | |
 
 The stop rule needs re-evaluation before it stops a run, for example the best genome's mean over a few evaluations;
