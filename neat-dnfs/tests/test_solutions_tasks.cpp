@@ -840,6 +840,24 @@ TEST_CASE("SerialOrderFitnessTest gives an output flickering at threshold almost
     CHECK(flicker.getParameters().partialFitness[3] < 0.05);
 }
 
+// From-scratch run h3 of 20 October 2026 stores D, C and A in order, then from the first X sinks D and C into deep
+// troughs without either ever peaking. Troughs at every earlier event were paid whether or not that event had been
+// recalled, so this earned f6 0.89 and f7 0.75. A trough now earns credit only for an event that peaked when due in that
+// cycle, so these earn nothing: f6 is 0, and f7 keeps only its half for an output with no peak.
+TEST_CASE("SerialOrderFitnessTest pays a trough only at an event recalled first", "[Solutions][SerialOrderFitnessTest]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+
+    auto troughs = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-troughs-without-recall.dnf");
+    troughs.evaluate();
+
+    const auto& partials = troughs.getParameters().partialFitness;
+    REQUIRE(partials[3] == 0.0); // nothing was recalled
+    CHECK(partials[5] < 0.05);
+    CHECK(partials[6] == Catch::Approx(0.5).margin(0.05));
+}
+
 // With no connection into the output, it stays at rest: quiet through the demonstration, but with nothing stored,
 // recalled or suppressed. Noise moves single samples by hundredths, so those terms come out near zero, not exactly.
 TEST_CASE("SerialOrderFitnessTest gives no memory or recall credit to an output that never responds", "[Solutions][SerialOrderFitnessTest]")

@@ -3,6 +3,7 @@
 #include <array>
 #include <cmath>
 #include <numeric>
+#include <span>
 
 namespace neat_dnfs
 {
@@ -131,27 +132,30 @@ namespace neat_dnfs
 		for (size_t cycle = 1; cycle < cueTimes.size(); ++cycle)
 		{
 			const double cue = cueTimes[cycle];
+			std::array<double, sequence.size()> recalled{}; // how fully each event peaked when due this cycle
 			for (size_t event = 0; event < sequence.size(); ++event)
 			{
 				runUntil(cue + recallPeakTimes[event]);
 				trace.push_back(snapshot(std::format("recall {} {}", cycle, sequence[event].label)));
 				inputRest.push_back(closenessOfMeanActivationToRestingLevel(inputField));
-				recallPeaks.push_back(recallPeakAt(sequence[event].position));
+				recalled[event] = recalledAt(sequence[event].position);
+				recallPeaks.push_back(recalled[event] * oneBumpAtPositionWithAmplitudeAndWidth(outputField,
+					sequence[event].position, outputPeakAmplitude, outputPeakWidth));
 				if (event + 1 < sequence.size())
 				{
 					recallPreShapes.push_back(preShapedInOrder(positionsOf(event + 1, sequence.size())));
 				}
 				if (event > 0)
 				{
-					recallTroughs.push_back(troughsAt(positionsOf(0, event)));
+					recallTroughs.push_back(troughsAfterRecall(std::span(recalled).first(event)));
 				}
 			}
 			runUntil(cue + recallEndTime);
 			trace.push_back(snapshot(std::format("recall {} end", cycle)));
-			afterRecall.push_back(0.5 * noBumps(outputField) + 0.5 * troughsAt(positionsOf(0, sequence.size())));
+			afterRecall.push_back(0.5 * noBumps(outputField) + 0.5 * troughsAfterRecall(recalled));
 			runUntil(cycle + 1 < cueTimes.size() ? cueTimes[cycle + 1] : endTime);
 			trace.push_back(snapshot(std::format("recall {} rest", cycle)));
-			afterRecall.push_back(0.5 * noBumps(outputField) + 0.5 * troughsAt(positionsOf(0, sequence.size())));
+			afterRecall.push_back(0.5 * noBumps(outputField) + 0.5 * troughsAfterRecall(recalled));
 		}
 
 		const double f1 = 0.5 * mean(inputPeaks) + 0.5 * mean(inputRest); // input peaks at the events, rests otherwise
@@ -212,21 +216,19 @@ namespace neat_dnfs
 		return mean(preShapes) * (0.5 + 0.5 * order);
 	}
 
-	double SerialOrderFitnessTest::recallPeakAt(const double position) const
+	double SerialOrderFitnessTest::recalledAt(const double position) const
 	{
-		// The bump score pays a lone peak anywhere, and one barely above threshold, almost in full: paid only near the
+		// A bump score pays a lone peak anywhere, and one barely above threshold, almost in full: count it only near the
 		// event, and in proportion to its height.
-		return oneBumpAtPositionWithAmplitudeAndWidth(outputField, position, outputPeakAmplitude, outputPeakWidth)
-			* closenessOfNearestBumpToPosition(outputField, position)
-			* heightCreditOfNearestBumpToPosition(outputField, position);
+		return closenessOfNearestBumpToPosition(outputField, position) * heightCreditOfNearestBumpToPosition(outputField, position);
 	}
 
-	double SerialOrderFitnessTest::troughsAt(const std::vector<double>& positions) const
+	double SerialOrderFitnessTest::troughsAfterRecall(const std::span<const double> recalled) const
 	{
 		std::vector<double> troughs;
-		for (const double position : positions)
+		for (size_t event = 0; event < recalled.size(); ++event)
 		{
-			troughs.push_back(troughBelowFieldAtPosition(outputField, position));
+			troughs.push_back(recalled[event] * troughBelowFieldAtPosition(outputField, sequence[event].position));
 		}
 		return mean(troughs);
 	}

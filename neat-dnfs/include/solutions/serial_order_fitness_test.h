@@ -1,5 +1,7 @@
 #pragma once
 
+#include <span>
+
 #include <nlohmann/json.hpp>
 
 #include "neat/solution.h"
@@ -21,7 +23,7 @@ namespace neat_dnfs
 	/// - after each X the output peaks at D, C, A and B in turn. The events still to come stay pre-shaped in order,
 	///   and each recalled one is pushed below the rest of the field. A peak earns recall credit only within a couple
 	///   of samples of the event due, and in proportion to its height, in full from 2: a lone peak held anywhere else,
-	///   or a crossing at threshold, earns none;
+	///   or a crossing at threshold, earns none. A trough earns credit only at an event recalled first in that cycle;
 	/// - once recall ends, the output has no peak and every event lies below the rest of the field.
 	///
 	/// The seven partial fitness terms are those stages: f1 the input, f2 the quiet output and f3 its pre-shapes
@@ -59,15 +61,15 @@ namespace neat_dnfs
 		/// @param positions Event positions, highest pre-shape expected first.
 		/// @return The mean pre-shape, with half of it kept only as far as the pre-shapes are in order.
 		[[nodiscard]] double preShapedInOrder(const std::vector<double>& positions) const;
-		/// @brief Scores the output's recalled peak at @p position: one bump there, of the reference's height and width.
+		/// @brief How fully a real recalled peak stands at @p position: near it, and tall enough.
 		/// @param position Position of the event due.
-		/// @return The bump score, times how close the nearest output bump lies to @p position, so a peak elsewhere
-		/// earns nothing, and times that bump's height credit (full from 2), so a crossing at threshold earns nothing.
-		[[nodiscard]] double recallPeakAt(double position) const;
-		/// @brief Scores the output pushed below the rest of the field at every one of @p positions.
-		/// @param positions Event positions.
-		/// @return The mean trough score over @p positions.
-		[[nodiscard]] double troughsAt(const std::vector<double>& positions) const;
+		/// @return How close the output's nearest bump lies to @p position, times that bump's height credit (full from 2).
+		[[nodiscard]] double recalledAt(double position) const;
+		/// @brief Scores the output pushed below the rest of the field at the first events of the sequence, each only as far
+		/// as it was recalled first.
+		/// @param recalled How fully each of the first events peaked when it was due this cycle.
+		/// @return The mean, over those events, of trough score times recall.
+		[[nodiscard]] double troughsAfterRecall(std::span<const double> recalled) const;
 		/// @brief Records what the input and output look like now, for the evaluation trace.
 		/// @param stage Name of the point in the schedule being scored, such as "C shown" or "recall 2 A".
 		/// @return The time, the input's bumps, and the output's bumps, median and activation at each event.

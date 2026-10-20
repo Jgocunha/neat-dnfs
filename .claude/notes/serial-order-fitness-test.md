@@ -52,8 +52,8 @@ What the reference does, probed in dnf-composer at the end of each interval:
 | f3 | output pre-shaped at the stored events, in order | `preShapeAboveFieldAtPosition`, `activationsDescendAcrossPositions` |
 | f4 | the right recalled peak at 150, 290, 400 and 500 after X, paid only near the event due and by its height | `oneBumpAtPositionWithAmplitudeAndWidth` times `closenessOfNearestBumpToPosition` times `heightCreditOfNearestBumpToPosition` |
 | f5 | events still to recall pre-shaped, in order | as f3 |
-| f6 | recalled events pushed below the field | `troughBelowFieldAtPosition` |
-| f7 | at 600 after X and at the cycle's end: no peak, every event below the field | `noBumps`, `troughBelowFieldAtPosition` |
+| f6 | recalled events pushed below the field, each only as far as it peaked when due that cycle | `troughBelowFieldAtPosition` times the event's recall |
+| f7 | at 600 after X and at the cycle's end: no peak, every event below the field as far as it was recalled | `noBumps`, `troughBelowFieldAtPosition` times recall |
 
 ## Weights
 
@@ -140,6 +140,34 @@ g2's best is the fixture `serial-order-fitness-test-threshold-flicker.dnf`.
 Every loophole found so far now ranks below the shapes-only plateau, and the two designs with real recall rank above
 it.
 
+## Troughs are paid only at events recalled first
+
+The height-scaled batch's first four runs (h1-h4, 20 October 2026) all leaned on troughs at events that never peaked:
+- h1 and h2 dropped D and C before any X, then held a real peak at A;
+- h3 and h4 sank D and C into troughs during recall without recalling anything.
+
+f6 paid troughs at every earlier event whether or not it had been recalled, which was worth f6 0.89, about 0.18 of the
+total. Dropping D and C early also took them out of recall altogether. The batch was stopped after h4.
+
+Now, at each recall point, the evaluator records how fully the event due is recalled. That is the closeness of the
+nearest bump times its height credit, 1 for a real peak at the event. f6 and the trough half of f7 weight each
+event's trough by its own recall earlier in that cycle. The reference keeps f6 and f7 at 1.0. h3's best is the
+fixture `serial-order-fitness-test-troughs-without-recall.dnf`, pinned at f6 0 and f7 0.5.
+
+| Genome | f4 | f6 | f7 | Fitness before | Fitness now |
+|---|---|---|---|---|---|
+| reference | 0.92 | 1.00 | 1.00 | 0.972 | 0.972 |
+| made-up: D recalled, then suppressed, each cycle | 0.23 | 0.61 | 0.63 | 0.626 | 0.626 |
+| w2's best (peak held at C) | 0.24 | 0.00 | 0.00 | 0.564 | 0.436 |
+| run 1's best (one peak per cycle, not suppressed within the cycle) | 0.15 | 0.00 | 0.48 | 0.594 | 0.424 |
+| g4's best (C then A, A held) | 0.31 | 0.09 | 0.06 | 0.590 | 0.420 |
+| h1-h2's bests (D and C dropped, A held) | 0.22-0.23 | 0.00 | 0.00 | 0.571-0.590 | 0.380-0.400 |
+| shapes only (run 1 gen 100, h3, h4) | 0.00 | 0.00 | 0.50 | 0.565-0.578 | 0.375-0.386 |
+| g2's best (flicker) | 0.01 | 0.00 | 0.40 | 0.509 | 0.319 |
+
+Everything found so far now falls between 0.32 and 0.44. The first step of the real mechanism, recalling an item and
+then suppressing it, is worth about 0.19 more than the best of them.
+
 Choices made with the user:
 - the recall interval ends were moved inside the reference's peaks on every cycle. The first table put them at 200,
   350, 450 and 550 after X, where the reference is mid-switch or already on the next event;
@@ -170,7 +198,7 @@ Choices made with the user:
 - The fixed schedule makes evaluations nearly noise-free (spread 0.002 on the reference).
 - Open:
   - one fixed gap and no probe trial without X leave room for fixed-lag replay.
-  - Troughs are paid for without recall. In a 10-generation smoke run (population 200, 20 October 2026), the best
+  - (Fixed, see above.) Troughs were paid for without recall. In a 10-generation smoke run (population 200, 20 October 2026), the best
     (0.456) had a slow output (tau about 6000) and a hidden field that stores D and inhibits the output. So a trough
     at D deepens through the whole trial, and earns f6 0.61 and f7 0.63 with no peak ever rising.
 - A genome with only the input and output, and no connection, already scores about 0.35: f1 about 0.96, f2 1 and
