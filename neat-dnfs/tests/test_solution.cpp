@@ -837,6 +837,34 @@ TEST_CASE("Solution closenessOfNearestBumpToPosition scores the nearest of sever
     CHECK(nearSecondBump == Catch::Approx(1.0));
 }
 
+TEST_CASE("Solution heightCreditOfNearestBumpToPosition grows with the nearest bump's height, full from the height given", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    std::vector<NeuralFieldBump> bumps;
+    double withoutBumps = -1.0;
+    std::vector<double> credits;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        probe.runSimulation(static_cast<int>(SimulationConstants::maxSimulationSteps));
+        withoutBumps = probe.heightCreditOfNearestBumpToPosition("nf 1", 50.0);
+        probe.stimulate("nf 1", GaussStimulusConstants::amplitude, 30.0);
+        probe.runSimulation(static_cast<int>(SimulationConstants::maxSimulationSteps));
+        bumps = probe.bumpsOf("nf 1");
+        if (bumps.size() == 1)
+        {
+            const double height = bumps.front().amplitude;
+            credits.push_back(probe.heightCreditOfNearestBumpToPosition("nf 1", 30.0, 2.0 * height));
+            credits.push_back(probe.heightCreditOfNearestBumpToPosition("nf 1", 30.0, 0.5 * height));
+        }
+    });
+
+    CHECK(withoutBumps == 0.0);
+    REQUIRE(bumps.size() == 1);
+    REQUIRE(credits.size() == 2);
+    CHECK(credits[0] == Catch::Approx(0.5));
+    CHECK(credits[1] == Catch::Approx(1.0));
+}
+
 TEST_CASE("Solution preShapeAboveFieldAtPosition scores a sub-threshold activation by its height above the field", "[Solution][FieldHelpers]")
 {
     resetGlobalState();

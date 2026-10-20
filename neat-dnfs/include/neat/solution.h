@@ -54,6 +54,7 @@ namespace neat_dnfs
 		inline constexpr double preShapeFullElevation = 2.0;
 		inline constexpr double troughFullDepth = 2.0;
 		inline constexpr double bumpPositionTolerance = 2.0;
+		inline constexpr double fullCreditPeakHeight = 2.0;
 
 		/// @brief Default weights for Solution::oneBumpAtPositionWithAmplitudeAndWidth.
 		/// @return The weight set {0.45, 0.45, 0.05, 0.05}.
@@ -418,6 +419,15 @@ namespace neat_dnfs
 		/// otherwise exp(-(distance - tolerance)^2 / (2 tolerance^2)).
 		[[nodiscard]] double closenessOfNearestBumpToPosition(const std::string& fieldName, double position,
 			double tolerance = BumpFitnessDefaults::bumpPositionTolerance) const;
+		/// @brief Scores the height of a field's bump nearest to @p position.
+		/// @details Bump scores give a peak's height little weight, so a bump barely above threshold earns almost as
+		/// much as a tall one. Multiplying a bump score by this pays a peak in proportion to its height.
+		/// @param fieldName Name of the neural field to score.
+		/// @param position Field position the bump should lie at.
+		/// @param fullHeight Height from which the bump earns full credit.
+		/// @return 0 with no bump, otherwise the nearest bump's height over @p fullHeight, at most 1.
+		[[nodiscard]] double heightCreditOfNearestBumpToPosition(const std::string& fieldName, double position,
+			double fullHeight = BumpFitnessDefaults::fullCreditPeakHeight) const;
 		/// @brief Reads a field's activation at @p position, the sample dnf-composer places there.
 		/// @param fieldName Name of the neural field to read.
 		/// @param position Field position to read.

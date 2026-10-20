@@ -1335,6 +1335,7 @@ public:
     using Solution::troughBelowFieldAtPosition;
     using Solution::activationAtPosition;
     using Solution::closenessOfNearestBumpToPosition;
+    using Solution::heightCreditOfNearestBumpToPosition;
     using Solution::medianActivation;
     using Solution::addTimedGaussianStimulus;
 

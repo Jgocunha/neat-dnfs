@@ -1249,6 +1249,19 @@ namespace neat_dnfs
 		return std::exp(-beyond * beyond / (2.0 * tolerance * tolerance));
 	}
 
+	double Solution::heightCreditOfNearestBumpToPosition(const std::string& fieldName, const double position,
+		const double fullHeight) const
+	{
+		const auto& bumps = getNeuralFieldOrThrow(fieldName, "heightCreditOfNearestBumpToPosition")->getBumps();
+		if (bumps.empty())
+		{
+			return 0.0;
+		}
+		const auto& nearest = std::ranges::min(bumps, {},
+			[position](const dnf_composer::element::NeuralFieldBump& bump) { return std::abs(bump.centroid - position); });
+		return std::clamp(nearest.amplitude / fullHeight, 0.0, 1.0);
+	}
+
 	double Solution::activationAtPosition(const std::string& fieldName, const double position) const
 	{
 		const auto neuralField = getNeuralFieldOrThrow(fieldName, "activationAtPosition");
