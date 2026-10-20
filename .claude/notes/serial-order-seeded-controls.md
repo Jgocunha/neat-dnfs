@@ -81,7 +81,8 @@ are in the hand-off bundle under `serial-order/runs/sc-run-<n>/`. Re-evaluated i
 | 6 | no-latch | gen 18 | 0.976 | 0.958-0.972 | **Rediscovered:** clean on every trigger, silent demonstration |
 
 **Every one of the three mechanisms was rediscovered.** The done field and the latch within 2-18 generations, the
-primacy gradient within 40-68 once the run was not stopped early (no-early-stop replicates below).
+primacy gradient within 40-68 once the run was not stopped early. Given 100 generations, all three no-early-stop
+replicates reached 0.985-0.998 re-evaluated, two of them above the hand-built design's 0.994 (table below).
 - **No-done, run 5:** the seed plus one inhibitory connection from the selection field S to the recall latch R
   (amplitude -18, width 8.7). Each winner switches the bistable latch off at its own position for good, so it loses
   its lift and the next item wins; the next X lights the whole latch again. That design has 7 fields, one fewer than
@@ -102,7 +103,7 @@ not stopped by luck:
 |---|---|---|---|
 | 1b | no-gradient | **0.998** (10 of 10) | **Rediscovered**, above the hand-built 0.994: the clamp field nf 4 holds a primacy gradient (D 184, C 178, A 177, B 172.5 during recall); full peaks of 17.5, one at a time, silent demonstration. 11 fields, 22 connections |
 | 2b | no-done | **0.998** (10 of 10) | **Rediscovered**, above the hand-built 0.994: the same inhibitory S-to-latch connection as run 5 (8-6, -13.8), plus refinements; full peaks of 11, one at a time, silent demonstration. 8 fields, 19 connections |
-| 3b | no-latch | pending | |
+| 3b | no-latch | **0.985-0.995** | **Rediscovered:** clean recall, silent demonstration, but slow (B about 800 after X), so at the shortest cycle (800) B runs into the next one. 7 fields, 15 connections |
 
 The stop rule needs re-evaluation before it stops a run, for example the best genome's mean over a few evaluations;
 that is an evolution-loop change, not made.
