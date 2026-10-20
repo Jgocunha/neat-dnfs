@@ -15,12 +15,17 @@ Since 19 October 2026:
   `neat-dnfs-sol-eval` goes through, logs one WARNING per connection the rule forbids, naming both fields and their
   roles. `Genome::connectionTuplesEvolutionCannotMake()` lists them. The decoder does not warn, because it runs again
   for every copy a population makes of its starting solution.
-- **The rule can be widened** (`7faae6f0`): with `AblationConstants.allowOutputAsConnectionSource` (preset
-  `output-feedback`, data folder `<Task> Output Feedback`), mutation and seeding may also start a connection at an
-  output field, to hidden fields and other outputs, never to itself. The key is optional and off when absent. In a
-  genome with no hidden field and one output, a draw of the output as source finds no target and gives up, so
-  1 in (inputs + 1) add-connection mutations of a minimal start does nothing.
-  - `sol-eval` takes no `--ablation`, so it always warns under the default rule.
+- **The rule can be widened** (`7faae6f0`): with `GenomeMutationConstants.allowOutputAsConnectionSource`, mutation
+  and seeding may also start a connection at an output field, to hidden fields and other outputs, never to itself.
+  The key is optional and off when absent. In a genome with no hidden field and one output, a draw of the output as
+  source finds no target and gives up, so 1 in (inputs + 1) add-connection mutations of a minimal start does nothing.
+  - Until 20 October 2026 it was `AblationConstants.allowOutputAsConnectionSource`, set by the `output-feedback`
+    preset (data folder `<Task> Output Feedback`). A config that still sets it there now fails to load, naming the new
+    place, since inner keys are not checked for typos and it would otherwise run without output feedback. Run
+    snapshots from 19-20 October set it there and need that one key moved before they can be re-run.
+  - Since 20 October 2026 the serial-order and sequence-timing tasks turn it on in their own configs. Their runs then
+    save to the task's usual data folder, not an `Output Feedback` one, and loading a template no longer warns about
+    output-sourced connections for them.
 
 Hand-built designs that relied on one, found on 19 October 2026:
 

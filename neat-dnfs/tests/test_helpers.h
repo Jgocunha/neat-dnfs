@@ -78,6 +78,23 @@ struct AblationFlagGuard
     }
 };
 
+// GenomeMutationConstants::allowOutputAsConnectionSource is process-wide, and task configs set it, so a test that
+// changes it puts back the value it found.
+class OutputSourceRuleGuard
+{
+public:
+    OutputSourceRuleGuard() : previous(GenomeMutationConstants::allowOutputAsConnectionSource) {}
+    ~OutputSourceRuleGuard() { GenomeMutationConstants::allowOutputAsConnectionSource = previous; }
+
+    OutputSourceRuleGuard(const OutputSourceRuleGuard&) = delete;
+    OutputSourceRuleGuard& operator=(const OutputSourceRuleGuard&) = delete;
+    OutputSourceRuleGuard(OutputSourceRuleGuard&&) = delete;
+    OutputSourceRuleGuard& operator=(OutputSourceRuleGuard&&) = delete;
+
+private:
+    bool previous;
+};
+
 // FieldGene's usual constructor randomizes everything that decides whether a
 // field can hold a bump: tau and restingLevel (FieldGene::initializeNeuralField),
 // the kernel type (80/20 Gauss/Mexican-hat), and the Gauss kernel's width,

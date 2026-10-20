@@ -407,7 +407,7 @@ namespace neat_dnfs
 	bool Genome::isLegalConnectionSource(const FieldGeneType type)
 	{
 		return type == FieldGeneType::INPUT || type == FieldGeneType::HIDDEN
-			|| (type == FieldGeneType::OUTPUT && AblationConstants::allowOutputAsConnectionSource.value_or(false));
+			|| (type == FieldGeneType::OUTPUT && GenomeMutationConstants::allowOutputAsConnectionSource);
 	}
 
 	bool Genome::isLegalConnectionTarget(const FieldGeneType type)
@@ -435,7 +435,7 @@ namespace neat_dnfs
 		// spinning indefinitely (see issue #57).
 		//
 		// The two pools overlap on HIDDEN genes, and on OUTPUT genes too when
-		// AblationConstants::allowOutputAsConnectionSource is set, so a collision
+		// GenomeMutationConstants::allowOutputAsConnectionSource is set, so a collision
 		// needs geneIndex1 to have drawn one of those. Each further draw then
 		// repeats it with probability 1/(hidden + output), making a spurious
 		// give-up 2^-32 in the tightest genome that still has an escape route

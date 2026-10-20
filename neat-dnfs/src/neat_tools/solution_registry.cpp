@@ -49,7 +49,7 @@ namespace neat_dnfs
 		void warnAboutConnectionsEvolutionCannotMake(const Solution& solution)
 		{
 			const auto& genome = solution.getGenome();
-			const std::string_view sources = AblationConstants::allowOutputAsConnectionSource.value_or(false)
+			const std::string_view sources = GenomeMutationConstants::allowOutputAsConnectionSource
 				? "input, hidden and output" : "input and hidden";
 			for (const auto& tuple : genome.connectionTuplesEvolutionCannotMake())
 			{

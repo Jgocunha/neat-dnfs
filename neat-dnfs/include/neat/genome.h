@@ -113,7 +113,7 @@ namespace neat_dnfs
 		/// could be drawn within the bounded number of retries.
 		[[nodiscard]] ConnectionTuple getNewRandomConnectionGeneTuple() const;
 		/// @brief Whether a field gene of @p type may be the source of a connection: an input or hidden field, or
-		/// an output field when AblationConstants::allowOutputAsConnectionSource is set.
+		/// an output field when GenomeMutationConstants::allowOutputAsConnectionSource is set.
 		/// Shared by getNewRandomConnectionGeneTuple() (mutation path) and
 		/// legalConnectionTuples() (seeding path) so the two cannot drift apart.
 		/// @param type The field gene's role.

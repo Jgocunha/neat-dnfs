@@ -36,8 +36,9 @@ Available ablations: `no-growth-io-only`, `no-growth-reference-hidden-field-coun
 `no-speciation`, `no-crossover`, `random-initial-topology`, `compat-threshold-4`, `output-feedback`.
 
 `output-feedback` is not an ablation but a wider search space: mutation may also wire
-connections out of output fields (`AblationConstants.allowOutputAsConnectionSource`), which it
-otherwise never does. Its runs go to their own `data/<Task> Output Feedback/` folder.
+connections out of output fields (`GenomeMutationConstants.allowOutputAsConnectionSource`), which it
+otherwise never does. Its runs go to their own `data/<Task> Output Feedback/` folder. The serial-order
+and sequence-timing tasks turn this on in their own config, so they need no preset for it.
 
 ## Configuration
 

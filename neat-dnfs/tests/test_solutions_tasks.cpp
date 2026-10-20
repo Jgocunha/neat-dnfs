@@ -980,16 +980,22 @@ static void checkOnlyConnectionsEvolutionCanMake(const Solution& solution)
 
 TEST_CASE("SerialOrder's hand-built design uses only connections evolution can make", "[Solutions][SerialOrder]")
 {
+    OutputSourceRuleGuard guard;
     resetGlobalState();
     const ScopedTaskConfig taskConfig{ "serial-order" };
+    // Reachable without output feedback, which this task's config turns on.
+    GenomeMutationConstants::allowOutputAsConnectionSource = false;
 
     checkOnlyConnectionsEvolutionCanMake(loadSequenceTimingFixture<SerialOrder>("serial-order-handbuilt.dnf"));
 }
 
 TEST_CASE("SequenceTimingBoost's hand-built reference uses only connections evolution can make", "[Solutions][SequenceTiming]")
 {
+    OutputSourceRuleGuard guard;
     resetGlobalState();
     const ScopedTaskConfig taskConfig{ "sequence-timing-boost" };
+    // Reachable without output feedback, which this task's config turns on.
+    GenomeMutationConstants::allowOutputAsConnectionSource = false;
 
     checkOnlyConnectionsEvolutionCanMake(
         loadSequenceTimingFixture<SequenceTimingBoost>("sequence-timing-boost-handbuilt.dnf"));
@@ -997,9 +1003,10 @@ TEST_CASE("SequenceTimingBoost's hand-built reference uses only connections evol
 
 TEST_CASE("Genome lists the connections evolution cannot make, honouring allowOutputAsConnectionSource", "[genome][legal_connections]")
 {
-    AblationFlagGuard guard;
+    OutputSourceRuleGuard guard;
     resetGlobalState();
     const ScopedTaskConfig taskConfig{ "serial-order" };
+    GenomeMutationConstants::allowOutputAsConnectionSource = false;
 
     // Built from the earlier serial-order design, whose output fed its done field (gk cg 2-7).
     const auto outputFedDone = loadSequenceTimingFixture<SerialOrder>("serial-order-overlapping-peaks.dnf");
@@ -1008,7 +1015,7 @@ TEST_CASE("Genome lists the connections evolution cannot make, honouring allowOu
     CHECK(outputFedDone.getGenome().connectionTuplesEvolutionCannotMake() == std::vector{ ConnectionTuple{ 2, 7 } });
     CHECK(handBuilt.getGenome().connectionTuplesEvolutionCannotMake().empty());
 
-    AblationConstants::allowOutputAsConnectionSource = true;
+    GenomeMutationConstants::allowOutputAsConnectionSource = true;
     CHECK(outputFedDone.getGenome().connectionTuplesEvolutionCannotMake().empty());
 }
 
@@ -1033,9 +1040,10 @@ static std::string consoleOutputOf(const std::function<void()>& action)
 // A template is where a structure evolution could not have built enters a run: its offspring keep it.
 TEST_CASE("Loading a template warns about each connection evolution cannot make", "[SolutionRegistry]")
 {
-    AblationFlagGuard guard;
+    OutputSourceRuleGuard guard;
     resetGlobalState();
     const ScopedTaskConfig taskConfig{ "serial-order" };
+    GenomeMutationConstants::allowOutputAsConnectionSource = false;
     const auto* task = findTask("serial-order");
     REQUIRE(task != nullptr);
     const auto loadTemplate = [task](const std::string& fixture) {
@@ -1050,7 +1058,7 @@ TEST_CASE("Loading a template warns about each connection evolution cannot make"
     CHECK(outputFedDone.find("evolution cannot make") != std::string::npos);
     CHECK(loadTemplate("serial-order-handbuilt.dnf").find("evolution cannot make") == std::string::npos);
 
-    AblationConstants::allowOutputAsConnectionSource = true;
+    GenomeMutationConstants::allowOutputAsConnectionSource = true;
     CHECK(loadTemplate("serial-order-overlapping-peaks.dnf").find("evolution cannot make") == std::string::npos);
 }
 
@@ -1221,4 +1229,5 @@ TEST_CASE("Every registered task's template file exists under templates/", "[Sol
         REQUIRE(std::filesystem::exists(templatePath));
     }
 }
+
 

@@ -285,6 +285,7 @@ namespace neat_dnfs
 			field(gm, "mutateFieldGenePerGeneProbability", &GenomeMutationConstants::mutateFieldGenePerGeneProbability);
 			field(gm, "mutateConnectionGeneProbability", &GenomeMutationConstants::mutateConnectionGeneProbability);
 			field(gm, "checkForDuplicateConnectionGenesInGenome", &GenomeMutationConstants::checkForDuplicateConnectionGenesInGenome);
+			GenomeMutationConstants::allowOutputAsConnectionSource = gm.value("allowOutputAsConnectionSource", false);
 
 			const auto& fg = j.at("FieldGeneConstants");
 			field(fg, "variableParameters", &FieldGeneConstants::variableParameters);
@@ -356,7 +357,13 @@ namespace neat_dnfs
 			field(ac, "seedRandomConnections", &AblationConstants::seedRandomConnections);
 			field(ac, "disableSpeciation", &AblationConstants::disableSpeciation);
 			field(ac, "disableCrossover", &AblationConstants::disableCrossover);
-			optionalField(ac, "allowOutputAsConnectionSource", &AblationConstants::allowOutputAsConnectionSource);
+			// Moved to GenomeMutationConstants on 20 October 2026. Inner keys are not checked for typos, so a config
+			// still setting it here would silently run without output feedback.
+			if (ac.contains("allowOutputAsConnectionSource"))
+			{
+				throw std::runtime_error("ConfigLoader: '" + path + "' sets AblationConstants.allowOutputAsConnectionSource, "
+					"which moved to GenomeMutationConstants.allowOutputAsConnectionSource.");
+			}
 
 			const auto& pc = j.at("PopulationConstants");
 			field(pc, "pruneRatio", &PopulationConstants::pruneRatio);

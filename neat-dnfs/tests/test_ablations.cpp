@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <algorithm>
 #include <filesystem>
@@ -540,12 +541,13 @@ namespace
 
 TEST_CASE("Output Feedback: legalConnectionTuples() adds the connections out of the output only when allowed", "[genome][legal_connections][output_feedback]")
 {
-    AblationFlagGuard guard;
+    OutputSourceRuleGuard guard;
     resetGlobalState();
     const Genome genome = buildGenomeWithHidden(2); // inputs 1, 2; output 3; hidden 4, 5
 
+    GenomeMutationConstants::allowOutputAsConnectionSource = false;
     const auto withoutFeedback = genome.legalConnectionTuples();
-    AblationConstants::allowOutputAsConnectionSource = true;
+    GenomeMutationConstants::allowOutputAsConnectionSource = true;
     const auto withFeedback = genome.legalConnectionTuples();
 
     std::set<std::pair<int, int>> added;
@@ -560,11 +562,11 @@ TEST_CASE("Output Feedback: legalConnectionTuples() adds the connections out of 
 
 TEST_CASE("Output Feedback: mutate() grows connections out of the output only when allowed", "[genome][output_feedback]")
 {
-    AblationFlagGuard guard;
+    OutputSourceRuleGuard guard;
     for (const bool allowed : { false, true })
     {
         resetGlobalState();
-        AblationConstants::allowOutputAsConnectionSource = allowed;
+        GenomeMutationConstants::allowOutputAsConnectionSource = allowed;
         Genome genome = buildGenomeWithHidden(2); // output 3
 
         bool grewFromOutput = false;
@@ -581,25 +583,71 @@ TEST_CASE("Output Feedback: mutate() grows connections out of the output only wh
 
 TEST_CASE("Output Feedback: the preset allows connections out of the output and labels its data folder", "[ablations][output_feedback]")
 {
-    AblationFlagGuard guard;
+    AblationFlagGuard ablationGuard;
+    OutputSourceRuleGuard ruleGuard;
     REQUIRE(AblationPresets::applyByName("output-feedback"));
 
-    CHECK(AblationConstants::allowOutputAsConnectionSource.value_or(false));
+    CHECK(GenomeMutationConstants::allowOutputAsConnectionSource);
     CHECK(AblationConstants::label == " Output Feedback");
 }
 
 TEST_CASE("Output Feedback: a config written before allowOutputAsConnectionSource existed still loads, with it off", "[ablations][output_feedback]")
 {
-    AblationFlagGuard guard;
+    OutputSourceRuleGuard guard;
     auto config = ConfigLoader::loadJsonFile(ConfigLoader::defaultGlobalConfigPath());
-    config.at("AblationConstants").erase("allowOutputAsConnectionSource");
+    config.at("GenomeMutationConstants").erase("allowOutputAsConnectionSource");
     const auto path = std::filesystem::temp_directory_path() / "neat-dnfs-config-before-output-feedback.json";
     std::ofstream(path) << config.dump();
 
-    AblationConstants::allowOutputAsConnectionSource = true;
+    GenomeMutationConstants::allowOutputAsConnectionSource = true;
     REQUIRE_NOTHROW(ConfigLoader::loadGlobalConfig(path.generic_string()));
-    CHECK_FALSE(AblationConstants::allowOutputAsConnectionSource.value_or(false));
+    CHECK_FALSE(GenomeMutationConstants::allowOutputAsConnectionSource);
 
     ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
     std::filesystem::remove(path);
+}
+
+TEST_CASE("Output Feedback: the reference config leaves connections out of the output off", "[ablations][output_feedback]")
+{
+    OutputSourceRuleGuard guard;
+    GenomeMutationConstants::allowOutputAsConnectionSource = true;
+
+    ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
+
+    CHECK_FALSE(GenomeMutationConstants::allowOutputAsConnectionSource);
+}
+
+// The switch was an ablation constant until 20 October 2026. Inner keys are not checked for typos, so a config that
+// still set it there would silently run without output feedback; it fails to load instead.
+TEST_CASE("Output Feedback: a config that still sets it among the ablation constants fails to load, naming where it moved", "[ablations][output_feedback]")
+{
+    OutputSourceRuleGuard guard;
+    auto config = ConfigLoader::loadJsonFile(ConfigLoader::defaultGlobalConfigPath());
+    config.at("AblationConstants")["allowOutputAsConnectionSource"] = true;
+    const auto path = std::filesystem::temp_directory_path() / "neat-dnfs-config-output-feedback-as-ablation.json";
+    std::ofstream(path) << config.dump();
+
+    REQUIRE_THROWS_WITH(ConfigLoader::loadGlobalConfig(path.generic_string()),
+        Catch::Matchers::ContainsSubstring("GenomeMutationConstants.allowOutputAsConnectionSource"));
+
+    ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
+    std::filesystem::remove(path);
+}
+
+TEST_CASE("Output Feedback: serial order and sequence timing allow connections out of the output, other tasks do not", "[ablations][output_feedback]")
+{
+    OutputSourceRuleGuard guard;
+    for (const std::string slug : { "serial-order", "serial-order-fitness-test", "sequence-timing", "sequence-timing-boost",
+        "sequence-timing-boost-order", "sequence-timing-boost-order-only" })
+    {
+        const ScopedTaskConfig taskConfig{ slug };
+        INFO("task " << slug);
+        CHECK(GenomeMutationConstants::allowOutputAsConnectionSource);
+    }
+    for (const std::string slug : { "and", "dmts", "hri-packaging" })
+    {
+        const ScopedTaskConfig taskConfig{ slug };
+        INFO("task " << slug);
+        CHECK_FALSE(GenomeMutationConstants::allowOutputAsConnectionSource);
+    }
 }
