@@ -1012,6 +1012,25 @@ TEST_CASE("SerialOrder's evolvable ranges reach every setting of the hand-built 
     }
 }
 
+// The fitness is written from the reference's responses, so evolving it from scratch is only a fair test if this
+// task's ranges reach every setting of that design.
+TEST_CASE("SerialOrderFitnessTest's evolvable ranges reach every setting of the reference design", "[Solutions][SerialOrderFitnessTest]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+
+    const auto solution = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-reference.dnf");
+
+    for (const auto& gene : solution.getGenome().getFieldGenes())
+    {
+        checkFieldGeneEvolvable(gene);
+    }
+    for (const auto& gene : solution.getGenome().getConnectionGenes())
+    {
+        checkConnectionGeneEvolvable(gene);
+    }
+}
+
 // Evolution never wires a connection out of the output field, but a template is loaded without that check.
 static void checkOnlyConnectionsEvolutionCanMake(const Solution& solution)
 {
