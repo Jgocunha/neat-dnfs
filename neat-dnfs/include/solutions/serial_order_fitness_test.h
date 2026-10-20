@@ -1,0 +1,61 @@
+#pragma once
+
+#include "neat/solution.h"
+
+namespace neat_dnfs
+{
+	/// @brief The serial-order task, scored by how the fields respond at every stage, after a reference design.
+	///
+	/// @details The demonstration is a start cue X (a boost of the input field "nf 1"), then D (180), C (120), A (20)
+	/// and B (80) as Gaussian pulses at 100, 600, 800 and 1800 after it. After a gap of 700, X is given three times,
+	/// starting recall cycles of 1000, 800 and 1500. Every field is scored at the end of each interval of that
+	/// schedule, against what the hand-built design of 18 October 2026 (tests/fixtures/
+	/// serial-order-fitness-test-reference.dnf) does there:
+	/// - the input peaks at each event and is at rest otherwise;
+	/// - the output "nf 2" stays below threshold through the demonstration, pre-shaped at every stored event, the
+	///   earliest highest;
+	/// - after each X the output peaks at D, C, A and B in turn. The events still to come stay pre-shaped in order,
+	///   and each recalled one is pushed below the rest of the field;
+	/// - once recall ends, the output has no peak and every event lies below the rest of the field.
+	///
+	/// The seven partial fitness terms are those stages: f1 the input, f2 the quiet output and f3 its pre-shapes
+	/// during the demonstration, f4 the recalled peaks, f5 the pre-shapes still to come, f6 the troughs during recall
+	/// and f7 the output after recall. Not yet registered as a task.
+	class SerialOrderFitnessTest final : public Solution
+	{
+	public:
+		/// @brief Builds a task solution whose genome is created from @p topology.
+		/// @param topology Fields to start from: the input and the output.
+		explicit SerialOrderFitnessTest(const SolutionTopology& topology);
+		/// @brief Builds a task solution whose genome is decoded from an existing phenotype, such as a template.
+		/// @param initialTopology Fields the task declares: the input and the output.
+		/// @param phenotype Simulation the genome is translated from.
+		SerialOrderFitnessTest(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype);
+		/// @brief Creates a solution with a fresh genome built from this one's initial topology and a new id.
+		/// @return The new solution.
+		SolutionPtr clone() const override;
+		/// @brief Creates an independent solution with this one's phenotype and a new id.
+		/// @return The new solution.
+		SolutionPtr copy() const override;
+	private:
+		void testPhenotype() override;
+		void createPhenotypeEnvironment() override;
+
+		/// @brief Gives the start cue X: boosts the input field for one pulse duration.
+		void cue();
+		/// @brief Switches on an event's Gaussian pulse on the input field and simulates one pulse duration.
+		/// @param position Field position of the event.
+		void presentEvent(double position);
+		/// @brief Simulates for @p duration of simulation time.
+		/// @param duration Simulation time to run, converted to steps at the configured deltaT.
+		void runFor(double duration);
+		/// @brief Scores the output pre-shaped at @p positions, above the rest of the field and in that order.
+		/// @param positions Event positions, highest pre-shape expected first.
+		/// @return The mean pre-shape, with half of it kept only as far as the pre-shapes are in order.
+		[[nodiscard]] double preShapedInOrder(const std::vector<double>& positions) const;
+		/// @brief Scores the output pushed below the rest of the field at every one of @p positions.
+		/// @param positions Event positions.
+		/// @return The mean trough score over @p positions.
+		[[nodiscard]] double troughsAt(const std::vector<double>& positions) const;
+	};
+}

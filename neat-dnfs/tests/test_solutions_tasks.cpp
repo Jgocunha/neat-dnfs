@@ -21,6 +21,7 @@
 #include "solutions/hri_packaging_task.h"
 #include "solutions/sequence_timing.h"
 #include "solutions/serial_order.h"
+#include "solutions/serial_order_fitness_test.h"
 #include "neat_tools/config_loader.h"
 #include "neat_tools/resource_paths.h"
 #include "neat_tools/solution_registry.h"
@@ -674,6 +675,72 @@ TEST_CASE("SerialOrder contract", "[Solutions][SerialOrder]")
     checkSolutionContract<SerialOrder>(makeTopology(1, 1));
 }
 
+TEST_CASE("SerialOrderFitnessTest contract", "[Solutions][SerialOrderFitnessTest]")
+{
+    resetGlobalState();
+    checkSolutionContract<SerialOrderFitnessTest>(makeTopology(1, 1));
+}
+
+// Runs are filed under the solution's name, and a population is built from clone() and copy(), so a copy of
+// SerialOrder that kept its name or returned SerialOrder would evolve and save as the original task.
+TEST_CASE("SerialOrderFitnessTest names its runs apart from SerialOrder's and clones and copies as itself", "[Solutions][SerialOrderFitnessTest]")
+{
+    resetGlobalState();
+
+    SerialOrderFitnessTest solution(sequenceTimingTopology());
+    solution.initialize();
+    solution.buildPhenotype();
+
+    CHECK(solution.getName() == "Serial Order Fitness Test");
+    CHECK(solution.getName() != SerialOrder(sequenceTimingTopology()).getName());
+    CHECK(std::dynamic_pointer_cast<SerialOrderFitnessTest>(solution.clone()) != nullptr);
+    CHECK(std::dynamic_pointer_cast<SerialOrderFitnessTest>(solution.copy()) != nullptr);
+}
+
+// The reference is the design whose responses the fitness was written from: the hand-built serial-order design of
+// 18 October 2026, with the competition in the output.
+TEST_CASE("SerialOrderFitnessTest scores the reference design above 0.9 on every term", "[Solutions][SerialOrderFitnessTest]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+    const auto simulation = loadFixtureSimulation("serial-order-fitness-test-reference.dnf");
+    SerialOrderFitnessTest solution(sequenceTimingTopology(), *simulation);
+
+    for (int evaluation = 0; evaluation < 3; ++evaluation)
+    {
+        solution.evaluate();
+        const auto& partials = solution.getParameters().partialFitness;
+        REQUIRE(partials.size() == 7);
+        for (size_t term = 0; term < partials.size(); ++term)
+        {
+            INFO("evaluation " << evaluation << ", f" << term + 1);
+            CHECK(partials[term] > 0.9);
+        }
+    }
+}
+
+// With no connection into the output, it stays at rest: quiet through the demonstration, but with nothing stored,
+// recalled or suppressed. Noise moves single samples by hundredths, so those terms come out near zero, not exactly.
+TEST_CASE("SerialOrderFitnessTest gives no memory or recall credit to an output that never responds", "[Solutions][SerialOrderFitnessTest]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+    SerialOrderFitnessTest solution(sequenceTimingTopology());
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 7);
+    CHECK(partials[1] == Catch::Approx(1.0));             // no peak while the sequence is demonstrated
+    CHECK(partials[2] < 0.05);                            // no pre-shapes of the stored events
+    CHECK(partials[3] == 0.0);                            // no recall peaks
+    CHECK(partials[4] < 0.05);                            // no pre-shapes of the events still to recall
+    CHECK(partials[5] < 0.05);                            // no troughs at the recalled events
+    CHECK(partials[6] == Catch::Approx(0.5).margin(0.05)); // after recall: quiet, but nothing suppressed
+}
+
 TEST_CASE("SerialOrder evaluate produces a bounded fitness", "[Solutions][SerialOrder]")
 {
     resetGlobalState();
@@ -1154,3 +1221,4 @@ TEST_CASE("Every registered task's template file exists under templates/", "[Sol
         REQUIRE(std::filesystem::exists(templatePath));
     }
 }
+
