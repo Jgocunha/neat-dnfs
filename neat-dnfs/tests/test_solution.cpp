@@ -6,6 +6,8 @@
 #include <limits>
 #include <type_traits>
 
+#include <dnf_composer/tools/math.h>
+
 #include "neat/solution.h"
 #include "solutions/detection_instability.h"
 #include "test_helpers.h"
@@ -255,8 +257,7 @@ TEST_CASE("Solution twoBumpsAtPositionWithAmplitudeAndWidth throws on a field na
 }
 
 // Issue #56: preShapednessAtPosition converts a spatial position to an index
-// with `static_cast<int>(position / d_x)` and indexes the "activation"
-// component directly. A position at the field's own upper bound (xSize) --
+// and indexes the "activation" component directly. A position at the field's own upper bound (xSize) --
 // which occurs in practice, e.g. a stimulus placed at the last valid
 // position -- previously produced an index one past the last valid sample.
 // This must not read out of bounds and must produce a well-defined, bounded
@@ -581,6 +582,209 @@ TEST_CASE("Solution negativePreShapednessAtPosition does not read past the end o
     REQUIRE(std::isfinite(solution.getFitness()));
     REQUIRE(solution.getFitness() >= 0.0);
     REQUIRE(solution.getFitness() <= 1.0);
+}
+
+// Adds a Gaussian of the given amplitude and width, centred on a field position, to an activation profile. It uses
+// dnf-composer's own Gaussian, so the profile sits where dnf-composer would put a stimulus at that position.
+static void addGaussianProfile(std::vector<double>& activation, const double amplitude, const double position, const double width)
+{
+    const auto gauss = dnf_composer::tools::math::circularGauss<double>(static_cast<uint32_t>(activation.size()), width,
+        position / DimensionConstants::dx);
+    for (size_t i = 0; i < activation.size(); ++i)
+    {
+        activation[i] += amplitude * gauss[i];
+    }
+}
+
+static void runFieldProbe(const FieldProbeSolution::Scenario& scenario)
+{
+    FieldProbeSolution probe(makeTopology(1, 1), scenario);
+    probe.initialize();
+    probe.evaluate();
+}
+
+// A profile this narrow raises its own sample only: its neighbours move by under 0.4% of the amplitude.
+static constexpr double oneSampleWidth = 0.3;
+
+TEST_CASE("Solution preShapednessAtPosition reads the activation at the position it is given", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    double score = -1.0;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        auto& activation = probe.activationOf("nf 1");
+        const double restingLevel = probe.restingLevelOf("nf 1");
+        std::ranges::fill(activation, restingLevel);
+        addGaussianProfile(activation, -restingLevel / 2.0, 50.0, oneSampleWidth);
+        score = probe.preShapednessAtPosition("nf 1", 50.0, 0.5, BumpFitnessDefaults::preShapednessEpsilon);
+    });
+
+    CHECK(score == Catch::Approx(1.0));
+}
+
+TEST_CASE("Solution preShapednessAtPosition scores 1 at half the resting level, falling off as a Gaussian of width sigma", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    static constexpr double sigma = 2.0;
+    std::vector<double> scores;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        auto& activation = probe.activationOf("nf 1");
+        const double target = probe.restingLevelOf("nf 1") / 2.0;
+        for (const double level : { target, target + sigma, target - sigma })
+        {
+            std::ranges::fill(activation, level);
+            scores.push_back(probe.preShapednessAtPosition("nf 1", 50.0, sigma, BumpFitnessDefaults::preShapednessEpsilon));
+        }
+    });
+
+    REQUIRE(scores.size() == 3);
+    CHECK(scores[0] == Catch::Approx(1.0));
+    CHECK(scores[1] == Catch::Approx(std::exp(-0.5)));
+    CHECK(scores[2] == Catch::Approx(std::exp(-0.5)));
+}
+
+TEST_CASE("Solution preShapednessAtPosition scores zero at or above the threshold", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    std::vector<double> scores;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        auto& activation = probe.activationOf("nf 1");
+        for (const double level : { 0.0, 1.0 })
+        {
+            std::ranges::fill(activation, level);
+            scores.push_back(probe.preShapednessAtPosition("nf 1", 50.0));
+        }
+    });
+
+    CHECK(scores == std::vector<double>{ 0.0, 0.0 });
+}
+
+TEST_CASE("Solution preShapednessAtPosition scores zero within epsilon of the resting level and below it", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    static constexpr double epsilon = 0.1;
+    std::vector<double> scores;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        auto& activation = probe.activationOf("nf 1");
+        const double restingLevel = probe.restingLevelOf("nf 1");
+        for (const double level : { restingLevel + epsilon / 2.0, restingLevel - 1.0 })
+        {
+            std::ranges::fill(activation, level);
+            scores.push_back(probe.preShapednessAtPosition("nf 1", 50.0, BumpFitnessDefaults::preShapednessSigma, epsilon));
+        }
+    });
+
+    CHECK(scores == std::vector<double>{ 0.0, 0.0 });
+}
+
+TEST_CASE("Solution negativePreShapingDepthAtPosition reads the depth at the position it is given", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    static constexpr double depth = 6.0;
+    double score = -1.0;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        auto& activation = probe.activationOf("nf 1");
+        std::ranges::fill(activation, probe.restingLevelOf("nf 1"));
+        addGaussianProfile(activation, -depth, 50.0, oneSampleWidth);
+        score = probe.negativePreShapingDepthAtPosition("nf 1", 50.0, depth, 0.5);
+    });
+
+    CHECK(score == Catch::Approx(1.0));
+}
+
+TEST_CASE("Solution negativePreShapingDepthAtPosition scores 1 at the target depth, falling off as a Gaussian, and little at rest", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    static constexpr double depth = 6.0;
+    static constexpr double width = 2.0;
+    std::vector<double> scores;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        auto& activation = probe.activationOf("nf 1");
+        const double restingLevel = probe.restingLevelOf("nf 1");
+        for (const double level : { restingLevel - depth, restingLevel - depth - width, restingLevel })
+        {
+            std::ranges::fill(activation, level);
+            scores.push_back(probe.negativePreShapingDepthAtPosition("nf 1", 50.0, depth, width));
+        }
+    });
+
+    REQUIRE(scores.size() == 3);
+    CHECK(scores[0] == Catch::Approx(1.0));
+    CHECK(scores[1] == Catch::Approx(std::exp(-0.5)));
+    CHECK(scores[2] == Catch::Approx(std::exp(-0.5 * (depth / width) * (depth / width))));
+}
+
+TEST_CASE("Solution noBumps scores 1 while a field stays below threshold and exp(-rate x height) once it peaks", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    static constexpr double decayRate = BumpFitnessDefaults::noBumpsDecayRate;
+    double belowThreshold = -1.0;
+    double peaked = -1.0;
+    double peakHeight = 0.0;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        probe.runSimulation(static_cast<int>(SimulationConstants::maxSimulationSteps));
+        belowThreshold = probe.noBumps("nf 1", decayRate);
+
+        probe.stimulate("nf 1", GaussStimulusConstants::amplitude, 50.0);
+        probe.runSimulation(static_cast<int>(SimulationConstants::maxSimulationSteps));
+        peakHeight = probe.highestActivationOf("nf 1");
+        peaked = probe.noBumps("nf 1", decayRate);
+    });
+
+    CHECK(belowThreshold == 1.0);
+    REQUIRE(peakHeight > 0.0);
+    CHECK(peaked == Catch::Approx(std::exp(-decayRate * peakHeight)));
+}
+
+TEST_CASE("Solution oneBumpAtPositionWithAmplitudeAndWidth places a stimulus's bump at the stimulus's own position", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    std::vector<NeuralFieldBump> bumps;
+    double score = -1.0;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        probe.stimulate("nf 1", GaussStimulusConstants::amplitude, 50.0);
+        probe.runSimulation(static_cast<int>(SimulationConstants::maxSimulationSteps));
+        bumps = probe.bumpsOf("nf 1");
+        if (bumps.size() == 1)
+        {
+            score = probe.oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 50.0, bumps.front().amplitude, bumps.front().width);
+        }
+    });
+
+    REQUIRE(bumps.size() == 1);
+    // A bump's centroid is the middle of its first and last samples, so an asymmetric flank can move it by half a sample.
+    CHECK(std::abs(bumps.front().centroid - 50.0) <= 0.5);
+    CHECK(score == Catch::Approx(0.45 + 0.45 / (1.0 + std::abs(bumps.front().centroid - 50.0)) + 0.05 + 0.05));
+}
+
+TEST_CASE("Solution oneBumpAtPositionWithAmplitudeAndWidth gives two bumps half the count credit and scores the closest", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    std::vector<NeuralFieldBump> bumps;
+    double score = -1.0;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        probe.stimulate("nf 1", GaussStimulusConstants::amplitude, 30.0);
+        probe.stimulate("nf 1", GaussStimulusConstants::amplitude, 70.0);
+        probe.runSimulation(static_cast<int>(SimulationConstants::maxSimulationSteps));
+        bumps = probe.bumpsOf("nf 1");
+        if (bumps.size() == 2)
+        {
+            score = probe.oneBumpAtPositionWithAmplitudeAndWidth("nf 1", 30.0, bumps.front().amplitude, bumps.front().width);
+        }
+    });
+
+    REQUIRE(bumps.size() == 2);
+    const auto& closest = bumps.front();
+    REQUIRE(std::abs(closest.centroid - 30.0) <= 0.5);
+    CHECK(score == Catch::Approx(0.45 / 2.0 + 0.45 / (1.0 + std::abs(closest.centroid - 30.0)) + 0.05 + 0.05));
 }
 
 TEST_CASE("Solution Crossover", "[Solution]")

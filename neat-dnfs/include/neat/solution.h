@@ -221,7 +221,9 @@ namespace neat_dnfs
 
 		/// @brief Converts a spatial position into a valid index into @p neuralField's
 		/// component vectors (e.g. "activation"), clamping to the field's sample range.
-		/// @details Positions passed to fitness helpers come from genome-derived
+		/// @details dnf-composer samples position (i + 1) * d_x at index i: a stimulus at
+		/// position p peaks at index p / d_x - 1, and the bumps it reports use the same
+		/// positions. Positions passed to fitness helpers come from genome-derived
 		/// stimulus parameters and task definitions, and can legitimately fall on or
 		/// beyond a field's upper spatial bound (e.g. position == field size * d_x,
 		/// the field's own extent). Clamping keeps component lookups well-defined at

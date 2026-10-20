@@ -900,7 +900,7 @@ namespace neat_dnfs
 	int Solution::clampedIndexForPosition(const std::shared_ptr<dnf_composer::element::NeuralField>& neuralField, const double position)
 	{
 		const double d_x = neuralField->getElementCommonParameters().dimensionParameters.d_x;
-		const int rawIndex = static_cast<int>(position / d_x);
+		const int rawIndex = static_cast<int>(std::lround(position / d_x)) - 1;
 		const int lastValidIndex = neuralField->getSize() - 1;
 		return std::clamp(rawIndex, 0, lastValidIndex);
 	}

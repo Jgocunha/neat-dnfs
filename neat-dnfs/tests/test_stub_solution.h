@@ -3,6 +3,7 @@
 #include <atomic>
 #include <cmath>
 #include <format>
+#include <functional>
 #include <string>
 #include <thread>
 #include <numeric>
@@ -1148,7 +1149,8 @@ private:
         runSimulation(SimulationConstants::maxSimulationSteps);
 
         const auto field = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(phenotype.getElement("nf 1"));
-        const int troughIndex = static_cast<int>(troughPosition / DimensionConstants::dx);
+        // dnf-composer samples position (i + 1) * dx at index i.
+        const int troughIndex = static_cast<int>(troughPosition / DimensionConstants::dx) - 1;
         const double measuredDepth = field->getParameters().startingRestingLevel - field->getComponent("activation")[troughIndex];
 
         parameters.partialFitness = {
@@ -1285,6 +1287,97 @@ private:
 
     BumpFunction function;
     BumpFitnessWeights weights;
+};
+
+// Stand-in whose testPhenotype() runs a scenario the test supplies, with the field-scoring helpers made public, so
+// each helper can be checked on its own. A scenario can set a field's activation exactly instead of simulating it;
+// the helpers that read the activation directly see it as written, while noBumps() and the bump helpers read what the
+// last simulation step computed. Its two fields, input "nf 1" and output "nf 2", are seeded with fixed parameters.
+class FieldProbeSolution final : public Solution
+{
+public:
+    using Scenario = std::function<void(FieldProbeSolution&)>;
+
+    FieldProbeSolution(const SolutionTopology& topology, Scenario scenario)
+        : Solution(topology), scenario(std::move(scenario))
+    {
+        name = "FieldProbe";
+        seedFixedGenes();
+    }
+
+    FieldProbeSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype, Scenario scenario)
+        : Solution(initialTopology, phenotype), scenario(std::move(scenario))
+    {
+        name = "FieldProbe";
+        seedFixedGenes();
+    }
+
+    SolutionPtr clone() const override
+    {
+        FieldProbeSolution solution(initialTopology, scenario);
+        return std::make_shared<FieldProbeSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        FieldProbeSolution solution(initialTopology, phenotype, scenario);
+        return std::make_shared<FieldProbeSolution>(solution);
+    }
+
+    using Solution::initSimulation;
+    using Solution::runSimulation;
+    using Solution::noBumps;
+    using Solution::oneBumpAtPositionWithAmplitudeAndWidth;
+    using Solution::preShapednessAtPosition;
+    using Solution::negativePreShapingDepthAtPosition;
+
+    std::vector<double>& activationOf(const std::string& fieldName)
+    {
+        return *getNeuralFieldOrThrow(fieldName, "activationOf")->getComponentPtr("activation");
+    }
+
+    double restingLevelOf(const std::string& fieldName) const
+    {
+        return getNeuralFieldOrThrow(fieldName, "restingLevelOf")->getParameters().startingRestingLevel;
+    }
+
+    std::vector<dnf_composer::element::NeuralFieldBump> bumpsOf(const std::string& fieldName) const
+    {
+        return getNeuralFieldOrThrow(fieldName, "bumpsOf")->getBumps();
+    }
+
+    double highestActivationOf(const std::string& fieldName) const
+    {
+        return getNeuralFieldOrThrow(fieldName, "highestActivationOf")->getHighestActivation();
+    }
+
+    void stimulate(const std::string& fieldName, const double amplitude, const double position)
+    {
+        addGaussianStimulus(fieldName,
+            dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, amplitude, position,
+                GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+            dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+    }
+
+private:
+    void seedFixedGenes()
+    {
+        if (!genome.isEmpty())
+        {
+            return;
+        }
+        addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+        addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    }
+
+    void testPhenotype() override
+    {
+        scenario(*this);
+    }
+
+    void createPhenotypeEnvironment() override {}
+
+    Scenario scenario;
 };
 
 } // namespace neat_dnfs::test
