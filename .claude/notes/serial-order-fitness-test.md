@@ -50,7 +50,7 @@ What the reference does, probed in dnf-composer at the end of each interval:
 | f1 | input: a peak at each event, at rest at every other interval end | `oneBumpAtPositionWithAmplitudeAndWidth`, `closenessOfMeanActivationToRestingLevel` |
 | f2 | output below threshold at every demonstration interval end | `noBumps` |
 | f3 | output pre-shaped at the stored events, in order | `preShapeAboveFieldAtPosition`, `activationsDescendAcrossPositions` |
-| f4 | the right recalled peak at 150, 290, 400 and 500 after X, paid only near the event due | `oneBumpAtPositionWithAmplitudeAndWidth` times `closenessOfNearestBumpToPosition` |
+| f4 | the right recalled peak at 150, 290, 400 and 500 after X, paid only near the event due and by its height | `oneBumpAtPositionWithAmplitudeAndWidth` times `closenessOfNearestBumpToPosition` times `heightCreditOfNearestBumpToPosition` |
 | f5 | events still to recall pre-shaped, in order | as f3 |
 | f6 | recalled events pushed below the field | `troughBelowFieldAtPosition` |
 | f7 | at 600 after X and at the cycle's end: no peak, every event below the field | `noBumps`, `troughBelowFieldAtPosition` |
@@ -116,6 +116,30 @@ Under these weights, old rule against new:
 - Recalling the first item and then suppressing it ranks above the plateau, but only by about 0.05.
 - Part of the plateau's value is troughs that come without recall, the open point below.
 
+## Recall peaks are paid by their height
+
+Three of the first four runs of the gated batch found the next loophole (g1, g2 and g3, 20 October 2026). Their output
+sits right at threshold and crosses it by 0.0-0.5 at A or B when they are due. Height was a twentieth of the bump
+score, so each crossing earned about 0.9 of the point: f4 0.23-0.38 with no real peak. The batch was stopped after g4.
+
+Each recall point is now also multiplied by `heightCreditOfNearestBumpToPosition`: the bump's height over 2, at most 1.
+This is the same rule serial order's evaluator uses. The reference's recalled peaks are 7-12 high, so it is unchanged.
+g2's best is the fixture `serial-order-fitness-test-threshold-flicker.dnf`.
+
+| Genome | f4 now | Fitness before | Fitness now |
+|---|---|---|---|
+| reference | 0.92 | 0.972 | 0.972 |
+| made-up: D recalled, then suppressed, each cycle | 0.23 | 0.626 | 0.626 |
+| run 1's best (one peak per cycle) | 0.15 | 0.594 | 0.594 |
+| g4's best (peaks 12-13 high, C then A, A held) | 0.31 | 0.590 | 0.590 |
+| run 1's shapes-only plateau | 0.00 | 0.578 | 0.578 |
+| w2's best (peak held at C) | 0.24 | 0.564 | 0.564 |
+| g1-g3's bests (flicker at threshold) | 0.01-0.03 | 0.587-0.638 | 0.509-0.526 |
+| w1's best (peak held at 138) | 0.00 | 0.493 | 0.446 |
+
+Every loophole found so far now ranks below the shapes-only plateau, and the two designs with real recall rank above
+it.
+
 Choices made with the user:
 - the recall interval ends were moved inside the reference's peaks on every cycle. The first table put them at 200,
   350, 450 and 550 after X, where the reference is mid-switch or already on the next event;
@@ -145,7 +169,6 @@ Choices made with the user:
 - An output with no input connections scores f2 1.0 and f7 about 0.5, and nothing on f3-f6.
 - The fixed schedule makes evaluations nearly noise-free (spread 0.002 on the reference).
 - Open:
-  - 90% of a peak's credit is count and position, so a peak barely above threshold earns almost full credit;
   - one fixed gap and no probe trial without X leave room for fixed-lag replay.
   - Troughs are paid for without recall. In a 10-generation smoke run (population 200, 20 October 2026), the best
     (0.456) had a slow output (tau about 6000) and a hidden field that stores D and inhibits the output. So a trough

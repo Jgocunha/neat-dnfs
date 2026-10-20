@@ -826,6 +826,20 @@ TEST_CASE("SerialOrderFitnessTest gives a peak held through recall credit only w
     CHECK(atC.getParameters().partialFitness[3] == Catch::Approx(3.0 * 0.92 / 12.0).margin(0.03));
 }
 
+// From-scratch run g2 of 20 October 2026: the output sits at threshold and crosses it by 0.0-0.1 at A and B exactly when
+// they are due. Height was a twentieth of a recall point, so those crossings earned f4 0.30-0.38. A recalled peak now
+// earns its credit in proportion to its height, in full from 2, and they earn almost nothing.
+TEST_CASE("SerialOrderFitnessTest gives an output flickering at threshold almost no recall credit", "[Solutions][SerialOrderFitnessTest]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+
+    auto flicker = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-threshold-flicker.dnf");
+    flicker.evaluate();
+
+    CHECK(flicker.getParameters().partialFitness[3] < 0.05);
+}
+
 // With no connection into the output, it stays at rest: quiet through the demonstration, but with nothing stored,
 // recalled or suppressed. Noise moves single samples by hundredths, so those terms come out near zero, not exactly.
 TEST_CASE("SerialOrderFitnessTest gives no memory or recall credit to an output that never responds", "[Solutions][SerialOrderFitnessTest]")

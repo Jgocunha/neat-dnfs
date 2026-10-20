@@ -214,9 +214,11 @@ namespace neat_dnfs
 
 	double SerialOrderFitnessTest::recallPeakAt(const double position) const
 	{
-		// A lone peak anywhere would still earn the bump score's count, height and width shares: paid only near the event.
+		// The bump score pays a lone peak anywhere, and one barely above threshold, almost in full: paid only near the
+		// event, and in proportion to its height.
 		return oneBumpAtPositionWithAmplitudeAndWidth(outputField, position, outputPeakAmplitude, outputPeakWidth)
-			* closenessOfNearestBumpToPosition(outputField, position);
+			* closenessOfNearestBumpToPosition(outputField, position)
+			* heightCreditOfNearestBumpToPosition(outputField, position);
 	}
 
 	double SerialOrderFitnessTest::troughsAt(const std::vector<double>& positions) const
