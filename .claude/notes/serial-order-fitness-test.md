@@ -4,8 +4,7 @@
 task by how the input and output fields respond at the end of every interval of a fixed schedule, after what a
 reference design does there. The idea: the old serial-order fitness pays nothing until a whole mechanism exists, so
 it should guide evolution better to pay for each stage of the behaviour. The apps run it as `--task serial-order-fitness-test`,
-starting from serial order's template (input and output fields only). Its config is `config/solutions/serial-order-fitness-test.json`: serial order's, with seven
-equal weights.
+starting from serial order's template (input and output fields only). Its config is `config/solutions/serial-order-fitness-test.json`: serial order's, with the weights below.
 
 ## The reference and the schedule
 
@@ -55,6 +54,40 @@ What the reference does, probed in dnf-composer at the end of each interval:
 | f5 | events still to recall pre-shaped, in order | as f3 |
 | f6 | recalled events pushed below the field | `troughBelowFieldAtPosition` |
 | f7 | at 600 after X and at the cycle's end: no peak, every event below the field | `noBumps`, `troughBelowFieldAtPosition` |
+
+## Weights
+
+The weights were equal until 20 October 2026. From-scratch run 1 (`data/Serial Order Fitness Test/2026-10-20
+14h28m28s`) then showed what equal weights reward. A genome with no connections already earns 0.36 from f1, f2 and
+f7. Evolution learned every shape term but recall, and the shapes-only plateau (0.77) sat only 0.02 below its best
+(0.79), which recalled one item per cycle.
+
+The terms are now weighted by how much of the task each carries:
+
+| f1 | f2 | f3 | f4 | f5 | f6 | f7 |
+|---|---|---|---|---|---|---|
+| 0.05 | 0.05 | 0.10 | 0.35 | 0.20 | 0.20 | 0.05 |
+
+- f4, the recalled peaks, is the task itself.
+- f5 and f6 are what turn a peak held through a cycle into stepping through the sequence: the events still to come
+  stay ordered, and those already recalled are suppressed.
+- f3 is the memory everything starts from. Evolution found it within about 10 generations.
+- f1, f2 and f7 are mostly constraints that genomes satisfy with little structure.
+
+Scores on the same genomes:
+
+| Genome | Equal weights | These weights |
+|---|---|---|
+| reference | 0.989 | 0.972-0.976 |
+| run 1's best (one peak per cycle) | 0.792 | 0.677 |
+| X lifts D each cycle and holds it (made-up partials) | 0.713 | 0.624 |
+| run 1's shapes-only plateau (gen 100) | 0.769 | 0.578 |
+| `serial-order-single-recall.dnf` | 0.750 | 0.519 |
+| run 1's static troughs (gen 3) | 0.520 | 0.332 |
+| burst (`sequence-timing-boost-burst.dnf`) | 0.360 | 0.275 |
+| no connections | 0.357 | 0.125 |
+
+The stop rule is unaffected: it compares each term with the target, not the weighted sum.
 
 Choices made with the user:
 - the recall interval ends were moved inside the reference's peaks on every cycle. The first table put them at 200,
