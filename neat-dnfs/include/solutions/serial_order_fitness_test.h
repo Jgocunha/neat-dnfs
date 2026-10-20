@@ -19,7 +19,8 @@ namespace neat_dnfs
 	/// - the output "nf 2" stays below threshold through the demonstration, pre-shaped at every stored event, the
 	///   earliest highest;
 	/// - after each X the output peaks at D, C, A and B in turn. The events still to come stay pre-shaped in order,
-	///   and each recalled one is pushed below the rest of the field;
+	///   and each recalled one is pushed below the rest of the field. A peak earns recall credit only within a couple
+	///   of samples of the event due: a lone peak held anywhere else earns none;
 	/// - once recall ends, the output has no peak and every event lies below the rest of the field.
 	///
 	/// The seven partial fitness terms are those stages: f1 the input, f2 the quiet output and f3 its pre-shapes
@@ -57,6 +58,11 @@ namespace neat_dnfs
 		/// @param positions Event positions, highest pre-shape expected first.
 		/// @return The mean pre-shape, with half of it kept only as far as the pre-shapes are in order.
 		[[nodiscard]] double preShapedInOrder(const std::vector<double>& positions) const;
+		/// @brief Scores the output's recalled peak at @p position: one bump there, of the reference's height and width.
+		/// @param position Position of the event due.
+		/// @return The bump score, times how close the nearest output bump lies to @p position, so a peak elsewhere
+		/// earns nothing.
+		[[nodiscard]] double recallPeakAt(double position) const;
 		/// @brief Scores the output pushed below the rest of the field at every one of @p positions.
 		/// @param positions Event positions.
 		/// @return The mean trough score over @p positions.

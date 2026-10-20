@@ -50,7 +50,7 @@ What the reference does, probed in dnf-composer at the end of each interval:
 | f1 | input: a peak at each event, at rest at every other interval end | `oneBumpAtPositionWithAmplitudeAndWidth`, `closenessOfMeanActivationToRestingLevel` |
 | f2 | output below threshold at every demonstration interval end | `noBumps` |
 | f3 | output pre-shaped at the stored events, in order | `preShapeAboveFieldAtPosition`, `activationsDescendAcrossPositions` |
-| f4 | the right recalled peak at 150, 290, 400 and 500 after X | `oneBumpAtPositionWithAmplitudeAndWidth` |
+| f4 | the right recalled peak at 150, 290, 400 and 500 after X, paid only near the event due | `oneBumpAtPositionWithAmplitudeAndWidth` times `closenessOfNearestBumpToPosition` |
 | f5 | events still to recall pre-shaped, in order | as f3 |
 | f6 | recalled events pushed below the field | `troughBelowFieldAtPosition` |
 | f7 | at 600 after X and at the cycle's end: no peak, every event below the field | `noBumps`, `troughBelowFieldAtPosition` |
@@ -89,6 +89,33 @@ Scores on the same genomes:
 
 The stop rule is unaffected: it compares each term with the target, not the weighted sum.
 
+## Recall peaks are paid only near the event due
+
+- Under these weights, the first two runs of the weighted batch (w1 and w2, 20 October 2026) converged on one output
+  peak. It rose before any X and was never let go: w1's at 138, near no event, and w2's at C.
+- The bump score gives 0.45 for one bump and 0.10 for its height and width, wherever the bump is. So that peak earned
+  f4 0.53-0.63 and beat run 1's real recall. The batch was stopped after those two runs.
+- f4 now multiplies each recall point's bump score by `closenessOfNearestBumpToPosition`. That is 1 when the output's
+  nearest bump lies within 2 of the event due, and exp(-(d - 2)^2 / 8) beyond.
+- The reference keeps f4 0.92. The two held peaks are test fixtures (`serial-order-fitness-test-held-peak-*.dnf`).
+
+Under these weights, old rule against new:
+
+| Genome | f4 old | f4 new | Fitness old | Fitness new |
+|---|---|---|---|---|
+| reference | 0.93 | 0.92 | 0.976 | 0.972 |
+| made-up: D recalled, then suppressed, each cycle | | 0.23 | | 0.626 |
+| run 1's best (one peak per cycle) | 0.39 | 0.15 | 0.677 | 0.594 |
+| run 1's shapes-only plateau (gen 100) | 0.00 | 0.00 | 0.578 | 0.578 |
+| w2's best (peak held at C) | 0.63 | 0.24 | 0.701 | 0.564 |
+| made-up: D lifted and held each cycle | | 0.23 | | 0.498 |
+| w1's best (peak held at 138) | 0.53 | 0.00 | 0.678 | 0.493 |
+| burst (`sequence-timing-boost-burst.dnf`) | 0.48 | 0.00 | 0.275 | 0.107 |
+
+- A held peak now ranks below the shapes-only plateau.
+- Recalling the first item and then suppressing it ranks above the plateau, but only by about 0.05.
+- Part of the plateau's value is troughs that come without recall, the open point below.
+
 Choices made with the user:
 - the recall interval ends were moved inside the reference's peaks on every cycle. The first table put them at 200,
   350, 450 and 550 after X, where the reference is mid-switch or already on the next event;
@@ -100,7 +127,7 @@ Choices made with the user:
 - a pre-shape row is its mean pre-shape times (0.5 + 0.5 x order), so noise ordering a flat field earns nothing;
 - trough order is not scored.
 
-## Scores, 5 evaluations each
+## Scores, 5 evaluations each, under equal weights and the old f4
 
 | Genome | Fitness | Notes |
 |---|---|---|
@@ -118,8 +145,6 @@ Choices made with the user:
 - An output with no input connections scores f2 1.0 and f7 about 0.5, and nothing on f3-f6.
 - The fixed schedule makes evaluations nearly noise-free (spread 0.002 on the reference).
 - Open:
-  - `oneBumpAtPositionWithAmplitudeAndWidth` gives partial count credit to several bumps, so a burst earns about half
-    of f4;
   - 90% of a peak's credit is count and position, so a peak barely above threshold earns almost full credit;
   - one fixed gap and no probe trial without X leave room for fixed-lag replay.
   - Troughs are paid for without recall. In a 10-generation smoke run (population 200, 20 October 2026), the best

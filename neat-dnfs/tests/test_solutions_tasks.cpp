@@ -807,6 +807,25 @@ TEST_CASE("SerialOrderFitnessTest traces the input and output at every point it 
     }
 }
 
+// Two weighted from-scratch runs of 20 October 2026 converged on one output peak that rises before any X and is never
+// let go: w1's at 138, near no event, and w2's at C. Under the old rule, one bump of the right size earned more than
+// half of a recall point wherever it was: f4 0.53 and 0.63. Now only a peak near the event due is paid, so w1's earns
+// nothing and w2's only where C is due.
+TEST_CASE("SerialOrderFitnessTest gives a peak held through recall credit only where it sits on the event due", "[Solutions][SerialOrderFitnessTest]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+
+    auto offEvent = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-held-peak-off-event.dnf");
+    offEvent.evaluate();
+    CHECK(offEvent.getParameters().partialFitness[3] < 0.05);
+
+    // C is due at 3 of the 12 recall points, and a peak of the right size there earns about 0.92 of each.
+    auto atC = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-held-peak-before-cue.dnf");
+    atC.evaluate();
+    CHECK(atC.getParameters().partialFitness[3] == Catch::Approx(3.0 * 0.92 / 12.0).margin(0.03));
+}
+
 // With no connection into the output, it stays at rest: quiet through the demonstration, but with nothing stored,
 // recalled or suppressed. Noise moves single samples by hundredths, so those terms come out near zero, not exactly.
 TEST_CASE("SerialOrderFitnessTest gives no memory or recall credit to an output that never responds", "[Solutions][SerialOrderFitnessTest]")

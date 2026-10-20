@@ -136,8 +136,7 @@ namespace neat_dnfs
 				runUntil(cue + recallPeakTimes[event]);
 				trace.push_back(snapshot(std::format("recall {} {}", cycle, sequence[event].label)));
 				inputRest.push_back(closenessOfMeanActivationToRestingLevel(inputField));
-				recallPeaks.push_back(oneBumpAtPositionWithAmplitudeAndWidth(outputField, sequence[event].position,
-					outputPeakAmplitude, outputPeakWidth));
+				recallPeaks.push_back(recallPeakAt(sequence[event].position));
 				if (event + 1 < sequence.size())
 				{
 					recallPreShapes.push_back(preShapedInOrder(positionsOf(event + 1, sequence.size())));
@@ -211,6 +210,13 @@ namespace neat_dnfs
 		const double order = positions.size() > 1 ? activationsDescendAcrossPositions(outputField, positions) : 1.0;
 		// Order only counts among real pre-shapes: noise alone puts a flat field's samples in some order.
 		return mean(preShapes) * (0.5 + 0.5 * order);
+	}
+
+	double SerialOrderFitnessTest::recallPeakAt(const double position) const
+	{
+		// A lone peak anywhere would still earn the bump score's count, height and width shares: paid only near the event.
+		return oneBumpAtPositionWithAmplitudeAndWidth(outputField, position, outputPeakAmplitude, outputPeakWidth)
+			* closenessOfNearestBumpToPosition(outputField, position);
 	}
 
 	double SerialOrderFitnessTest::troughsAt(const std::vector<double>& positions) const
