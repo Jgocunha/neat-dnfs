@@ -58,17 +58,44 @@ instead of letting them tie. That is why its no-gradient seed now recalls one it
 Scoring ideal behaviours by hand had put one held winner at 0.41. In serial order, though, a peak that stays on also
 costs the next cycles, because no fresh onset can be seen; the no-done seed scores 0.36.
 
-## Planned runs (not yet run)
+## Runs (20 October 2026)
 
-One `neat-dnfs-inc-evol` run per seed, at most two at a time, with the `compat-threshold-4` preset. That is the setting
-under which the sequence-timing seeds solved: run 18 at 4.0, against run 17 at 1.5 with the same seed.
+Two `neat-dnfs-inc-evol` runs per seed, one at a time, under the peak-height evaluator (`f8a1098`), built from
+`9800a75`, with the `compat-threshold-4` preset (the setting under which the sequence-timing seeds solved: run 18 at
+4.0, against run 17 at 1.5), population 1000, up to 100 generations, `--target 0.93`:
 
 ```
 neat-dnfs-inc-evol --task serial-order --runs 1 --gens 100 --target 0.93 --ablation compat-threshold-4 --template <seed>.dnf
 ```
 
-The preset's label puts the runs in `data/Serial Order Compat 4/`, so the launch script needs
-`TASKDIR="Serial Order Compat 4"`.
+Data: `data/Serial Order Compat 4/`, 01:41-02:08; each run's `config/README.md` has its outcome. Champions and replays
+are in the hand-off bundle under `serial-order/runs/sc-run-<n>/`. Re-evaluated is the champion's mean of 10.
+
+| Run | Seed | Stopped at | Reported | Re-evaluated | Outcome |
+|---|---|---|---|---|---|
+| 1 | no-gradient | gen 18 | 0.991 | 0.828 | Not rediscovered: order still set by noise (order credit 0.49, seed 0.41) |
+| 4 | no-gradient | gen 13 | 0.994 | 0.912-0.918 | Partly: A and B always last, D and C sometimes swapped (order 0.71-0.73) |
+| 2 | no-done | gen 3 | 0.994 | 0.831-0.884 | Partly: one connection, S to clamp (inhibitory); clean on the first trigger, then degrades |
+| 5 | no-done | gen 3 | 0.994 | **0.993** | **Rediscovered:** one connection, S to latch (inhibitory); the latch doubles as the done field |
+| 3 | no-latch | gen 15 | 0.960 | 0.941 | Rediscovered, but the output also fires during the demonstration |
+| 6 | no-latch | gen 18 | 0.976 | 0.958-0.972 | **Rediscovered:** clean on every trigger, silent demonstration |
+
+**The done field and the latch are easy to rediscover; the primacy gradient is not.**
+- **No-done, run 5:** the seed plus one inhibitory connection from the selection field S to the recall latch R
+  (amplitude -18, width 8.7). Each winner switches the bistable latch off at its own position for good, so it loses
+  its lift and the next item wins; the next X lights the whole latch again. That design has 7 fields, one fewer than
+  the hand-built one, and scores as well.
+- **No-done, run 2:** the same idea through the clamp, which nothing re-lights, so recall uses up the order.
+- **No-latch, runs 3 and 6:** the clamp, on once memory holds something, takes over the latch's lift of S (4-8).
+- **No-gradient:** run 1 found nothing; run 4 added two fields on a new path from memory to S and got a partial
+  ranking.
+
+**`--target 0.93` stops a seeded run on its first evaluation with every term above 0.93.** Single evaluations are
+noisy, so every run stopped early, and reported scores ran up to 0.17 above re-evaluated ones. For the no-gradient
+seed it is worse: without a ranking, the recall order is set by noise once per trial and repeated on every trigger, so
+in a population of 1000 some genome draws D, C, A, B in its one evaluation every generation. One extra replicate per
+seed with no early stop (`--target 1.0`, 100 generations) was run alongside, to see what evolution reaches when it is
+not stopped by luck (pending).
 
 The seeds and their replays are in the hand-off bundle under `serial-order/architectures/seeds/` (gitignored scratch),
 built by `tools/handbuilt/order_seed.py`.
