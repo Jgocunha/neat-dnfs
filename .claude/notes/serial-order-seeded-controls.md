@@ -80,22 +80,32 @@ are in the hand-off bundle under `serial-order/runs/sc-run-<n>/`. Re-evaluated i
 | 3 | no-latch | gen 15 | 0.960 | 0.941 | Rediscovered, but the output also fires during the demonstration |
 | 6 | no-latch | gen 18 | 0.976 | 0.958-0.972 | **Rediscovered:** clean on every trigger, silent demonstration |
 
-**The done field and the latch are easy to rediscover; the primacy gradient is not.**
+**Every one of the three mechanisms was rediscovered.** The done field and the latch within 2-18 generations, the
+primacy gradient within 40-68 once the run was not stopped early (no-early-stop replicates below).
 - **No-done, run 5:** the seed plus one inhibitory connection from the selection field S to the recall latch R
   (amplitude -18, width 8.7). Each winner switches the bistable latch off at its own position for good, so it loses
   its lift and the next item wins; the next X lights the whole latch again. That design has 7 fields, one fewer than
   the hand-built one, and scores as well.
 - **No-done, run 2:** the same idea through the clamp, which nothing re-lights, so recall uses up the order.
 - **No-latch, runs 3 and 6:** the clamp, on once memory holds something, takes over the latch's lift of S (4-8).
-- **No-gradient:** run 1 found nothing; run 4 added two fields on a new path from memory to S and got a partial
-  ranking.
+- **No-gradient:** run 1 found nothing before it stopped; run 4 added two fields on a new path from memory to S and
+  got a partial ranking. Without early stop (1b below) it found a full gradient.
 
 **`--target 0.93` stops a seeded run on its first evaluation with every term above 0.93.** Single evaluations are
 noisy, so every run stopped early, and reported scores ran up to 0.17 above re-evaluated ones. For the no-gradient
 seed it is worse: without a ranking, the recall order is set by noise once per trial and repeated on every trigger, so
 in a population of 1000 some genome draws D, C, A, B in its one evaluation every generation. One extra replicate per
 seed with no early stop (`--target 1.0`, 100 generations) was run alongside, to see what evolution reaches when it is
-not stopped by luck (pending).
+not stopped by luck:
+
+| Run | Seed | Re-evaluated | Outcome |
+|---|---|---|---|
+| 1b | no-gradient | **0.998** (10 of 10) | **Rediscovered**, above the hand-built 0.994: the clamp field nf 4 holds a primacy gradient (D 184, C 178, A 177, B 172.5 during recall); full peaks of 17.5, one at a time, silent demonstration. 11 fields, 22 connections |
+| 2b | no-done | pending | |
+| 3b | no-latch | pending | |
+
+The stop rule needs re-evaluation before it stops a run, for example the best genome's mean over a few evaluations;
+that is an evolution-loop change, not made.
 
 The seeds and their replays are in the hand-off bundle under `serial-order/architectures/seeds/` (gitignored scratch),
 built by `tools/handbuilt/order_seed.py`.
