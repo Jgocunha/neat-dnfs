@@ -1,6 +1,7 @@
 #pragma once
 
 #include "genome.h"
+#include <dnf_composer/elements/timed_gauss_stimulus.h>
 #include <format>
 #include <optional>
 
@@ -288,6 +289,17 @@ namespace neat_dnfs
 			const dnf_composer::element::ElementDimensions& dimensions);
 		/// @brief Removes every boost stimulus from the phenotype.
 		void removeBoostStimuli();
+		/// @brief Adds a Gaussian stimulus that drives @p targetElement only during its time windows.
+		/// @details Added after the fields, it is stepped after them, so a field feels it one step after a window
+		/// opens and one step after it closes. A solution saved with it carries its schedule, so the saved file
+		/// replays it in dnf-composer.
+		/// @param name Unique name of the stimulus element.
+		/// @param targetElement Name of the neural field it drives.
+		/// @param parameters Width, amplitude, position and the [start, end] windows, in simulation time.
+		/// @param dimensions Dimensions of the target field.
+		void addTimedGaussianStimulus(const std::string& name, const std::string& targetElement,
+			const dnf_composer::element::TimedGaussStimulusParameters& parameters,
+			const dnf_composer::element::ElementDimensions& dimensions);
 		void setGaussianStimulusParameters(const std::string& stimulusName, const dnf_composer::element::GaussStimulusParameters& parameters) const;
 		/// @brief Fitness score in [0,1] reflecting how close the field activity is to its resting level (no bump).
 		double closenessToRestingLevel(const std::string& fieldName) const;

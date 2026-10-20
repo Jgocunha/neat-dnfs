@@ -1,7 +1,6 @@
 #include "solutions/serial_order_fitness_test.h"
 
 #include <array>
-#include <cmath>
 #include <numeric>
 
 namespace neat_dnfs
@@ -13,16 +12,20 @@ namespace neat_dnfs
 
 		struct Event
 		{
+			const char* label;
 			double position;
 			double onset; // after the demonstration's cue X
 		};
 
 		// D, C, A and B: recall must replay them in this order.
-		constexpr std::array<Event, 4> sequence{ { { 180.0, 100.0 }, { 120.0, 600.0 }, 
-			{ 20.0, 800.0 }, { 80.0, 1800.0 } } };
+		constexpr std::array<Event, 4> sequence{ { { "D", 180.0, 100.0 }, { "C", 120.0, 600.0 },
+			{ "A", 20.0, 800.0 }, { "B", 80.0, 1800.0 } } };
 		constexpr double pulseDuration = 50.0;
-		constexpr double demonstrationDuration = 2550.0;
-		constexpr std::array<double, 3> recallCycleDurations{ 1000.0, 800.0, 1500.0 };
+		// The demonstration's X, then one X starting each recall cycle: 1000, 800 and 1500 long.
+		constexpr std::array<double, 4> cueTimes{ 0.0, 2550.0, 3550.0, 4350.0 };
+		constexpr double endTime = 5850.0;
+		// X lifts the whole input field evenly, as a boost would, as a stimulus a saved file can replay.
+		constexpr double cueWidth = 1e6;
 		// When each event's recalled peak is scored, after the cue: inside the reference 
 		// design's peak on every cycle.
 		constexpr std::array<double, 4> recallPeakTimes{ 150.0, 290.0, 400.0, 500.0 };
@@ -93,35 +96,33 @@ namespace neat_dnfs
 			}
 		};
 
-		// demonstration: X, then D, C, A and B
+		// the schedule a saved solution carries, so its file replays this evaluation
+		createPhenotypeEnvironment();
 		initSimulation();
-		cue();
-		runFor(sequence.front().onset - pulseDuration);
+
+		// demonstration: X, then D, C, A and B
+		runUntil(sequence.front().onset);
 		inputRest.push_back(closenessOfMeanActivationToRestingLevel(inputField));
 		scoreDemonstratedOutput(0);
 		for (size_t event = 0; event < sequence.size(); ++event)
 		{
-			presentEvent(sequence[event].position);
+			runUntil(sequence[event].onset + pulseDuration);
 			inputPeaks.push_back(oneBumpAtPositionWithAmplitudeAndWidth(inputField, sequence[event].position,
 				inputPeakAmplitude, inputPeakWidth));
 			scoreDemonstratedOutput(event + 1);
-			removeGaussianStimuli();
 
-			const double nextOnset = event + 1 < sequence.size() ? sequence[event + 1].onset : demonstrationDuration;
-			runFor(nextOnset - sequence[event].onset - pulseDuration);
+			runUntil(event + 1 < sequence.size() ? sequence[event + 1].onset : cueTimes[1]);
 			inputRest.push_back(closenessOfMeanActivationToRestingLevel(inputField));
 			scoreDemonstratedOutput(event + 1);
 		}
 
 		// recall: each X replays D, C, A and B one peak at a time
-		for (const double cycleDuration : recallCycleDurations)
+		for (size_t cycle = 1; cycle < cueTimes.size(); ++cycle)
 		{
-			cue();
-			double elapsed = pulseDuration;
+			const double cue = cueTimes[cycle];
 			for (size_t event = 0; event < sequence.size(); ++event)
 			{
-				runFor(recallPeakTimes[event] - elapsed);
-				elapsed = recallPeakTimes[event];
+				runUntil(cue + recallPeakTimes[event]);
 				inputRest.push_back(closenessOfMeanActivationToRestingLevel(inputField));
 				recallPeaks.push_back(oneBumpAtPositionWithAmplitudeAndWidth(outputField, sequence[event].position,
 					outputPeakAmplitude, outputPeakWidth));
@@ -134,9 +135,9 @@ namespace neat_dnfs
 					recallTroughs.push_back(troughsAt(positionsOf(0, event)));
 				}
 			}
-			runFor(recallEndTime - elapsed);
+			runUntil(cue + recallEndTime);
 			afterRecall.push_back(0.5 * noBumps(outputField) + 0.5 * troughsAt(positionsOf(0, sequence.size())));
-			runFor(cycleDuration - recallEndTime);
+			runUntil(cycle + 1 < cueTimes.size() ? cueTimes[cycle + 1] : endTime);
 			afterRecall.push_back(0.5 * noBumps(outputField) + 0.5 * troughsAt(positionsOf(0, sequence.size())));
 		}
 
@@ -156,28 +157,33 @@ namespace neat_dnfs
 
 	void SerialOrderFitnessTest::createPhenotypeEnvironment()
 	{
+		using namespace dnf_composer::element;
+		const ElementDimensions dimensions{ DimensionConstants::xSize, DimensionConstants::dx };
+
+		std::vector<std::pair<double, double>> cueWindows;
+		for (const double cue : cueTimes)
+		{
+			cueWindows.emplace_back(cue, cue + pulseDuration);
+		}
+		addTimedGaussianStimulus("tgs X", inputField, TimedGaussStimulusParameters{ cueWidth,
+			GaussStimulusConstants::amplitude, DimensionConstants::xSize / 2.0, cueWindows, false, false }, dimensions);
+
+		for (const auto& event : sequence)
+		{
+			addTimedGaussianStimulus(std::format("tgs {}", event.label), inputField,
+				TimedGaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude,
+					event.position, { { event.onset, event.onset + pulseDuration } },
+					GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
+				dimensions);
+		}
 	}
 
-	void SerialOrderFitnessTest::cue()
+	void SerialOrderFitnessTest::runUntil(const double time)
 	{
-		addBoostStimulus(inputField, GaussStimulusConstants::amplitude,
-			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
-		runFor(pulseDuration);
-		removeBoostStimuli();
-	}
-
-	void SerialOrderFitnessTest::presentEvent(const double position)
-	{
-		addGaussianStimulus(inputField,
-			dnf_composer::element::GaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude,
-				position, GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-			dnf_composer::element::ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
-		runFor(pulseDuration);
-	}
-
-	void SerialOrderFitnessTest::runFor(const double duration)
-	{
-		runSimulation(static_cast<int>(std::lround(duration / SimulationConstants::deltaT)));
+		while (phenotype.getT() < time - 1e-9)
+		{
+			runSimulation(1);
+		}
 	}
 
 	double SerialOrderFitnessTest::preShapedInOrder(const std::vector<double>& positions) const

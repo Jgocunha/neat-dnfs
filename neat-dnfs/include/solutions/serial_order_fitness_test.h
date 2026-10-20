@@ -8,7 +8,9 @@ namespace neat_dnfs
 	///
 	/// @details The demonstration is a start cue X (a boost of the input field "nf 1"), then D (180), C (120), A (20)
 	/// and B (80) as Gaussian pulses at 100, 600, 800 and 1800 after it. After a gap of 700, X is given three times,
-	/// starting recall cycles of 1000, 800 and 1500. Every field is scored at the end of each interval of that
+	/// starting recall cycles of 1000, 800 and 1500. createPhenotypeEnvironment() lays that schedule down as timed
+	/// stimuli, which the evaluation runs on and every saved solution carries, so a saved file replays the evaluation
+	/// in dnf-composer. Every field is scored at the end of each interval of that
 	/// schedule, against what the hand-built design of 18 October 2026 (tests/fixtures/
 	/// serial-order-fitness-test-reference.dnf) does there:
 	/// - the input peaks at each event and is at rest otherwise;
@@ -41,14 +43,9 @@ namespace neat_dnfs
 		void testPhenotype() override;
 		void createPhenotypeEnvironment() override;
 
-		/// @brief Gives the start cue X: boosts the input field for one pulse duration.
-		void cue();
-		/// @brief Switches on an event's Gaussian pulse on the input field and simulates one pulse duration.
-		/// @param position Field position of the event.
-		void presentEvent(double position);
-		/// @brief Simulates for @p duration of simulation time.
-		/// @param duration Simulation time to run, converted to steps at the configured deltaT.
-		void runFor(double duration);
+		/// @brief Simulates until the simulation time reaches @p time.
+		/// @param time Simulation time to stop at.
+		void runUntil(double time);
 		/// @brief Scores the output pre-shaped at @p positions, above the rest of the field and in that order.
 		/// @param positions Event positions, highest pre-shape expected first.
 		/// @return The mean pre-shape, with half of it kept only as far as the pre-shapes are in order.

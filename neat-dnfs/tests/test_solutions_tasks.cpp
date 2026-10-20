@@ -719,6 +719,51 @@ TEST_CASE("SerialOrderFitnessTest scores the reference design above 0.9 on every
     }
 }
 
+// A saved solution carries what createPhenotypeEnvironment() adds, and the evaluation runs on that same schedule, so a
+// saved design opened in dnf-composer replays what was scored.
+TEST_CASE("SerialOrderFitnessTest saves its schedule with each solution, so a saved design replays its evaluation", "[Solutions][SerialOrderFitnessTest]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+    const auto fixture = loadFixtureSimulation("serial-order-fitness-test-reference.dnf");
+    SerialOrderFitnessTest solution(sequenceTimingTopology(), *fixture);
+    const auto saveDirectory = std::filesystem::temp_directory_path() / "neat-dnfs-serial-order-fitness-test-replay";
+
+    // As PopulationFileManager saves a solution: into <directory>/<identifier>/<identifier>.dnf.
+    Solution& saved = solution;
+    saved.buildPhenotype();
+    saved.createPhenotypeEnvironment();
+    std::filesystem::path savedFile;
+    {
+        const auto simulation = std::make_shared<dnf_composer::Simulation>(saved.getPhenotype());
+        dnf_composer::SimulationFileManager(simulation, saveDirectory.generic_string()).saveElementsToJson();
+        const std::string identifier = simulation->getUniqueIdentifier();
+        savedFile = saveDirectory / identifier / (identifier + ".dnf");
+    }
+    saved.clearPhenotype();
+    REQUIRE(std::filesystem::exists(savedFile));
+
+    const auto replay = std::make_shared<dnf_composer::Simulation>();
+    dnf_composer::SimulationFileManager(replay, savedFile.generic_string()).loadElementsFromJson();
+    replay->init();
+    const auto output = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(replay->getElement("nf 2"));
+    REQUIRE(output != nullptr);
+    // When the evaluation scores each recalled peak of the first cycle.
+    for (const auto& [time, position] : std::vector<std::pair<double, double>>{ { 2700.0, 180.0 }, { 2840.0, 120.0 },
+        { 2950.0, 20.0 }, { 3050.0, 80.0 } })
+    {
+        while (replay->getT() < time - 1e-9)
+        {
+            replay->step();
+        }
+        const auto bumps = output->getBumps();
+        INFO("t " << time);
+        REQUIRE(bumps.size() == 1);
+        CHECK(std::abs(bumps.front().centroid - position) <= 1.0);
+    }
+    std::filesystem::remove_all(saveDirectory);
+}
+
 // With no connection into the output, it stays at rest: quiet through the demonstration, but with nothing stored,
 // recalled or suppressed. Noise moves single samples by hundredths, so those terms come out near zero, not exactly.
 TEST_CASE("SerialOrderFitnessTest gives no memory or recall credit to an output that never responds", "[Solutions][SerialOrderFitnessTest]")

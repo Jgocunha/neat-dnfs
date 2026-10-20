@@ -887,6 +887,32 @@ TEST_CASE("Solution troughBelowFieldAtPosition scores zero for a field lowered a
     CHECK(score == 0.0);
 }
 
+TEST_CASE("Solution addTimedGaussianStimulus drives its field inside its time window only", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    static constexpr double windowStart = 20.0;
+    // Five time constants: long enough for the field to come close to what the stimulus drives it to.
+    const double windowEnd = windowStart + 5.0 * NeuralFieldConstants::tau;
+    double liftBeforeWindow = -1.0;
+    double liftInWindow = -1.0;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.addTimedGaussianStimulus("tgs probe", "nf 1",
+            TimedGaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude, 50.0,
+                { { windowStart, windowEnd } }, true, false },
+            ElementDimensions{ DimensionConstants::xSize, DimensionConstants::dx });
+        probe.initSimulation();
+        const double restingLevel = probe.restingLevelOf("nf 1");
+        // dnf-composer samples position 50 at index 49.
+        probe.runUntil(windowStart - SimulationConstants::deltaT);
+        liftBeforeWindow = probe.activationOf("nf 1")[49] - restingLevel;
+        probe.runUntil(windowEnd);
+        liftInWindow = probe.activationOf("nf 1")[49] - restingLevel;
+    });
+
+    CHECK(std::abs(liftBeforeWindow) < 0.5);
+    CHECK(liftInWindow > 5.0);
+}
+
 TEST_CASE("Solution activationsDescendAcrossPositions scores the share of consecutive positions in descending order", "[Solution][FieldHelpers]")
 {
     resetGlobalState();

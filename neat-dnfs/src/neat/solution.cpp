@@ -847,6 +847,18 @@ namespace neat_dnfs
 		boostStimulus->init();
 	}
 
+	void Solution::addTimedGaussianStimulus(const std::string& name, const std::string& targetElement,
+		const dnf_composer::element::TimedGaussStimulusParameters& parameters,
+		const dnf_composer::element::ElementDimensions& dimensions)
+	{
+		using namespace dnf_composer::element;
+
+		const auto timedStimulus = std::make_shared<TimedGaussStimulus>(ElementCommonParameters{ name, dimensions }, parameters);
+		phenotype.addElement(timedStimulus);
+		phenotype.createInteraction(name, "output", targetElement);
+		timedStimulus->init();
+	}
+
 	void Solution::removeBoostStimuli()
 	{
 		using namespace dnf_composer::element;

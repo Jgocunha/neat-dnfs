@@ -37,3 +37,7 @@ sequence-timing onsets. Every trial's trace records the onsets it demonstrated, 
 
 The scripts are `.claude/temp/analysis/all-runs-replays/make_task_replay.py` (one replay) and `build_all.py` (every
 run), both gitignored scratch.
+
+A task can make this unnecessary. A saved solution carries whatever its `createPhenotypeEnvironment()` adds, and
+`SerialOrderFitnessTest` (20 October 2026) adds its whole schedule as timed stimuli and evaluates on them, so its
+saved files are already replays of the evaluation (`serial-order-fitness-test.md`).

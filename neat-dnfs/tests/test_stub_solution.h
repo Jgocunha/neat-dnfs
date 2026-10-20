@@ -1333,6 +1333,15 @@ public:
     using Solution::activationsDescendAcrossPositions;
     using Solution::preShapeAboveFieldAtPosition;
     using Solution::troughBelowFieldAtPosition;
+    using Solution::addTimedGaussianStimulus;
+
+    void runUntil(const double time)
+    {
+        while (phenotype.getT() < time - 1e-9)
+        {
+            runSimulation(1);
+        }
+    }
 
     std::vector<double>& activationOf(const std::string& fieldName)
     {

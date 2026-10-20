@@ -12,11 +12,20 @@ equal weights.
 The reference is the hand-built design of 18 October 2026, with the competition in the output field itself
 (`tests/fixtures/serial-order-fitness-test-reference.dnf`; its dnf-composer replay is
 `serial-order/architectures/handbuilt-inrange-replay.dnf` in the hand-off bundle). It holds `gk cg 2-7`, a connection
-out of the output, so evolution can reach it only with output feedback enabled (`--ablation output-feedback`,
-`output-field-cannot-be-a-connection-source.md`).
+out of the output, so evolution can reach it only with connections out of the output allowed. The task's config turns
+that on (`GenomeMutationConstants.allowOutputAsConnectionSource`, `output-field-cannot-be-a-connection-source.md`).
 
 The schedule is the replay's: X (a boost of the input) at 0, D 180, C 120, A 20 and B 80 at 100, 600, 800 and 1800,
 each for 50; then X at 2550, 3550 and 4350, starting recall cycles of 1000, 800 and 1500.
+
+`createPhenotypeEnvironment()` lays the schedule down as timed Gaussian stimuli on the input: `tgs X`, 1e6 wide and not
+circular, so it lifts the whole field evenly as a boost does, then `tgs D`, `tgs C`, `tgs A` and `tgs B`. The
+evaluation runs on those stimuli, stepping to each interval end, and every saved solution carries them. So a saved
+champion opened in dnf-composer replays exactly what was scored, with no replay script. The stimuli come after the
+fields in the element list, so a field feels each one a step late, in the evaluation and in the replay alike. A test
+saves the reference, reloads it alone and checks that it recalls D, C, A and B at the scoring times. Moving the
+evaluation onto these stimuli, from boosts and pulses added and removed by hand, changed no genome's score by more
+than 0.03.
 
 What the reference does, probed in dnf-composer at the end of each interval:
 - the input peaks at each event (height 7.6, width 6) and is back at -10 by the next interval end;
