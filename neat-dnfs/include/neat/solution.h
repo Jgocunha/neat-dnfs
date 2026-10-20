@@ -53,6 +53,7 @@ namespace neat_dnfs
 		inline constexpr double restingLevelNoiseTolerance = 0.25;
 		inline constexpr double preShapeFullElevation = 2.0;
 		inline constexpr double troughFullDepth = 2.0;
+		inline constexpr double bumpPositionTolerance = 2.0;
 
 		/// @brief Default weights for Solution::oneBumpAtPositionWithAmplitudeAndWidth.
 		/// @return The weight set {0.45, 0.45, 0.05, 0.05}.
@@ -406,6 +407,17 @@ namespace neat_dnfs
 		/// @return The depth below the median over @p fullDepth, in [0,1].
 		double troughBelowFieldAtPosition(const std::string& fieldName, double position,
 			double fullDepth = BumpFitnessDefaults::troughFullDepth) const;
+		/// @brief Scores how close a field's nearest bump lies to @p position.
+		/// @details Unlike the position share of oneBumpAtPositionWithAmplitudeAndWidth(), which still pays
+		/// 1 / (1 + distance), this falls to nothing for a bump at another place in the field. Multiplying a bump score
+		/// by it pays a peak only where it is wanted.
+		/// @param fieldName Name of the neural field to score.
+		/// @param position Field position the bump should lie at.
+		/// @param tolerance Distance within which the bump counts as at @p position.
+		/// @return 0 with no bump, 1 if the nearest bump's centroid lies within @p tolerance of @p position, and
+		/// otherwise exp(-(distance - tolerance)^2 / (2 tolerance^2)).
+		[[nodiscard]] double closenessOfNearestBumpToPosition(const std::string& fieldName, double position,
+			double tolerance = BumpFitnessDefaults::bumpPositionTolerance) const;
 		/// @brief Reads a field's activation at @p position, the sample dnf-composer places there.
 		/// @param fieldName Name of the neural field to read.
 		/// @param position Field position to read.

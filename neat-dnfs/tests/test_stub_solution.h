@@ -1334,6 +1334,7 @@ public:
     using Solution::preShapeAboveFieldAtPosition;
     using Solution::troughBelowFieldAtPosition;
     using Solution::activationAtPosition;
+    using Solution::closenessOfNearestBumpToPosition;
     using Solution::medianActivation;
     using Solution::addTimedGaussianStimulus;
 

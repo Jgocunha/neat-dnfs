@@ -787,6 +787,56 @@ TEST_CASE("Solution oneBumpAtPositionWithAmplitudeAndWidth gives two bumps half 
     CHECK(score == Catch::Approx(0.45 / 2.0 + 0.45 / (1.0 + std::abs(closest.centroid - 30.0)) + 0.05 + 0.05));
 }
 
+TEST_CASE("Solution closenessOfNearestBumpToPosition is 1 within the tolerance of a bump and falls off as a Gaussian beyond it", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    static constexpr double tolerance = 2.0;
+    std::vector<NeuralFieldBump> bumps;
+    std::vector<double> scores;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        probe.stimulate("nf 1", GaussStimulusConstants::amplitude, 50.0);
+        probe.runSimulation(static_cast<int>(SimulationConstants::maxSimulationSteps));
+        bumps = probe.bumpsOf("nf 1");
+        if (bumps.size() == 1)
+        {
+            for (const double offset : { 0.0, tolerance, tolerance + 4.0, 20.0 })
+            {
+                scores.push_back(probe.closenessOfNearestBumpToPosition("nf 1", bumps.front().centroid + offset, tolerance));
+            }
+        }
+    });
+
+    REQUIRE(bumps.size() == 1);
+    REQUIRE(scores.size() == 4);
+    CHECK(scores[0] == Catch::Approx(1.0));
+    CHECK(scores[1] == Catch::Approx(1.0));
+    CHECK(scores[2] == Catch::Approx(std::exp(-16.0 / (2.0 * tolerance * tolerance))));
+    CHECK(scores[3] < 1e-6);
+}
+
+TEST_CASE("Solution closenessOfNearestBumpToPosition scores the nearest of several bumps, and 0 with none", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    std::vector<NeuralFieldBump> bumps;
+    double withoutBumps = -1.0;
+    double nearSecondBump = -1.0;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        probe.runSimulation(static_cast<int>(SimulationConstants::maxSimulationSteps));
+        withoutBumps = probe.closenessOfNearestBumpToPosition("nf 1", 70.0);
+        probe.stimulate("nf 1", GaussStimulusConstants::amplitude, 30.0);
+        probe.stimulate("nf 1", GaussStimulusConstants::amplitude, 70.0);
+        probe.runSimulation(static_cast<int>(SimulationConstants::maxSimulationSteps));
+        bumps = probe.bumpsOf("nf 1");
+        nearSecondBump = probe.closenessOfNearestBumpToPosition("nf 1", 70.0);
+    });
+
+    CHECK(withoutBumps == 0.0);
+    REQUIRE(bumps.size() == 2);
+    CHECK(nearSecondBump == Catch::Approx(1.0));
+}
+
 TEST_CASE("Solution preShapeAboveFieldAtPosition scores a sub-threshold activation by its height above the field", "[Solution][FieldHelpers]")
 {
     resetGlobalState();

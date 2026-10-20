@@ -7,6 +7,7 @@
 #include <limits>
 #include <cmath>
 #include <algorithm>
+#include <ranges>
 #include <charconv>
 #include <string_view>
 
@@ -1232,6 +1233,20 @@ namespace neat_dnfs
 		const auto& activation = neuralField->getComponents()->at("activation");
 		const double depth = tools::utils::median(activation) - activation[clampedIndexForPosition(neuralField, position)];
 		return std::clamp(depth / fullDepth, 0.0, 1.0);
+	}
+
+	double Solution::closenessOfNearestBumpToPosition(const std::string& fieldName, const double position,
+		const double tolerance) const
+	{
+		const auto& bumps = getNeuralFieldOrThrow(fieldName, "closenessOfNearestBumpToPosition")->getBumps();
+		if (bumps.empty())
+		{
+			return 0.0;
+		}
+		const auto nearest = std::ranges::min(bumps | std::views::transform(
+			[position](const dnf_composer::element::NeuralFieldBump& bump) { return std::abs(bump.centroid - position); }));
+		const double beyond = std::max(0.0, nearest - tolerance);
+		return std::exp(-beyond * beyond / (2.0 * tolerance * tolerance));
 	}
 
 	double Solution::activationAtPosition(const std::string& fieldName, const double position) const
