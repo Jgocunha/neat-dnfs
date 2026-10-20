@@ -117,7 +117,9 @@ default template:
 neat-dnfs-inc-evol --task dmts --template "C:/path/to/solution.json" --runs 20
 ```
 
-Evaluate a loaded solution 5 times and print its fitness each time:
+Evaluate a loaded solution 5 times and print its fitness each time. For a task that records what each evaluation
+observed (`sequence-timing*`, `serial-order`, `serial-order-fitness-test`), every evaluation's trace follows its fitness as an
+`evaluation trace:` line of JSON:
 
 ```bash
 neat-dnfs-sol-eval --task ior --evals 5

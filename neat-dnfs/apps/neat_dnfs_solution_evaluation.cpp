@@ -60,6 +60,10 @@ int main(int argc, char* argv[])
 		{
 			solution->evaluate();
 			solution->print();
+			if (const std::string trace = solution->getParameters().evaluationTrace; !trace.empty())
+			{
+				log(tools::logger::LogLevel::INFO, "evaluation trace: " + trace);
+			}
 		}
 
 		return 0;
