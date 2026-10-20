@@ -89,3 +89,8 @@ Choices made with the user:
     of f4;
   - 90% of a peak's credit is count and position, so a peak barely above threshold earns almost full credit;
   - one fixed gap and no probe trial without X leave room for fixed-lag replay.
+  - Troughs are paid for without recall. In a 10-generation smoke run (population 200, 20 October 2026), the best
+    (0.456) had a slow output (tau about 6000) and a hidden field that stores D and inhibits the output. So a trough
+    at D deepens through the whole trial, and earns f6 0.61 and f7 0.63 with no peak ever rising.
+- A genome with only the input and output, and no connection, already scores about 0.35: f1 about 0.96, f2 1 and
+  f7 0.5.
