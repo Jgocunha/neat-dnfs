@@ -1,6 +1,7 @@
 #include "solutions/serial_order_fitness_test.h"
 
 #include <array>
+#include <cmath>
 #include <numeric>
 
 namespace neat_dnfs
@@ -52,6 +53,12 @@ namespace neat_dnfs
 		{
 			return std::accumulate(values.begin(), values.end(), 0.0) / static_cast<double>(values.size());
 		}
+
+		// Two decimals keep a trace small and are finer than anything it is read for.
+		double rounded(const double value)
+		{
+			return std::round(value * 100.0) / 100.0;
+		}
 	}
 
 	SerialOrderFitnessTest::SerialOrderFitnessTest(const SolutionTopology& topology)
@@ -88,6 +95,7 @@ namespace neat_dnfs
 
 		std::vector<double> inputPeaks, inputRest, outputQuiet, outputMemory;
 		std::vector<double> recallPeaks, recallPreShapes, recallTroughs, afterRecall;
+		nlohmann::json trace = nlohmann::json::array();
 		const auto scoreDemonstratedOutput = [&](const size_t storedCount) {
 			outputQuiet.push_back(noBumps(outputField));
 			if (storedCount > 0)
@@ -102,16 +110,19 @@ namespace neat_dnfs
 
 		// demonstration: X, then D, C, A and B
 		runUntil(sequence.front().onset);
+		trace.push_back(snapshot("before D"));
 		inputRest.push_back(closenessOfMeanActivationToRestingLevel(inputField));
 		scoreDemonstratedOutput(0);
 		for (size_t event = 0; event < sequence.size(); ++event)
 		{
 			runUntil(sequence[event].onset + pulseDuration);
+			trace.push_back(snapshot(std::format("{} shown", sequence[event].label)));
 			inputPeaks.push_back(oneBumpAtPositionWithAmplitudeAndWidth(inputField, sequence[event].position,
 				inputPeakAmplitude, inputPeakWidth));
 			scoreDemonstratedOutput(event + 1);
 
 			runUntil(event + 1 < sequence.size() ? sequence[event + 1].onset : cueTimes[1]);
+			trace.push_back(snapshot(std::format("after {}", sequence[event].label)));
 			inputRest.push_back(closenessOfMeanActivationToRestingLevel(inputField));
 			scoreDemonstratedOutput(event + 1);
 		}
@@ -123,6 +134,7 @@ namespace neat_dnfs
 			for (size_t event = 0; event < sequence.size(); ++event)
 			{
 				runUntil(cue + recallPeakTimes[event]);
+				trace.push_back(snapshot(std::format("recall {} {}", cycle, sequence[event].label)));
 				inputRest.push_back(closenessOfMeanActivationToRestingLevel(inputField));
 				recallPeaks.push_back(oneBumpAtPositionWithAmplitudeAndWidth(outputField, sequence[event].position,
 					outputPeakAmplitude, outputPeakWidth));
@@ -136,8 +148,10 @@ namespace neat_dnfs
 				}
 			}
 			runUntil(cue + recallEndTime);
+			trace.push_back(snapshot(std::format("recall {} end", cycle)));
 			afterRecall.push_back(0.5 * noBumps(outputField) + 0.5 * troughsAt(positionsOf(0, sequence.size())));
 			runUntil(cycle + 1 < cueTimes.size() ? cueTimes[cycle + 1] : endTime);
+			trace.push_back(snapshot(std::format("recall {} rest", cycle)));
 			afterRecall.push_back(0.5 * noBumps(outputField) + 0.5 * troughsAt(positionsOf(0, sequence.size())));
 		}
 
@@ -153,6 +167,7 @@ namespace neat_dnfs
 
 		const auto& w = fitnessWeights;
 		parameters.fitness = w[0] * f1 + w[1] * f2 + w[2] * f3 + w[3] * f4 + w[4] * f5 + w[5] * f6 + w[6] * f7;
+		parameters.evaluationTrace = nlohmann::json{ { "snapshots", trace } }.dump();
 	}
 
 	void SerialOrderFitnessTest::createPhenotypeEnvironment()
@@ -206,5 +221,29 @@ namespace neat_dnfs
 			troughs.push_back(troughBelowFieldAtPosition(outputField, position));
 		}
 		return mean(troughs);
+	}
+
+	nlohmann::json SerialOrderFitnessTest::snapshot(const std::string& stage) const
+	{
+		const auto bumpsOf = [this](const std::string& fieldName) {
+			nlohmann::json bumps = nlohmann::json::array();
+			for (const auto& bump : getNeuralFieldOrThrow(fieldName, "snapshot")->getBumps())
+			{
+				bumps.push_back({ rounded(bump.centroid), rounded(bump.amplitude), rounded(bump.width) });
+			}
+			return bumps;
+		};
+		nlohmann::json atEvents = nlohmann::json::object();
+		for (const auto& event : sequence)
+		{
+			atEvents[event.label] = rounded(activationAtPosition(outputField, event.position));
+		}
+		return {
+			{ "stage", stage },
+			{ "t", rounded(phenotype.getT()) },
+			{ "input", { { "bumps", bumpsOf(inputField) } } },
+			{ "output", { { "bumps", bumpsOf(outputField) }, { "median", rounded(medianActivation(outputField)) },
+				{ "atEvents", atEvents } } }
+		};
 	}
 }

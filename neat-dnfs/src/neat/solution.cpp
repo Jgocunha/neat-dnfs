@@ -1234,6 +1234,17 @@ namespace neat_dnfs
 		return std::clamp(depth / fullDepth, 0.0, 1.0);
 	}
 
+	double Solution::activationAtPosition(const std::string& fieldName, const double position) const
+	{
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "activationAtPosition");
+		return neuralField->getComponents()->at("activation")[clampedIndexForPosition(neuralField, position)];
+	}
+
+	double Solution::medianActivation(const std::string& fieldName) const
+	{
+		return tools::utils::median(getNeuralFieldOrThrow(fieldName, "medianActivation")->getComponents()->at("activation"));
+	}
+
 	void Solution::moveGaussianStimulusContinuously(const std::string& name, const double targetPosition, const double step)
 	{
 		constexpr double epsilon = 1e-6;

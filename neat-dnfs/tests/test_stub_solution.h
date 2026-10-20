@@ -1333,6 +1333,8 @@ public:
     using Solution::activationsDescendAcrossPositions;
     using Solution::preShapeAboveFieldAtPosition;
     using Solution::troughBelowFieldAtPosition;
+    using Solution::activationAtPosition;
+    using Solution::medianActivation;
     using Solution::addTimedGaussianStimulus;
 
     void runUntil(const double time)

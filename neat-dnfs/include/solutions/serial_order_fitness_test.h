@@ -1,5 +1,7 @@
 #pragma once
 
+#include <nlohmann/json.hpp>
+
 #include "neat/solution.h"
 
 namespace neat_dnfs
@@ -23,6 +25,11 @@ namespace neat_dnfs
 	/// The seven partial fitness terms are those stages: f1 the input, f2 the quiet output and f3 its pre-shapes
 	/// during the demonstration, f4 the recalled peaks, f5 the pre-shapes still to come, f6 the troughs during recall
 	/// and f7 the output after recall.
+	///
+	/// Every evaluation also records a trace in SolutionParameters::evaluationTrace. At each point it is scored, the
+	/// trace gives:
+	/// - the input's bumps;
+	/// - the output's bumps, its median activation and its activation at each event.
 	class SerialOrderFitnessTest final : public Solution
 	{
 	public:
@@ -54,5 +61,9 @@ namespace neat_dnfs
 		/// @param positions Event positions.
 		/// @return The mean trough score over @p positions.
 		[[nodiscard]] double troughsAt(const std::vector<double>& positions) const;
+		/// @brief Records what the input and output look like now, for the evaluation trace.
+		/// @param stage Name of the point in the schedule being scored, such as "C shown" or "recall 2 A".
+		/// @return The time, the input's bumps, and the output's bumps, median and activation at each event.
+		[[nodiscard]] nlohmann::json snapshot(const std::string& stage) const;
 	};
 }

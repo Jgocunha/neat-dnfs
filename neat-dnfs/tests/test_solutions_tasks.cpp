@@ -764,6 +764,49 @@ TEST_CASE("SerialOrderFitnessTest saves its schedule with each solution, so a sa
     std::filesystem::remove_all(saveDirectory);
 }
 
+// Each evaluation records what the input and output looked like at every point it was scored, so a run's best
+// solution can be read from its overview without re-simulating it.
+TEST_CASE("SerialOrderFitnessTest traces the input and output at every point it scores them", "[Solutions][SerialOrderFitnessTest]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+    auto solution = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-reference.dnf");
+
+    solution.evaluate();
+
+    const auto trace = nlohmann::json::parse(solution.getParameters().evaluationTrace);
+    const auto& snapshots = trace.at("snapshots");
+    REQUIRE(snapshots.size() == 27); // 9 in the demonstration, 6 in each of three recall cycles
+    const auto snapshotAt = [&snapshots](const std::string& stage) {
+        const auto found = std::ranges::find_if(snapshots, [&stage](const auto& s) { return s.at("stage") == stage; });
+        REQUIRE(found != snapshots.end());
+        return *found;
+    };
+
+    const auto shown = snapshotAt("C shown");
+    CHECK(shown.at("t").get<double>() == Catch::Approx(650.0));
+    const auto& inputBumps = shown.at("input").at("bumps");
+    REQUIRE(inputBumps.size() == 1);
+    CHECK(std::abs(inputBumps[0][0].get<double>() - 120.0) <= 1.0);
+
+    const auto stored = snapshotAt("after B").at("output");
+    CHECK(stored.at("bumps").empty());
+    const auto& atEvents = stored.at("atEvents");
+    CHECK(atEvents.at("D").get<double>() > atEvents.at("C").get<double>());
+    CHECK(atEvents.at("C").get<double>() > atEvents.at("A").get<double>());
+    CHECK(atEvents.at("A").get<double>() > atEvents.at("B").get<double>());
+    CHECK(atEvents.at("B").get<double>() > stored.at("median").get<double>());
+
+    for (const auto& [stage, position] : std::vector<std::pair<std::string, double>>{ { "recall 1 D", 180.0 },
+        { "recall 1 C", 120.0 }, { "recall 1 A", 20.0 }, { "recall 1 B", 80.0 } })
+    {
+        INFO(stage);
+        const auto recalled = snapshotAt(stage).at("output").at("bumps");
+        REQUIRE(recalled.size() == 1);
+        CHECK(std::abs(recalled[0][0].get<double>() - position) <= 1.0);
+    }
+}
+
 // With no connection into the output, it stays at rest: quiet through the demonstration, but with nothing stored,
 // recalled or suppressed. Noise moves single samples by hundredths, so those terms come out near zero, not exactly.
 TEST_CASE("SerialOrderFitnessTest gives no memory or recall credit to an output that never responds", "[Solutions][SerialOrderFitnessTest]")

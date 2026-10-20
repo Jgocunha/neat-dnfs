@@ -887,6 +887,42 @@ TEST_CASE("Solution troughBelowFieldAtPosition scores zero for a field lowered a
     CHECK(score == 0.0);
 }
 
+TEST_CASE("Solution activationAtPosition reads the sample dnf-composer places at the position", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    std::vector<double> activations;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        auto& activation = probe.activationOf("nf 1");
+        std::ranges::fill(activation, -4.0);
+        activation[49] = 3.0; // position 50
+        for (const double position : { 50.0, 51.0 })
+        {
+            activations.push_back(probe.activationAtPosition("nf 1", position));
+        }
+    });
+
+    CHECK(activations == std::vector<double>{ 3.0, -4.0 });
+}
+
+TEST_CASE("Solution medianActivation is the field's median activation, which a peak does not move", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    std::vector<double> medians;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        auto& activation = probe.activationOf("nf 1");
+        std::ranges::fill(activation, -4.0);
+        medians.push_back(probe.medianActivation("nf 1"));
+        addGaussianProfile(activation, 10.0, 50.0, oneSampleWidth);
+        medians.push_back(probe.medianActivation("nf 1"));
+        std::fill(activation.begin(), activation.begin() + static_cast<long>(activation.size() / 2) + 1, -8.0);
+        medians.push_back(probe.medianActivation("nf 1"));
+    });
+
+    CHECK(medians == std::vector<double>{ -4.0, -4.0, -8.0 });
+}
+
 TEST_CASE("Solution addTimedGaussianStimulus drives its field inside its time window only", "[Solution][FieldHelpers]")
 {
     resetGlobalState();

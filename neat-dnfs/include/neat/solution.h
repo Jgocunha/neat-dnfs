@@ -406,6 +406,16 @@ namespace neat_dnfs
 		/// @return The depth below the median over @p fullDepth, in [0,1].
 		double troughBelowFieldAtPosition(const std::string& fieldName, double position,
 			double fullDepth = BumpFitnessDefaults::troughFullDepth) const;
+		/// @brief Reads a field's activation at @p position, the sample dnf-composer places there.
+		/// @param fieldName Name of the neural field to read.
+		/// @param position Field position to read.
+		/// @return The activation at @p position.
+		[[nodiscard]] double activationAtPosition(const std::string& fieldName, double position) const;
+		/// @brief Reads the median of a field's activation: the level of the field outside its few peaks,
+		/// pre-shapes and troughs.
+		/// @param fieldName Name of the neural field to read.
+		/// @return The median activation.
+		[[nodiscard]] double medianActivation(const std::string& fieldName) const;
 		/// @brief Fitness score for exactly one bump at any one of @p positions.
 		/// @param fieldName Name of the neural field to score.
 		/// @param positions Accepted target centroids; the closest one is credited.
