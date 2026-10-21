@@ -4,7 +4,6 @@
 #include <cmath>
 #include <format>
 #include <fstream>
-#include <numeric>
 #include <stdexcept>
 #include <utility>
 
@@ -18,7 +17,8 @@ namespace neat_dnfs
 	{
 		const std::string inputField = "nf 1";
 		const std::string outputField = "nf 2";
-		// After a pulse ends, the input, a detection field with tau 10, is back at rest within five time constants.
+		// After a pulse ends, or the output falls silent after a recall, the reference's fields settle within about 50:
+		// five time constants of the input, a detection field with tau 10.
 		constexpr double settleTime = 50.0;
 		// Where a field is flat at a moment, as the input between pulses, its level alone is compared: one unit off the
 		// reference's halves the agreement.
@@ -69,6 +69,19 @@ namespace neat_dnfs
 				}
 			}
 			throw std::runtime_error(std::format("The reference profile's output never falls silent after {}.", from));
+		}
+
+		// How closely the fields match the reference's at one sample: each field's agreement mapped to [0, 1], averaged.
+		double momentScore(const ActivationProfile& profile, const ActivationProfile& reference, const size_t sample)
+		{
+			double score = 0.0;
+			for (const auto& [fieldName, samples] : profile.fields)
+			{
+				const double agreement = tools::utils::concordance(samples[sample], reference.fields.at(fieldName)[sample],
+					flatTolerance);
+				score += (1.0 + agreement) / 2.0;
+			}
+			return score / static_cast<double>(profile.fields.size());
 		}
 	}
 
@@ -162,14 +175,12 @@ namespace neat_dnfs
 	{
 		static const std::vector<Stage> trialStages = [] {
 			using namespace serial_order_schedule;
-			std::vector<Stage> result{ { "trigger", cueTimes.front(), sequence.front().onset } };
-			for (size_t event = 0; event < sequence.size(); ++event)
+			constexpr double response = pulseDuration + settleTime;
+			std::vector<Stage> result{ { "trigger", cueTimes.front(), cueTimes.front() + response } };
+			for (const auto& event : sequence)
 			{
-				const double end = event + 1 < sequence.size() ? sequence[event + 1].onset
-					: sequence[event].onset + pulseDuration + settleTime;
-				result.push_back({ std::format("event {}", sequence[event].label), sequence[event].onset, end });
+				result.push_back({ std::format("event {}", event.label), event.onset, event.onset + response });
 			}
-			result.push_back({ "wait", result.back().end, cueTimes[1] });
 
 			const ActivationProfile& reference = referenceProfile();
 			for (size_t cycle = 1; cycle < cueTimes.size(); ++cycle)
@@ -180,11 +191,11 @@ namespace neat_dnfs
 					starts.emplace_back(std::format("recall {}", event.label),
 						firstPeakAt(reference, event.position, starts.back().second));
 				}
-				starts.emplace_back("rest", firstQuietFrom(reference, starts.back().second));
-				const double cycleEnd = cycle + 1 < cueTimes.size() ? cueTimes[cycle + 1] : endTime;
+				const double silence = firstQuietFrom(reference, starts.back().second);
+				starts.emplace_back("release", silence);
 				for (size_t stage = 0; stage < starts.size(); ++stage)
 				{
-					const double end = stage + 1 < starts.size() ? starts[stage + 1].second : cycleEnd;
+					const double end = stage + 1 < starts.size() ? starts[stage + 1].second : silence + settleTime;
 					result.push_back({ std::format("{} {}", cycle, starts[stage].first), starts[stage].second, end });
 				}
 			}
@@ -198,36 +209,25 @@ namespace neat_dnfs
 		const ActivationProfile profile = runTrial();
 		const ActivationProfile& reference = referenceProfile();
 
-		// Each moment scores how closely each field matches the reference's at that moment, averaged over the fields.
-		std::vector<double> momentScores(profile.times.size(), 0.0);
-		for (const auto& [fieldName, samples] : profile.fields)
-		{
-			const auto& referenceSamples = reference.fields.at(fieldName);
-			for (size_t sample = 0; sample < samples.size(); ++sample)
-			{
-				const double agreement = tools::utils::concordance(samples[sample], referenceSamples[sample], flatTolerance);
-				momentScores[sample] += (1.0 + agreement) / 2.0 / static_cast<double>(profile.fields.size());
-			}
-		}
-
+		// Only the moments inside a stage are scored; between stages nothing happens.
 		parameters.partialFitness.clear();
-		const auto& trialStages = stages();
-		size_t sample = 0;
-		for (size_t stage = 0; stage < trialStages.size(); ++stage)
+		double total = 0.0;
+		size_t moments = 0;
+		for (const Stage& stage : stages())
 		{
-			const bool lastStage = stage + 1 == trialStages.size();
-			double total = 0.0;
-			size_t count = 0;
-			for (; sample < momentScores.size() && (lastStage || profile.times[sample] < trialStages[stage].end - 1e-9);
-				++sample)
+			double stageTotal = 0.0;
+			size_t stageMoments = 0;
+			for (size_t sample = firstSampleFrom(profile, stage.start);
+				sample < profile.times.size() && profile.times[sample] < stage.end - 1e-9; ++sample)
 			{
-				total += momentScores[sample];
-				++count;
+				stageTotal += momentScore(profile, reference, sample);
+				++stageMoments;
 			}
-			parameters.partialFitness.push_back(total / static_cast<double>(count));
+			parameters.partialFitness.push_back(stageTotal / static_cast<double>(stageMoments));
+			total += stageTotal;
+			moments += stageMoments;
 		}
-		parameters.fitness = std::accumulate(momentScores.begin(), momentScores.end(), 0.0)
-			/ static_cast<double>(momentScores.size());
+		parameters.fitness = total / static_cast<double>(moments);
 	}
 
 	void SerialOrderProfile::createPhenotypeEnvironment()

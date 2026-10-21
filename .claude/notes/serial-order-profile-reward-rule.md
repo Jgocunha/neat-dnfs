@@ -104,6 +104,116 @@ How it behaves:
   fitness is their duration-weighted mean.
   - Averaging stages equally instead would let a 2-sample X stage count as much as a 97-sample rest.
   - It ranked the judged designs about the same: favourites 0.76 against 0.71, and o,t above g,h 0.89 against 0.92.
+  - **Superseded the same day:** the wait and the rests are no longer scored. See "Scoring only the moments when
+    something happens" below.
+
+## What evolution found: a design that never recalls scores 0.871
+
+The first 200-generation run from scratch (`neat-dnfs/data/Serial Order Profile/2026-10-21 18h18m17s`) ended on a
+design that recalls nothing:
+
+- Through the demonstration it holds peaks at D and C and pushes A and B 5–6 below the field.
+- The first recall cue wipes the peaks. From then to the end the output sits at −4.1 with all four places 5–6 below
+  it, and no event place crosses threshold again.
+
+Its fitness is 0.871 against 0.76 for silence. The output alone scores 0.743, broken down here by part of the trial:
+
+| Part of the trial | Share | This design | Silent output |
+|---|---|---|---|
+| Demonstration | 44% | 0.78 | 0.54 |
+| X and rests | 31% | 0.94 | 0.51 |
+| Recall stages | 26% | 0.45 | 0.52 |
+
+- **Rests.** After recall the reference's output rises to −4, with all four places pushed down. This design copies that
+  state, without the recall that leads to it.
+- **Demonstration.** The held peaks sit where the reference builds its two highest pre-shape bumps, and concordance
+  forgives features that are too tall.
+
+**This breaks a criterion the test set never challenged.** The design's output scores above all 30 replays (best
+0.67), including o1 (10 of 12 recalls) and t6 (9 of 12). The replays score better in the recall stages (0.62–0.70),
+but they rest at −16 to −23 and lose the rests (0.29–0.45).
+
+Three variants scored on the same profiles fail too:
+
+| Variant | Result |
+|---|---|
+| Every stage counted the same | The design still beats all four favourites (0.645 against 0.58–0.63). |
+| The field minus its median at each moment (shape without level) | The design still beats all 30 replays. |
+| The field's output, sigmoid(u), instead of u | The design falls to 37th of 40, but silence (0.90) beats every replay. |
+
+Scripts: `explain_0871.py`, `rank_designs.py` and `rank_by_stage.py` in `.claude/temp/profile-investigation/`.
+
+### A second case: a recall stage scores 0.96 without its peak
+
+Two incremental runs started from the reference with one hidden field removed
+(`neat-dnfs/data/Serial Order Profile/2026-10-21 19h18m05s` and `19h18m10s`). They ended in the wrong order:
+
+| Run | Best | Recalls |
+|---|---|---|
+| Without the memory field | 0.968 | All 12, in order |
+| Without the recall driver | 0.970 | B every cycle, A fading, C once and late, D never |
+
+In the second run the output sits at −1 at D through every recall-D window, where the reference peaks at +12. Those
+stages still score 0.957–0.965. A missing peak changes only the few positions it covers out of 200, so the concordance
+at that moment barely drops.
+
+## Scoring only the moments when something happens
+
+The user asked for the times when nothing happens to be left out. A moment counts if it falls in one of these windows:
+
+- **Each stimulus**, from its onset to 50 after its pulse ends (onset + 100): 0–200, 600–700, 800–900 and 1800–1900.
+- **Each recall**, from its cue to 50 after the reference's output falls silent: 2550–3140, 3550–4130 and 4350–4930.
+
+That is 225 of the 586 moments (38%). The windows match where the reference's input or output changes by more than
+0.1 between two samples, except that they also keep each recall peak's plateau. The comparison at each moment is
+unchanged.
+
+Fitness of the key designs, where fitness = (1 + output score) / 2:
+
+| Design | Recalls | Whole trial | Relevant moments | Relevant + hold (1900–2550) |
+|---|---|---|---|---|
+| Reference | 12 | 1.000 | 1.000 | 1.000 |
+| Memory field rebuilt | 12, in order | 0.968 | 0.967 | 0.972 |
+| Release rebuilt | 12, in order | 0.959 | 0.955 | 0.965 |
+| Skips D | 6 | **0.970** | 0.936 | 0.950 |
+| From scratch | none | 0.871 | 0.779 | 0.799 |
+| Silent | none | 0.761 | 0.761 | 0.763 |
+
+How the restriction scores against the earlier checks:
+
+- **Judged replays.** Every o and t replay now scores above the from-scratch design. It stays above 6 of the 8 g and h
+  replays. Favourites ranked above the rest: AUC 0.71 → 0.78. o,t ranked above g,h: 0.92 → 0.98.
+- **Unchanged checks.** Reference repeats 1.000. All 8 sweeps still peak at the reference's value. The path from
+  silence to the reference still rises monotonically.
+- **Timing.** Errors cost more. A whole output 30 late scores 0.86 instead of 0.95, and 100 late 0.70 instead of 0.87.
+
+**Blind spot.** Whatever happens outside the windows is free. Each of these scores 1.000, against 0.98–0.99 over the
+whole trial:
+
+- a stray peak in a rest;
+- a peak held after its event is shown;
+- D recalled early, during the hold.
+
+A B peak that is never released costs only through the 50-long release window (0.995).
+
+Also scoring every moment at which the design's own output has a peak closes the blind spot, but it is rejected. It
+lifts the from-scratch design to 0.834, because its held peaks sit on the reference's pre-shape bumps.
+
+Scripts: `analyse_relevant.py`, run on `profiles/`, which now also holds the four run bests.
+
+**Implemented** for the task, which now has 23 stages:
+
+- the demonstration: "trigger", then "event D", "event C", "event A" and "event B", each 100 long;
+- each of the three recalls: X; recall D, C, A and B; and a 50-long "release".
+
+The fitness is the mean over those stages' moments.
+
+- **The hold is left out.** The user first asked for the hold before the first recall to count, then for the times
+  where nothing happens to be dropped.
+- **Checked with `neat-dnfs-sol-eval`.** It gives the same scores as the analysis: reference 1.000, recalls in order
+  0.967, release rebuilt 0.955, skips D 0.936, never recalls 0.779, silent 0.761.
+- **Fixtures.** The from-scratch, skips-D and recalls-in-order designs are now test fixtures:
+  `tests/fixtures/serial-order-profile-never-recalls.dnf`, `-skips-d.dnf` and `-recalls-in-order.dnf`.
 
 ## Literature (Undermind deep search, thesis workspace)
 

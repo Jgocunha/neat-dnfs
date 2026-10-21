@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -24,6 +25,7 @@
 #include "solutions/serial_order.h"
 #include "solutions/serial_order_fitness_test.h"
 #include "solutions/serial_order_profile.h"
+#include "solutions/serial_order_schedule.h"
 #include "neat_tools/config_loader.h"
 #include "neat_tools/resource_paths.h"
 #include "neat_tools/solution_registry.h"
@@ -1164,20 +1166,22 @@ TEST_CASE("SerialOrderProfile is registered with the serial-order template", "[S
     REQUIRE(task->outputs == 1);
 }
 
-// The demonstration's stages follow the schedule. Each recall's follow the reference design's own peaks, whose pace the
-// fitness asks for.
-TEST_CASE("SerialOrderProfile splits the trial into the demonstration's stages and each recall's, at the reference's peaks", "[Solutions][SerialOrderProfile]")
+// Only the stretches where something happens are scored. In the demonstration, that is each stimulus from its onset until
+// the fields have responded: its pulse and 50 more. Each recall's stages follow the reference design's own peaks, whose
+// pace the fitness asks for, and end 50 after its output falls silent. The hold before the first recall and the rests
+// between recalls, where the reference's fields stay as they are, are left out.
+TEST_CASE("SerialOrderProfile scores each stimulus with its response and each recall at the reference's peaks, nothing in between", "[Solutions][SerialOrderProfile]")
 {
     resetGlobalState();
     const ScopedTaskConfig taskConfig{ "serial-order-profile" };
 
     const auto& stages = SerialOrderProfile::stages();
 
-    REQUIRE(stages.size() == 24);
-    const std::vector<SerialOrderProfile::Stage> firstStages{ { "trigger", 0.0, 100.0 }, { "event D", 100.0, 600.0 },
-        { "event C", 600.0, 800.0 }, { "event A", 800.0, 1800.0 }, { "event B", 1800.0, 1900.0 }, { "wait", 1900.0, 2550.0 },
+    REQUIRE(stages.size() == 23);
+    const std::vector<SerialOrderProfile::Stage> firstStages{ { "trigger", 0.0, 100.0 }, { "event D", 100.0, 200.0 },
+        { "event C", 600.0, 700.0 }, { "event A", 800.0, 900.0 }, { "event B", 1800.0, 1900.0 },
         { "1 X", 2550.0, 2570.0 }, { "1 recall D", 2570.0, 2790.0 }, { "1 recall C", 2790.0, 2900.0 },
-        { "1 recall A", 2900.0, 3000.0 }, { "1 recall B", 3000.0, 3090.0 }, { "1 rest", 3090.0, 3550.0 } };
+        { "1 recall A", 2900.0, 3000.0 }, { "1 recall B", 3000.0, 3090.0 }, { "1 release", 3090.0, 3140.0 } };
     for (size_t stage = 0; stage < firstStages.size(); ++stage)
     {
         INFO("stage " << stage);
@@ -1185,10 +1189,58 @@ TEST_CASE("SerialOrderProfile splits the trial into the demonstration's stages a
         CHECK(stages[stage].start == firstStages[stage].start);
         CHECK(stages[stage].end == firstStages[stage].end);
     }
-    CHECK(stages[12].name == "2 X");
-    CHECK(stages[12].start == 3550.0);
-    CHECK(stages.back().name == "3 rest");
-    CHECK(stages.back().end == 5850.0);
+    CHECK(stages[11].name == "2 X");
+    CHECK(stages[11].start == 3550.0);
+    CHECK(stages.back().name == "3 release");
+    CHECK(stages.back().end == 4930.0);
+}
+
+// Moments outside every stage are not scored, and each moment inside one counts the same: the fitness is the mean of the
+// stage scores, each weighed by how many samples the stage holds.
+TEST_CASE("SerialOrderProfile's fitness is the mean over the moments inside its stages", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    auto solution = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-held-d.dnf");
+
+    solution.evaluate();
+
+    const auto& stages = SerialOrderProfile::stages();
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == stages.size());
+    double total = 0.0;
+    double moments = 0.0;
+    for (size_t stage = 0; stage < stages.size(); ++stage)
+    {
+        // samples fall on every multiple of the interval from the stage's start up to, not including, its end
+        const double samples = std::ceil(stages[stage].end / serial_order_schedule::sampleInterval)
+            - std::ceil(stages[stage].start / serial_order_schedule::sampleInterval);
+        total += partials[stage] * samples;
+        moments += samples;
+    }
+    CHECK(solution.getFitness() == Catch::Approx(total / moments));
+}
+
+// Three bests of 21 October's runs, which a score over the whole trial ranked the wrong way round:
+// - never-recalls holds peaks at D and C through the demonstration, then from the first X to the end sits at -4 with
+//   every event pushed down, the reference's state after recall, without recalling (0.871 over the whole trial);
+// - skips-d never recalls D, sitting just below threshold there through every recall, and C only once (0.970);
+// - recalls-in-order recalls D, C, A and B in order on every cycle, at the reference's pace (0.968).
+// What the first two copied lies mostly where nothing happens, which is no longer scored.
+TEST_CASE("SerialOrderProfile scores a design that never recalls below one that skips D, and both below one that recalls every event in order", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    auto neverRecalls = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-never-recalls.dnf");
+    auto skipsD = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-skips-d.dnf");
+    auto inOrder = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-recalls-in-order.dnf");
+
+    neverRecalls.evaluate();
+    skipsD.evaluate();
+    inOrder.evaluate();
+
+    CHECK(neverRecalls.getFitness() < skipsD.getFitness());
+    CHECK(skipsD.getFitness() < inOrder.getFitness());
 }
 
 // The fitness is how closely the input and the output match the reference design's at every moment, so the reference
@@ -1261,7 +1313,7 @@ TEST_CASE("SerialOrderProfile scores a peak held at D above silence while D is d
         return solution.getParameters().partialFitness[static_cast<size_t>(stage - stages.begin())];
     };
     CHECK(stageScore(held, "1 recall D") > stageScore(silent, "1 recall D"));
-    for (const auto* past : { "1 recall C", "1 rest", "3 recall C", "3 rest" })
+    for (const auto* past : { "1 recall C", "1 release", "3 recall C", "3 release" })
     {
         INFO(past);
         CHECK(stageScore(held, past) < stageScore(silent, past));
