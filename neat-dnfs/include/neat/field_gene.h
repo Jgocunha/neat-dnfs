@@ -65,6 +65,10 @@ namespace neat_dnfs
 		void print() const;
 		[[nodiscard]] FieldGene clone() const;
 	private:
+		/// @brief The parameters the task fixes for this gene's role.
+		/// @return FieldGeneConstants::fixedInputField for an input, fixedOutputField for an output, and nothing fixed
+		/// for a hidden field.
+		[[nodiscard]] const FixedFieldParameters& fixedParameters() const;
 		void initializeNeuralField(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeKernel(const dnf_composer::element::ElementDimensions& dimensions);
 		void initializeGaussKernel(const dnf_composer::element::ElementDimensions& dimensions);

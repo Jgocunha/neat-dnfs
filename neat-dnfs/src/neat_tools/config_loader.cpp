@@ -152,6 +152,43 @@ namespace neat_dnfs
 			}
 		}
 
+		/// Reads the parameters a task fixes for its input or output field. Every key in the block is
+		/// checked, since a misspelt one would otherwise leave that parameter silently free to evolve.
+		FixedFieldParameters fixedFieldParameters(const nlohmann::json& fieldGeneConstants, const char* key,
+			const std::string& path)
+		{
+			FixedFieldParameters fixed;
+			if (!fieldGeneConstants.contains(key))
+			{
+				return fixed;
+			}
+			const auto& block = fieldGeneConstants.at(key);
+			for (const auto& item : block.items())
+			{
+				if (item.key() != "tau" && item.key() != "restingLevel" && item.key() != "gaussKernel")
+				{
+					throw std::runtime_error("ConfigLoader: '" + path + "' has unknown key '" + item.key() + "' in FieldGeneConstants."
+						+ key + "; expected tau, restingLevel or gaussKernel.");
+				}
+			}
+			if (block.contains("tau"))
+			{
+				fixed.tau = block.at("tau").get<double>();
+			}
+			if (block.contains("restingLevel"))
+			{
+				fixed.restingLevel = block.at("restingLevel").get<double>();
+			}
+			if (block.contains("gaussKernel"))
+			{
+				const auto& kernel = block.at("gaussKernel");
+				fixed.gaussKernel = dnf_composer::element::GaussKernelParameters{ kernel.at("width").get<double>(),
+					kernel.at("amplitude").get<double>(), kernel.at("amplitudeGlobal").get<double>(),
+					KernelConstants::circularity, KernelConstants::normalization };
+			}
+			return fixed;
+		}
+
 		// field()/weights()/hiddenFieldBound() below only ever read a *known*
 		// key out of each block, so a mistyped struct name (e.g.
 		// "SolutonConstants" in an override file) would otherwise merge in
@@ -307,6 +344,8 @@ namespace neat_dnfs
 			field(fg, "mutateFieldGeneNeuralFieldGenerateRandomParametersProbability", &FieldGeneConstants::mutateFieldGeneNeuralFieldGenerateRandomParametersProbability);
 			field(fg, "mutateFieldGeneNeuralFieldParametersTauProbability", &FieldGeneConstants::mutateFieldGeneNeuralFieldParametersTauProbability);
 			field(fg, "mutateFieldGeneNeuralFieldParametersRestingLevelProbability", &FieldGeneConstants::mutateFieldGeneNeuralFieldParametersRestingLevelProbability);
+			FieldGeneConstants::fixedInputField = fixedFieldParameters(fg, "fixedInputField", path);
+			FieldGeneConstants::fixedOutputField = fixedFieldParameters(fg, "fixedOutputField", path);
 
 			const auto& cg = j.at("ConnectionGeneConstants");
 			field(cg, "gaussKernelProbability", &ConnectionGeneConstants::gaussKernelProbability);

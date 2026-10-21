@@ -1,5 +1,12 @@
 #include <catch2/catch_test_macros.hpp>
+
+#include <filesystem>
+#include <fstream>
+#include <set>
+
 #include "neat/field_gene.h"
+#include "neat_tools/config_loader.h"
+#include "test_helpers.h"
 
 using namespace neat_dnfs;
 using namespace dnf_composer::element;
@@ -184,4 +191,153 @@ TEST_CASE("FieldGene Kernel Parameters Access", "[FieldGene]")
         const auto mhKernel = std::dynamic_pointer_cast<MexicanHatKernel>(fieldGene.getKernel());
         REQUIRE(mhKernel != nullptr);
     }
+}
+
+namespace
+{
+    // Restores the input and output parameters a test fixes.
+    class FixedFieldsGuard
+    {
+    public:
+        FixedFieldsGuard() : input(FieldGeneConstants::fixedInputField), output(FieldGeneConstants::fixedOutputField) {}
+        ~FixedFieldsGuard()
+        {
+            FieldGeneConstants::fixedInputField = input;
+            FieldGeneConstants::fixedOutputField = output;
+        }
+        FixedFieldsGuard(const FixedFieldsGuard&) = delete;
+        FixedFieldsGuard& operator=(const FixedFieldsGuard&) = delete;
+    private:
+        FixedFieldParameters input;
+        FixedFieldParameters output;
+    };
+
+    // The serial-order reference design's input: a detection field, its peak gone once the stimulus is.
+    const FixedFieldParameters detectionField{ 10.0, -10.0, GaussKernelParameters{ 2.0, 3.0, 0.0, true, false } };
+
+    GaussKernelParameters gaussKernelOf(const FieldGene& gene)
+    {
+        const auto kernel = std::dynamic_pointer_cast<GaussKernel>(gene.getKernel());
+        REQUIRE(kernel != nullptr);
+        return kernel->getParameters();
+    }
+
+    void requireDetectionField(const FieldGene& gene)
+    {
+        CHECK(gene.getNeuralField()->getParameters().tau == 10.0);
+        CHECK(gene.getNeuralField()->getParameters().startingRestingLevel == -10.0);
+        const auto kernel = gaussKernelOf(gene);
+        CHECK(kernel.width == 2.0);
+        CHECK(kernel.amplitude == 3.0);
+        CHECK(kernel.amplitudeGlobal == 0.0);
+    }
+}
+
+TEST_CASE("FieldGene: an input field takes the parameters a task fixes for it", "[FieldGene][FixedFields]")
+{
+    FixedFieldsGuard guard;
+    FieldGeneConstants::fixedInputField = detectionField;
+
+    const FieldGene input(FieldGeneParameters(FieldGeneType::INPUT, 1));
+
+    requireDetectionField(input);
+}
+
+TEST_CASE("FieldGene: mutation never changes a field's fixed parameters", "[FieldGene][FixedFields]")
+{
+    FixedFieldsGuard guard;
+    FieldGeneConstants::fixedInputField = detectionField;
+    FieldGene input(FieldGeneParameters(FieldGeneType::INPUT, 1));
+
+    for (int mutation = 0; mutation < 500; ++mutation)
+    {
+        input.mutate();
+    }
+
+    requireDetectionField(input);
+}
+
+TEST_CASE("FieldGene: an output with only its time scale fixed keeps it while the rest evolves", "[FieldGene][FixedFields]")
+{
+    FixedFieldsGuard guard;
+    FieldGeneConstants::fixedOutputField = FixedFieldParameters{ 10.0, std::nullopt, std::nullopt };
+    FieldGene output(FieldGeneParameters(FieldGeneType::OUTPUT, 2));
+    const double restingLevel = output.getNeuralField()->getParameters().startingRestingLevel;
+    const auto kernel = output.getKernel();
+    bool restingLevelChanged = false;
+    bool kernelChanged = false;
+
+    for (int mutation = 0; mutation < 500; ++mutation)
+    {
+        output.mutate();
+        restingLevelChanged = restingLevelChanged || output.getNeuralField()->getParameters().startingRestingLevel != restingLevel;
+        // One mutation changes either the kernel or the neural field.
+        const std::string mutations = output.getMutationsInLastGeneration();
+        kernelChanged = kernelChanged || (!mutations.empty() && mutations.find("(fg nf") == std::string::npos);
+        output.clearLastMutations();
+    }
+
+    CHECK(output.getNeuralField()->getParameters().tau == 10.0);
+    CHECK(restingLevelChanged);
+    CHECK(kernelChanged);
+}
+
+TEST_CASE("FieldGene: hidden fields ignore the parameters fixed for the input and output", "[FieldGene][FixedFields]")
+{
+    FixedFieldsGuard guard;
+    FieldGeneConstants::fixedInputField = detectionField;
+    FieldGeneConstants::fixedOutputField = FixedFieldParameters{ 10.0, std::nullopt, std::nullopt };
+
+    std::set<double> taus;
+    for (int id = 3; id < 13; ++id)
+    {
+        taus.insert(FieldGene(FieldGeneParameters(FieldGeneType::HIDDEN, id)).getNeuralField()->getParameters().tau);
+    }
+
+    CHECK(taus.size() > 1);
+}
+
+TEST_CASE("FieldGene: the reference config fixes no field parameters", "[FieldGene][FixedFields]")
+{
+    FixedFieldsGuard guard;
+    FieldGeneConstants::fixedInputField = detectionField;
+    FieldGeneConstants::fixedOutputField = detectionField;
+
+    ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
+
+    for (const auto& fixed : { FieldGeneConstants::fixedInputField, FieldGeneConstants::fixedOutputField })
+    {
+        CHECK_FALSE(fixed.tau);
+        CHECK_FALSE(fixed.restingLevel);
+        CHECK_FALSE(fixed.gaussKernel);
+    }
+}
+
+// The input only detects: as in the reference design, its peak should go when the stimulus does, so it cannot hold
+// the events. The output must be fast enough to step and release within a recall cycle.
+TEST_CASE("FieldGene: serial-order-fitness-test fixes its input as a detection field and its output's time scale", "[FieldGene][FixedFields]")
+{
+    FixedFieldsGuard guard;
+    const neat_dnfs::test::ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+
+    const FieldGene input(FieldGeneParameters(FieldGeneType::INPUT, 1));
+    requireDetectionField(input);
+    const auto& output = FieldGeneConstants::fixedOutputField;
+    CHECK(output.tau == 10.0);
+    CHECK_FALSE(output.restingLevel);
+    CHECK_FALSE(output.gaussKernel);
+}
+
+TEST_CASE("FieldGene: a misspelt key in a fixed field is an error, not a parameter left to evolve", "[FieldGene][FixedFields]")
+{
+    FixedFieldsGuard guard;
+    auto config = ConfigLoader::loadJsonFile(ConfigLoader::defaultGlobalConfigPath());
+    config.at("FieldGeneConstants")["fixedInputField"] = { { "Tau", 10.0 } };
+    const auto path = std::filesystem::temp_directory_path() / "neat-dnfs-config-misspelt-fixed-field.json";
+    std::ofstream(path) << config.dump();
+
+    CHECK_THROWS(ConfigLoader::loadGlobalConfig(path.generic_string()));
+
+    ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
+    std::filesystem::remove(path);
 }

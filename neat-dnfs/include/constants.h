@@ -237,9 +237,25 @@ namespace neat_dnfs
 		inline static bool allowOutputAsConnectionSource = false;
 	};
 
+	/// @brief Parameters a task fixes for its input or output field, as part of its design: set when the field gene is
+	/// created instead of drawn, and never changed by mutation. A parameter left empty evolves as usual.
+	struct FixedFieldParameters
+	{
+		/// @brief Time scale of the field.
+		std::optional<double> tau;
+		/// @brief Resting level of the field.
+		std::optional<double> restingLevel;
+		/// @brief The field's own kernel, a Gauss kernel.
+		std::optional<dnf_composer::element::GaussKernelParameters> gaussKernel;
+	};
+
 	struct FieldGeneConstants
 	{
 		inline static bool variableParameters;
+
+		// Optional in a config file; absent fixes nothing, as before they existed.
+		inline static FixedFieldParameters fixedInputField;
+		inline static FixedFieldParameters fixedOutputField;
 
 		// (sum must be 1.0)
 		inline static double gaussKernelProbability;

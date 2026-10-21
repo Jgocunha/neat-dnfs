@@ -219,35 +219,52 @@ namespace neat_dnfs
 		return clone;
 	}
 
+	const FixedFieldParameters& FieldGene::fixedParameters() const
+	{
+		static const FixedFieldParameters nothingFixed{};
+		switch (parameters.type)
+		{
+		case FieldGeneType::INPUT:
+			return FieldGeneConstants::fixedInputField;
+		case FieldGeneType::OUTPUT:
+			return FieldGeneConstants::fixedOutputField;
+		default:
+			return nothingFixed;
+		}
+	}
+
 	void FieldGene::initializeNeuralField(const dnf_composer::element::ElementDimensions& dimensions)
 	{
 		using namespace dnf_composer::element;
 		using namespace neat_dnfs::tools::utils;
 
+		double tau = NeuralFieldConstants::tau;
+		double restingLevel = NeuralFieldConstants::restingLevel;
 		if(FieldGeneConstants::variableParameters)
 		{
-			const double tau = NeuralFieldConstants::tauMutationFactor
+			tau = NeuralFieldConstants::tauMutationFactor
 				? std::exp(generateRandomDouble(std::log(NeuralFieldConstants::tauMinVal), std::log(NeuralFieldConstants::tauMaxVal)))
 				: generateRandomDouble(NeuralFieldConstants::tauMinVal, NeuralFieldConstants::tauMaxVal);
-			const double restingLevel = generateRandomDouble(NeuralFieldConstants::restingLevelMinVal, NeuralFieldConstants::restingLevelMaxVal);
-
-			const NeuralFieldParameters nfp{ tau, restingLevel, NeuralFieldConstants::activationFunction };
-			const ElementCommonParameters nfcp{ std::format("{}{}", NeuralFieldConstants::namePrefix, parameters.id), dimensions };
-			neuralField = std::make_shared<NeuralField>(nfcp, nfp);
+			restingLevel = generateRandomDouble(NeuralFieldConstants::restingLevelMinVal, NeuralFieldConstants::restingLevelMaxVal);
 		}
-		else
-		{
-			const double tau = NeuralFieldConstants::tau;
-			const double restingLevel = NeuralFieldConstants::restingLevel;
-			const NeuralFieldParameters nfp{ tau, restingLevel, NeuralFieldConstants::activationFunction };
-			const ElementCommonParameters nfcp{ std::format("{}{}", NeuralFieldConstants::namePrefix, parameters.id), dimensions };
-			neuralField = std::make_shared<NeuralField>(nfcp, nfp);
-		}
+		const auto& fixed = fixedParameters();
+		const NeuralFieldParameters nfp{ fixed.tau.value_or(tau), fixed.restingLevel.value_or(restingLevel),
+			NeuralFieldConstants::activationFunction };
+		const ElementCommonParameters nfcp{ std::format("{}{}", NeuralFieldConstants::namePrefix, parameters.id), dimensions };
+		neuralField = std::make_shared<NeuralField>(nfcp, nfp);
 	}
 
 	void FieldGene::initializeKernel(const dnf_composer::element::ElementDimensions& dimensions)
 	{
 		using namespace neat_dnfs::tools::utils;
+
+		if (const auto& fixedKernel = fixedParameters().gaussKernel)
+		{
+			const dnf_composer::element::ElementCommonParameters gkcp{
+				std::format("{}{}", GaussKernelConstants::namePrefix, parameters.id), dimensions };
+			kernel = std::make_shared<dnf_composer::element::GaussKernel>(gkcp, *fixedKernel);
+			return;
+		}
 
 		const double totalProbability = FieldGeneConstants::gaussKernelProbability +
 			FieldGeneConstants::mexicanHatKernelProbability;
@@ -337,6 +354,10 @@ namespace neat_dnfs
 
 	void FieldGene::mutateKernel()
 	{
+		if (fixedParameters().gaussKernel)
+		{
+			return;
+		}
 		switch (kernel->getLabel())
 		{
 		case dnf_composer::element::ElementLabel::GAUSS_KERNEL:
@@ -445,6 +466,11 @@ namespace neat_dnfs
 		using namespace dnf_composer::element;
 		using namespace neat_dnfs::tools::utils;
 
+		if (fixedParameters().gaussKernel)
+		{
+			return;
+		}
+
 		const auto dimensions = neuralField->getElementCommonParameters().dimensionParameters;
 
 		const double totalProbability = FieldGeneConstants::gaussKernelProbability +
@@ -484,11 +510,12 @@ namespace neat_dnfs
 		const double signal = tools::utils::generateRandomSignal();
 		dnf_composer::element::NeuralFieldParameters nfp = neuralField->getParameters();
 
+		const auto& fixed = fixedParameters();
 		const double mutationSelection = tools::utils::generateRandomDouble(0.0, 1.0);
 		if (mutationSelection < FieldGeneConstants::mutateFieldGeneNeuralFieldParametersProbability)
 		{
 			if (tools::utils::generateRandomDouble(0.0, 1.0) <
-				FieldGeneConstants::mutateFieldGeneNeuralFieldParametersTauProbability)
+				FieldGeneConstants::mutateFieldGeneNeuralFieldParametersTauProbability && !fixed.tau)
 			{
 				const double tau = neuralField->getParameters().tau;
 				const double mutatedTau = NeuralFieldConstants::tauMutationFactor
@@ -502,7 +529,7 @@ namespace neat_dnfs
 			}
 
 			if (tools::utils::generateRandomDouble(0.0, 1.0) <
-				FieldGeneConstants::mutateFieldGeneNeuralFieldParametersRestingLevelProbability)
+				FieldGeneConstants::mutateFieldGeneNeuralFieldParametersRestingLevelProbability && !fixed.restingLevel)
 			{
 				const double restingLevel = neuralField->getParameters().startingRestingLevel;
 				nfp.startingRestingLevel = std::clamp(restingLevel + NeuralFieldConstants::restingLevelStep * signal,
