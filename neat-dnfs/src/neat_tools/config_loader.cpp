@@ -324,6 +324,7 @@ namespace neat_dnfs
 			field(gm, "mutateConnectionGeneProbability", &GenomeMutationConstants::mutateConnectionGeneProbability);
 			field(gm, "checkForDuplicateConnectionGenesInGenome", &GenomeMutationConstants::checkForDuplicateConnectionGenesInGenome);
 			GenomeMutationConstants::allowOutputAsConnectionSource = gm.value("allowOutputAsConnectionSource", false);
+			GenomeMutationConstants::independentStepSigns = gm.value("independentStepSigns", false);
 
 			const auto& fg = j.at("FieldGeneConstants");
 			field(fg, "variableParameters", &FieldGeneConstants::variableParameters);

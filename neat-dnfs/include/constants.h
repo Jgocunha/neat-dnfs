@@ -235,7 +235,21 @@ namespace neat_dnfs
 		// Lets mutation wire connections out of output fields, which it otherwise never does. Optional in a config
 		// file, so one written before it existed still loads; absent is off.
 		inline static bool allowOutputAsConnectionSource = false;
+
+		// When one mutation changes several parameters of a kernel, or a field's tau and resting level, each steps in a
+		// direction drawn for it alone. Off, they share one sign, so a kernel cannot gain amplitude while losing width in
+		// one step. Optional in a config file; absent is off, as before it existed.
+		inline static bool independentStepSigns = false;
 	};
+
+	/// @brief The direction one parameter steps in when a mutation changes several of a gene's parameters.
+	/// @param sharedSign The sign drawn once for the whole mutation.
+	/// @return @p sharedSign, or a sign drawn for this parameter alone when GenomeMutationConstants::independentStepSigns
+	/// is set.
+	[[nodiscard]] inline int stepSign(const int sharedSign)
+	{
+		return GenomeMutationConstants::independentStepSigns ? tools::utils::generateRandomSignal() : sharedSign;
+	}
 
 	/// @brief Parameters a task fixes for its input or output field, as part of its design: set when the field gene is
 	/// created instead of drawn, and never changed by mutation. A parameter left empty evolves as usual.

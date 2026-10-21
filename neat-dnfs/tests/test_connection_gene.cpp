@@ -1,5 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <cmath>
+
 #include "neat/connection_gene.h"
 
 using namespace neat_dnfs;
@@ -276,4 +278,70 @@ TEST_CASE("ConnectionGene Mexican hat kernel amplitudeExc mutation preserves inh
     }
 
     REQUIRE(foundMutatedAmplitude);
+}
+
+namespace
+{
+    // Restores the step-sign rule a test sets.
+    class StepSignsGuard
+    {
+    public:
+        StepSignsGuard() : previous(GenomeMutationConstants::independentStepSigns) {}
+        ~StepSignsGuard() { GenomeMutationConstants::independentStepSigns = previous; }
+        StepSignsGuard(const StepSignsGuard&) = delete;
+        StepSignsGuard& operator=(const StepSignsGuard&) = delete;
+    private:
+        bool previous;
+    };
+
+    // For fresh mid-range Gauss connections mutated once, how often the kernel's width and amplitude magnitude moved
+    // the same way, and how often opposite ways, when one step moved both. Kernel redraws are left out.
+    std::pair<int, int> connectionStepDirections()
+    {
+        int same = 0;
+        int opposite = 0;
+        for (int trial = 0; trial < 3000; ++trial)
+        {
+            ConnectionGene gene(ConnectionTuple(1, 2), 1, GaussKernelParameters{ 5.0, 15.0, -0.1,
+                KernelConstants::circularity, KernelConstants::normalization });
+            const auto kernelBefore = gene.getKernel();
+
+            gene.mutate();
+
+            const auto kernel = std::dynamic_pointer_cast<GaussKernel>(gene.getKernel());
+            if (gene.getKernel() != kernelBefore || kernel == nullptr)
+            {
+                continue;
+            }
+            const double width = kernel->getParameters().width - 5.0;
+            const double amplitude = std::abs(kernel->getParameters().amplitude) - 15.0;
+            if (width != 0.0 && amplitude != 0.0)
+            {
+                ++((width > 0.0) == (amplitude > 0.0) ? same : opposite);
+            }
+        }
+        return { same, opposite };
+    }
+}
+
+TEST_CASE("ConnectionGene: by default one mutation steps every kernel parameter it changes the same way", "[ConnectionGene][StepSigns]")
+{
+    StepSignsGuard guard;
+    GenomeMutationConstants::independentStepSigns = false;
+
+    const auto [same, opposite] = connectionStepDirections();
+
+    CHECK(same > 0);
+    CHECK(opposite == 0);
+}
+
+TEST_CASE("ConnectionGene: with independent step signs, each kernel parameter one mutation changes steps its own way", "[ConnectionGene][StepSigns]")
+{
+    StepSignsGuard guard;
+    GenomeMutationConstants::independentStepSigns = true;
+
+    const auto [same, opposite] = connectionStepDirections();
+
+    CHECK(same > 0);
+    CHECK(opposite > 0);
 }

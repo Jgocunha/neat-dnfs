@@ -384,26 +384,29 @@ namespace neat_dnfs
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneGaussKernelWidthProbability)
 		{
-			gkp.width = std::clamp(gkp.width + GaussKernelConstants::widthStep * signal,
+			const int direction = stepSign(signal);
+			gkp.width = std::clamp(gkp.width + GaussKernelConstants::widthStep * direction,
 								GaussKernelConstants::widthMinVal,
 								GaussKernelConstants::widthMaxVal);
-			mutationsInLastGeneration += std::format("(fg gk width {})", GaussKernelConstants::widthStep * signal);
+			mutationsInLastGeneration += std::format("(fg gk width {})", GaussKernelConstants::widthStep * direction);
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneGaussKernelAmplitudeProbability)
 		{
-			gkp.amplitude = std::clamp(gkp.amplitude + GaussKernelConstants::ampStep * signal,
+			const int direction = stepSign(signal);
+			gkp.amplitude = std::clamp(gkp.amplitude + GaussKernelConstants::ampStep * direction,
 								GaussKernelConstants::ampMinVal,
 								GaussKernelConstants::ampMaxVal);
-			mutationsInLastGeneration += std::format("(fg gk amp. {})", GaussKernelConstants::ampStep * signal);
+			mutationsInLastGeneration += std::format("(fg gk amp. {})", GaussKernelConstants::ampStep * direction);
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneGaussKernelGlobalAmplitudeProbability)
 		{
-			gkp.amplitudeGlobal = std::clamp(gkp.amplitudeGlobal + GaussKernelConstants::ampGlobalStep * signal,
+			const int direction = stepSign(signal);
+			gkp.amplitudeGlobal = std::clamp(gkp.amplitudeGlobal + GaussKernelConstants::ampGlobalStep * direction,
 								GaussKernelConstants::ampGlobalMinVal,
 								GaussKernelConstants::ampGlobalMaxVal);
-			mutationsInLastGeneration += std::format("(fg gk amp. glob. {})", GaussKernelConstants::ampGlobalStep * signal);
+			mutationsInLastGeneration += std::format("(fg gk amp. glob. {})", GaussKernelConstants::ampGlobalStep * direction);
 		}
 		std::dynamic_pointer_cast<GaussKernel>(kernel)->setParameters(gkp);
 
@@ -421,42 +424,47 @@ namespace neat_dnfs
 
 		if(generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeExcProbability)
 		{
-			mhkp.amplitudeExc = std::clamp(mhkp.amplitudeExc + MexicanHatKernelConstants::ampExcStep * signal,
+			const int direction = stepSign(signal);
+			mhkp.amplitudeExc = std::clamp(mhkp.amplitudeExc + MexicanHatKernelConstants::ampExcStep * direction,
 								MexicanHatKernelConstants::ampExcMinVal,
 								MexicanHatKernelConstants::ampExcMaxVal);
-			mutationsInLastGeneration += std::format("(fg mhk amp. exc. {})", MexicanHatKernelConstants::ampExcStep * signal);
+			mutationsInLastGeneration += std::format("(fg mhk amp. exc. {})", MexicanHatKernelConstants::ampExcStep * direction);
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthExcProbability)
 		{
-			mhkp.widthExc = std::clamp(mhkp.widthExc + MexicanHatKernelConstants::widthExcStep * signal,
+			const int direction = stepSign(signal);
+			mhkp.widthExc = std::clamp(mhkp.widthExc + MexicanHatKernelConstants::widthExcStep * direction,
 												MexicanHatKernelConstants::widthExcMinVal,
 												MexicanHatKernelConstants::widthExcMaxVal);
-			mutationsInLastGeneration += std::format("(fg mhk width exc. {})", MexicanHatKernelConstants::widthExcStep * signal);
+			mutationsInLastGeneration += std::format("(fg mhk width exc. {})", MexicanHatKernelConstants::widthExcStep * direction);
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelAmplitudeInhProbability)
 		{
-			mhkp.amplitudeInh = std::clamp(mhkp.amplitudeInh + MexicanHatKernelConstants::ampInhStep * signal,
+			const int direction = stepSign(signal);
+			mhkp.amplitudeInh = std::clamp(mhkp.amplitudeInh + MexicanHatKernelConstants::ampInhStep * direction,
 																MexicanHatKernelConstants::ampInhMinVal,
 																MexicanHatKernelConstants::ampInhMaxVal);
-			mutationsInLastGeneration += std::format("(fg mhk amp. inh. {})", MexicanHatKernelConstants::ampInhStep * signal);
+			mutationsInLastGeneration += std::format("(fg mhk amp. inh. {})", MexicanHatKernelConstants::ampInhStep * direction);
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelWidthInhProbability)
 		{
-			mhkp.widthInh = std::clamp(mhkp.widthInh + MexicanHatKernelConstants::widthInhStep * signal,
+			const int direction = stepSign(signal);
+			mhkp.widthInh = std::clamp(mhkp.widthInh + MexicanHatKernelConstants::widthInhStep * direction,
 															MexicanHatKernelConstants::widthInhMinVal,
 															MexicanHatKernelConstants::widthInhMaxVal);
-			mutationsInLastGeneration += std::format("(fg mhk width inh. {})", MexicanHatKernelConstants::widthInhStep * signal); 
+			mutationsInLastGeneration += std::format("(fg mhk width inh. {})", MexicanHatKernelConstants::widthInhStep * direction); 
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < FieldGeneConstants::mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability)
 		{
-			mhkp.amplitudeGlobal = std::clamp(mhkp.amplitudeGlobal + MexicanHatKernelConstants::ampGlobStep * signal,
+			const int direction = stepSign(signal);
+			mhkp.amplitudeGlobal = std::clamp(mhkp.amplitudeGlobal + MexicanHatKernelConstants::ampGlobStep * direction,
 															MexicanHatKernelConstants::ampGlobMin,
 															MexicanHatKernelConstants::ampGlobMax);
-			mutationsInLastGeneration += std::format("(fg mhk amp. glob. {})", MexicanHatKernelConstants::ampGlobStep * signal);
+			mutationsInLastGeneration += std::format("(fg mhk amp. glob. {})", MexicanHatKernelConstants::ampGlobStep * direction);
 		}
 		std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->setParameters(mhkp);
 	}
@@ -507,7 +515,7 @@ namespace neat_dnfs
 			throw std::runtime_error("Mutation probabilities in field gene neural field mutation must sum up to 1.");
 		}
 
-		const double signal = tools::utils::generateRandomSignal();
+		const int signal = tools::utils::generateRandomSignal();
 		dnf_composer::element::NeuralFieldParameters nfp = neuralField->getParameters();
 
 		const auto& fixed = fixedParameters();
@@ -517,26 +525,28 @@ namespace neat_dnfs
 			if (tools::utils::generateRandomDouble(0.0, 1.0) <
 				FieldGeneConstants::mutateFieldGeneNeuralFieldParametersTauProbability && !fixed.tau)
 			{
+				const int direction = stepSign(signal);
 				const double tau = neuralField->getParameters().tau;
 				const double mutatedTau = NeuralFieldConstants::tauMutationFactor
-					? tau * std::pow(*NeuralFieldConstants::tauMutationFactor, signal)
-					: tau + NeuralFieldConstants::tauStep * signal;
+					? tau * std::pow(*NeuralFieldConstants::tauMutationFactor, direction)
+					: tau + NeuralFieldConstants::tauStep * direction;
 				nfp.tau = std::clamp(mutatedTau, NeuralFieldConstants::tauMinVal, NeuralFieldConstants::tauMaxVal);
 				neuralField->setParameters(nfp);
 				mutationsInLastGeneration += NeuralFieldConstants::tauMutationFactor
-					? std::format("(fg nf tau x{})", std::pow(*NeuralFieldConstants::tauMutationFactor, signal))
-					: std::format("(fg nf tau {})", NeuralFieldConstants::tauStep * signal);
+					? std::format("(fg nf tau x{})", std::pow(*NeuralFieldConstants::tauMutationFactor, direction))
+					: std::format("(fg nf tau {})", NeuralFieldConstants::tauStep * direction);
 			}
 
 			if (tools::utils::generateRandomDouble(0.0, 1.0) <
 				FieldGeneConstants::mutateFieldGeneNeuralFieldParametersRestingLevelProbability && !fixed.restingLevel)
 			{
+				const int direction = stepSign(signal);
 				const double restingLevel = neuralField->getParameters().startingRestingLevel;
-				nfp.startingRestingLevel = std::clamp(restingLevel + NeuralFieldConstants::restingLevelStep * signal,
+				nfp.startingRestingLevel = std::clamp(restingLevel + NeuralFieldConstants::restingLevelStep * direction,
 													NeuralFieldConstants::restingLevelMinVal,
 													NeuralFieldConstants::restingLevelMaxVal);
 				neuralField->setParameters(nfp);
-				mutationsInLastGeneration += std::format("(fg nf rest. lvl. {})", NeuralFieldConstants::restingLevelStep * signal);
+				mutationsInLastGeneration += std::format("(fg nf rest. lvl. {})", NeuralFieldConstants::restingLevelStep * direction);
 			}
 		}
 		else

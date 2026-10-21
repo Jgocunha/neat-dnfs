@@ -473,28 +473,31 @@ namespace neat_dnfs
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneGaussKernelWidthProbability)
 		{
-			gkp.width = std::clamp(gkp.width + GaussKernelConstants::widthStep * signal,
+			const int direction = stepSign(signal);
+			gkp.width = std::clamp(gkp.width + GaussKernelConstants::widthStep * direction,
 				GaussKernelConstants::widthMinVal,
 				GaussKernelConstants::widthMaxVal);
-			mutationsInLastGeneration += std::format("(cg gk width {})", GaussKernelConstants::widthStep * signal);
+			mutationsInLastGeneration += std::format("(cg gk width {})", GaussKernelConstants::widthStep * direction);
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneGaussKernelAmplitudeProbability)
 		{
+			const int direction = stepSign(signal);
 			const double magnitude = std::abs(gkp.amplitude);
-			gkp.amplitude = amp_sign * mutatedGaussAmplitudeMagnitude(magnitude, signal);
+			gkp.amplitude = amp_sign * mutatedGaussAmplitudeMagnitude(magnitude, direction);
 			mutationsInLastGeneration += ConnectionGeneConstants::gaussAmpMutationFactor
-				? std::format("(cg gk amp. x{})", std::pow(*ConnectionGeneConstants::gaussAmpMutationFactor, signal))
-				: std::format("(cg gk amp. {})", GaussKernelConstants::ampStep * signal);
+				? std::format("(cg gk amp. x{})", std::pow(*ConnectionGeneConstants::gaussAmpMutationFactor, direction))
+				: std::format("(cg gk amp. {})", GaussKernelConstants::ampStep * direction);
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneGaussKernelGlobalAmplitudeProbability)
 		{
+			const int direction = stepSign(signal);
 			const double step = ConnectionGeneConstants::ampGlobalStep.value_or(GaussKernelConstants::ampGlobalStep);
-			gkp.amplitudeGlobal = std::clamp(gkp.amplitudeGlobal + step * signal,
+			gkp.amplitudeGlobal = std::clamp(gkp.amplitudeGlobal + step * direction,
 				ConnectionGeneConstants::ampGlobalMinVal.value_or(GaussKernelConstants::ampGlobalMinVal),
 				ConnectionGeneConstants::ampGlobalMaxVal.value_or(GaussKernelConstants::ampGlobalMaxVal));
-			mutationsInLastGeneration += std::format("(cg gk amp. glob. {})", step * signal);
+			mutationsInLastGeneration += std::format("(cg gk amp. glob. {})", step * direction);
 		}
 		std::dynamic_pointer_cast<GaussKernel>(kernel)->setParameters(gkp);
 	}
@@ -512,43 +515,48 @@ namespace neat_dnfs
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeExcProbability)
 		{
-			mhkp.amplitudeExc = amp_sign * std::clamp(std::abs(mhkp.amplitudeExc) + MexicanHatKernelConstants::ampExcStep * signal,
+			const int direction = stepSign(signal);
+			mhkp.amplitudeExc = amp_sign * std::clamp(std::abs(mhkp.amplitudeExc) + MexicanHatKernelConstants::ampExcStep * direction,
 				MexicanHatKernelConstants::ampExcMinVal,
 				MexicanHatKernelConstants::ampExcMaxVal);
-				mutationsInLastGeneration += std::format("(cg mhk amp. exc. {})", MexicanHatKernelConstants::ampExcStep * signal);
+				mutationsInLastGeneration += std::format("(cg mhk amp. exc. {})", MexicanHatKernelConstants::ampExcStep * direction);
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelWidthExcProbability)
 		{
-			mhkp.widthExc = std::clamp(mhkp.widthExc + MexicanHatKernelConstants::widthExcStep * signal,
+			const int direction = stepSign(signal);
+			mhkp.widthExc = std::clamp(mhkp.widthExc + MexicanHatKernelConstants::widthExcStep * direction,
 				MexicanHatKernelConstants::widthExcMinVal,
 				MexicanHatKernelConstants::widthExcMaxVal);
-			mutationsInLastGeneration += std::format("(cg mhk width exc. {})", MexicanHatKernelConstants::widthExcStep * signal);
+			mutationsInLastGeneration += std::format("(cg mhk width exc. {})", MexicanHatKernelConstants::widthExcStep * direction);
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelAmplitudeInhProbability)
 		{
-			mhkp.amplitudeInh = std::clamp(mhkp.amplitudeInh + MexicanHatKernelConstants::ampInhStep * signal,
+			const int direction = stepSign(signal);
+			mhkp.amplitudeInh = std::clamp(mhkp.amplitudeInh + MexicanHatKernelConstants::ampInhStep * direction,
 				MexicanHatKernelConstants::ampInhMinVal,
 				MexicanHatKernelConstants::ampInhMaxVal);
-			mutationsInLastGeneration += std::format("(cg mhk amp. inh. {})", MexicanHatKernelConstants::ampInhStep * signal);
+			mutationsInLastGeneration += std::format("(cg mhk amp. inh. {})", MexicanHatKernelConstants::ampInhStep * direction);
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelWidthInhProbability)
 		{
-			mhkp.widthInh = std::clamp(mhkp.widthInh + MexicanHatKernelConstants::widthInhStep * signal,
+			const int direction = stepSign(signal);
+			mhkp.widthInh = std::clamp(mhkp.widthInh + MexicanHatKernelConstants::widthInhStep * direction,
 				MexicanHatKernelConstants::widthInhMinVal,
 				MexicanHatKernelConstants::widthInhMaxVal);
-			mutationsInLastGeneration += std::format("(cg mhk width inh. {})", MexicanHatKernelConstants::widthInhStep * signal);
+			mutationsInLastGeneration += std::format("(cg mhk width inh. {})", MexicanHatKernelConstants::widthInhStep * direction);
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneMexicanHatKernelGlobalAmplitudeProbability)
 		{
+			const int direction = stepSign(signal);
 			const double step = ConnectionGeneConstants::ampGlobalStep.value_or(MexicanHatKernelConstants::ampGlobStep);
-			mhkp.amplitudeGlobal = std::clamp(mhkp.amplitudeGlobal + step * signal,
+			mhkp.amplitudeGlobal = std::clamp(mhkp.amplitudeGlobal + step * direction,
 				ConnectionGeneConstants::ampGlobalMinVal.value_or(MexicanHatKernelConstants::ampGlobMin),
 				ConnectionGeneConstants::ampGlobalMaxVal.value_or(MexicanHatKernelConstants::ampGlobMax));
-			mutationsInLastGeneration += std::format("(cg mhk amp. glob. {})", step * signal);
+			mutationsInLastGeneration += std::format("(cg mhk amp. glob. {})", step * direction);
 		}
 		std::dynamic_pointer_cast<MexicanHatKernel>(kernel)->setParameters(mhkp);
 	}

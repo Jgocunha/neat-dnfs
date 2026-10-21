@@ -341,3 +341,114 @@ TEST_CASE("FieldGene: a misspelt key in a fixed field is an error, not a paramet
     ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
     std::filesystem::remove(path);
 }
+
+namespace
+{
+    // Restores the step-sign rule a test sets.
+    class StepSignsGuard
+    {
+    public:
+        StepSignsGuard() : previous(GenomeMutationConstants::independentStepSigns) {}
+        ~StepSignsGuard() { GenomeMutationConstants::independentStepSigns = previous; }
+        StepSignsGuard(const StepSignsGuard&) = delete;
+        StepSignsGuard& operator=(const StepSignsGuard&) = delete;
+    private:
+        bool previous;
+    };
+
+    struct StepDirections
+    {
+        int same = 0;
+        int opposite = 0;
+    };
+
+    void countDirections(StepDirections& directions, const double first, const double second)
+    {
+        if (first == 0.0 || second == 0.0)
+        {
+            return;
+        }
+        ++((first > 0.0) == (second > 0.0) ? directions.same : directions.opposite);
+    }
+
+    // A hidden field far from every bound of the reference config, so no step is clamped.
+    FieldGene midRangeHiddenField()
+    {
+        const ElementDimensions dimensions{ DimensionConstants::xSize, DimensionConstants::dx };
+        const auto neuralField = std::make_shared<NeuralField>(ElementCommonParameters{ "nf 3", dimensions },
+            NeuralFieldParameters{ 100.0, -8.0, NeuralFieldConstants::activationFunction });
+        const auto kernel = std::make_shared<GaussKernel>(ElementCommonParameters{ "gk 3", dimensions },
+            GaussKernelParameters{ 5.0, 15.0, -0.1, KernelConstants::circularity, KernelConstants::normalization });
+        return FieldGene(FieldGeneParameters(FieldGeneType::HIDDEN, 3), neuralField, kernel);
+    }
+
+    // For fresh mid-range fields mutated once: whether the kernel's width and amplitude, and the field's tau and
+    // resting level, moved the same way when one step moved both. Redraws replace the kernel or field, so they are left
+    // out.
+    std::pair<StepDirections, StepDirections> fieldStepDirections()
+    {
+        StepDirections kernel;
+        StepDirections neuralField;
+        for (int trial = 0; trial < 3000; ++trial)
+        {
+            FieldGene gene = midRangeHiddenField();
+            const auto kernelBefore = gene.getKernel();
+            const auto fieldBefore = gene.getNeuralField();
+            const auto gaussBefore = gaussKernelOf(gene);
+            const auto fieldParametersBefore = fieldBefore->getParameters();
+
+            gene.mutate();
+
+            if (gene.getKernel() == kernelBefore)
+            {
+                const auto gauss = gaussKernelOf(gene);
+                countDirections(kernel, gauss.width - gaussBefore.width, gauss.amplitude - gaussBefore.amplitude);
+            }
+            if (gene.getNeuralField() == fieldBefore)
+            {
+                const auto field = gene.getNeuralField()->getParameters();
+                countDirections(neuralField, field.tau - fieldParametersBefore.tau,
+                    field.startingRestingLevel - fieldParametersBefore.startingRestingLevel);
+            }
+        }
+        return { kernel, neuralField };
+    }
+}
+
+TEST_CASE("FieldGene: by default one mutation steps every parameter it changes the same way", "[FieldGene][StepSigns]")
+{
+    StepSignsGuard guard;
+    GenomeMutationConstants::independentStepSigns = false;
+
+    const auto [kernel, neuralField] = fieldStepDirections();
+
+    CHECK(kernel.same > 0);
+    CHECK(kernel.opposite == 0);
+    CHECK(neuralField.same > 0);
+    CHECK(neuralField.opposite == 0);
+}
+
+// With one shared sign, a kernel could never gain excitation while losing width in one step, nor a field slow down
+// while its resting level falls.
+TEST_CASE("FieldGene: with independent step signs, each parameter one mutation changes steps its own way", "[FieldGene][StepSigns]")
+{
+    StepSignsGuard guard;
+    GenomeMutationConstants::independentStepSigns = true;
+
+    const auto [kernel, neuralField] = fieldStepDirections();
+
+    CHECK(kernel.same > 0);
+    CHECK(kernel.opposite > 0);
+    CHECK(neuralField.same > 0);
+    CHECK(neuralField.opposite > 0);
+}
+
+TEST_CASE("FieldGene: the reference config shares one step sign; serial-order-fitness-test draws one per parameter", "[FieldGene][StepSigns]")
+{
+    StepSignsGuard guard;
+    {
+        const neat_dnfs::test::ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+        CHECK(GenomeMutationConstants::independentStepSigns);
+    }
+    CHECK_FALSE(GenomeMutationConstants::independentStepSigns);
+}
