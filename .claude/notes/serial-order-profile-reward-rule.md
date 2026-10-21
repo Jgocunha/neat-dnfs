@@ -215,6 +215,36 @@ The fitness is the mean over those stages' moments.
 - **Fixtures.** The from-scratch, skips-D and recalls-in-order designs are now test fixtures:
   `tests/fixtures/serial-order-profile-never-recalls.dnf`, `-skips-d.dnf` and `-recalls-in-order.dnf`.
 
+### The first runs on it use the blind spot
+
+Two runs on commit ca00f9d, both in `neat-dnfs/data/Serial Order Profile/`:
+
+| Run | Folder | Best | What it does |
+|---|---|---|---|
+| From the reference without its recall driver | `21h04m20s` | 0.955 | Recalls D, C, A and B in order on all three cycles, at the reference's pace and height. Under the old rule this run ended on a design that skipped D. |
+| From scratch | `21h04m14s` | 0.854 | Peaks at each event as it is shown. Holds D, A and B to the end of the trial; C's peak dies when B arrives. Recalls nothing in turn. |
+
+Both runs also do something wrong in the unscored stretches:
+
+- **From the reference without its recall driver:** a brief peak at each event during the demonstration.
+- **From scratch:** its held peaks persist through the rests.
+
+One fix is to also score every moment at which the design's own output has a peak, since the reference has none
+outside the stages. Fitness under each rule:
+
+| Design | Whole trial | Stages only | Stages + design's peaks |
+|---|---|---|---|
+| Recalls in order (memory rebuilt) | 0.968 | 0.967 | 0.967 |
+| Release rebuilt | 0.959 | 0.955 | 0.955 |
+| New run without the recall driver (demonstration peaks) | 0.904 | 0.955 | 0.946 |
+| Skips D | 0.970 | 0.936 | 0.936 |
+| New from-scratch run (holds D, A, B) | 0.823 | 0.854 | 0.823 |
+| Copies the rests | 0.871 | 0.779 | 0.834 |
+| Silent | 0.761 | 0.761 | 0.761 |
+
+Also scoring the moments where the design's output changes by more than 0.1 per sample works worse. Held peaks do not
+change, so it misses them, and it raises the hold-everything design to 0.862.
+
 ## Literature (Undermind deep search, thesis workspace)
 
 - **Concordance correlation:** Lin 1989.
