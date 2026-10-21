@@ -305,6 +305,22 @@ The 0.25 recall score that marks an event's first peak stays: it only times the 
 | t1-t10 | 0.46-0.49 | 0.38-0.46 | 0.38-0.46 |
 | o2 | 0.666 | 0.335 | 0.268 |
 
+## The stop weighs more, and silence counts only after recall (`a892c59`)
+
+The release loop sat behind a valley. From an adaptation loop, adding the done field's memory without its reset lost
+fitness (0.549 to 0.474). Only f7, the stop, rewards that memory, and f7 weighed 0.05.
+- Weights [.05 .05 .10 .35 .20 .20 .05] became [.05 .05 .10 .30 .10 .20 .20].
+- f7's half for an output with no peak now counts only as far as the cycle recalled in order. A silent output, which
+  earned 0.5, earns nothing.
+
+Re-scored on the reference's variants:
+- no loop 0.370;
+- adaptation loop 0.431;
+- adding the memory without the reset 0.456;
+- whole loop 0.960.
+
+`serial-order-search-and-hyperparameters.md` has the analysis.
+
 ## Scores, 5 evaluations each, under equal weights and the old f4
 
 | Genome | Fitness | Notes |
