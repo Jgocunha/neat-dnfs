@@ -1,4 +1,7 @@
-# How serial-order-fitness-test values the release of a recalled peak
+# How serial-order-fitness-test valued the release of a recalled peak
+
+This records the fixed-time evaluator of `f7caf34`. Recall has since been scored by order (`serial-order-fitness-test.md`,
+"Recall is scored by order, not at fixed times"), and the valley below is gone.
 
 20 October 2026, evaluator `f7caf34`, weights 0.05/0.05/0.10/0.35/0.20/0.20/0.05.
 

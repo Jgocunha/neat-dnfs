@@ -1,9 +1,9 @@
 #include "solutions/serial_order_fitness_test.h"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <numeric>
-#include <span>
 
 namespace neat_dnfs
 {
@@ -20,7 +20,7 @@ namespace neat_dnfs
 		};
 
 		// D, C, A and B: recall must replay them in this order.
-		constexpr std::array<Event, 4> sequence{ { { "D", 180.0, 100.0 }, { "C", 120.0, 600.0 },
+		constexpr std::array<Event, SerialOrderFitnessTest::eventCount> sequence{ { { "D", 180.0, 100.0 }, { "C", 120.0, 600.0 },
 			{ "A", 20.0, 800.0 }, { "B", 80.0, 1800.0 } } };
 		constexpr double pulseDuration = 50.0;
 		// The demonstration's X, then one X starting each recall cycle: 1000, 800 and 1500 long.
@@ -28,11 +28,15 @@ namespace neat_dnfs
 		constexpr double endTime = 5850.0;
 		// X lifts the whole input field evenly, as a boost would, as a stimulus a saved file can replay.
 		constexpr double cueWidth = 1e6;
-		// When each event's recalled peak is scored, after the cue: inside the reference 
-		// design's peak on every cycle.
-		constexpr std::array<double, 4> recallPeakTimes{ 150.0, 290.0, 400.0, 500.0 };
+		// Recall is sampled this often after each X, until the recall window ends.
+		constexpr double recallSampleInterval = 10.0;
 		// By then the reference design has recalled and suppressed every event on every cycle.
 		constexpr double recallEndTime = 600.0;
+		// Points of the recall window the trace snapshots, and the input is checked at rest: inside the reference
+		// design's peak at D, C, A and B on every cycle.
+		constexpr std::array<double, SerialOrderFitnessTest::eventCount> recallSnapshotTimes{ 150.0, 290.0, 400.0, 500.0 };
+		// An event counts as peaking from this recall score: one bump near it, about a quarter of full height or more.
+		constexpr double peakingScore = 0.25;
 
 		// The reference design's peaks; amplitude and width carry little of a peak's credit.
 		constexpr double inputPeakAmplitude = 7.5;
@@ -95,7 +99,7 @@ namespace neat_dnfs
 		parameters.partialFitness.clear();
 
 		std::vector<double> inputPeaks, inputRest, outputQuiet, outputMemory;
-		std::vector<double> recallPeaks, recallPreShapes, recallTroughs, afterRecall;
+		std::vector<double> recallPeaks, recallPreShapes, recallReleases, afterRecall;
 		nlohmann::json trace = nlohmann::json::array();
 		const auto scoreDemonstratedOutput = [&](const size_t storedCount) {
 			outputQuiet.push_back(noBumps(outputField));
@@ -128,49 +132,50 @@ namespace neat_dnfs
 			scoreDemonstratedOutput(event + 1);
 		}
 
-		// recall: each X replays D, C, A and B one peak at a time
+		// recall: each X should replay D, C, A and B one peak at a time, in that order, at any pace within the window
+		nlohmann::json recallTrace = nlohmann::json::array();
 		for (size_t cycle = 1; cycle < cueTimes.size(); ++cycle)
 		{
 			const double cue = cueTimes[cycle];
-			std::array<double, sequence.size()> recalled{}; // how fully each event peaked when due this cycle
-			for (size_t event = 0; event < sequence.size(); ++event)
+			CycleRecall recall{};
+			std::vector<double> waitingPreShapes;
+			size_t snapshotsTaken = 0;
+			for (int sample = 1; sample * recallSampleInterval <= recallEndTime; ++sample)
 			{
-				runUntil(cue + recallPeakTimes[event]);
-				trace.push_back(snapshot(std::format("recall {} {}", cycle, sequence[event].label)));
-				inputRest.push_back(closenessOfMeanActivationToRestingLevel(inputField));
-				recalled[event] = recalledAt(sequence[event].position);
-				recallPeaks.push_back(recalled[event] * oneBumpAtPositionWithAmplitudeAndWidth(outputField,
-					sequence[event].position, outputPeakAmplitude, outputPeakWidth));
-				if (event + 1 < sequence.size())
+				const double after = sample * recallSampleInterval;
+				runUntil(cue + after);
+				observeRecall(cue + after, recall, waitingPreShapes);
+				if (snapshotsTaken < recallSnapshotTimes.size() && after == recallSnapshotTimes[snapshotsTaken])
 				{
-					recallPreShapes.push_back(preShapedInOrder(positionsOf(event + 1, sequence.size())));
-				}
-				if (event > 0)
-				{
-					recallTroughs.push_back(troughsAfterRecall(std::span(recalled).first(event)));
+					trace.push_back(snapshot(std::format("recall {} {}", cycle, sequence[snapshotsTaken].label)));
+					inputRest.push_back(closenessOfMeanActivationToRestingLevel(inputField));
+					++snapshotsTaken;
 				}
 			}
-			runUntil(cue + recallEndTime);
 			trace.push_back(snapshot(std::format("recall {} end", cycle)));
-			afterRecall.push_back(0.5 * noBumps(outputField) + 0.5 * troughsAfterRecall(recalled));
+			recallPeaks.push_back(recallInOrder(recall));
+			recallPreShapes.push_back(waitingPreShapes.empty() ? 0.0 : mean(waitingPreShapes));
+			recallReleases.push_back(releaseAfterRecall(recall));
+			afterRecall.push_back(0.5 * noBumps(outputField) + 0.5 * troughsAfterRecall(recall));
 			runUntil(cycle + 1 < cueTimes.size() ? cueTimes[cycle + 1] : endTime);
 			trace.push_back(snapshot(std::format("recall {} rest", cycle)));
-			afterRecall.push_back(0.5 * noBumps(outputField) + 0.5 * troughsAfterRecall(recalled));
+			afterRecall.push_back(0.5 * noBumps(outputField) + 0.5 * troughsAfterRecall(recall));
+			recallTrace.push_back(recallSummary(cycle, recall));
 		}
 
 		const double f1 = 0.5 * mean(inputPeaks) + 0.5 * mean(inputRest); // input peaks at the events, rests otherwise
 		const double f2 = mean(outputQuiet);     // output below threshold through the demonstration
 		const double f3 = mean(outputMemory);    // output pre-shaped at the stored events, in order
-		const double f4 = mean(recallPeaks);     // the right peak at each point of recall
+		const double f4 = mean(recallPeaks);     // the events recalled one at a time, in order
 		const double f5 = mean(recallPreShapes); // events still to recall pre-shaped, in order
-		const double f6 = mean(recallTroughs);   // recalled events pushed below the field
+		const double f6 = mean(recallReleases);  // each recalled event released, below the field
 		const double f7 = mean(afterRecall);     // after recall: no peak, every event below the field
 
 		parameters.partialFitness = { f1, f2, f3, f4, f5, f6, f7 };
 
 		const auto& w = fitnessWeights;
 		parameters.fitness = w[0] * f1 + w[1] * f2 + w[2] * f3 + w[3] * f4 + w[4] * f5 + w[5] * f6 + w[6] * f7;
-		parameters.evaluationTrace = nlohmann::json{ { "snapshots", trace } }.dump();
+		parameters.evaluationTrace = nlohmann::json{ { "snapshots", trace }, { "recall", recallTrace } }.dump();
 	}
 
 	void SerialOrderFitnessTest::createPhenotypeEnvironment()
@@ -223,14 +228,103 @@ namespace neat_dnfs
 		return closenessOfNearestBumpToPosition(outputField, position) * heightCreditOfNearestBumpToPosition(outputField, position);
 	}
 
-	double SerialOrderFitnessTest::troughsAfterRecall(const std::span<const double> recalled) const
+	void SerialOrderFitnessTest::observeRecall(const double time, CycleRecall& recall,
+		std::vector<double>& waitingPreShapes) const
+	{
+		std::vector<double> waiting;
+		for (size_t event = 0; event < sequence.size(); ++event)
+		{
+			const double position = sequence[event].position;
+			EventRecall& observed = recall[event];
+			const double recalled = recalledAt(position);
+			const double score = recalled * oneBumpAtPositionWithAmplitudeAndWidth(outputField, position,
+				outputPeakAmplitude, outputPeakWidth);
+			const bool peaking = score >= peakingScore;
+			observed.bestScore = std::max(observed.bestScore, score);
+			observed.recalled = std::max(observed.recalled, recalled);
+			if (peaking && !observed.firstPeak)
+			{
+				observed.firstPeak = time;
+			}
+			observed.released = observed.released || (observed.firstPeak && !peaking);
+			if (observed.released)
+			{
+				const bool belowThreshold = activationAtPosition(outputField, position) < 0.0;
+				observed.releaseScores.push_back(belowThreshold
+					? 0.5 + 0.5 * troughBelowFieldAtPosition(outputField, position) : 0.0);
+			}
+			if (!observed.firstPeak)
+			{
+				waiting.push_back(position);
+			}
+		}
+		if (!waiting.empty())
+		{
+			waitingPreShapes.push_back(preShapedInOrder(waiting));
+		}
+	}
+
+	double SerialOrderFitnessTest::recallInOrder(const CycleRecall& recall)
+	{
+		double credit = 0.0;
+		for (size_t event = 0; event < recall.size(); ++event)
+		{
+			const auto& firstPeak = recall[event].firstPeak;
+			if (!firstPeak)
+			{
+				continue;
+			}
+			// D must peak before any other event; every later event after the one before it.
+			const bool inOrder = event == 0
+				? std::ranges::none_of(recall, [&firstPeak](const EventRecall& other)
+					{ return other.firstPeak && *other.firstPeak < *firstPeak; })
+				: recall[event - 1].firstPeak && *recall[event - 1].firstPeak < *firstPeak;
+			if (inOrder)
+			{
+				credit += recall[event].bestScore;
+			}
+		}
+		return credit / static_cast<double>(recall.size());
+	}
+
+	double SerialOrderFitnessTest::releaseAfterRecall(const CycleRecall& recall)
+	{
+		double credit = 0.0;
+		for (const auto& event : recall)
+		{
+			if (!event.releaseScores.empty())
+			{
+				credit += event.recalled * mean(event.releaseScores);
+			}
+		}
+		return credit / static_cast<double>(recall.size());
+	}
+
+	double SerialOrderFitnessTest::troughsAfterRecall(const CycleRecall& recall) const
 	{
 		std::vector<double> troughs;
-		for (size_t event = 0; event < recalled.size(); ++event)
+		for (size_t event = 0; event < recall.size(); ++event)
 		{
-			troughs.push_back(recalled[event] * troughBelowFieldAtPosition(outputField, sequence[event].position));
+			troughs.push_back(recall[event].recalled * troughBelowFieldAtPosition(outputField, sequence[event].position));
 		}
 		return mean(troughs);
+	}
+
+	nlohmann::json SerialOrderFitnessTest::recallSummary(const size_t cycle, const CycleRecall& recall)
+	{
+		nlohmann::json events = nlohmann::json::object();
+		for (size_t event = 0; event < recall.size(); ++event)
+		{
+			const auto& observed = recall[event];
+			events[sequence[event].label] = {
+				{ "firstPeak", observed.firstPeak ? nlohmann::json(rounded(*observed.firstPeak)) : nlohmann::json(nullptr) },
+				{ "bestScore", rounded(observed.bestScore) },
+				{ "recalled", rounded(observed.recalled) },
+				{ "release", observed.releaseScores.empty() ? nlohmann::json(nullptr)
+					: nlohmann::json(rounded(mean(observed.releaseScores))) }
+			};
+		}
+		return { { "cycle", cycle }, { "events", events } };
 	}
 
 	nlohmann::json SerialOrderFitnessTest::snapshot(const std::string& stage) const

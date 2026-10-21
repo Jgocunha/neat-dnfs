@@ -805,13 +805,32 @@ TEST_CASE("SerialOrderFitnessTest traces the input and output at every point it 
         REQUIRE(recalled.size() == 1);
         CHECK(std::abs(recalled[0][0].get<double>() - position) <= 1.0);
     }
+
+    // Each cycle's recall summary: every event peaked, first D, then C, A and B, and each was released.
+    const auto& cycles = trace.at("recall");
+    REQUIRE(cycles.size() == 3);
+    for (const auto& cycle : cycles)
+    {
+        INFO("cycle " << cycle.at("cycle"));
+        const auto& events = cycle.at("events");
+        double previousPeak = 0.0;
+        for (const std::string label : { "D", "C", "A", "B" })
+        {
+            INFO(label);
+            REQUIRE(!events.at(label).at("firstPeak").is_null());
+            CHECK(events.at(label).at("firstPeak").get<double>() > previousPeak);
+            previousPeak = events.at(label).at("firstPeak").get<double>();
+            CHECK(!events.at(label).at("release").is_null());
+        }
+    }
 }
 
 // Two weighted from-scratch runs of 20 October 2026 converged on one output peak that rises before any X and is never
 // let go: w1's at 138, near no event, and w2's at C. Under the old rule, one bump of the right size earned more than
-// half of a recall point wherever it was: f4 0.53 and 0.63. Now only a peak near the event due is paid, so w1's earns
-// nothing and w2's only where C is due.
-TEST_CASE("SerialOrderFitnessTest gives a peak held through recall credit only where it sits on the event due", "[Solutions][SerialOrderFitnessTest]")
+// half of a recall point wherever it was: f4 0.53 and 0.63.
+// - w1's earns nothing: only a peak near an event counts.
+// - w2's earns nothing: recall is scored by order, and C counts only after D.
+TEST_CASE("SerialOrderFitnessTest gives a peak held through recall no credit off an event or out of order", "[Solutions][SerialOrderFitnessTest]")
 {
     resetGlobalState();
     const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
@@ -820,10 +839,57 @@ TEST_CASE("SerialOrderFitnessTest gives a peak held through recall credit only w
     offEvent.evaluate();
     CHECK(offEvent.getParameters().partialFitness[3] < 0.05);
 
-    // C is due at 3 of the 12 recall points, and a peak of the right size there earns about 0.92 of each.
     auto atC = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-held-peak-before-cue.dnf");
     atC.evaluate();
-    CHECK(atC.getParameters().partialFitness[3] == Catch::Approx(3.0 * 0.92 / 12.0).margin(0.03));
+    CHECK(atC.getParameters().partialFitness[3] < 0.05);
+}
+
+// The reference design with its done field's inhibition of the output (gk cg 7-2) weakened from -30 to -12. It recalls
+// D, C, A and B in order every cycle, each alone, but each peak comes about 100 later, and a recalled event returns to
+// about the rest of the field rather than below it. Scored at the reference's own recall times, it earned f4 0.40-0.47
+// and f6 0.04. Scored by order, it earns most of the recall credit and part of the release.
+TEST_CASE("SerialOrderFitnessTest pays recall in order whatever its pace, and a shallow release in part", "[Solutions][SerialOrderFitnessTest]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+
+    auto weakRelease = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-weak-release.dnf");
+    weakRelease.evaluate();
+
+    const auto& partials = weakRelease.getParameters().partialFitness;
+    CHECK(partials[3] > 0.8);
+    CHECK(partials[5] > 0.4);
+    CHECK(partials[5] < 0.9); // the reference's release, below the field, still earns more
+}
+
+// From-scratch run t1 of 20 October 2026: after X, D and C rise together and are held. Rising together is not
+// recalling in order, so only D, the first, earns recall credit.
+TEST_CASE("SerialOrderFitnessTest gives two events that peak together order credit for the first only", "[Solutions][SerialOrderFitnessTest]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+
+    auto together = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-held-double-peak.dnf");
+    together.evaluate();
+
+    CHECK(together.getParameters().partialFitness[3] < 0.25);
+}
+
+// From-scratch run t6 of 20 October 2026 steps D, C, A in turn, a slot later than the reference. Each released event goes
+// back to being pre-shaped rather than below the field. That is the start of a release, so it earns some f6, and
+// stepping beats t1's held peaks.
+TEST_CASE("SerialOrderFitnessTest pays stepping from one event to the next over holding them", "[Solutions][SerialOrderFitnessTest]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+
+    auto stepping = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-late-stepping.dnf");
+    stepping.evaluate();
+    auto held = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-held-double-peak.dnf");
+    held.evaluate();
+
+    CHECK(stepping.getParameters().partialFitness[5] > 0.1);
+    CHECK(stepping.getFitness() > held.getFitness() + 0.05);
 }
 
 // From-scratch run g2 of 20 October 2026: the output sits at threshold and crosses it by 0.0-0.1 at A and B exactly when

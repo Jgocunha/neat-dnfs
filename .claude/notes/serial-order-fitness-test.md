@@ -50,9 +50,9 @@ What the reference does, probed in dnf-composer at the end of each interval:
 | f1 | input: a peak at each event, at rest at every other interval end | `oneBumpAtPositionWithAmplitudeAndWidth`, `closenessOfMeanActivationToRestingLevel` |
 | f2 | output below threshold at every demonstration interval end | `noBumps` |
 | f3 | output pre-shaped at the stored events, in order | `preShapeAboveFieldAtPosition`, `activationsDescendAcrossPositions` |
-| f4 | the right recalled peak at 150, 290, 400 and 500 after X, paid only near the event due and by its height | `oneBumpAtPositionWithAmplitudeAndWidth` times `closenessOfNearestBumpToPosition` times `heightCreditOfNearestBumpToPosition` |
-| f5 | events still to recall pre-shaped, in order | as f3 |
-| f6 | recalled events pushed below the field, each only as far as it peaked when due that cycle | `troughBelowFieldAtPosition` times the event's recall |
+| f4 | the events recalled one at a time, in order, sampled through 600 after X; each peak paid only near its event and by its height | `oneBumpAtPositionWithAmplitudeAndWidth` times `closenessOfNearestBumpToPosition` times `heightCreditOfNearestBumpToPosition` |
+| f5 | at each sample, the events not yet recalled pre-shaped, in order | as f3 |
+| f6 | each recalled event released once its peak ends: half below threshold, all of it 2 below the field | `activationAtPosition`, `troughBelowFieldAtPosition`, times the event's recall |
 | f7 | at 600 after X and at the cycle's end: no peak, every event below the field as far as it was recalled | `noBumps`, `troughBelowFieldAtPosition` times recall |
 
 ## Weights
@@ -178,6 +178,58 @@ Choices made with the user:
   the old ones are unchanged;
 - a pre-shape row is its mean pre-shape times (0.5 + 0.5 x order), so noise ordering a flat field earns nothing;
 - trough order is not scored.
+
+## Recall is scored by order, not at fixed times
+
+- The t-batch (10 runs on `f7caf34`) stored the order every time and recalled the first one or two items, but never
+  released a recalled peak. All ten scored 0.48-0.52, the reference without its release.
+- Weakening the reference's done loop showed why (`serial-order-release-evaluation.md`). Recall was checked at the
+  reference's own times, 150, 290, 400 and 500 after X. A release that was slower or shallower than the reference's
+  scored below no release at all: 0.38-0.42 against 0.48.
+- The reference with its done field's inhibition weakened to -12 recalls in perfect order every cycle, but about 100
+  slower. It scored 0.58.
+
+Since then, each recall cycle is sampled every 10, from X to 600 after it. At each sample, each event's recall score is
+the bump score times the closeness and height credit of the output's nearest bump. An event counts as peaking from
+0.25.
+- **f4:** each event's best recall score in the cycle, counted only if it first peaked in its place: D before any other,
+  and each later event strictly after the one before it. Events already up when the cycle starts, held from the cycle
+  before, all peak "at once", so only the first counts.
+- **f5:** at each sample, the events that have not yet peaked must be pre-shaped in order. A cycle where no event ever
+  waits scores 0.
+- **f6:** once an event's first peak has ended, each later sample scores 0 if it is above threshold, half if below, and
+  all of it 2 below the field. The cycle's f6 is the mean over the events of recall times mean release.
+- **f7:** unchanged, at 600 after X and at the cycle's end.
+- **The trace** keeps its 27 snapshots, and adds each cycle's first peaks, best scores, recall and release.
+
+Fixtures:
+- `serial-order-fitness-test-weak-release.dnf` (the reference with 7-2 at -12);
+- `-late-stepping.dnf` (t6);
+- `-held-double-peak.dnf` (t1).
+
+Weakening the release now lowers fitness smoothly, from the reference's 0.969 to 0.482 with no release:
+
+| Weakening | Fitness, intact first |
+|---|---|
+| 7-2: -30, -20, -16, -12, -10, -8 | 0.969, 0.966, 0.947, 0.849, 0.711, 0.484 |
+| nf 7 tau: 75, 100, 150, 300 | 0.969, 0.864, 0.651, 0.556 |
+| 2-7: 8, 6, 5, 3 | 0.969, 0.716, 0.513, 0.482 |
+
+| Genome | f4 | f5 | f6 | f7 | Fitness before | Fitness now |
+|---|---|---|---|---|---|---|
+| reference | 0.96 | 0.96 | 0.96 | 1.00 | 0.972 | 0.969 |
+| reference, weak release (7-2 -12) | 0.96 | 0.97 | 0.48 | 0.48 | 0.580 | 0.849 |
+| t6 (steps D, C, A late, no suppression) | 0.56 | 0.96 | 0.19 | 0.00 | 0.522 | 0.593 |
+| t5, t9, t1, t7 (held peaks) | 0.23-0.32 | 0.91-0.99 | 0.00 | 0.00 | 0.478-0.504 | 0.461-0.484 |
+| h3 (troughs, no recall) | 0.00 | 0.42 | 0.00 | 0.50 | 0.384 | 0.302 |
+| run 1's best (C, then A: out of order) | 0.00 | 0.34 | 0.05 | 0.48 | 0.424 | 0.295 |
+| w2 (C held from before X) | 0.00 | 0.50 | 0.00 | 0.00 | 0.436 | 0.274 |
+| g4 (C then A, A held) | 0.08 | 0.23 | 0.08 | 0.06 | 0.420 | 0.248 |
+| h1 (D, C dropped; A held) | 0.00 | 0.19 | 0.00 | 0.00 | 0.400 | 0.224 |
+| g2 (flicker) | 0.00 | 0.22 | 0.00 | 0.40 | 0.319 | 0.193 |
+
+- Stepping through the items, even late and without suppression, now ranks above holding them.
+- Recall out of order now earns nothing.
 
 ## Scores, 5 evaluations each, under equal weights and the old f4
 
