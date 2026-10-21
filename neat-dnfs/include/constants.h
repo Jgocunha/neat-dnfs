@@ -207,6 +207,12 @@ namespace neat_dnfs
 
 		inline static double amplitudeDifferenceCoefficient;
 		inline static double widthDifferenceCoefficient;
+
+		// The distance is divided by the larger genome's connection-gene count N only once that count reaches this;
+		// below it, N = 1. Genomes either side of the cutoff are measured 20-fold apart, so a population whose genomes
+		// straddle it splits into many species or merges into one. Optional in a config file, so one written before it
+		// existed still loads; absent is NEAT's usual 20.
+		inline static int minConnectionGenesToNormalize = 20;
 	};
 
 	/// @brief Probabilities governing structural and parametric genome mutations.

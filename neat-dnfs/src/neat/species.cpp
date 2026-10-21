@@ -155,7 +155,7 @@ namespace neat_dnfs
 		// N is the NEAT compatibility-distance normalizer: the larger genome's
 		// connection-gene count (a standard NEAT choice, not total genome size).
 		int N = static_cast<int>(std::max(representative->getNumConnectionGenes(), solution->getNumConnectionGenes()));
-		if (N < 20)
+		if (N < CompatibilityCoefficients::minConnectionGenesToNormalize)
 		{
 			N = 1; // Normalize for small genomes
 		}

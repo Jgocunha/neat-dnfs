@@ -1,5 +1,11 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
+#include <filesystem>
+#include <fstream>
+#include <numeric>
+#include <vector>
+
 #include "neat/genome.h"
 #include "neat/species.h"
 #include "neat/population.h"
@@ -73,6 +79,85 @@ TEST_CASE("Speciation: averageConnectionDifference is non-negative", "[Speciatio
     g2.addConnectionGene(ConnectionGene(ConnectionTuple(1, 2), 1));
 
     REQUIRE(g1.averageConnectionDifference(g2) >= 0.0);
+}
+
+namespace
+{
+    // A solution whose genome holds one gauss connection gene per innovation number, all with the same kernel, so two
+    // of them differ only by excess and disjoint genes.
+    SolutionPtr solutionWithConnectionGenes(const std::vector<int>& innovations)
+    {
+        const GaussKernelParameters kernel{ 2.0, 5.0, 0.0, true, false };
+        auto solution = std::make_shared<DetectionInstability>(makeTopology(1, 1));
+        solution->addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+        solution->addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+        for (const int innovation : innovations)
+        {
+            solution->addConnectionGene(ConnectionGene(ConnectionTuple(1, 2), innovation, kernel));
+        }
+        return solution;
+    }
+
+    // Restores the normalisation cutoff a test changes.
+    class NormalisationCutoffGuard
+    {
+    public:
+        NormalisationCutoffGuard() : previous(CompatibilityCoefficients::minConnectionGenesToNormalize) {}
+        ~NormalisationCutoffGuard() { CompatibilityCoefficients::minConnectionGenesToNormalize = previous; }
+        NormalisationCutoffGuard(const NormalisationCutoffGuard&) = delete;
+        NormalisationCutoffGuard& operator=(const NormalisationCutoffGuard&) = delete;
+    private:
+        int previous;
+    };
+}
+
+// Two genomes of 20 connection genes, 4 excess and 4 disjoint apart: a raw distance of 1.0 * 4 + 0.5 * 4 = 6, above the
+// reference threshold of 3.5. Divided by their 20 genes it is 0.3, below it. Which one applies depends only on where
+// normalisation starts, so it decides whether genomes either side of that size split or merge.
+TEST_CASE("Speciation: the distance is divided by the gene count only from minConnectionGenesToNormalize genes", "[Speciation]")
+{
+    NormalisationCutoffGuard guard;
+    std::vector<int> representativeInnovations(20);
+    std::iota(representativeInnovations.begin(), representativeInnovations.end(), 1);
+    std::vector<int> otherInnovations(16);
+    std::iota(otherInnovations.begin(), otherInnovations.end(), 1);
+    otherInnovations.insert(otherInnovations.end(), { 31, 32, 33, 34 });
+
+    Species species;
+    species.setRepresentative(solutionWithConnectionGenes(representativeInnovations));
+    const auto other = solutionWithConnectionGenes(otherInnovations);
+
+    CompatibilityCoefficients::minConnectionGenesToNormalize = 20;
+    CHECK(species.isCompatible(other));
+
+    CompatibilityCoefficients::minConnectionGenesToNormalize = 100;
+    CHECK_FALSE(species.isCompatible(other));
+}
+
+TEST_CASE("Speciation: the reference config normalises from 20 connection genes", "[Speciation]")
+{
+    NormalisationCutoffGuard guard;
+    CompatibilityCoefficients::minConnectionGenesToNormalize = 0;
+
+    ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
+
+    CHECK(CompatibilityCoefficients::minConnectionGenesToNormalize == 20);
+}
+
+TEST_CASE("Speciation: a config written before minConnectionGenesToNormalize existed still loads, normalising from 20", "[Speciation]")
+{
+    NormalisationCutoffGuard guard;
+    auto config = ConfigLoader::loadJsonFile(ConfigLoader::defaultGlobalConfigPath());
+    config.at("CompatibilityCoefficients").erase("minConnectionGenesToNormalize");
+    const auto path = std::filesystem::temp_directory_path() / "neat-dnfs-config-before-normalisation-cutoff.json";
+    std::ofstream(path) << config.dump();
+    CompatibilityCoefficients::minConnectionGenesToNormalize = 0;
+
+    REQUIRE_NOTHROW(ConfigLoader::loadGlobalConfig(path.generic_string()));
+    CHECK(CompatibilityCoefficients::minConnectionGenesToNormalize == 20);
+
+    ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
+    std::filesystem::remove(path);
 }
 
 TEST_CASE("Speciation: identical solutions are compatible with their species", "[Speciation]")

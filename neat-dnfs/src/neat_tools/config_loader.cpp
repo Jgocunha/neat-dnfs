@@ -275,6 +275,7 @@ namespace neat_dnfs
 			field(cc, "averageConnectionDifferenceCompatibilityWeight", &CompatibilityCoefficients::averageConnectionDifferenceCompatibilityWeight);
 			field(cc, "amplitudeDifferenceCoefficient", &CompatibilityCoefficients::amplitudeDifferenceCoefficient);
 			field(cc, "widthDifferenceCoefficient", &CompatibilityCoefficients::widthDifferenceCoefficient);
+			CompatibilityCoefficients::minConnectionGenesToNormalize = cc.value("minConnectionGenesToNormalize", 20);
 
 			const auto& gm = j.at("GenomeMutationConstants");
 			field(gm, "toggleConnectionGeneProbability", &GenomeMutationConstants::toggleConnectionGeneProbability);
