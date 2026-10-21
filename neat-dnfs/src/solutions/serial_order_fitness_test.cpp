@@ -176,11 +176,11 @@ namespace neat_dnfs
 				recallPreShapes.push_back(mean(waitingPreShapes));
 			}
 			recallReleases.push_back(releaseAfterRecall(recall));
-			afterRecall.push_back(0.5 * noBumps(outputField) + 0.5 * troughsAfterRecall(recall));
+			afterRecall.push_back(stoppedAfterRecall(recall));
 			sampleUntil(cycle + 1 < cueTimes.size() ? cueTimes[cycle + 1] : endTime, inputRest,
 				[](double, std::optional<double>) {});
 			trace.push_back(snapshot(std::format("recall {} rest", cycle)));
-			afterRecall.push_back(0.5 * noBumps(outputField) + 0.5 * troughsAfterRecall(recall));
+			afterRecall.push_back(stoppedAfterRecall(recall));
 			recallTrace.push_back(recallSummary(cycle, recall));
 		}
 
@@ -340,6 +340,12 @@ namespace neat_dnfs
 			}
 		}
 		return credit / static_cast<double>(recall.size());
+	}
+
+	double SerialOrderFitnessTest::stoppedAfterRecall(const CycleRecall& recall) const
+	{
+		// An output that never peaked has nothing to stop: its silence counts only as far as the cycle recalled.
+		return 0.5 * noBumps(outputField) * recallInOrder(recall) + 0.5 * troughsAfterRecall(recall);
 	}
 
 	double SerialOrderFitnessTest::troughsAfterRecall(const CycleRecall& recall) const

@@ -32,7 +32,8 @@ namespace neat_dnfs
 	///   A cycle where no event waits is not scored.
 	/// - Once an event's peak ends, it stays released: half the credit for lying below threshold, graded from none 2
 	///   above it to all of it 2 below; the other half for lying below the rest of the field, in full from 2 below.
-	/// - once recall ends, the output has no peak and every event lies below the rest of the field.
+	/// - once recall ends, the output has no peak and every event lies below the rest of the field. No peak counts only
+	///   as far as the cycle recalled in order: an output that never peaked has nothing to stop.
 	///
 	/// A release and a trough count only as far as the event was recalled in its place.
 	///
@@ -135,6 +136,10 @@ namespace neat_dnfs
 		/// @return The mean, over the events, of each one's credit in place times its mean release score, 0 if never
 		/// released.
 		[[nodiscard]] static double releaseAfterRecall(const CycleRecall& recall);
+		/// @brief Scores how the output stopped once recall ended: no peak, and every event below the rest of the field.
+		/// @param recall Each event's record for the cycle.
+		/// @return Half for no peak, counted as far as the cycle recalled in order; half for the troughs.
+		[[nodiscard]] double stoppedAfterRecall(const CycleRecall& recall) const;
 		/// @brief Scores the output pushed below the rest of the field now at every event, each as far as it was recalled
 		/// in its place.
 		/// @param recall Each event's record for the cycle.

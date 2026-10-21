@@ -987,7 +987,7 @@ TEST_CASE("SerialOrderFitnessTest gives an output flickering at threshold almost
 // From-scratch run h3 of 20 October 2026 stores D, C and A in order, then from the first X sinks D and C into deep
 // troughs without either ever peaking. Troughs at every earlier event were paid whether or not that event had been
 // recalled, so this earned f6 0.89 and f7 0.75. A trough now earns credit only for an event that peaked when due in that
-// cycle, so these earn nothing: f6 is 0, and f7 keeps only its half for an output with no peak.
+// cycle, and an output with no peak only as far as the cycle recalled, so these earn nothing: f6 and f7 are 0.
 TEST_CASE("SerialOrderFitnessTest pays a trough only at an event recalled first", "[Solutions][SerialOrderFitnessTest]")
 {
     resetGlobalState();
@@ -999,11 +999,13 @@ TEST_CASE("SerialOrderFitnessTest pays a trough only at an event recalled first"
     const auto& partials = troughs.getParameters().partialFitness;
     REQUIRE(partials[3] == 0.0); // nothing was recalled
     CHECK(partials[5] < 0.05);
-    CHECK(partials[6] == Catch::Approx(0.5).margin(0.05));
+    CHECK(partials[6] < 0.05);
 }
 
 // With no connection into the output, it stays at rest: quiet through the demonstration, but with nothing stored,
 // recalled or suppressed. Noise moves single samples by hundredths, so those terms come out near zero, not exactly.
+// An output with no peak after recall used to earn half of f7 even when nothing was recalled; silence now counts only
+// as far as the cycle recalled in order, so a silent output earns no f7.
 TEST_CASE("SerialOrderFitnessTest gives no memory or recall credit to an output that never responds", "[Solutions][SerialOrderFitnessTest]")
 {
     resetGlobalState();
@@ -1021,7 +1023,7 @@ TEST_CASE("SerialOrderFitnessTest gives no memory or recall credit to an output 
     CHECK(partials[3] == 0.0);                            // no recall peaks
     CHECK(partials[4] < 0.05);                            // no pre-shapes of the events still to recall
     CHECK(partials[5] < 0.05);                            // no troughs at the recalled events
-    CHECK(partials[6] == Catch::Approx(0.5).margin(0.05)); // after recall: quiet, but nothing suppressed
+    CHECK(partials[6] < 0.05);                            // after recall: quiet, but nothing was recalled to stop
 }
 
 TEST_CASE("SerialOrder evaluate produces a bounded fitness", "[Solutions][SerialOrder]")
