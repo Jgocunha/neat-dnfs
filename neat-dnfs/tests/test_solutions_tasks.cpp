@@ -892,6 +892,58 @@ TEST_CASE("SerialOrderFitnessTest pays stepping from one event to the next over 
     CHECK(stepping.getFitness() > held.getFitness() + 0.05);
 }
 
+// From-scratch run o1 of 21 October 2026 holds D, C, A and B as four self-sustained peaks in the input from their pulses
+// on, reads them out as graded pre-shapes in the output, and steps through them one peak at a time. The input is a
+// detection field: it peaks while an event is shown and lets go after. Pre-shapes now count as memory only as far as the
+// input is at rest, so this keeps its recall credit but earns little for its memory, which earned f3 0.60 and f5 0.93.
+TEST_CASE("SerialOrderFitnessTest gives little memory credit while the input holds the events", "[Solutions][SerialOrderFitnessTest]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+
+    auto inputHolds = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-input-holds-items.dnf");
+    inputHolds.evaluate();
+
+    const auto& partials = inputHolds.getParameters().partialFitness;
+    CHECK(partials[2] < 0.3);
+    CHECK(partials[4] < 0.3);
+    CHECK(partials[3] > 0.7);
+}
+
+// From-scratch run o2 of 21 October 2026: X pushes all four events over threshold within 20, highest pre-shape first,
+// and all four fade together. Sampled every 10, they peak in order, so each earned most of a recall point: f4 0.54.
+// Recall is one peak at a time, so each sample's recall credit is now shared among the peaks up together. The burst
+// keeps a little, a start to build on, but far less than o1's recall one peak at a time.
+TEST_CASE("SerialOrderFitnessTest shares recall credit among the peaks up together", "[Solutions][SerialOrderFitnessTest]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+
+    auto burst = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-burst.dnf");
+    burst.evaluate();
+    auto oneAtATime = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-input-holds-items.dnf");
+    oneAtATime.evaluate();
+
+    const double burstRecall = burst.getParameters().partialFitness[3];
+    CHECK(burstRecall < 0.4);
+    CHECK(burstRecall > 0.05);
+    CHECK(burstRecall < 0.5 * oneAtATime.getParameters().partialFitness[3]);
+}
+
+// From-scratch run t6 of 20 October 2026 forms a peak at D during the demonstration, before any X. Memory is pre-shapes
+// below threshold, so a demonstration sample's memory now counts only as far as the output has no peak; it earned f3
+// 0.82.
+TEST_CASE("SerialOrderFitnessTest gives less memory credit while the output peaks during the demonstration", "[Solutions][SerialOrderFitnessTest]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+
+    auto peaksEarly = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-late-stepping.dnf");
+    peaksEarly.evaluate();
+
+    CHECK(peaksEarly.getParameters().partialFitness[2] < 0.7);
+}
+
 // From-scratch run g2 of 20 October 2026: the output sits at threshold and crosses it by 0.0-0.1 at A and B exactly when
 // they are due. Height was a twentieth of a recall point, so those crossings earned f4 0.30-0.38. A recalled peak now
 // earns its credit in proportion to its height, in full from 2, and they earn almost nothing.

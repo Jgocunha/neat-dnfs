@@ -231,6 +231,50 @@ Weakening the release now lowers fitness smoothly, from the reference's 0.969 to
 - Stepping through the items, even late and without suppression, now ranks above holding them.
 - Recall out of order now earns nothing.
 
+## The input only detects, memory is held below threshold, and recall is one peak at a time
+
+The o-batch (`8f85eb7`, 21 October 2026) showed three ways to earn credit that the task does not intend:
+- **Input as memory.** o1, o2 and o5 hold the four items as self-sustained peaks in the input field. f1 weighed 0.05 and
+  looked at the input only before each next onset and at four recall points, so this cost about 0.025. A peak that
+  lingers after its pulse but dies before the next went unseen.
+- **Output peaks while learning.** t6, o4 and o1 peak in the output during the demonstration. f2 also weighs 0.05 and
+  was checked at 9 points; f3 paid a held peak as memory.
+- **Bursts.** o2, o3 and o6 push all four items over threshold within 20-50 of X, highest pre-shape first, and let them
+  fade together. Sampled every 10, they peak "in order", and each earned 0.6-0.9 of a recall point, at a small discount
+  for several bumps. o3's 0.737 beat o1's real stepping, 0.670.
+
+Since then:
+- Every stage is sampled every 10. The input must be at rest at every sample outside a pulse and the 50 after it (five
+  time constants of the reference's input).
+- **f3** counts each sample's pre-shapes only as far as the input is at rest and the output has no peak.
+- **f5** counts each sample's waiting pre-shapes only as far as the input is at rest. Inside a pulse and the 50 after
+  it, the input's last score before the pulse stands in, since X lifts the whole input.
+- **f4** shares each sample's recall score among the output's peaks at that moment: alone, it counts in full; beside one
+  other, half; in a burst of four, a quarter. The user chose graded over all-or-nothing scoring here: evolution needs a
+  slope to climb.
+
+Fixtures: `serial-order-fitness-test-input-holds-items.dnf` (o1) and `-burst.dnf` (o2).
+
+Scores, 2 evaluations each, before (`8f85eb7`) and after:
+
+| Genome | Before | After | What changed |
+|---|---|---|---|
+| reference | 0.969 | 0.969 | |
+| weak release | 0.849 | 0.849 | |
+| o3 (burst, input at rest) | 0.737 | 0.662 | f4 0.69 to 0.45 |
+| t6 (steps late, peak at D while learning) | 0.592 | 0.518 | f3 0.83 to 0.60, f4 0.56 to 0.47 |
+| o5 (steps one at a time, input holds items) | 0.702 | 0.503 | f2 1.00 to 0.73, f3 0.70 to 0.20, f5 0.95 to 0.27 |
+| o4 (burst beside a held D) | 0.582 | 0.478 | f3 0.95 to 0.68, f4 0.55 to 0.35 |
+| o1 (steps one at a time, input holds items) | 0.670 | 0.471 | f3 0.59 to 0.08, f5 0.93 to 0.26 |
+| t1-t10 (first two items peak together) | 0.46-0.49 | 0.38-0.46 | f4 0.18-0.32 to 0.09-0.23 |
+| o2 (burst, input holds items) | 0.666 | 0.335 | f3 0.98 to 0.11, f4 0.54 to 0.32, f5 0.94 to 0.11 |
+| h4, g1, g2 (input holds items) | 0.19-0.29 | 0.10-0.17 | |
+
+- The four bests the user judged closest to solving (o1, o4, o5, t6) now rank 2nd to 5th among the evolved genomes,
+  above every t.
+- o3 still ranks first. Its input and memory are clean (f1 0.96, f2 1.00, f3 1.00, f5 0.91), and its common fade still
+  earns f6 0.49, because release is weighted by each event's peak height, not by the recall credit it shared.
+
 ## Scores, 5 evaluations each, under equal weights and the old f4
 
 | Genome | Fitness | Notes |

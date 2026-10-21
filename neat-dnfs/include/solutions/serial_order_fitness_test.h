@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <functional>
 #include <optional>
 #include <vector>
 
@@ -16,17 +17,18 @@ namespace neat_dnfs
 	/// and B (80) as Gaussian pulses at 100, 600, 800 and 1800 after it. After a gap of 700, X is given three times,
 	/// starting recall cycles of 1000, 800 and 1500. createPhenotypeEnvironment() lays that schedule down as timed
 	/// stimuli, which the evaluation runs on and every saved solution carries, so a saved file replays the evaluation
-	/// in dnf-composer. Every field is scored at the end of each interval of that
-	/// schedule, against what the hand-built design of 18 October 2026 (tests/fixtures/
-	/// serial-order-fitness-test-reference.dnf) does there:
-	/// - the input peaks at each event and is at rest otherwise;
+	/// in dnf-composer. Every field is sampled every 10 through that schedule, and scored against what the hand-built
+	/// design of 18 October 2026 (tests/fixtures/serial-order-fitness-test-reference.dnf) does there:
+	/// - the input peaks at each event, and is back at rest by 50 after each pulse: it detects events, it does not hold
+	///   them;
 	/// - the output "nf 2" stays below threshold through the demonstration, pre-shaped at every stored event, the
-	///   earliest highest;
-	/// - after each X the output peaks at D, C, A and B in turn, one at a time. Recall is sampled every 10 through the
-	///   600 after X and scored by order, not by when each peak comes. An event earns its best recall score in the cycle
-	///   only if it first peaks in its place: D before any other, and each later event after the one before it. A peak
-	///   counts only within a couple of samples of its event, and in proportion to its height, in full from 2.
-	/// - While they wait, the events not yet recalled stay pre-shaped in order.
+	///   earliest highest. Pre-shapes count as memory only as far as the input is at rest and the output has no peak.
+	/// - after each X the output peaks at D, C, A and B in turn, one at a time. Recall is sampled through the 600 after X
+	///   and scored by order, not by when each peak comes. An event earns its best recall score in the cycle only if it
+	///   first peaks in its place: D before any other, and each later event after the one before it. A peak counts only
+	///   within a couple of samples of its event, and in proportion to its height, in full from 2. A sample's recall
+	///   score is shared among the output's peaks at that moment.
+	/// - While they wait, the events not yet recalled stay pre-shaped in order, counted as far as the input is at rest.
 	/// - Once an event's peak ends, it stays released: half the credit for staying below threshold, all of it from 2
 	///   below the rest of the field.
 	/// - once recall ends, the output has no peak and every event lies below the rest of the field.
@@ -67,6 +69,13 @@ namespace neat_dnfs
 		/// @brief Simulates until the simulation time reaches @p time.
 		/// @param time Simulation time to stop at.
 		void runUntil(double time);
+		/// @brief Simulates until @p time, stopping every 10 to score the input at rest and to pass the sample on.
+		/// @param time Simulation time to stop at.
+		/// @param inputRest Input rest scores, one appended per sample outside a pulse and the 50 after it.
+		/// @param onSample Called at each sample with its time and, outside a pulse and the 50 after it, the input's
+		/// rest score.
+		void sampleUntil(double time, std::vector<double>& inputRest,
+			const std::function<void(double, std::optional<double>)>& onSample);
 		/// @brief Scores the output pre-shaped at @p positions, above the rest of the field and in that order.
 		/// @param positions Event positions, highest pre-shape expected first.
 		/// @return The mean pre-shape, with half of it kept only as far as the pre-shapes are in order.
@@ -74,7 +83,8 @@ namespace neat_dnfs
 		/// @brief What one event did during one recall cycle.
 		struct EventRecall
 		{
-			/// @brief Highest recall score: one output bump at the event, near it and tall enough.
+			/// @brief Highest recall score: one output bump at the event, near it and tall enough, shared among the
+			/// peaks up at that sample.
 			double bestScore = 0.0;
 			/// @brief Highest closeness times height credit of the output's nearest bump: how fully the event peaked.
 			double recalled = 0.0;
@@ -98,7 +108,10 @@ namespace neat_dnfs
 		/// @param time Simulation time of the sample.
 		/// @param recall Each event's record so far this cycle, updated in place.
 		/// @param waitingPreShapes Pre-shape scores of the events still waiting, one appended per sample where any wait.
-		void observeRecall(double time, CycleRecall& recall, std::vector<double>& waitingPreShapes) const;
+		/// @param inputAtRest How far the input is at rest at this sample, or, inside a pulse and the 50 after it, at the
+		/// last sample before: the share of the waiting pre-shapes that counts.
+		void observeRecall(double time, CycleRecall& recall, std::vector<double>& waitingPreShapes,
+			double inputAtRest) const;
 		/// @brief Scores one cycle's recall by order.
 		/// @param recall Each event's record for the cycle.
 		/// @return The mean, over the events, of each one's best recall score if it first peaked in its place, else 0.

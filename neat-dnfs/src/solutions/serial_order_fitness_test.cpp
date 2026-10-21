@@ -28,12 +28,15 @@ namespace neat_dnfs
 		constexpr double endTime = 5850.0;
 		// X lifts the whole input field evenly, as a boost would, as a stimulus a saved file can replay.
 		constexpr double cueWidth = 1e6;
-		// Recall is sampled this often after each X, until the recall window ends.
-		constexpr double recallSampleInterval = 10.0;
+		// Every stage is sampled this often.
+		constexpr double sampleInterval = 10.0;
+		// After a pulse ends, a detection field's peak has this long to decay before the input must be back at rest: five
+		// time constants of the reference's input.
+		constexpr double settleTime = 50.0;
 		// By then the reference design has recalled and suppressed every event on every cycle.
 		constexpr double recallEndTime = 600.0;
-		// Points of the recall window the trace snapshots, and the input is checked at rest: inside the reference
-		// design's peak at D, C, A and B on every cycle.
+		// Points of the recall window the trace snapshots: inside the reference design's peak at D, C, A and B on every
+		// cycle.
 		constexpr std::array<double, SerialOrderFitnessTest::eventCount> recallSnapshotTimes{ 150.0, 290.0, 400.0, 500.0 };
 		// An event counts as peaking from this recall score: one bump near it, about a quarter of full height or more.
 		constexpr double peakingScore = 0.25;
@@ -43,6 +46,21 @@ namespace neat_dnfs
 		constexpr double inputPeakWidth = 6.0;
 		constexpr double outputPeakAmplitude = 9.0;
 		constexpr double outputPeakWidth = 7.0;
+
+		// Whether the input should be back at rest: no pulse, X or event, started within a pulse and its settling time.
+		bool inputSettledAt(const double time)
+		{
+			const auto pulsedRecently = [time](const double onset) {
+				return time >= onset && time < onset + pulseDuration + settleTime;
+			};
+			return std::ranges::none_of(cueTimes, pulsedRecently)
+				&& std::ranges::none_of(sequence, [&pulsedRecently](const Event& event) { return pulsedRecently(event.onset); });
+		}
+
+		size_t eventsShownBy(const double time)
+		{
+			return static_cast<size_t>(std::ranges::count_if(sequence, [time](const Event& event) { return event.onset < time; }));
+		}
 
 		std::vector<double> positionsOf(const size_t first, const size_t last)
 		{
@@ -101,11 +119,14 @@ namespace neat_dnfs
 		std::vector<double> inputPeaks, inputRest, outputQuiet, outputMemory;
 		std::vector<double> recallPeaks, recallPreShapes, recallReleases, afterRecall;
 		nlohmann::json trace = nlohmann::json::array();
-		const auto scoreDemonstratedOutput = [&](const size_t storedCount) {
-			outputQuiet.push_back(noBumps(outputField));
-			if (storedCount > 0)
+		const auto observeDemonstration = [&](const double time, const std::optional<double> inputAtRest) {
+			const double quiet = noBumps(outputField);
+			outputQuiet.push_back(quiet);
+			// Memory is what the output holds below threshold once the input has let go of each event.
+			const size_t stored = eventsShownBy(time);
+			if (inputAtRest && stored > 0)
 			{
-				outputMemory.push_back(preShapedInOrder(positionsOf(0, storedCount)));
+				outputMemory.push_back(preShapedInOrder(positionsOf(0, stored)) * *inputAtRest * quiet);
 			}
 		};
 
@@ -114,22 +135,18 @@ namespace neat_dnfs
 		initSimulation();
 
 		// demonstration: X, then D, C, A and B
-		runUntil(sequence.front().onset);
+		sampleUntil(sequence.front().onset, inputRest, observeDemonstration);
 		trace.push_back(snapshot("before D"));
-		inputRest.push_back(closenessOfMeanActivationToRestingLevel(inputField));
-		scoreDemonstratedOutput(0);
 		for (size_t event = 0; event < sequence.size(); ++event)
 		{
-			runUntil(sequence[event].onset + pulseDuration);
+			sampleUntil(sequence[event].onset + pulseDuration, inputRest, observeDemonstration);
 			trace.push_back(snapshot(std::format("{} shown", sequence[event].label)));
 			inputPeaks.push_back(oneBumpAtPositionWithAmplitudeAndWidth(inputField, sequence[event].position,
 				inputPeakAmplitude, inputPeakWidth));
-			scoreDemonstratedOutput(event + 1);
 
-			runUntil(event + 1 < sequence.size() ? sequence[event + 1].onset : cueTimes[1]);
+			sampleUntil(event + 1 < sequence.size() ? sequence[event + 1].onset : cueTimes[1], inputRest,
+				observeDemonstration);
 			trace.push_back(snapshot(std::format("after {}", sequence[event].label)));
-			inputRest.push_back(closenessOfMeanActivationToRestingLevel(inputField));
-			scoreDemonstratedOutput(event + 1);
 		}
 
 		// recall: each X should replay D, C, A and B one peak at a time, in that order, at any pace within the window
@@ -140,24 +157,22 @@ namespace neat_dnfs
 			CycleRecall recall{};
 			std::vector<double> waitingPreShapes;
 			size_t snapshotsTaken = 0;
-			for (int sample = 1; sample * recallSampleInterval <= recallEndTime; ++sample)
-			{
-				const double after = sample * recallSampleInterval;
-				runUntil(cue + after);
-				observeRecall(cue + after, recall, waitingPreShapes);
-				if (snapshotsTaken < recallSnapshotTimes.size() && after == recallSnapshotTimes[snapshotsTaken])
+			sampleUntil(cue + recallEndTime, inputRest, [&](const double time, const std::optional<double> inputAtRest) {
+				// While X still lifts the input, it holds whatever it held before X.
+				observeRecall(time, recall, waitingPreShapes, inputAtRest.value_or(inputRest.back()));
+				if (snapshotsTaken < recallSnapshotTimes.size() && time - cue == recallSnapshotTimes[snapshotsTaken])
 				{
 					trace.push_back(snapshot(std::format("recall {} {}", cycle, sequence[snapshotsTaken].label)));
-					inputRest.push_back(closenessOfMeanActivationToRestingLevel(inputField));
 					++snapshotsTaken;
 				}
-			}
+			});
 			trace.push_back(snapshot(std::format("recall {} end", cycle)));
 			recallPeaks.push_back(recallInOrder(recall));
 			recallPreShapes.push_back(waitingPreShapes.empty() ? 0.0 : mean(waitingPreShapes));
 			recallReleases.push_back(releaseAfterRecall(recall));
 			afterRecall.push_back(0.5 * noBumps(outputField) + 0.5 * troughsAfterRecall(recall));
-			runUntil(cycle + 1 < cueTimes.size() ? cueTimes[cycle + 1] : endTime);
+			sampleUntil(cycle + 1 < cueTimes.size() ? cueTimes[cycle + 1] : endTime, inputRest,
+				[](double, std::optional<double>) {});
 			trace.push_back(snapshot(std::format("recall {} rest", cycle)));
 			afterRecall.push_back(0.5 * noBumps(outputField) + 0.5 * troughsAfterRecall(recall));
 			recallTrace.push_back(recallSummary(cycle, recall));
@@ -165,7 +180,7 @@ namespace neat_dnfs
 
 		const double f1 = 0.5 * mean(inputPeaks) + 0.5 * mean(inputRest); // input peaks at the events, rests otherwise
 		const double f2 = mean(outputQuiet);     // output below threshold through the demonstration
-		const double f3 = mean(outputMemory);    // output pre-shaped at the stored events, in order
+		const double f3 = mean(outputMemory);    // output pre-shaped at the stored events, in order, held by itself
 		const double f4 = mean(recallPeaks);     // the events recalled one at a time, in order
 		const double f5 = mean(recallPreShapes); // events still to recall pre-shaped, in order
 		const double f6 = mean(recallReleases);  // each recalled event released, below the field
@@ -209,6 +224,26 @@ namespace neat_dnfs
 		}
 	}
 
+	void SerialOrderFitnessTest::sampleUntil(const double time, std::vector<double>& inputRest,
+		const std::function<void(double, std::optional<double>)>& onSample)
+	{
+		// Samples fall on whole multiples of the interval, so every stage's samples line up with the schedule.
+		for (auto sample = static_cast<long>(std::floor(phenotype.getT() / sampleInterval + 1e-9)) + 1;
+			static_cast<double>(sample) * sampleInterval <= time + 1e-9; ++sample)
+		{
+			const double sampleTime = static_cast<double>(sample) * sampleInterval;
+			runUntil(sampleTime);
+			std::optional<double> inputAtRest;
+			if (inputSettledAt(sampleTime))
+			{
+				inputAtRest = closenessOfMeanActivationToRestingLevel(inputField);
+				inputRest.push_back(*inputAtRest);
+			}
+			onSample(sampleTime, inputAtRest);
+		}
+		runUntil(time);
+	}
+
 	double SerialOrderFitnessTest::preShapedInOrder(const std::vector<double>& positions) const
 	{
 		std::vector<double> preShapes;
@@ -229,8 +264,10 @@ namespace neat_dnfs
 	}
 
 	void SerialOrderFitnessTest::observeRecall(const double time, CycleRecall& recall,
-		std::vector<double>& waitingPreShapes) const
+		std::vector<double>& waitingPreShapes, const double inputAtRest) const
 	{
+		// Recall is one peak at a time: a sample's credit is shared among the peaks up together.
+		const auto peaksUp = static_cast<double>(getNeuralFieldOrThrow(outputField, "observeRecall")->getBumps().size());
 		std::vector<double> waiting;
 		for (size_t event = 0; event < sequence.size(); ++event)
 		{
@@ -240,7 +277,7 @@ namespace neat_dnfs
 			const double score = recalled * oneBumpAtPositionWithAmplitudeAndWidth(outputField, position,
 				outputPeakAmplitude, outputPeakWidth);
 			const bool peaking = score >= peakingScore;
-			observed.bestScore = std::max(observed.bestScore, score);
+			observed.bestScore = std::max(observed.bestScore, score / std::max(peaksUp, 1.0));
 			observed.recalled = std::max(observed.recalled, recalled);
 			if (peaking && !observed.firstPeak)
 			{
@@ -260,7 +297,8 @@ namespace neat_dnfs
 		}
 		if (!waiting.empty())
 		{
-			waitingPreShapes.push_back(preShapedInOrder(waiting));
+			// The input only detects events: what it holds is not memory.
+			waitingPreShapes.push_back(preShapedInOrder(waiting) * inputAtRest);
 		}
 	}
 
