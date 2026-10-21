@@ -2,6 +2,7 @@
 #include <catch2/catch_approx.hpp>
 
 #include <filesystem>
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <map>
@@ -1120,7 +1121,8 @@ TEST_CASE("ActivationProfile keeps its times and activations to three decimals t
 }
 
 // The fitness compares every design with the saved reference, so the saved reference has to be what the Gauss-only
-// reference design does on this task's schedule now. Noise moves single samples by hundredths.
+// reference design does on this task's schedule now. Noise moves a recording's output from the saved one by 0.03 on
+// average, 0.05 at most in 40 recordings; a recording one sample late would be 0.3 off.
 TEST_CASE("SerialOrderProfile's saved reference is what the Gauss-only reference design does", "[Solutions][SerialOrderProfile]")
 {
     resetGlobalState();
@@ -1149,7 +1151,120 @@ TEST_CASE("SerialOrderProfile's saved reference is what the Gauss-only reference
                 ++values;
             }
         }
-        CHECK(totalDifference / static_cast<double>(values) < 0.05);
+        CHECK(totalDifference / static_cast<double>(values) < 0.1);
+    }
+}
+
+TEST_CASE("SerialOrderProfile is registered with the serial-order template", "[SolutionRegistry]")
+{
+    const auto* task = findTask("serial-order-profile");
+    REQUIRE(task != nullptr);
+    REQUIRE(task->templateFile == "serial-order.dnf");
+    REQUIRE(task->inputs == 1);
+    REQUIRE(task->outputs == 1);
+}
+
+// The demonstration's stages follow the schedule. Each recall's follow the reference design's own peaks, whose pace the
+// fitness asks for.
+TEST_CASE("SerialOrderProfile splits the trial into the demonstration's stages and each recall's, at the reference's peaks", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+
+    const auto& stages = SerialOrderProfile::stages();
+
+    REQUIRE(stages.size() == 24);
+    const std::vector<SerialOrderProfile::Stage> firstStages{ { "trigger", 0.0, 100.0 }, { "event D", 100.0, 600.0 },
+        { "event C", 600.0, 800.0 }, { "event A", 800.0, 1800.0 }, { "event B", 1800.0, 1900.0 }, { "wait", 1900.0, 2550.0 },
+        { "1 X", 2550.0, 2570.0 }, { "1 recall D", 2570.0, 2790.0 }, { "1 recall C", 2790.0, 2900.0 },
+        { "1 recall A", 2900.0, 3000.0 }, { "1 recall B", 3000.0, 3090.0 }, { "1 rest", 3090.0, 3550.0 } };
+    for (size_t stage = 0; stage < firstStages.size(); ++stage)
+    {
+        INFO("stage " << stage);
+        CHECK(stages[stage].name == firstStages[stage].name);
+        CHECK(stages[stage].start == firstStages[stage].start);
+        CHECK(stages[stage].end == firstStages[stage].end);
+    }
+    CHECK(stages[12].name == "2 X");
+    CHECK(stages[12].start == 3550.0);
+    CHECK(stages.back().name == "3 rest");
+    CHECK(stages.back().end == 5850.0);
+}
+
+// The fitness is how closely the input and the output match the reference design's at every moment, so the reference
+// design itself scores about 1 on every stage, short of it only by noise.
+TEST_CASE("SerialOrderProfile scores the reference design about 1 on every stage", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    auto solution = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-fitness-test-reference-gauss.dnf");
+
+    solution.evaluate();
+
+    CHECK(solution.getFitness() > 0.99);
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == SerialOrderProfile::stages().size());
+    for (size_t stage = 0; stage < partials.size(); ++stage)
+    {
+        INFO(SerialOrderProfile::stages()[stage].name);
+        CHECK(partials[stage] > 0.98);
+    }
+}
+
+// The reference with Mexican hats in two hidden fields does almost the same; it pushes each released event deeper.
+TEST_CASE("SerialOrderProfile scores the Mexican-hat reference design just below the Gauss-only one it compares with", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    auto mexicanHat = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-fitness-test-reference.dnf");
+    auto gauss = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-fitness-test-reference-gauss.dnf");
+
+    mexicanHat.evaluate();
+    gauss.evaluate();
+
+    CHECK(mexicanHat.getFitness() > 0.95);
+    CHECK(mexicanHat.getFitness() < gauss.getFitness());
+}
+
+// With nothing connected the output never leaves rest. The input, the fixed detection field, matches the reference's in
+// full; the output's flat field is unrelated to the reference's, which is worth half: (1 + 0.5) / 2 overall.
+TEST_CASE("SerialOrderProfile gives an output that never responds about half of the output's credit", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    auto silent = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-silent.dnf");
+
+    silent.evaluate();
+
+    CHECK(silent.getFitness() > 0.7);
+    CHECK(silent.getFitness() < 0.8);
+}
+
+// Saved from the 21 October smoke run: one connection from the input ignites the output at D during the demonstration
+// and holds the peak to the end. D is the reference's highest pre-shape and its first recall, so the held peak resembles
+// it until D's recall is over; from the recall of C on, the reference has let D go, and holding it scores below never
+// responding at all.
+TEST_CASE("SerialOrderProfile scores a peak held at D above silence while D is due and below it once D is past", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    auto held = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-held-d.dnf");
+    auto silent = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-silent.dnf");
+
+    held.evaluate();
+    silent.evaluate();
+
+    const auto& stages = SerialOrderProfile::stages();
+    const auto stageScore = [&stages](const Solution& solution, const std::string& name) {
+        const auto stage = std::ranges::find(stages, name, &SerialOrderProfile::Stage::name);
+        REQUIRE(stage != stages.end());
+        return solution.getParameters().partialFitness[static_cast<size_t>(stage - stages.begin())];
+    };
+    CHECK(stageScore(held, "1 recall D") > stageScore(silent, "1 recall D"));
+    for (const auto* past : { "1 recall C", "1 rest", "3 recall C", "3 rest" })
+    {
+        INFO(past);
+        CHECK(stageScore(held, past) < stageScore(silent, past));
     }
 }
 
@@ -1659,10 +1774,13 @@ TEST_CASE("ScopedTaskConfig restores every constant the task's config overrode",
 }
 
 // Population::endConditionMet() stops a run once every *recorded* partial
-// fitness passes the target, while the fitness it reports is the weighted sum
+// fitness passes the target, while the fitness it reports is the one
 // testPhenotype() computed. If a task records a different term than it weighs,
 // a run can stop early on a solution whose fitness never reached the target.
-TEST_CASE("Every registered task's fitness is the weighted sum of the partial fitness it records", "[Solutions][SolutionRegistry]")
+// A task whose config/solutions file sets fitness weights must report exactly
+// the weighted sum; one with none there (SerialOrderProfile, which counts each
+// stage by its length) must report a mean of its terms, never below the lowest.
+TEST_CASE("Every registered task's fitness is the weighted sum of the partial fitness it records, or a mean of it", "[Solutions][SolutionRegistry]")
 {
     for (const auto& task : taskEntries())
     {
@@ -1676,10 +1794,20 @@ TEST_CASE("Every registered task's fitness is the weighted sum of the partial fi
             solution->evaluate();
 
             const auto& recorded = solution->getParameters().partialFitness;
-            const auto weights = ConfigLoader::loadFitnessWeights(std::string(task.slug), recorded.size());
-            const double weightedSum = std::inner_product(recorded.begin(), recorded.end(), weights.begin(), 0.0);
-
-            REQUIRE(solution->getFitness() == Catch::Approx(weightedSum).margin(1e-9));
+            std::ifstream configFile(paths::resourceRoot() / "config" / "solutions" / (std::string(task.slug) + ".json"));
+            const auto config = nlohmann::json::parse(configFile);
+            if (config.contains("SolutionConstants") && config.at("SolutionConstants").contains("fitnessWeights"))
+            {
+                const auto weights = ConfigLoader::loadFitnessWeights(std::string(task.slug), recorded.size());
+                const double weightedSum = std::inner_product(recorded.begin(), recorded.end(), weights.begin(), 0.0);
+                REQUIRE(solution->getFitness() == Catch::Approx(weightedSum).margin(1e-9));
+            }
+            else
+            {
+                REQUIRE_FALSE(recorded.empty());
+                REQUIRE(solution->getFitness() >= std::ranges::min(recorded) - 1e-9);
+                REQUIRE(solution->getFitness() <= std::ranges::max(recorded) + 1e-9);
+            }
         }
     }
 }

@@ -397,3 +397,46 @@ TEST_CASE("median is not moved by a few outlying values", "[median]")
     std::fill_n(mostlyAtRest.begin(), 20, 5.0);
     REQUIRE(median(mostlyAtRest) == -10.0);
 }
+
+TEST_CASE("concordance is 1 for a profile and itself, flat profiles included", "[concordance]")
+{
+    using neat_dnfs::tools::utils::concordance;
+
+    const std::vector<double> profile{ -13.0, -13.0, -1.5, 8.0, -1.5, -13.0 };
+    const std::vector<double> flat(6, -10.0);
+
+    REQUIRE(concordance(profile, profile, 1.0) == Catch::Approx(1.0));
+    REQUIRE(concordance(flat, flat, 1.0) == Catch::Approx(1.0));
+}
+
+// Lin's concordance correlation, 2 cov / (var + var' + (mean - mean')^2), counts a profile's shape, height and level.
+TEST_CASE("concordance with no tolerance is Lin's: shape, height and level all count", "[concordance]")
+{
+    using neat_dnfs::tools::utils::concordance;
+
+    const std::vector<double> reference{ 0.0, 1.0, 2.0, 1.0, 0.0, -1.0, -2.0, -1.0 }; // mean 0, variance 1.5
+    std::vector<double> mirrored, halfHeight, lifted;
+    for (const double value : reference)
+    {
+        mirrored.push_back(-value);
+        halfHeight.push_back(0.5 * value);
+        lifted.push_back(value + 1.0);
+    }
+
+    REQUIRE(concordance(mirrored, reference, 0.0) == Catch::Approx(-1.0));
+    REQUIRE(concordance(halfHeight, reference, 0.0) == Catch::Approx(2.0 * 0.75 / (0.375 + 1.5)));
+    REQUIRE(concordance(lifted, reference, 0.0) == Catch::Approx(2.0 * 1.5 / (1.5 + 1.5 + 1.0)));
+}
+
+// Two flat profiles have no shape to agree on: the tolerance lets their levels decide, in full when they match.
+TEST_CASE("concordance of flat profiles falls with the offset between them, measured against the tolerance", "[concordance]")
+{
+    using neat_dnfs::tools::utils::concordance;
+
+    const std::vector<double> reference(4, -10.0);
+    const std::vector<double> oneAbove(4, -9.0);
+    const std::vector<double> threeBelow(4, -13.0);
+
+    REQUIRE(concordance(oneAbove, reference, 1.0) == Catch::Approx(0.5));
+    REQUIRE(concordance(threeBelow, reference, 1.0) == Catch::Approx(0.1));
+}

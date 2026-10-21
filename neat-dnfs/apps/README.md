@@ -33,7 +33,7 @@ Every binary supports `--list` (print available tasks and ablations) and
 Available tasks: `and`, `xor`, `detection-instability`, `memory-instability`,
 `selection-instability`, `memory-trace`, `dmts`, `ior`, `hri-packaging`, `sequence-timing`,
 `sequence-timing-boost`, `sequence-timing-boost-order`, `sequence-timing-boost-order-only`, `serial-order`,
-`serial-order-fitness-test`.
+`serial-order-fitness-test`, `serial-order-profile`.
 
 Available ablations: `no-growth-io-only`, `no-growth-reference-hidden-field-count`,
 `no-speciation`, `no-crossover`, `random-initial-topology`, `compat-threshold-4`, `output-feedback`.

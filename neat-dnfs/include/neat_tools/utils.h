@@ -324,6 +324,46 @@ namespace neat_dnfs
                 return (lowerMiddle + *middle) / 2.0;
             }
 
+            /// @brief How closely a profile agrees with a reference profile: Lin's concordance correlation, with a
+            /// tolerance that lets two flat profiles at the same level agree in full.
+            ///
+            /// 1 - mean((v - r)^2) / (var(v) + var(r) + (mean(v) - mean(r))^2 + flatTolerance). With no tolerance it is
+            /// Lin's coefficient: 1 for a profile and itself, 0 for unrelated ones, -1 for a mirror image, and lower the
+            /// more the shape, the height of the features or the level differ. The tolerance only matters where the
+            /// profiles vary less than it: two flat profiles d apart agree flatTolerance / (d^2 + flatTolerance).
+            /// @param values The profile to score.
+            /// @param reference The profile it should match, as long as @p values.
+            /// @param flatTolerance Added to the denominator, in squared units of the profiles; above zero if both can be
+            /// flat.
+            /// @return The agreement, from -1 to 1.
+            [[nodiscard]] inline double concordance(const std::span<const double> values, const std::span<const double> reference,
+                const double flatTolerance)
+            {
+                const auto count = static_cast<double>(values.size());
+                double valuesMean = 0.0;
+                double referenceMean = 0.0;
+                for (size_t i = 0; i < values.size(); ++i)
+                {
+                    valuesMean += values[i];
+                    referenceMean += reference[i];
+                }
+                valuesMean /= count;
+                referenceMean /= count;
+
+                double valuesVariance = 0.0;
+                double referenceVariance = 0.0;
+                double squaredError = 0.0;
+                for (size_t i = 0; i < values.size(); ++i)
+                {
+                    valuesVariance += (values[i] - valuesMean) * (values[i] - valuesMean);
+                    referenceVariance += (reference[i] - referenceMean) * (reference[i] - referenceMean);
+                    squaredError += (values[i] - reference[i]) * (values[i] - reference[i]);
+                }
+                const double meanDifference = valuesMean - referenceMean;
+                return 1.0 - squaredError / count / (valuesVariance / count + referenceVariance / count
+                    + meanDifference * meanDifference + flatTolerance);
+            }
+
             inline int generateRandomSignal()
             {
                 std::uniform_int_distribution<int> dist(0, 1);

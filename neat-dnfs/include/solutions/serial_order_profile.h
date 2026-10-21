@@ -36,9 +36,27 @@ namespace neat_dnfs
 	/// every 10, from the start of the trial to its end, and compares it with referenceProfile(): the same recording of
 	/// the Gauss-only reference design (tests/fixtures/serial-order-fitness-test-reference-gauss.dnf), saved in
 	/// config/references/serial-order-profile.json.
+	///
+	/// At each moment, each field's activation across its positions is compared with the reference's at that moment by
+	/// their concordance (tools::utils::concordance), which counts shape, height and level, each against how much the
+	/// fields vary at that moment, with a tolerance of 1 for a flat field. The moment's score is (1 + concordance) / 2,
+	/// averaged over the two fields: 1 for the reference's activation, 0.5 for an unrelated one, 0 for its mirror image.
+	/// The fitness is the mean over every moment of the trial. Each partial fitness term is that mean over one of
+	/// stages(), in order.
 	class SerialOrderProfile final : public Solution
 	{
 	public:
+		/// @brief A stretch of the trial whose score is one partial fitness term.
+		struct Stage
+		{
+			/// @brief What happens in it, such as "event C" or "2 recall A".
+			std::string name;
+			/// @brief When it starts.
+			double start;
+			/// @brief When the next stage starts; for the last, the end of the trial.
+			double end;
+		};
+
 		/// @brief Builds a task solution whose genome is created from @p topology.
 		/// @param topology Fields to start from: the input and the output.
 		explicit SerialOrderProfile(const SolutionTopology& topology);
@@ -60,6 +78,13 @@ namespace neat_dnfs
 		/// config/references/serial-order-profile.json.
 		/// @return The saved reference profile.
 		[[nodiscard]] static const ActivationProfile& referenceProfile();
+		/// @brief The stages the trial is scored in. The demonstration's follow the schedule: trigger, then "event D",
+		/// "event C", "event A" and "event B", each until the next event or, for B, until the input is back at rest; then
+		/// "wait" until the first recall. Each recall cycle's follow the reference design's own peaks: "X" until its peak
+		/// at D, "recall D", "recall C", "recall A" and "recall B" from each event's first peak, and "rest" from the end
+		/// of the peak at B to the next X, each named after its cycle, such as "2 recall C".
+		/// @return The 24 stages, in order, from the start of the trial to its end.
+		[[nodiscard]] static const std::vector<Stage>& stages();
 	private:
 		void testPhenotype() override;
 		void createPhenotypeEnvironment() override;

@@ -19,6 +19,7 @@
 #include "solutions/sequence_timing.h"
 #include "solutions/serial_order.h"
 #include "solutions/serial_order_fitness_test.h"
+#include "solutions/serial_order_profile.h"
 
 namespace neat_dnfs
 {
@@ -98,6 +99,7 @@ namespace neat_dnfs
 			entry<SequenceTimingBoostOrderOnly>("sequence-timing-boost-order-only", "sequence-timing-boost.dnf", 1, 1),
 			entry<SerialOrder>("serial-order", "serial-order.dnf", 1, 1),
 			entry<SerialOrderFitnessTest>("serial-order-fitness-test", "serial-order.dnf", 1, 1),
+			entry<SerialOrderProfile>("serial-order-profile", "serial-order.dnf", 1, 1),
 		};
 		return entries;
 	}
