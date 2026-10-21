@@ -143,11 +143,13 @@ namespace neat_dnfs
 		// set a label containing one; this only guards a user-supplied config file.
 		void validateProfileScoredStages(const std::optional<std::string>& scoredStages, const std::string& path)
 		{
-			static const std::set<std::string> known{ "demonstration", "recall-start", "all" };
+			static const std::set<std::string> known{ "demonstration", "recall-start", "recall-two", "recall-three",
+				"all" };
 			if (scoredStages && !known.contains(*scoredStages))
 			{
 				throw std::runtime_error("ConfigLoader: '" + path + "' sets SolutionConstants.profileScoredStages to '"
-					+ *scoredStages + "'; it must be \"demonstration\", \"recall-start\" or \"all\".");
+					+ *scoredStages + "'; it must be \"demonstration\", \"recall-start\", \"recall-two\", "
+					"\"recall-three\" or \"all\".");
 			}
 		}
 

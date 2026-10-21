@@ -95,8 +95,8 @@ namespace neat_dnfs
 		/// @return The 23 stages, in order.
 		[[nodiscard]] static const std::vector<Stage>& stages();
 		/// @brief The stages the fitness scores, as SolutionConstants::profileScoredStages sets: only the
-		/// demonstration's ("demonstration"); those and each recall's "X" and first recall ("recall-start"); or every
-		/// one of stages() ("all", the default).
+		/// demonstration's ("demonstration"); those, each recall's "X" and its first one, two or three recalled events
+		/// ("recall-start", "recall-two", "recall-three"); or every one of stages() ("all", the default).
 		/// @return The scored stages, in order.
 		[[nodiscard]] static std::vector<Stage> scoredStages();
 	private:

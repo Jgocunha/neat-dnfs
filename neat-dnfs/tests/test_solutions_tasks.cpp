@@ -1287,6 +1287,18 @@ TEST_CASE("SerialOrderProfile scores the demonstration alone under profile-demon
     CHECK(SerialOrderProfile::scoredStages().size() == SerialOrderProfile::stages().size());
 }
 
+// Finer steps for the hardest part of the curriculum, going on from one recalled event to the next.
+TEST_CASE("SerialOrderProfile scores up to each recall's second event under profile-recall-two-outputs", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+
+    ConfigLoader::applyAblation(ablationPresetPath("profile-recall-two-outputs"));
+
+    CHECK(scoredStageNames() == std::vector<std::string>{ "trigger", "event D", "event C", "event A", "event B",
+        "1 X", "1 recall D", "1 recall C", "2 X", "2 recall D", "2 recall C", "3 X", "3 recall D", "3 recall C" });
+}
+
 TEST_CASE("SerialOrderProfile's config may only name a part of the trial it knows", "[Solutions][SerialOrderProfile]")
 {
     resetGlobalState();
@@ -1304,7 +1316,8 @@ TEST_CASE("SerialOrderProfile's config may only name a part of the trial it know
 TEST_CASE("SerialOrderProfile scores the reference design about 1 under every curriculum preset", "[Solutions][SerialOrderProfile]")
 {
     for (const std::string preset : { "profile-demonstration", "profile-recall-start", "profile-activity",
-        "profile-demonstration-outputs", "profile-recall-start-outputs", "profile-full-outputs" })
+        "profile-demonstration-outputs", "profile-recall-start-outputs", "profile-recall-two-outputs",
+        "profile-recall-three-outputs", "profile-full-outputs" })
     {
         DYNAMIC_SECTION("preset " << preset)
         {

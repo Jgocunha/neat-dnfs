@@ -243,12 +243,28 @@ namespace neat_dnfs
 
 	std::vector<SerialOrderProfile::Stage> SerialOrderProfile::scoredStages()
 	{
+		// How many events of each recall are scored, with its X; the demonstration's stages always are.
+		static const std::map<std::string, size_t> recalledEvents{ { "demonstration", 0 }, { "recall-start", 1 },
+			{ "recall-two", 2 }, { "recall-three", 3 } };
 		const std::string part = SolutionConstants::profileScoredStages.value_or("all");
-		const std::string firstRecall = std::format(" recall {}", serial_order_schedule::sequence.front().label);
-		const auto scored = [&part, &firstRecall](const Stage& stage) {
-			const bool demonstration = !std::isdigit(static_cast<unsigned char>(stage.name.front()));
-			const bool recallStart = stage.name.ends_with(" X") || stage.name.ends_with(firstRecall);
-			return part == "all" || demonstration || (part == "recall-start" && recallStart);
+		if (part == "all")
+		{
+			return stages();
+		}
+		const size_t events = recalledEvents.at(part);
+		std::vector<std::string> scoredInCycle;
+		if (events > 0)
+		{
+			scoredInCycle.emplace_back("X");
+		}
+		for (size_t event = 0; event < events; ++event)
+		{
+			scoredInCycle.push_back(std::format("recall {}", serial_order_schedule::sequence[event].label));
+		}
+		const auto scored = [&scoredInCycle](const Stage& stage) {
+			const bool inCycle = std::isdigit(static_cast<unsigned char>(stage.name.front()));
+			return !inCycle || std::ranges::find(scoredInCycle, stage.name.substr(stage.name.find(' ') + 1))
+				!= scoredInCycle.end();
 		};
 		std::vector<Stage> result;
 		std::ranges::copy_if(stages(), std::back_inserter(result), scored);
