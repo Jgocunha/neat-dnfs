@@ -24,14 +24,17 @@ namespace neat_dnfs
 	/// - the output "nf 2" stays below threshold through the demonstration, pre-shaped at every stored event, the
 	///   earliest highest. Pre-shapes count as memory only as far as the input is at rest and the output has no peak.
 	/// - after each X the output peaks at D, C, A and B in turn, one at a time. Recall is sampled through the 600 after X
-	///   and scored by order, not by when each peak comes. An event earns its best recall score in the cycle only if it
-	///   first peaks in its place: D before any other, and each later event after the one before it. A peak counts only
-	///   within a couple of samples of its event, and in proportion to its height, in full from 2. A sample's recall
-	///   score is shared among the output's peaks at that moment.
+	///   and scored by order, not by when each peak comes. An event earns its best recall score in the cycle as far as it
+	///   first peaks in its place: D as far as no other event peaked before it, each later event as far as the events
+	///   due before it peaked before it. A peak counts only within a couple of samples of its event, and in proportion
+	///   to its height, in full from 2. A sample's recall score is shared among the output's peaks at that moment.
 	/// - While they wait, the events not yet recalled stay pre-shaped in order, counted as far as the input is at rest.
-	/// - Once an event's peak ends, it stays released: half the credit for staying below threshold, all of it from 2
-	///   below the rest of the field.
+	///   A cycle where no event waits is not scored.
+	/// - Once an event's peak ends, it stays released: half the credit for lying below threshold, graded from none 2
+	///   above it to all of it 2 below; the other half for lying below the rest of the field, in full from 2 below.
 	/// - once recall ends, the output has no peak and every event lies below the rest of the field.
+	///
+	/// A release and a trough count only as far as the event was recalled in its place.
 	///
 	/// The seven partial fitness terms are those stages: f1 the input, f2 the quiet output and f3 its pre-shapes
 	/// during the demonstration, f4 the recall in order, f5 the pre-shapes still to come, f6 the release of each recalled
@@ -92,8 +95,8 @@ namespace neat_dnfs
 			std::optional<double> firstPeak;
 			/// @brief Whether its first peak has ended.
 			bool released = false;
-			/// @brief Release score at each sample since: 0 above threshold, else half, rising to all of it 2 below the
-			/// field.
+			/// @brief Release score at each sample since: half for lying below threshold, graded across it, half for
+			/// lying below the field.
 			std::vector<double> releaseScores;
 		};
 		/// @brief What every event did during one recall cycle, in sequence order.
@@ -112,22 +115,35 @@ namespace neat_dnfs
 		/// last sample before: the share of the waiting pre-shapes that counts.
 		void observeRecall(double time, CycleRecall& recall, std::vector<double>& waitingPreShapes,
 			double inputAtRest) const;
+		/// @brief How far one event first peaked in its place in the cycle.
+		/// @param recall Each event's record for the cycle.
+		/// @param event Index of the event in the sequence.
+		/// @return For D, the share of the other events that did not peak before it; for any later event, the share of
+		/// the events due before it that peaked before it; 0 if it never peaked.
+		[[nodiscard]] static double placeOf(const CycleRecall& recall, size_t event);
+		/// @brief How far one event was recalled in its place in the cycle.
+		/// @param recall Each event's record for the cycle.
+		/// @param event Index of the event in the sequence.
+		/// @return Its best recall score times its place.
+		[[nodiscard]] static double creditInPlace(const CycleRecall& recall, size_t event);
 		/// @brief Scores one cycle's recall by order.
 		/// @param recall Each event's record for the cycle.
-		/// @return The mean, over the events, of each one's best recall score if it first peaked in its place, else 0.
+		/// @return The mean, over the events, of each one's credit in place.
 		[[nodiscard]] static double recallInOrder(const CycleRecall& recall);
 		/// @brief Scores how each recalled event stayed released once its peak ended.
 		/// @param recall Each event's record for the cycle.
-		/// @return The mean, over the events, of each one's recall times its mean release score, 0 if never released.
+		/// @return The mean, over the events, of each one's credit in place times its mean release score, 0 if never
+		/// released.
 		[[nodiscard]] static double releaseAfterRecall(const CycleRecall& recall);
-		/// @brief Scores the output pushed below the rest of the field now at every event, each as far as it was recalled.
+		/// @brief Scores the output pushed below the rest of the field now at every event, each as far as it was recalled
+		/// in its place.
 		/// @param recall Each event's record for the cycle.
-		/// @return The mean, over the events, of trough score times recall.
+		/// @return The mean, over the events, of trough score times credit in place.
 		[[nodiscard]] double troughsAfterRecall(const CycleRecall& recall) const;
 		/// @brief Summarises one cycle's recall for the evaluation trace.
 		/// @param cycle Number of the recall cycle, from 1.
 		/// @param recall Each event's record for the cycle.
-		/// @return Each event's first peak, best recall score, recall and mean release.
+		/// @return Each event's first peak, place, best recall score, recall and mean release.
 		[[nodiscard]] static nlohmann::json recallSummary(size_t cycle, const CycleRecall& recall);
 		/// @brief Records what the input and output look like now, for the evaluation trace.
 		/// @param stage Name of the point in the schedule being scored, such as "C shown" or "recall 2 A".

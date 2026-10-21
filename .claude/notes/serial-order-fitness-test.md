@@ -275,6 +275,36 @@ Scores, 2 evaluations each, before (`8f85eb7`) and after:
 - o3 still ranks first. Its input and memory are clean (f1 0.96, f2 1.00, f3 1.00, f5 0.91), and its common fade still
   earns f6 0.49, because release is weighted by each event's peak height, not by the recall credit it shared.
 
+## No all-or-nothing scores
+
+The user's rule (21 October 2026): graded scoring is always better, because evolution has something to move towards.
+Four cut-offs were replaced:
+- **Order.** An event out of its place earned nothing. Now an event's credit is its best recall score times its place
+  (`tools::utils::shareInPlace`):
+  - for D, the share of the other events that did not peak before it;
+  - for any later event, the share of the events due before it that peaked before it.
+  A cycle entered at A (A, B, D, C) gives D 1/3, C 1, A 0 and B 1/3.
+- **Release.** A released event scored 0 above threshold and jumped to 1/2 just below it. Its below-threshold half now
+  ramps from none 2 above threshold to all of it 2 below (`Solution::belowThresholdAtPosition`); the other half is
+  still its depth below the field.
+- **Release and troughs are weighted by the event's credit in place**, not by its peak's height. A burst's common fade
+  now earns only as much as the burst earned recall.
+- **f5** skips a cycle where every event peaked by the first sample, rather than scoring it 0.
+
+The 0.25 recall score that marks an event's first peak stays: it only times the peak, and the credit is graded.
+
+| Genome | `8f85eb7` | `c9e40cc` | Now |
+|---|---|---|---|
+| reference | 0.969 | 0.969 | 0.960 (f6 0.93, f7 0.98) |
+| weak release | 0.849 | 0.849 | 0.845 |
+| o3 (burst, input at rest) | 0.737 | 0.662 | 0.609 (f6 0.49 to 0.22) |
+| t6 | 0.592 | 0.518 | 0.501 |
+| o5 | 0.702 | 0.503 | 0.469 |
+| o1 | 0.670 | 0.471 | 0.463 |
+| o4 | 0.582 | 0.478 | 0.451 (f6 0.17 to 0.04: D never lets go) |
+| t1-t10 | 0.46-0.49 | 0.38-0.46 | 0.38-0.46 |
+| o2 | 0.666 | 0.335 | 0.268 |
+
 ## Scores, 5 evaluations each, under equal weights and the old f4
 
 | Genome | Fitness | Notes |

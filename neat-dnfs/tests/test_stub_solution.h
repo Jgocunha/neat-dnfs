@@ -1336,6 +1336,7 @@ public:
     using Solution::activationAtPosition;
     using Solution::closenessOfNearestBumpToPosition;
     using Solution::heightCreditOfNearestBumpToPosition;
+    using Solution::belowThresholdAtPosition;
     using Solution::medianActivation;
     using Solution::addTimedGaussianStimulus;
 

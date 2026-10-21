@@ -428,6 +428,15 @@ namespace neat_dnfs
 		/// @return 0 with no bump, otherwise the nearest bump's height over @p fullHeight, at most 1.
 		[[nodiscard]] double heightCreditOfNearestBumpToPosition(const std::string& fieldName, double position,
 			double fullHeight = BumpFitnessDefaults::fullCreditPeakHeight) const;
+		/// @brief Scores how far below threshold a field is at @p position, graded across threshold.
+		/// @details A field crosses its threshold gradually, so a step at 0 would pay an activation of -0.01 half and one
+		/// of +0.01 nothing. This rises linearly instead, the complement of a peak's height credit.
+		/// @param fieldName Name of the neural field to score.
+		/// @param position Field position to score.
+		/// @param fullHeight Height of a full peak: as far above threshold it scores 0, as far below it scores 1.
+		/// @return (fullHeight - activation) / (2 fullHeight), in [0,1]: 1/2 at threshold.
+		[[nodiscard]] double belowThresholdAtPosition(const std::string& fieldName, double position,
+			double fullHeight = BumpFitnessDefaults::fullCreditPeakHeight) const;
 		/// @brief Reads a field's activation at @p position, the sample dnf-composer places there.
 		/// @param fieldName Name of the neural field to read.
 		/// @param position Field position to read.

@@ -2,6 +2,7 @@
 #include <catch2/catch_approx.hpp>
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <vector>
 
 #include "neat_tools/utils.h"
@@ -220,6 +221,42 @@ TEST_CASE("closenessOfActivationToRestingLevel penalises a peak balanced by an i
 
     // Mean distance from rest beyond the tolerance: (10 * 8.75 + 90 * 0.75) / 100 = 1.55.
     REQUIRE(closenessOfActivationToRestingLevel(peakWithSurround, -5.0, 0.25) == Catch::Approx(1.0 / 2.55));
+}
+
+TEST_CASE("shareInPlace gives every item of a sequence that came in order its full place", "[shareInPlace]")
+{
+    using neat_dnfs::tools::utils::shareInPlace;
+    const std::vector<std::optional<double>> inOrder{ 10.0, 20.0, 30.0, 40.0 };
+
+    for (size_t item = 0; item < inOrder.size(); ++item)
+    {
+        CHECK(shareInPlace(inOrder, item) == 1.0);
+    }
+}
+
+// Due D, C, A, B; came A, B, D, C, as a cycle entered at A.
+TEST_CASE("shareInPlace credits an item by the share of the items due before it that came before it", "[shareInPlace]")
+{
+    using neat_dnfs::tools::utils::shareInPlace;
+    const std::vector<std::optional<double>> rotated{ 30.0, 40.0, 10.0, 20.0 };
+
+    CHECK(shareInPlace(rotated, 0) == Catch::Approx(1.0 / 3.0)); // two of the three others came before the first
+    CHECK(shareInPlace(rotated, 1) == 1.0);
+    CHECK(shareInPlace(rotated, 2) == 0.0);
+    CHECK(shareInPlace(rotated, 3) == Catch::Approx(1.0 / 3.0));
+}
+
+TEST_CASE("shareInPlace counts an item that never came, or came at the same time, as not before", "[shareInPlace]")
+{
+    using neat_dnfs::tools::utils::shareInPlace;
+    const std::vector<std::optional<double>> withoutFirst{ std::nullopt, 10.0, 20.0, std::nullopt };
+    const std::vector<std::optional<double>> together{ 10.0, 10.0 };
+
+    CHECK(shareInPlace(withoutFirst, 1) == 0.0);
+    CHECK(shareInPlace(withoutFirst, 2) == Catch::Approx(0.5));
+    CHECK(shareInPlace(withoutFirst, 3) == 0.0); // never came: no place
+    CHECK(shareInPlace(together, 0) == 1.0);
+    CHECK(shareInPlace(together, 1) == 0.0);
 }
 
 TEST_CASE("normalizeWithFlatheadGaussian is 1.0 inside the flat region", "[normalizeWithFlatheadGaussian]")

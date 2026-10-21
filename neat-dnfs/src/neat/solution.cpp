@@ -1262,6 +1262,11 @@ namespace neat_dnfs
 		return std::clamp(nearest.amplitude / fullHeight, 0.0, 1.0);
 	}
 
+	double Solution::belowThresholdAtPosition(const std::string& fieldName, const double position, const double fullHeight) const
+	{
+		return std::clamp((fullHeight - activationAtPosition(fieldName, position)) / (2.0 * fullHeight), 0.0, 1.0);
+	}
+
 	double Solution::activationAtPosition(const std::string& fieldName, const double position) const
 	{
 		const auto neuralField = getNeuralFieldOrThrow(fieldName, "activationAtPosition");

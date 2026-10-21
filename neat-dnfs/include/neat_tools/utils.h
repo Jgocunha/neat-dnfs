@@ -281,6 +281,33 @@ namespace neat_dnfs
                 return 1.0 / (1.0 + deviation);
             }
 
+            /// @brief Score in [0,1] for how far one item of a sequence came in its place.
+            ///
+            /// The first item is in place as far as the others did not come before it; every later item, as far as
+            /// the items due before it came before it. An item that came at the same time as another, or one that
+            /// never came, did not come before it.
+            /// @param firstTimes When each item first came, in the order the items are due; empty for one that never
+            /// came.
+            /// @param index Position of the item in the sequence.
+            /// @return 0 if the item never came, otherwise the share of the items, as above, in the right order with it.
+            [[nodiscard]] inline double shareInPlace(const std::span<const std::optional<double>> firstTimes, const size_t index)
+            {
+                const auto& came = firstTimes[index];
+                if (!came)
+                {
+                    return 0.0;
+                }
+                const auto cameBefore = [&came](const std::optional<double>& other) { return other && *other < *came; };
+                if (index == 0)
+                {
+                    const auto others = firstTimes.subspan(1);
+                    return others.empty() ? 1.0 : 1.0 - static_cast<double>(std::ranges::count_if(others, cameBefore))
+                        / static_cast<double>(others.size());
+                }
+                return static_cast<double>(std::ranges::count_if(firstTimes.first(index), cameBefore))
+                    / static_cast<double>(index);
+            }
+
             /// @brief Middle value of @p values, unmoved by a minority of outliers such as a few peaks in a field.
             /// @param values Values to take the median of; at least one. Taken by value, since finding the median
             /// reorders them.

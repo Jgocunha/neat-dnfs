@@ -806,7 +806,7 @@ TEST_CASE("SerialOrderFitnessTest traces the input and output at every point it 
         CHECK(std::abs(recalled[0][0].get<double>() - position) <= 1.0);
     }
 
-    // Each cycle's recall summary: every event peaked, first D, then C, A and B, and each was released.
+    // Each cycle's recall summary: every event peaked, first D, then C, A and B, each in its place, and each was released.
     const auto& cycles = trace.at("recall");
     REQUIRE(cycles.size() == 3);
     for (const auto& cycle : cycles)
@@ -820,6 +820,7 @@ TEST_CASE("SerialOrderFitnessTest traces the input and output at every point it 
             REQUIRE(!events.at(label).at("firstPeak").is_null());
             CHECK(events.at(label).at("firstPeak").get<double>() > previousPeak);
             previousPeak = events.at(label).at("firstPeak").get<double>();
+            CHECK(events.at(label).at("inPlace").get<double>() == 1.0);
             CHECK(!events.at(label).at("release").is_null());
         }
     }
@@ -913,7 +914,8 @@ TEST_CASE("SerialOrderFitnessTest gives little memory credit while the input hol
 // From-scratch run o2 of 21 October 2026: X pushes all four events over threshold within 20, highest pre-shape first,
 // and all four fade together. Sampled every 10, they peak in order, so each earned most of a recall point: f4 0.54.
 // Recall is one peak at a time, so each sample's recall credit is now shared among the peaks up together. The burst
-// keeps a little, a start to build on, but far less than o1's recall one peak at a time.
+// keeps a little, a start to build on, but far less than o1's recall one peak at a time. Its common fade earned f6 0.47;
+// a release now counts only as far as the event was recalled in its place.
 TEST_CASE("SerialOrderFitnessTest shares recall credit among the peaks up together", "[Solutions][SerialOrderFitnessTest]")
 {
     resetGlobalState();
@@ -928,6 +930,7 @@ TEST_CASE("SerialOrderFitnessTest shares recall credit among the peaks up togeth
     CHECK(burstRecall < 0.4);
     CHECK(burstRecall > 0.05);
     CHECK(burstRecall < 0.5 * oneAtATime.getParameters().partialFitness[3]);
+    CHECK(burst.getParameters().partialFitness[5] < 0.3);
 }
 
 // From-scratch run t6 of 20 October 2026 forms a peak at D during the demonstration, before any X. Memory is pre-shapes

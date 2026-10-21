@@ -965,6 +965,33 @@ TEST_CASE("Solution troughBelowFieldAtPosition scores zero for a field lowered a
     CHECK(score == 0.0);
 }
 
+TEST_CASE("Solution belowThresholdAtPosition grades an activation across threshold", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    std::vector<double> scores;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        auto& activation = probe.activationOf("nf 1");
+        std::ranges::fill(activation, 0.0);
+        addGaussianProfile(activation, 3.0, 10.0, oneSampleWidth);
+        addGaussianProfile(activation, 1.0, 30.0, oneSampleWidth);
+        addGaussianProfile(activation, -1.0, 70.0, oneSampleWidth);
+        addGaussianProfile(activation, -3.0, 90.0, oneSampleWidth);
+        for (const double position : { 10.0, 30.0, 50.0, 70.0, 90.0 })
+        {
+            scores.push_back(probe.belowThresholdAtPosition("nf 1", position));
+        }
+    });
+
+    // None at the height of a full peak, half at threshold, all of it as far below.
+    REQUIRE(scores.size() == 5);
+    CHECK(scores[0] == 0.0);
+    CHECK(scores[1] == Catch::Approx(0.25));
+    CHECK(scores[2] == Catch::Approx(0.5));
+    CHECK(scores[3] == Catch::Approx(0.75));
+    CHECK(scores[4] == 1.0);
+}
+
 TEST_CASE("Solution activationAtPosition reads the sample dnf-composer places at the position", "[Solution][FieldHelpers]")
 {
     resetGlobalState();

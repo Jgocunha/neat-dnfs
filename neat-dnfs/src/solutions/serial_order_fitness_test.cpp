@@ -5,6 +5,8 @@
 #include <cmath>
 #include <numeric>
 
+#include "neat_tools/utils.h"
+
 namespace neat_dnfs
 {
 	namespace
@@ -168,7 +170,11 @@ namespace neat_dnfs
 			});
 			trace.push_back(snapshot(std::format("recall {} end", cycle)));
 			recallPeaks.push_back(recallInOrder(recall));
-			recallPreShapes.push_back(waitingPreShapes.empty() ? 0.0 : mean(waitingPreShapes));
+			// A cycle where every event peaked by the first sample had nothing waiting to score.
+			if (!waitingPreShapes.empty())
+			{
+				recallPreShapes.push_back(mean(waitingPreShapes));
+			}
 			recallReleases.push_back(releaseAfterRecall(recall));
 			afterRecall.push_back(0.5 * noBumps(outputField) + 0.5 * troughsAfterRecall(recall));
 			sampleUntil(cycle + 1 < cueTimes.size() ? cueTimes[cycle + 1] : endTime, inputRest,
@@ -182,7 +188,7 @@ namespace neat_dnfs
 		const double f2 = mean(outputQuiet);     // output below threshold through the demonstration
 		const double f3 = mean(outputMemory);    // output pre-shaped at the stored events, in order, held by itself
 		const double f4 = mean(recallPeaks);     // the events recalled one at a time, in order
-		const double f5 = mean(recallPreShapes); // events still to recall pre-shaped, in order
+		const double f5 = recallPreShapes.empty() ? 0.0 : mean(recallPreShapes); // events still to recall pre-shaped, in order
 		const double f6 = mean(recallReleases);  // each recalled event released, below the field
 		const double f7 = mean(afterRecall);     // after recall: no peak, every event below the field
 
@@ -286,9 +292,8 @@ namespace neat_dnfs
 			observed.released = observed.released || (observed.firstPeak && !peaking);
 			if (observed.released)
 			{
-				const bool belowThreshold = activationAtPosition(outputField, position) < 0.0;
-				observed.releaseScores.push_back(belowThreshold
-					? 0.5 + 0.5 * troughBelowFieldAtPosition(outputField, position) : 0.0);
+				observed.releaseScores.push_back(0.5 * belowThresholdAtPosition(outputField, position)
+					+ 0.5 * troughBelowFieldAtPosition(outputField, position));
 			}
 			if (!observed.firstPeak)
 			{
@@ -302,25 +307,24 @@ namespace neat_dnfs
 		}
 	}
 
+	double SerialOrderFitnessTest::placeOf(const CycleRecall& recall, const size_t event)
+	{
+		std::array<std::optional<double>, eventCount> firstPeaks;
+		std::ranges::transform(recall, firstPeaks.begin(), &EventRecall::firstPeak);
+		return tools::utils::shareInPlace(firstPeaks, event);
+	}
+
+	double SerialOrderFitnessTest::creditInPlace(const CycleRecall& recall, const size_t event)
+	{
+		return recall[event].bestScore * placeOf(recall, event);
+	}
+
 	double SerialOrderFitnessTest::recallInOrder(const CycleRecall& recall)
 	{
 		double credit = 0.0;
 		for (size_t event = 0; event < recall.size(); ++event)
 		{
-			const auto& firstPeak = recall[event].firstPeak;
-			if (!firstPeak)
-			{
-				continue;
-			}
-			// D must peak before any other event; every later event after the one before it.
-			const bool inOrder = event == 0
-				? std::ranges::none_of(recall, [&firstPeak](const EventRecall& other)
-					{ return other.firstPeak && *other.firstPeak < *firstPeak; })
-				: recall[event - 1].firstPeak && *recall[event - 1].firstPeak < *firstPeak;
-			if (inOrder)
-			{
-				credit += recall[event].bestScore;
-			}
+			credit += creditInPlace(recall, event);
 		}
 		return credit / static_cast<double>(recall.size());
 	}
@@ -328,11 +332,11 @@ namespace neat_dnfs
 	double SerialOrderFitnessTest::releaseAfterRecall(const CycleRecall& recall)
 	{
 		double credit = 0.0;
-		for (const auto& event : recall)
+		for (size_t event = 0; event < recall.size(); ++event)
 		{
-			if (!event.releaseScores.empty())
+			if (!recall[event].releaseScores.empty())
 			{
-				credit += event.recalled * mean(event.releaseScores);
+				credit += creditInPlace(recall, event) * mean(recall[event].releaseScores);
 			}
 		}
 		return credit / static_cast<double>(recall.size());
@@ -343,7 +347,7 @@ namespace neat_dnfs
 		std::vector<double> troughs;
 		for (size_t event = 0; event < recall.size(); ++event)
 		{
-			troughs.push_back(recall[event].recalled * troughBelowFieldAtPosition(outputField, sequence[event].position));
+			troughs.push_back(creditInPlace(recall, event) * troughBelowFieldAtPosition(outputField, sequence[event].position));
 		}
 		return mean(troughs);
 	}
@@ -356,6 +360,7 @@ namespace neat_dnfs
 			const auto& observed = recall[event];
 			events[sequence[event].label] = {
 				{ "firstPeak", observed.firstPeak ? nlohmann::json(rounded(*observed.firstPeak)) : nlohmann::json(nullptr) },
+				{ "inPlace", rounded(placeOf(recall, event)) },
 				{ "bestScore", rounded(observed.bestScore) },
 				{ "recalled", rounded(observed.recalled) },
 				{ "release", observed.releaseScores.empty() ? nlohmann::json(nullptr)
