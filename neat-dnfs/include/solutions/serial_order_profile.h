@@ -45,10 +45,12 @@ namespace neat_dnfs
 	/// hold before the first recall and the rests between recalls, where nothing happens, are not. The fitness is the
 	/// mean over the scored moments. Each partial fitness term is that mean over one stage, in order.
 	///
-	/// Two optional settings in SolutionConstants change that, for curricula and presets in config/ablations:
+	/// Optional settings in SolutionConstants change that, for curricula and presets in config/ablations:
 	/// profileScoredStages scores only part of the stages (scoredStages()); profileCountsOutputActivityOutsideStages adds
 	/// one more term, of the moments outside the scored stages, each counting as much as the output is active then, so
-	/// that a design is not free to peak where nothing should happen.
+	/// that a design is not free to peak where nothing should happen; profileAlsoComparesFieldOutputs compares each
+	/// field's output, its activation function of the activation, as well as the activation, so that a peak and a high
+	/// bump in the same place no longer look alike.
 	class SerialOrderProfile final : public Solution
 	{
 	public:

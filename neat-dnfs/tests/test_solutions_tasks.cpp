@@ -1303,7 +1303,8 @@ TEST_CASE("SerialOrderProfile's config may only name a part of the trial it know
 // Under each preset the scored stages are the partial terms, and the moments outside them one more.
 TEST_CASE("SerialOrderProfile scores the reference design about 1 under every curriculum preset", "[Solutions][SerialOrderProfile]")
 {
-    for (const std::string preset : { "profile-demonstration", "profile-recall-start", "profile-activity" })
+    for (const std::string preset : { "profile-demonstration", "profile-recall-start", "profile-activity",
+        "profile-demonstration-outputs", "profile-recall-start-outputs", "profile-full-outputs" })
     {
         DYNAMIC_SECTION("preset " << preset)
         {
@@ -1347,6 +1348,47 @@ TEST_CASE("SerialOrderProfile, counting the output's activity outside the stages
     CHECK(partials.back() < peaksInDemonstrationInStages);
     CHECK(peaksInDemonstration.getFitness() >= std::ranges::min(partials));
     CHECK(peaksInDemonstration.getFitness() <= std::ranges::max(partials));
+}
+
+// The activation alone barely tells a peak from a high bump in the same place: never-recalls holds peaks at D and C
+// through the demonstration, where the reference holds its two highest pre-shape bumps, and scores far above an output
+// that never responds. Comparing each field's output too, its sigmoid, which is 1 only at a peak, puts it below.
+TEST_CASE("SerialOrderProfile, also comparing each field's output, scores peaks held through the demonstration below an output that never responds", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    auto heldPeaks = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-never-recalls.dnf");
+    auto silent = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-silent.dnf");
+
+    ConfigLoader::applyAblation(ablationPresetPath("profile-demonstration"));
+    heldPeaks.evaluate();
+    silent.evaluate();
+    CHECK(heldPeaks.getFitness() > silent.getFitness());
+
+    ConfigLoader::applyAblation(ablationPresetPath("profile-demonstration-outputs"));
+    heldPeaks.evaluate();
+    silent.evaluate();
+    CHECK(heldPeaks.getFitness() < silent.getFitness());
+}
+
+// A missing peak costs little in the activation, where the design that skips D sits just below threshold, and a lot in
+// the output, where it has nothing.
+TEST_CASE("SerialOrderProfile, also comparing each field's output, widens the gap between skipping D and recalling every event", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    auto skipsD = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-skips-d.dnf");
+    auto inOrder = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-recalls-in-order.dnf");
+
+    ConfigLoader::applyAblation(ablationPresetPath("profile-activity"));
+    skipsD.evaluate();
+    inOrder.evaluate();
+    const double activationGap = inOrder.getFitness() - skipsD.getFitness();
+
+    ConfigLoader::applyAblation(ablationPresetPath("profile-full-outputs"));
+    skipsD.evaluate();
+    inOrder.evaluate();
+    CHECK(inOrder.getFitness() - skipsD.getFitness() > activationGap + 0.02);
 }
 
 // The fitness is how closely the input and the output match the reference design's at every moment, so the reference

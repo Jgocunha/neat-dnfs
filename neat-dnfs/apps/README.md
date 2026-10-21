@@ -37,7 +37,8 @@ Available tasks: `and`, `xor`, `detection-instability`, `memory-instability`,
 
 Available ablations: `no-growth-io-only`, `no-growth-reference-hidden-field-count`,
 `no-speciation`, `no-crossover`, `random-initial-topology`, `compat-threshold-4`, `output-feedback`,
-`profile-demonstration`, `profile-recall-start`, `profile-activity`.
+`profile-demonstration`, `profile-recall-start`, `profile-activity`, `profile-demonstration-outputs`,
+`profile-recall-start-outputs`, `profile-full-outputs`.
 
 The three `profile-*` presets are for `serial-order-profile` only. They form a curriculum that scores
 the trial in growing parts:
@@ -46,6 +47,9 @@ the trial in growing parts:
 - `profile-activity` scores all of it.
 
 All three also score the moments outside those parts, as far as the output is active then.
+
+The three `-outputs` presets do the same, and also compare each field's output (its activation
+function of the activation) as well as the activation itself.
 
 `output-feedback` is not an ablation but a wider search space: mutation may also wire
 connections out of output fields (`GenomeMutationConstants.allowOutputAsConnectionSource`), which it

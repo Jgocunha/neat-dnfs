@@ -370,6 +370,10 @@ namespace neat_dnfs
 		// Optional, read by SerialOrderProfile only. When true, the moments outside the scored stages count too, each
 		// as much as the output is active then. Off by default.
 		inline static std::optional<bool> profileCountsOutputActivityOutsideStages;
+		// Optional, read by SerialOrderProfile only. When true, each moment compares each field's output, its
+		// activation function of the activation, as well as the activation itself, and scores the mean of the two.
+		// Off by default.
+		inline static std::optional<bool> profileAlsoComparesFieldOutputs;
 	};
 
 	struct PopulationConstants

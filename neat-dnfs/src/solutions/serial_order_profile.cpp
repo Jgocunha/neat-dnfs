@@ -73,15 +73,40 @@ namespace neat_dnfs
 			throw std::runtime_error(std::format("The reference profile's output never falls silent after {}.", from));
 		}
 
+		// (1 + concordance) / 2: 1 for the reference's profile, 0.5 for an unrelated one, 0 for its mirror image.
+		double agreementScore(const std::vector<double>& values, const std::vector<double>& reference,
+			const double tolerance)
+		{
+			return (1.0 + tools::utils::concordance(values, reference, tolerance)) / 2.0;
+		}
+
+		// A field's output: its activation function at every position, near 0 below threshold and near 1 at a peak.
+		std::vector<double> fieldOutput(const std::vector<double>& activation)
+		{
+			std::vector<double> output(activation.size());
+			NeuralFieldConstants::activationFunction.apply(activation, output);
+			return output;
+		}
+
 		// How closely the fields match the reference's at one sample: each field's agreement mapped to [0, 1], averaged.
+		// With SolutionConstants::profileAlsoComparesFieldOutputs, a field scores the mean of its activation's agreement
+		// and its output's, where a flat output is judged against one position's worth of output.
 		double momentScore(const ActivationProfile& profile, const ActivationProfile& reference, const size_t sample)
 		{
+			const bool comparesOutputs = SolutionConstants::profileAlsoComparesFieldOutputs.value_or(false);
 			double score = 0.0;
 			for (const auto& [fieldName, samples] : profile.fields)
 			{
-				const double agreement = tools::utils::concordance(samples[sample], reference.fields.at(fieldName)[sample],
-					flatTolerance);
-				score += (1.0 + agreement) / 2.0;
+				const auto& activation = samples[sample];
+				const auto& referenceActivation = reference.fields.at(fieldName)[sample];
+				double fieldScore = agreementScore(activation, referenceActivation, flatTolerance);
+				if (comparesOutputs)
+				{
+					const double outputTolerance = 1.0 / static_cast<double>(activation.size());
+					fieldScore = (fieldScore + agreementScore(fieldOutput(activation), fieldOutput(referenceActivation),
+						outputTolerance)) / 2.0;
+				}
+				score += fieldScore;
 			}
 			return score / static_cast<double>(profile.fields.size());
 		}

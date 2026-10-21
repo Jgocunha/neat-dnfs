@@ -391,6 +391,7 @@ namespace neat_dnfs
 			validateProfileScoredStages(SolutionConstants::profileScoredStages, path);
 			optionalField(sc, "profileCountsOutputActivityOutsideStages",
 				&SolutionConstants::profileCountsOutputActivityOutsideStages);
+			optionalField(sc, "profileAlsoComparesFieldOutputs", &SolutionConstants::profileAlsoComparesFieldOutputs);
 
 			// The reference config carries the full "no ablation" baseline, and a
 			// preset in config/ablations/ is merged over it. The reference counts
