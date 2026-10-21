@@ -20,7 +20,7 @@
     "tauMinVal": 5.0,
     "tauMaxVal": 10000.0,
     "tauStep": 10.0,
-    "tauMutationFactor": 1.3,
+    "tauMutationFactor": 2.0,
     "restingLevelMinVal": -20.0,
     "restingLevelMaxVal": 1.0,
     "restingLevelStep": 0.5
@@ -69,19 +69,21 @@
     "toggleConnectionGeneProbability": 0.005,
     "mutateFieldGenesPerGenomeProbability": 0.5,
     "mutateConnectionGenesProbability": 0.5,
-    "mutateFieldGenePerGeneProbability": 0.4,
-    "mutateConnectionGeneProbability": 0.4
+    "mutateFieldGenePerGeneProbability": 0.15,
+    "mutateConnectionGeneProbability": 0.1
   },
   "ConnectionGeneConstants": {
+    "gaussKernelProbability": 1.0,
+    "mexicanHatKernelProbability": 0.0,
     "ampGlobalMinVal": -0.8,
     "ampGlobalMaxVal": 0.8,
     "ampGlobalStep": 0.1,
     "gaussAmpMinVal": 1.0,
     "gaussAmpMaxVal": 50.0,
     "gaussAmpMutationFactor": 1.3,
-    "mutateConnectionGeneKernelProbability": 0.93,
+    "mutateConnectionGeneKernelProbability": 0.95,
     "mutateConnectionGeneConnectionSignalProbability": 0.05,
-    "mutateConnectionGeneKernelTypeProbability": 0.02,
+    "mutateConnectionGeneKernelTypeProbability": 0.0,
     "mutateConnectionGeneGaussKernelAmplitudeProbability": 0.5,
     "mutateConnectionGeneGaussKernelWidthProbability": 0.3,
     "mutateConnectionGeneGaussKernelGlobalAmplitudeProbability": 0.1,
@@ -106,6 +108,11 @@
     "fixedOutputField": {
       "tau": 10.0
     },
+    "gaussKernelProbability": 1.0,
+    "mexicanHatKernelProbability": 0.0,
+    "mutateFieldGeneKernelProbability": 0.6,
+    "mutateFieldGeneKernelTypeProbability": 0.0,
+    "mutateFieldGeneNeuralFieldProbability": 0.4,
     "mutateFieldGeneGaussKernelAmplitudeProbability": 0.5,
     "mutateFieldGeneGaussKernelWidthProbability": 0.3,
     "mutateFieldGeneGaussKernelGlobalAmplitudeProbability": 0.1,
@@ -115,13 +122,13 @@
     "mutateFieldGeneMexicanHatKernelWidthInhProbability": 0.3,
     "mutateFieldGeneMexicanHatKernelGlobalAmplitudeProbability": 0.1,
     "mutateFieldGeneNeuralFieldGenerateRandomParametersProbability": 0.1,
-    "mutateFieldGeneNeuralFieldParametersTauProbability": 0.15,
-    "mutateFieldGeneNeuralFieldParametersRestingLevelProbability": 0.5,
+    "mutateFieldGeneNeuralFieldParametersTauProbability": 0.4,
+    "mutateFieldGeneNeuralFieldParametersRestingLevelProbability": 0.2,
     "mutateFieldGeneNeuralFieldParametersProbability": 0.9
   },
   "PopulationConstants": {
     "generationsWithoutImprovementThresholdInPopulation": 25,
     "generationsWithoutImprovementThresholdInSpecies": 15,
-    "pruneRatio" : 0.2
+    "pruneRatio" : 0.5
   }
 }

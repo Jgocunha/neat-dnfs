@@ -719,6 +719,29 @@ TEST_CASE("SerialOrderFitnessTest scores the reference design above 0.9 on every
     }
 }
 
+// The reference with Gauss self-kernels (amplitude 10, width 1.25, no global inhibition) in place of the Mexican hats of
+// nf 3 and the done field nf 7: the same design within a Gauss-only search space. Gauss amplitude 9-13, width 1-1.75
+// and global 0 to -0.05 all score 0.95-0.96; a Gauss kernel shaped like the Mexican hat (amplitude 20, width 2.5) does
+// not, 0.30-0.38.
+TEST_CASE("SerialOrderFitnessTest scores the Gauss-only reference design above 0.9 on every term", "[Solutions][SerialOrderFitnessTest]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+    auto solution = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-reference-gauss.dnf");
+
+    for (int evaluation = 0; evaluation < 3; ++evaluation)
+    {
+        solution.evaluate();
+        const auto& partials = solution.getParameters().partialFitness;
+        REQUIRE(partials.size() == 7);
+        for (size_t term = 0; term < partials.size(); ++term)
+        {
+            INFO("evaluation " << evaluation << ", f" << term + 1);
+            CHECK(partials[term] > 0.9);
+        }
+    }
+}
+
 // A saved solution carries what createPhenotypeEnvironment() adds, and the evaluation runs on that same schedule, so a
 // saved design opened in dnf-composer replays what was scored.
 TEST_CASE("SerialOrderFitnessTest saves its schedule with each solution, so a saved design replays its evaluation", "[Solutions][SerialOrderFitnessTest]")
@@ -1167,6 +1190,29 @@ static bool onConnectionGlobalStep(const double amplitudeGlobal)
     return std::abs(std::remainder(amplitudeGlobal, step)) < 1e-9;
 }
 
+// A parameter the task fixes for the input or output is only reachable at exactly that value.
+static void checkFixedParametersMatch(const FieldGene& gene)
+{
+    using namespace dnf_composer::element;
+    const auto type = gene.getParameters().type;
+    if (type == FieldGeneType::HIDDEN)
+    {
+        return;
+    }
+    const auto& fixed = type == FieldGeneType::INPUT ? FieldGeneConstants::fixedInputField : FieldGeneConstants::fixedOutputField;
+    const auto field = gene.getNeuralField()->getParameters();
+    CHECK(field.tau == fixed.tau.value_or(field.tau));
+    CHECK(field.startingRestingLevel == fixed.restingLevel.value_or(field.startingRestingLevel));
+    if (fixed.gaussKernel)
+    {
+        const auto gauss = std::dynamic_pointer_cast<GaussKernel>(gene.getKernel());
+        REQUIRE(gauss != nullptr);
+        CHECK(gauss->getParameters().width == fixed.gaussKernel->width);
+        CHECK(gauss->getParameters().amplitude == fixed.gaussKernel->amplitude);
+        CHECK(gauss->getParameters().amplitudeGlobal == fixed.gaussKernel->amplitudeGlobal);
+    }
+}
+
 static void checkFieldGeneEvolvable(const FieldGene& gene)
 {
     using namespace dnf_composer::element;
@@ -1174,9 +1220,11 @@ static void checkFieldGeneEvolvable(const FieldGene& gene)
     INFO("field " << gene.getParameters().id);
     CHECK(withinRange(field.tau, NeuralFieldConstants::tauMinVal, NeuralFieldConstants::tauMaxVal));
     CHECK(withinRange(field.startingRestingLevel, NeuralFieldConstants::restingLevelMinVal, NeuralFieldConstants::restingLevelMaxVal));
+    checkFixedParametersMatch(gene);
 
     if (const auto gauss = std::dynamic_pointer_cast<GaussKernel>(gene.getKernel()))
     {
+        CHECK(FieldGeneConstants::gaussKernelProbability > 0.0);
         const auto kernel = gauss->getParameters();
         CHECK(withinRange(kernel.width, GaussKernelConstants::widthMinVal, GaussKernelConstants::widthMaxVal));
         CHECK(withinRange(kernel.amplitude, GaussKernelConstants::ampMinVal, GaussKernelConstants::ampMaxVal));
@@ -1185,6 +1233,7 @@ static void checkFieldGeneEvolvable(const FieldGene& gene)
     }
     const auto mexicanHat = std::dynamic_pointer_cast<MexicanHatKernel>(gene.getKernel());
     REQUIRE(mexicanHat != nullptr);
+    CHECK(FieldGeneConstants::mexicanHatKernelProbability > 0.0);
     const auto kernel = mexicanHat->getParameters();
     CHECK(withinRange(kernel.widthExc, MexicanHatKernelConstants::widthExcMinVal, MexicanHatKernelConstants::widthExcMaxVal));
     CHECK(withinRange(kernel.amplitudeExc, MexicanHatKernelConstants::ampExcMinVal, MexicanHatKernelConstants::ampExcMaxVal));
@@ -1198,6 +1247,7 @@ static void checkConnectionGeneEvolvable(const ConnectionGene& gene)
     const auto gauss = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(gene.getKernel());
     INFO("connection " << gene.getInFieldGeneId() << "-" << gene.getOutFieldGeneId());
     REQUIRE(gauss != nullptr);
+    CHECK(ConnectionGeneConstants::gaussKernelProbability > 0.0);
     const auto kernel = gauss->getParameters();
     CHECK(withinRange(kernel.width, GaussKernelConstants::widthMinVal, GaussKernelConstants::widthMaxVal));
     CHECK(withinRange(std::abs(kernel.amplitude),
@@ -1228,13 +1278,14 @@ TEST_CASE("SerialOrder's evolvable ranges reach every setting of the hand-built 
 }
 
 // The fitness is written from the reference's responses, so evolving it from scratch is only a fair test if this
-// task's ranges reach every setting of that design.
-TEST_CASE("SerialOrderFitnessTest's evolvable ranges reach every setting of the reference design", "[Solutions][SerialOrderFitnessTest]")
+// task's ranges reach every setting of that design. Evolution here makes Gauss kernels only, so the design it can reach
+// is the reference with Gauss self-kernels in place of the Mexican hats of nf 3 and the done field nf 7.
+TEST_CASE("SerialOrderFitnessTest's evolvable ranges reach every setting of the Gauss-only reference design", "[Solutions][SerialOrderFitnessTest]")
 {
     resetGlobalState();
     const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
 
-    const auto solution = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-reference.dnf");
+    const auto solution = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-reference-gauss.dnf");
 
     for (const auto& gene : solution.getGenome().getFieldGenes())
     {
