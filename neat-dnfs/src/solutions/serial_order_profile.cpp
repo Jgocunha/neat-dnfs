@@ -1,9 +1,11 @@
 #include "solutions/serial_order_profile.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <format>
 #include <fstream>
+#include <iterator>
 #include <stdexcept>
 #include <utility>
 
@@ -82,6 +84,16 @@ namespace neat_dnfs
 				score += (1.0 + agreement) / 2.0;
 			}
 			return score / static_cast<double>(profile.fields.size());
+		}
+
+		// How active the output is at one sample: its own activation function at its highest point, near 0 below
+		// threshold and near 1 for a peak.
+		double outputActivity(const ActivationProfile& profile, const size_t sample)
+		{
+			std::vector<double> activity(1);
+			NeuralFieldConstants::activationFunction.apply({ std::ranges::max(profile.fields.at(outputField)[sample]) },
+				activity);
+			return activity.front();
 		}
 	}
 
@@ -204,16 +216,31 @@ namespace neat_dnfs
 		return trialStages;
 	}
 
+	std::vector<SerialOrderProfile::Stage> SerialOrderProfile::scoredStages()
+	{
+		const std::string part = SolutionConstants::profileScoredStages.value_or("all");
+		const std::string firstRecall = std::format(" recall {}", serial_order_schedule::sequence.front().label);
+		const auto scored = [&part, &firstRecall](const Stage& stage) {
+			const bool demonstration = !std::isdigit(static_cast<unsigned char>(stage.name.front()));
+			const bool recallStart = stage.name.ends_with(" X") || stage.name.ends_with(firstRecall);
+			return part == "all" || demonstration || (part == "recall-start" && recallStart);
+		};
+		std::vector<Stage> result;
+		std::ranges::copy_if(stages(), std::back_inserter(result), scored);
+		return result;
+	}
+
 	void SerialOrderProfile::testPhenotype()
 	{
 		const ActivationProfile profile = runTrial();
 		const ActivationProfile& reference = referenceProfile();
 
-		// Only the moments inside a stage are scored; between stages nothing happens.
+		// Only the moments inside a scored stage are scored; between stages nothing happens.
 		parameters.partialFitness.clear();
+		std::vector<bool> inStage(profile.times.size(), false);
 		double total = 0.0;
-		size_t moments = 0;
-		for (const Stage& stage : stages())
+		double moments = 0.0;
+		for (const Stage& stage : scoredStages())
 		{
 			double stageTotal = 0.0;
 			size_t stageMoments = 0;
@@ -222,12 +249,35 @@ namespace neat_dnfs
 			{
 				stageTotal += momentScore(profile, reference, sample);
 				++stageMoments;
+				inStage[sample] = true;
 			}
 			parameters.partialFitness.push_back(stageTotal / static_cast<double>(stageMoments));
 			total += stageTotal;
-			moments += stageMoments;
+			moments += static_cast<double>(stageMoments);
 		}
-		parameters.fitness = total / static_cast<double>(moments);
+
+		if (SolutionConstants::profileCountsOutputActivityOutsideStages.value_or(false))
+		{
+			// One more term, of the moments outside the scored stages, each counting as much as the output is active
+			// then. It counts for at least one moment, filled with a perfect score as far as the output was never
+			// active, so a design that stays quiet there scores 1 on it.
+			double outsideTotal = 0.0;
+			double outsideWeight = 0.0;
+			for (size_t sample = 0; sample < profile.times.size(); ++sample)
+			{
+				if (!inStage[sample])
+				{
+					const double activity = outputActivity(profile, sample);
+					outsideTotal += activity * momentScore(profile, reference, sample);
+					outsideWeight += activity;
+				}
+			}
+			const double weight = std::max(outsideWeight, 1.0);
+			parameters.partialFitness.push_back((outsideTotal + (weight - outsideWeight)) / weight);
+			total += outsideTotal + (weight - outsideWeight);
+			moments += weight;
+		}
+		parameters.fitness = total / moments;
 	}
 
 	void SerialOrderProfile::createPhenotypeEnvironment()

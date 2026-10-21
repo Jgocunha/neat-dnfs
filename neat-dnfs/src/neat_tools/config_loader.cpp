@@ -141,6 +141,16 @@ namespace neat_dnfs
 		// value containing a path separator or ".." would let a custom --config
 		// write outside data/<solutionName>/ entirely. The built-in presets never
 		// set a label containing one; this only guards a user-supplied config file.
+		void validateProfileScoredStages(const std::optional<std::string>& scoredStages, const std::string& path)
+		{
+			static const std::set<std::string> known{ "demonstration", "recall-start", "all" };
+			if (scoredStages && !known.contains(*scoredStages))
+			{
+				throw std::runtime_error("ConfigLoader: '" + path + "' sets SolutionConstants.profileScoredStages to '"
+					+ *scoredStages + "'; it must be \"demonstration\", \"recall-start\" or \"all\".");
+			}
+		}
+
 		void validateAblationLabel(const std::string& label, const std::string& path)
 		{
 			if (label.find_first_of("/\\") != std::string::npos
@@ -377,6 +387,10 @@ namespace neat_dnfs
 			field(sc, "numberGenerations", &SolutionConstants::numberGenerations);
 			field(sc, "numberRuns", &SolutionConstants::numberRuns);
 			field(sc, "targetFitness", &SolutionConstants::targetFitness);
+			optionalField(sc, "profileScoredStages", &SolutionConstants::profileScoredStages);
+			validateProfileScoredStages(SolutionConstants::profileScoredStages, path);
+			optionalField(sc, "profileCountsOutputActivityOutsideStages",
+				&SolutionConstants::profileCountsOutputActivityOutsideStages);
 
 			// The reference config carries the full "no ablation" baseline, and a
 			// preset in config/ablations/ is merged over it. The reference counts

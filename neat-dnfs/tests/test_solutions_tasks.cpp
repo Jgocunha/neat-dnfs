@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <cmath>
 #include <filesystem>
@@ -1241,6 +1242,111 @@ TEST_CASE("SerialOrderProfile scores a design that never recalls below one that 
 
     CHECK(neverRecalls.getFitness() < skipsD.getFitness());
     CHECK(skipsD.getFitness() < inOrder.getFitness());
+}
+
+static std::string ablationPresetPath(const std::string& name)
+{
+    return (paths::resourceRoot() / "config" / "ablations" / (name + ".json")).generic_string();
+}
+
+static std::vector<std::string> scoredStageNames()
+{
+    std::vector<std::string> names;
+    for (const auto& stage : SerialOrderProfile::scoredStages())
+    {
+        names.push_back(stage.name);
+    }
+    return names;
+}
+
+TEST_CASE("SerialOrderProfile scores every stage unless its config says otherwise", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+
+    CHECK(SerialOrderProfile::scoredStages().size() == SerialOrderProfile::stages().size());
+}
+
+// A curriculum scores the trial in growing parts, one preset each: the demonstration alone, then up to each recall's
+// first event, then all of it.
+TEST_CASE("SerialOrderProfile scores the demonstration alone under profile-demonstration, and up to each recall's first event under profile-recall-start", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    const std::vector<std::string> demonstration{ "trigger", "event D", "event C", "event A", "event B" };
+
+    ConfigLoader::applyAblation(ablationPresetPath("profile-demonstration"));
+    CHECK(scoredStageNames() == demonstration);
+
+    ConfigLoader::applyAblation(ablationPresetPath("profile-recall-start"));
+    auto recallStart = demonstration;
+    recallStart.insert(recallStart.end(), { "1 X", "1 recall D", "2 X", "2 recall D", "3 X", "3 recall D" });
+    CHECK(scoredStageNames() == recallStart);
+
+    ConfigLoader::applyAblation(ablationPresetPath("profile-activity"));
+    CHECK(SerialOrderProfile::scoredStages().size() == SerialOrderProfile::stages().size());
+}
+
+TEST_CASE("SerialOrderProfile's config may only name a part of the trial it knows", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    const auto path = std::filesystem::temp_directory_path() / "neat-dnfs-profile-unknown-scored-stages.json";
+    std::ofstream(path) << R"({ "SolutionConstants": { "profileScoredStages": "recall" } })";
+
+    CHECK_THROWS_WITH(ConfigLoader::applyAblation(path.generic_string()),
+        Catch::Matchers::ContainsSubstring("profileScoredStages"));
+
+    std::filesystem::remove(path);
+}
+
+// Under each preset the scored stages are the partial terms, and the moments outside them one more.
+TEST_CASE("SerialOrderProfile scores the reference design about 1 under every curriculum preset", "[Solutions][SerialOrderProfile]")
+{
+    for (const std::string preset : { "profile-demonstration", "profile-recall-start", "profile-activity" })
+    {
+        DYNAMIC_SECTION("preset " << preset)
+        {
+            resetGlobalState();
+            const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+            ConfigLoader::applyAblation(ablationPresetPath(preset));
+            auto reference = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-fitness-test-reference-gauss.dnf");
+
+            reference.evaluate();
+
+            CHECK(reference.getParameters().partialFitness.size() == SerialOrderProfile::scoredStages().size() + 1);
+            CHECK(reference.getFitness() > 0.99);
+        }
+    }
+}
+
+// Outside the stages a design is otherwise free to do anything. Counting each moment there as much as the output is
+// active then changes nothing for the reference, whose output peaks only inside them, and costs a design whose output
+// peaks at each event while the sequence is shown, where the reference only pre-shapes. Saved from the 21 October run
+// from the reference without its recall driver.
+TEST_CASE("SerialOrderProfile, counting the output's activity outside the stages, scores the reference the same and a design that peaks during the demonstration lower", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    auto reference = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-fitness-test-reference-gauss.dnf");
+    auto peaksInDemonstration = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-peaks-in-demonstration.dnf");
+    reference.evaluate();
+    peaksInDemonstration.evaluate();
+    const double referenceInStages = reference.getFitness();
+    const double peaksInDemonstrationInStages = peaksInDemonstration.getFitness();
+
+    SolutionConstants::profileCountsOutputActivityOutsideStages = true;
+    reference.evaluate();
+    peaksInDemonstration.evaluate();
+
+    CHECK(reference.getFitness() == Catch::Approx(referenceInStages).margin(0.002));
+    CHECK(reference.getParameters().partialFitness.back() > 0.99);
+    CHECK(peaksInDemonstration.getFitness() < peaksInDemonstrationInStages - 0.005);
+    const auto& partials = peaksInDemonstration.getParameters().partialFitness;
+    REQUIRE(partials.size() == SerialOrderProfile::stages().size() + 1);
+    CHECK(partials.back() < peaksInDemonstrationInStages);
+    CHECK(peaksInDemonstration.getFitness() >= std::ranges::min(partials));
+    CHECK(peaksInDemonstration.getFitness() <= std::ranges::max(partials));
 }
 
 // The fitness is how closely the input and the output match the reference design's at every moment, so the reference

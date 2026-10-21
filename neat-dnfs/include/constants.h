@@ -362,6 +362,14 @@ namespace neat_dnfs
 		inline static int numberGenerations;
 		inline static int numberRuns;
 		inline static double targetFitness;
+
+		// Optional, read by SerialOrderProfile only. Which part of the trial it scores: "demonstration",
+		// "recall-start" (also each recall up to its first event) or "all", the default. Lets a curriculum score the
+		// trial in growing parts.
+		inline static std::optional<std::string> profileScoredStages;
+		// Optional, read by SerialOrderProfile only. When true, the moments outside the scored stages count too, each
+		// as much as the output is active then. Off by default.
+		inline static std::optional<bool> profileCountsOutputActivityOutsideStages;
 	};
 
 	struct PopulationConstants
