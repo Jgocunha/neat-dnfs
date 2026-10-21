@@ -14,24 +14,12 @@ namespace neat_dnfs
 		const std::string inputField = "nf 1";
 		const std::string outputField = "nf 2";
 
-		struct Event
-		{
-			const char* label;
-			double position;
-			double onset; // after the demonstration's cue X
-		};
-
-		// D, C, A and B: recall must replay them in this order.
-		constexpr std::array<Event, SerialOrderFitnessTest::eventCount> sequence{ { { "D", 180.0, 100.0 }, { "C", 120.0, 600.0 },
-			{ "A", 20.0, 800.0 }, { "B", 80.0, 1800.0 } } };
-		constexpr double pulseDuration = 50.0;
-		// The demonstration's X, then one X starting each recall cycle: 1000, 800 and 1500 long.
-		constexpr std::array<double, 4> cueTimes{ 0.0, 2550.0, 3550.0, 4350.0 };
-		constexpr double endTime = 5850.0;
-		// X lifts the whole input field evenly, as a boost would, as a stimulus a saved file can replay.
-		constexpr double cueWidth = 1e6;
-		// Every stage is sampled this often.
-		constexpr double sampleInterval = 10.0;
+		using serial_order_schedule::Event;
+		using serial_order_schedule::sequence;
+		using serial_order_schedule::pulseDuration;
+		using serial_order_schedule::cueTimes;
+		using serial_order_schedule::endTime;
+		using serial_order_schedule::sampleInterval;
 		// After a pulse ends, a detection field's peak has this long to decay before the input must be back at rest: five
 		// time constants of the reference's input.
 		constexpr double settleTime = 50.0;
@@ -201,24 +189,10 @@ namespace neat_dnfs
 
 	void SerialOrderFitnessTest::createPhenotypeEnvironment()
 	{
-		using namespace dnf_composer::element;
-		const ElementDimensions dimensions{ DimensionConstants::xSize, DimensionConstants::dx };
-
-		std::vector<std::pair<double, double>> cueWindows;
-		for (const double cue : cueTimes)
+		const dnf_composer::element::ElementDimensions dimensions{ DimensionConstants::xSize, DimensionConstants::dx };
+		for (const auto& [stimulusName, stimulusParameters] : serial_order_schedule::stimuli())
 		{
-			cueWindows.emplace_back(cue, cue + pulseDuration);
-		}
-		addTimedGaussianStimulus("tgs X", inputField, TimedGaussStimulusParameters{ cueWidth,
-			GaussStimulusConstants::amplitude, DimensionConstants::xSize / 2.0, cueWindows, false, false }, dimensions);
-
-		for (const auto& event : sequence)
-		{
-			addTimedGaussianStimulus(std::format("tgs {}", event.label), inputField,
-				TimedGaussStimulusParameters{ GaussStimulusConstants::width, GaussStimulusConstants::amplitude,
-					event.position, { { event.onset, event.onset + pulseDuration } },
-					GaussStimulusConstants::circularity, GaussStimulusConstants::normalization },
-				dimensions);
+			addTimedGaussianStimulus(stimulusName, inputField, stimulusParameters, dimensions);
 		}
 	}
 

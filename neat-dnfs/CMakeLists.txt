@@ -157,6 +157,8 @@ set(header
         "include/solutions/sequence_timing.h"
         "include/solutions/serial_order.h"
         "include/solutions/serial_order_fitness_test.h"
+        "include/solutions/serial_order_profile.h"
+        "include/solutions/serial_order_schedule.h"
 
         "include/neat_tools/logger.h"
         "include/neat_tools/utils.h"
@@ -191,6 +193,8 @@ set(src
         "src/solutions/sequence_timing.cpp"
         "src/solutions/serial_order.cpp"
         "src/solutions/serial_order_fitness_test.cpp"
+        "src/solutions/serial_order_profile.cpp"
+        "src/solutions/serial_order_schedule.cpp"
 
         "src/neat_tools/logger.cpp"
         "src/neat_tools/ablation_presets.cpp"
@@ -322,6 +326,18 @@ target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
 # Solution evaluation executable
 set(EXE_PROJECT_EXAMPLE neat-dnfs-sol-eval)
 add_executable(${EXE_PROJECT_EXAMPLE} "apps/neat_dnfs_solution_evaluation.cpp")
+target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
+target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
+        imgui::imgui
+        imgui-platform-kit
+        dynamic-neural-field-composer
+        ${CMAKE_PROJECT_NAME}
+)
+
+# Activation-profile recorder: writes what a saved design's input and output do through the serial-order trial, as
+# config/references/serial-order-profile.json holds for the reference design. A development tool, not packaged.
+set(EXE_PROJECT_EXAMPLE neat-dnfs-record-profile)
+add_executable(${EXE_PROJECT_EXAMPLE} "apps/neat_dnfs_record_profile.cpp")
 target_include_directories(${EXE_PROJECT_EXAMPLE} PRIVATE include)
 target_link_libraries(${EXE_PROJECT_EXAMPLE} PRIVATE
         imgui::imgui

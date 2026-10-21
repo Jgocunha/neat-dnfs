@@ -41,7 +41,7 @@ namespace neat_dnfs
 	/// followed by @c task.outputs OUTPUT genes, all sized DimensionConstants::xSize.
 	SolutionTopology defaultTopologyFor(const TaskEntry& task);
 
-	/// @brief Parsed command-line flags shared by all three example binaries.
+	/// @brief Parsed command-line flags shared by all the binaries.
 	/// Any field left unset means "the binary's own default applies" -- these
 	/// defaults differ per binary (evol vs incremental vs evaluation), so this
 	/// struct itself carries none.
@@ -56,6 +56,8 @@ namespace neat_dnfs
 		std::optional<int> numGenerations;
 		std::optional<double> targetFitness;
 		std::optional<int> evaluations;
+		/// @brief Where a tool writes what it makes (--out); only the profile recorder takes it.
+		std::optional<std::string> outputFile;
 		bool listRequested = false;
 		bool helpRequested = false;
 	};

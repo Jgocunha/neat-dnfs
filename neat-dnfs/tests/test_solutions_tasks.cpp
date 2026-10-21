@@ -22,6 +22,7 @@
 #include "solutions/sequence_timing.h"
 #include "solutions/serial_order.h"
 #include "solutions/serial_order_fitness_test.h"
+#include "solutions/serial_order_profile.h"
 #include "neat_tools/config_loader.h"
 #include "neat_tools/resource_paths.h"
 #include "neat_tools/solution_registry.h"
@@ -669,6 +670,21 @@ TEST_CASE("SequenceTimingBoostOrderOnly is registered with the boost template", 
     REQUIRE(task->outputs == 1);
 }
 
+TEST_CASE("parseCliOptions reads where a tool writes what it makes from --out", "[SolutionRegistry]")
+{
+    char program[] = "neat-dnfs-record-profile";
+    char templateFlag[] = "--template";
+    char templatePath[] = "design.dnf";
+    char outFlag[] = "--out";
+    char outPath[] = "profile.json";
+    char* argv[] = { program, templateFlag, templatePath, outFlag, outPath };
+
+    const CliOptions options = parseCliOptions(5, argv);
+
+    CHECK(options.templateFile == "design.dnf");
+    CHECK(options.outputFile == "profile.json");
+}
+
 TEST_CASE("SerialOrder contract", "[Solutions][SerialOrder]")
 {
     resetGlobalState();
@@ -1024,6 +1040,117 @@ TEST_CASE("SerialOrderFitnessTest gives no memory or recall credit to an output 
     CHECK(partials[4] < 0.05);                            // no pre-shapes of the events still to recall
     CHECK(partials[5] < 0.05);                            // no troughs at the recalled events
     CHECK(partials[6] < 0.05);                            // after recall: quiet, but nothing was recalled to stop
+}
+
+TEST_CASE("SerialOrderProfile contract", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    checkSolutionContract<SerialOrderProfile>(makeTopology(1, 1));
+}
+
+TEST_CASE("SerialOrderProfile names its runs apart from SerialOrderFitnessTest's and clones and copies as itself", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+
+    SerialOrderProfile solution(sequenceTimingTopology());
+    solution.initialize();
+    solution.buildPhenotype();
+
+    CHECK(solution.getName() == "Serial Order Profile");
+    CHECK(solution.getName() != SerialOrderFitnessTest(sequenceTimingTopology()).getName());
+    CHECK(std::dynamic_pointer_cast<SerialOrderProfile>(solution.clone()) != nullptr);
+    CHECK(std::dynamic_pointer_cast<SerialOrderProfile>(solution.copy()) != nullptr);
+}
+
+// The profile is what the fitness compares: the input and the output at every position, every 10, from the start of the
+// trial to its end, on the same schedule as SerialOrderFitnessTest.
+TEST_CASE("SerialOrderProfile records the input and output at every position every 10 through the whole trial", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    auto solution = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-fitness-test-reference-gauss.dnf");
+
+    const ActivationProfile profile = solution.recordProfile();
+
+    REQUIRE(profile.times.size() == 586);
+    CHECK(profile.times.front() == 0.0);
+    CHECK(profile.times[1] == 10.0);
+    CHECK(profile.times.back() == 5850.0);
+    REQUIRE(profile.fields.size() == 2);
+    for (const auto* field : { "nf 1", "nf 2" })
+    {
+        INFO(field);
+        REQUIRE(profile.fields.contains(field));
+        REQUIRE(profile.fields.at(field).size() == profile.times.size());
+        for (const auto& sample : profile.fields.at(field))
+        {
+            REQUIRE(sample.size() == 200);
+        }
+    }
+
+    const auto& input = profile.fields.at("nf 1");
+    CHECK(input[0][180] == Catch::Approx(-10.0).margin(0.1)); // at rest before X
+    CHECK(input[15][180] > 0.0);                              // D's pulse, 100-150
+    CHECK(input[30][180] < -9.0);                             // back at rest well after it
+    const auto& output = profile.fields.at("nf 2");
+    // inside the reference design's peak at D, C, A and B on the first recall
+    for (const auto& [sample, position] : std::vector<std::pair<size_t, size_t>>{ { 270, 180 }, { 284, 120 },
+        { 295, 20 }, { 305, 80 } })
+    {
+        INFO("t " << profile.times[sample]);
+        CHECK(output[sample][position] > 0.0);
+    }
+}
+
+TEST_CASE("ActivationProfile keeps its times and activations to three decimals through JSON", "[Solutions][SerialOrderProfile]")
+{
+    ActivationProfile profile;
+    profile.times = { 0.0, 10.0 };
+    profile.fields["nf 1"] = { { -10.0, 1.23456 }, { -9.87654, 0.0 } };
+    profile.fields["nf 2"] = { { -13.0, -13.0 }, { 2.0005, -0.0004 } };
+
+    const ActivationProfile restored = ActivationProfile::fromJson(profile.toJson());
+
+    CHECK(restored.times == profile.times);
+    REQUIRE(restored.fields.size() == 2);
+    CHECK(restored.fields.at("nf 1")[0][1] == Catch::Approx(1.235));
+    CHECK(restored.fields.at("nf 1")[1][0] == Catch::Approx(-9.877));
+    CHECK(restored.fields.at("nf 2")[0][0] == Catch::Approx(-13.0));
+    CHECK(restored.fields.at("nf 2")[1][1] == Catch::Approx(0.0).margin(1e-9));
+}
+
+// The fitness compares every design with the saved reference, so the saved reference has to be what the Gauss-only
+// reference design does on this task's schedule now. Noise moves single samples by hundredths.
+TEST_CASE("SerialOrderProfile's saved reference is what the Gauss-only reference design does", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    auto solution = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-fitness-test-reference-gauss.dnf");
+
+    const ActivationProfile recorded = solution.recordProfile();
+    const ActivationProfile& saved = SerialOrderProfile::referenceProfile();
+
+    REQUIRE(saved.times == recorded.times);
+    REQUIRE(saved.fields.size() == recorded.fields.size());
+    for (const auto& [field, samples] : recorded.fields)
+    {
+        INFO(field);
+        REQUIRE(saved.fields.contains(field));
+        const auto& savedSamples = saved.fields.at(field);
+        REQUIRE(savedSamples.size() == samples.size());
+        double totalDifference = 0.0;
+        size_t values = 0;
+        for (size_t sample = 0; sample < samples.size(); ++sample)
+        {
+            REQUIRE(savedSamples[sample].size() == samples[sample].size());
+            for (size_t position = 0; position < samples[sample].size(); ++position)
+            {
+                totalDifference += std::abs(savedSamples[sample][position] - samples[sample][position]);
+                ++values;
+            }
+        }
+        CHECK(totalDifference / static_cast<double>(values) < 0.05);
+    }
 }
 
 TEST_CASE("SerialOrder evaluate produces a bounded fitness", "[Solutions][SerialOrder]")

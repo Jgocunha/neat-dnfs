@@ -8,6 +8,7 @@
 #include <nlohmann/json.hpp>
 
 #include "neat/solution.h"
+#include "solutions/serial_order_schedule.h"
 
 namespace neat_dnfs
 {
@@ -51,7 +52,7 @@ namespace neat_dnfs
 	{
 	public:
 		/// @brief Number of events demonstrated and recalled in each cycle: D, C, A and B.
-		static constexpr size_t eventCount = 4;
+		static constexpr size_t eventCount = serial_order_schedule::eventCount;
 
 		/// @brief Builds a task solution whose genome is created from @p topology.
 		/// @param topology Fields to start from: the input and the output.

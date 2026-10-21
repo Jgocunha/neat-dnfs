@@ -1,6 +1,6 @@
 # Examples
 
-Three executables, each built from one `.cpp` file here plus the shared
+Four executables, each built from one `.cpp` file here plus the shared
 [`solution_registry.h/.cpp`](solution_registry.h) (task lookup + CLI parsing).
 Binaries are found in your build output directory (e.g. `build/Debug/` on
 Windows, `build/` on Linux/macOS).
@@ -10,6 +10,7 @@ Windows, `build/` on Linux/macOS).
 | `neat-dnfs-evol` | `neat_dnfs_evol.cpp` | Evolves a task from a minimal (or ablation-seeded) genome |
 | `neat-dnfs-inc-evol` | `neat_dnfs_incremental_evolution.cpp` | Evolves a task starting from a loaded template solution |
 | `neat-dnfs-sol-eval` | `neat_dnfs_solution_evaluation.cpp` | Loads a template solution and repeatedly calls `evaluate()` — no evolution |
+| `neat-dnfs-record-profile` | `neat_dnfs_record_profile.cpp` | Records what a saved design's input and output do through the serial-order trial, as `serial-order-profile` compares them, and writes it as JSON (`--template`, `--out`). Wrote `config/references/serial-order-profile.json` from the Gauss-only reference design. Not packaged |
 
 Every binary supports `--list` (print available tasks and ablations) and
 `--help` (print all flags).
@@ -26,6 +27,7 @@ Every binary supports `--list` (print available tasks and ablations) and
 | `--gens N` | evol, inc-evol | Max generations per run | `SolutionConstants.numberGenerations` from config |
 | `--target F` | evol, inc-evol | Ends a run early once every partial fitness of the best solution exceeds F | `SolutionConstants.targetFitness` from config |
 | `--evals N` | sol-eval | Number of `evaluate()` calls | 20 |
+| `--out PATH` | record-profile | Where to write the recorded activation profile | none: required |
 | `--config PATH` | all | Reference hyperparameter JSON | `config/neat_dnfs.json` |
 
 Available tasks: `and`, `xor`, `detection-instability`, `memory-instability`,

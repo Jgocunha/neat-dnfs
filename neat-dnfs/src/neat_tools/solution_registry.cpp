@@ -137,7 +137,8 @@ namespace neat_dnfs
 		{
 			return flag == "--task" || flag == "--ablation" || flag == "--template"
 				|| flag == "--runs" || flag == "--pop" || flag == "--gens"
-				|| flag == "--target" || flag == "--evals" || flag == "--config";
+				|| flag == "--target" || flag == "--evals" || flag == "--config"
+				|| flag == "--out";
 		}
 	}
 
@@ -177,6 +178,7 @@ namespace neat_dnfs
 			else if (flag == "--target") options.targetFitness = std::stod(value);
 			else if (flag == "--evals") options.evaluations = std::stoi(value);
 			else if (flag == "--config") options.config = value;
+			else if (flag == "--out") options.outputFile = value;
 		}
 		return options;
 	}
@@ -185,6 +187,7 @@ namespace neat_dnfs
 	{
 		out << "Usage: " << exeName << " [--task NAME] [--ablation NAME] [--template PATH]\n"
 			<< "           [--config PATH] [--runs N] [--pop N] [--gens N] [--target F] [--evals N]\n"
+			<< "           [--out PATH]\n"
 			<< "           [--list] [--help]\n\n"
 			<< "  --task NAME       Task to evolve/evaluate (default varies by binary). See --list.\n"
 			<< "  --ablation NAME   Ablation preset to apply before initialize() (default: none). See --list.\n"
@@ -199,6 +202,7 @@ namespace neat_dnfs
 			<< "  --target F        Target fitness that ends a run early.\n"
 			<< "                    (--runs/--pop/--gens/--target override the config files.)\n"
 			<< "  --evals N         Number of evaluate() calls (solution-evaluation binary only).\n"
+			<< "  --out PATH        Where to write the recorded activation profile (profile recorder only).\n"
 			<< "  --list            List available tasks and ablation presets, then exit.\n"
 			<< "  --help            Show this message and exit.\n";
 	}
