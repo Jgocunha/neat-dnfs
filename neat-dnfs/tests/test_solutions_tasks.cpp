@@ -2383,3 +2383,57 @@ TEST_CASE("Every registered task's template file exists under templates/", "[Sol
 }
 
 
+#include <sstream>
+// TEMPORARY DIAGNOSTIC - not for commit. Steps a serial-order replay and summarises the output field (or REPLAY_FIELD) per phase:
+// for each event, when its peak first and last stood (after the phase start) and its highest activation; the most
+// event peaks up at once; activity away from the events; and when the output last held any activity.
+TEST_CASE("DIAG replay phase summary", "[.diag]")
+{
+    const char* path = std::getenv("REPLAY_DNF");
+    REQUIRE(path != nullptr);
+    std::vector<double> phaseStarts;
+    { std::stringstream list(std::getenv("REPLAY_PHASES")); std::string item; while (std::getline(list, item, ',')) phaseStarts.push_back(std::stod(item)); }
+    const std::array<std::pair<const char*, double>, 4> events{ { { "D", 180.0 }, { "C", 120.0 }, { "A", 20.0 }, { "B", 80.0 } } };
+    const auto simulation = std::make_shared<dnf_composer::Simulation>("diag", 2.0, 0.0, 0.0);
+    const dnf_composer::SimulationFileManager sfm(simulation, path);
+    sfm.loadElementsFromJson();
+    simulation->setDeltaT(2.0);
+    simulation->init();
+    const auto output = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(simulation->getElement(std::getenv("REPLAY_FIELD") ? std::getenv("REPLAY_FIELD") : "nf 2"));
+    for (size_t phase = 0; phase + 1 < phaseStarts.size(); ++phase)
+    {
+        std::array<double, 4> first{ -1, -1, -1, -1 }, last{ -1, -1, -1, -1 }, peak{ -99, -99, -99, -99 };
+        int mostAtOnce = 0; double offMax = -99; int offSteps = 0, steps = 0; double lastActive = -1;
+        while (simulation->t < phaseStarts[phase + 1])
+        {
+            simulation->step();
+            const double since = simulation->t - phaseStarts[phase];
+            const auto& u = output->getComponents()->at("activation");
+            int upNow = 0;
+            for (size_t e = 0; e < events.size(); ++e)
+            {
+                double m = -99;
+                for (int x = int(events[e].second) - 10; x <= int(events[e].second) + 10; ++x) m = std::max(m, u[size_t(x)]);
+                peak[e] = std::max(peak[e], m);
+                if (m > 0.0) { if (first[e] < 0) first[e] = since; last[e] = since; ++upNow; }
+            }
+            mostAtOnce = std::max(mostAtOnce, upNow);
+            bool offActive = false; bool anyActive = false;
+            for (size_t x = 0; x < u.size(); ++x)
+            {
+                const bool atEvent = std::ranges::any_of(events, [x](const auto& ev) { return std::abs(double(x) - ev.second) <= 10.0; });
+                if (u[x] > 0.0) anyActive = true;
+                if (!atEvent) { offMax = std::max(offMax, u[x]); offActive |= u[x] > 0.0; }
+            }
+            offSteps += offActive; ++steps;
+            if (anyActive) lastActive = since;
+        }
+        std::string line = std::format("phase {} ({:.0f}-{:.0f}):", phase, phaseStarts[phase], phaseStarts[phase + 1]);
+        for (size_t e = 0; e < events.size(); ++e)
+            line += first[e] < 0 ? std::format(" {} never(max {:.1f})", events[e].first, peak[e])
+                                 : std::format(" {} {:.0f}-{:.0f}(max {:.1f})", events[e].first, first[e], last[e], peak[e]);
+        line += std::format(" | most at once {} | off-event active {:.0f}% of steps, max {:.1f} | last active {:.0f}",
+            mostAtOnce, 100.0 * offSteps / steps, offMax, lastActive);
+        std::cout << line << "\n";
+    }
+}
