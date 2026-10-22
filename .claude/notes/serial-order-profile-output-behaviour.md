@@ -12,9 +12,10 @@ to be scored.
 reads the output field `nf 2` at the shown events' positions (D 180, C 120, A 20, B 80) and compares three things with
 the reference's:
 
-- **Peaks.** Each event's output σ(u), and σ of the highest point farther than 15 from every event. They are compared
-  as an overlap: 1 − Σ|design − reference| / max(Σ max(design, reference), 1). That gives 1 when neither peaks, 0 when
-  they peak in different places, and a peak where the reference has none costs as much as a missing one.
+- **Peaks.** Each event's output σ(u) at its highest point within 15 of the event (since 0e0a044; see "The blind band"
+  below), and σ of the highest point farther than 15 from every event. They are compared as an overlap:
+  1 − Σ|design − reference| / max(Σ max(design, reference), 1). That gives 1 when neither peaks, 0 when they peak in
+  different places, and a peak where the reference has none costs as much as a missing one.
 - **Lifts.** Each event's activation minus the field's level (the median of the output). A design gets full credit
   once it is as far as the reference or further in the same direction, half at the field's level, none when as far the
   other way. Below one unit, the reference's lift is judged on a scale of one.
@@ -102,6 +103,27 @@ nothing is pushed below the field, and C, A and B never peak (recall C, A and B 
 Going on needs D pushed below the field and a drive that stays on after D's release, so that C, about 8 below threshold
 then, crosses it. Its saved names top out at a lucky 0.785 (solution 198860, which records 0.74): pick a run's best by
 re-recording it, not by the fitness in a file name.
+
+## The blind band (fixed in 0e0a044)
+
+As first committed (0f055ea), each event's peak was read at its exact position, and "away from the events" meant
+farther than 15 from every one. A peak 1-15 positions beside an event was therefore invisible to the peak comparison.
+The activity weighting outside the stages, σ of the output's highest point anywhere, saw it, so the moments it filled
+there counted in full and scored 1. Every run started after OB1 found this:
+
+| Run | Start | Best, 0f055ea | Same design, 0e0a044 | What it held in the band |
+|---|---|---|---|---|
+| OBS | OB1's best | 0.818 | 0.568 | A peak 5-7 beside D from the third recall to the end; otherwise OB1's best |
+| OB2 | Scratch | 0.776 | 0.409 | Peaks 8-12 beside D from the first release on; D's memory only |
+| OB3 | Scratch | 0.799 | 0.285 | A peak around D from the demonstration to the end |
+| OB4 | Scratch | 0.802 | 0.433 | A peak 5-6 beside D from the first release on; otherwise like OB1's best |
+
+Since 0e0a044 each event's peak is read at its highest within 15 of it, so every position belongs to an event's reach
+or lies away from them all. Every other recorded design scores within 0.001 of before, OB1's best included. The batch
+was paused when this was found and rerun on 0e0a044 (OCS and OC1-OC10).
+
+Lesson: wherever a weight and a score read the output differently, a design can fill the gap. Here both now read the
+same peaks.
 
 ## Known costs
 
