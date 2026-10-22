@@ -6,6 +6,9 @@
 #include <format>
 #include <fstream>
 #include <iterator>
+#include <map>
+#include <mutex>
+#include <span>
 #include <stdexcept>
 #include <utility>
 
@@ -33,9 +36,19 @@ namespace neat_dnfs
 			return std::round(value * 1000.0) / 1000.0;
 		}
 
-		std::filesystem::path referenceProfilePath()
+		// How many events of the sequence are shown, from the first: SolutionConstants::profileEventCount, or all.
+		size_t shownEvents()
 		{
-			return paths::resourceRoot() / "config" / "references" / "serial-order-profile.json";
+			return static_cast<size_t>(SolutionConstants::profileEventCount.value_or(
+				static_cast<int>(serial_order_schedule::eventCount)));
+		}
+
+		// The whole sequence's reference is serial-order-profile.json; a shorter one's names its event count.
+		std::filesystem::path referenceProfilePath(const size_t events)
+		{
+			const std::string name = events == serial_order_schedule::eventCount ? "serial-order-profile.json"
+				: std::format("serial-order-profile-{}-event{}.json", events, events == 1 ? "" : "s");
+			return paths::resourceRoot() / "config" / "references" / name;
 		}
 
 		size_t firstSampleFrom(const ActivationProfile& profile, const double time)
@@ -196,49 +209,61 @@ namespace neat_dnfs
 
 	const ActivationProfile& SerialOrderProfile::referenceProfile()
 	{
-		static const ActivationProfile reference = [] {
-			std::ifstream file(referenceProfilePath());
-			if (!file)
-			{
-				throw std::runtime_error(std::format("Cannot read the reference profile {}.",
-					referenceProfilePath().generic_string()));
-			}
-			return ActivationProfile::fromJson(nlohmann::json::parse(file));
-		}();
-		return reference;
+		// One reference per sequence length, read the first time it is needed; evaluations run on several threads.
+		static std::mutex cacheMutex;
+		static std::map<size_t, ActivationProfile> references;
+		const size_t events = shownEvents();
+		const std::lock_guard<std::mutex> lock(cacheMutex);
+		if (const auto found = references.find(events); found != references.end())
+		{
+			return found->second;
+		}
+		std::ifstream file(referenceProfilePath(events));
+		if (!file)
+		{
+			throw std::runtime_error(std::format("Cannot read the reference profile {}.",
+				referenceProfilePath(events).generic_string()));
+		}
+		return references.emplace(events, ActivationProfile::fromJson(nlohmann::json::parse(file))).first->second;
 	}
 
 	const std::vector<SerialOrderProfile::Stage>& SerialOrderProfile::stages()
 	{
-		static const std::vector<Stage> trialStages = [] {
-			using namespace serial_order_schedule;
-			constexpr double response = pulseDuration + settleTime;
-			std::vector<Stage> result{ { "trigger", cueTimes.front(), cueTimes.front() + response } };
-			for (const auto& event : sequence)
-			{
-				result.push_back({ std::format("event {}", event.label), event.onset, event.onset + response });
-			}
+		static std::mutex cacheMutex;
+		static std::map<size_t, std::vector<Stage>> stagesByLength;
+		const size_t events = shownEvents();
+		const ActivationProfile& reference = referenceProfile();
+		const std::lock_guard<std::mutex> lock(cacheMutex);
+		if (const auto found = stagesByLength.find(events); found != stagesByLength.end())
+		{
+			return found->second;
+		}
 
-			const ActivationProfile& reference = referenceProfile();
-			for (size_t cycle = 1; cycle < cueTimes.size(); ++cycle)
+		using namespace serial_order_schedule;
+		const auto shown = std::span(sequence).first(events);
+		constexpr double response = pulseDuration + settleTime;
+		std::vector<Stage> result{ { "trigger", cueTimes.front(), cueTimes.front() + response } };
+		for (const auto& event : shown)
+		{
+			result.push_back({ std::format("event {}", event.label), event.onset, event.onset + response });
+		}
+		for (size_t cycle = 1; cycle < cueTimes.size(); ++cycle)
+		{
+			std::vector<std::pair<std::string, double>> starts{ { "X", cueTimes[cycle] } };
+			for (const auto& event : shown)
 			{
-				std::vector<std::pair<std::string, double>> starts{ { "X", cueTimes[cycle] } };
-				for (const auto& event : sequence)
-				{
-					starts.emplace_back(std::format("recall {}", event.label),
-						firstPeakAt(reference, event.position, starts.back().second));
-				}
-				const double silence = firstQuietFrom(reference, starts.back().second);
-				starts.emplace_back("release", silence);
-				for (size_t stage = 0; stage < starts.size(); ++stage)
-				{
-					const double end = stage + 1 < starts.size() ? starts[stage + 1].second : silence + settleTime;
-					result.push_back({ std::format("{} {}", cycle, starts[stage].first), starts[stage].second, end });
-				}
+				starts.emplace_back(std::format("recall {}", event.label),
+					firstPeakAt(reference, event.position, starts.back().second));
 			}
-			return result;
-		}();
-		return trialStages;
+			const double silence = firstQuietFrom(reference, starts.back().second);
+			starts.emplace_back("release", silence);
+			for (size_t stage = 0; stage < starts.size(); ++stage)
+			{
+				const double end = stage + 1 < starts.size() ? starts[stage + 1].second : silence + settleTime;
+				result.push_back({ std::format("{} {}", cycle, starts[stage].first), starts[stage].second, end });
+			}
+		}
+		return stagesByLength.emplace(events, std::move(result)).first->second;
 	}
 
 	std::vector<SerialOrderProfile::Stage> SerialOrderProfile::scoredStages()
@@ -324,7 +349,9 @@ namespace neat_dnfs
 	void SerialOrderProfile::createPhenotypeEnvironment()
 	{
 		const dnf_composer::element::ElementDimensions dimensions{ DimensionConstants::xSize, DimensionConstants::dx };
-		for (const auto& [stimulusName, stimulusParameters] : serial_order_schedule::stimuli())
+		// The cue X comes first, then the events in the order they are shown; a shorter sequence leaves the last out.
+		const auto stimuli = serial_order_schedule::stimuli();
+		for (const auto& [stimulusName, stimulusParameters] : std::span(stimuli).first(1 + shownEvents()))
 		{
 			addTimedGaussianStimulus(stimulusName, inputField, stimulusParameters, dimensions);
 		}

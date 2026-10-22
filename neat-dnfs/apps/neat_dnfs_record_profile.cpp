@@ -8,6 +8,7 @@
 #include <dnf_composer/simulation/simulation_file_manager.h>
 #include <dnf_composer/tools/logger.h>
 
+#include "neat_tools/ablation_presets.h"
 #include "neat_tools/config_loader.h"
 #include "neat_tools/logger.h"
 #include "neat_tools/solution_registry.h"
@@ -36,6 +37,11 @@ int main(int argc, char* argv[])
 		}
 
 		ConfigLoader::loadConfig(opts.config.value_or(ConfigLoader::defaultGlobalConfigPath()), "serial-order-profile");
+		if (opts.ablation && !AblationPresets::applyByName(*opts.ablation))
+		{
+			std::cerr << "Unknown ablation '" << *opts.ablation << "'.\n";
+			return 1;
+		}
 
 		const auto design = std::make_shared<dnf_composer::Simulation>();
 		const dnf_composer::SimulationFileManager sfm(design, *opts.templateFile);

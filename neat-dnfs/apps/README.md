@@ -10,7 +10,7 @@ Windows, `build/` on Linux/macOS).
 | `neat-dnfs-evol` | `neat_dnfs_evol.cpp` | Evolves a task from a minimal (or ablation-seeded) genome |
 | `neat-dnfs-inc-evol` | `neat_dnfs_incremental_evolution.cpp` | Evolves a task starting from a loaded template solution |
 | `neat-dnfs-sol-eval` | `neat_dnfs_solution_evaluation.cpp` | Loads a template solution and repeatedly calls `evaluate()` — no evolution |
-| `neat-dnfs-record-profile` | `neat_dnfs_record_profile.cpp` | Records what a saved design's input and output do through the serial-order trial, as `serial-order-profile` compares them, and writes it as JSON (`--template`, `--out`). Wrote `config/references/serial-order-profile.json` from the Gauss-only reference design. Not packaged |
+| `neat-dnfs-record-profile` | `neat_dnfs_record_profile.cpp` | Records what a saved design's input and output do through the serial-order trial, as `serial-order-profile` compares them, and writes it as JSON (`--template`, `--out`, optionally `--ablation`). Wrote `config/references/serial-order-profile.json` from the Gauss-only reference design, and `serial-order-profile-1-event.json` and `-2-events.json` with `--ablation profile-one-event-outputs` and `profile-two-events-outputs`. Not packaged |
 
 Every binary supports `--list` (print available tasks and ablations) and
 `--help` (print all flags).
@@ -39,7 +39,9 @@ Available ablations: `no-growth-io-only`, `no-growth-reference-hidden-field-coun
 `no-speciation`, `no-crossover`, `random-initial-topology`, `compat-threshold-4`, `output-feedback`,
 `profile-demonstration`, `profile-recall-start`, `profile-activity`, `profile-demonstration-outputs`,
 `profile-recall-start-outputs`, `profile-recall-two-outputs`, `profile-recall-three-outputs`,
-`profile-full-outputs`.
+`profile-full-outputs`, `profile-recall-two-outputs-species`, `profile-recall-three-outputs-species`,
+`profile-full-outputs-species`, `profile-recall-two-outputs-threshold-6`, `profile-one-event-outputs`,
+`profile-two-events-outputs`.
 
 The three `profile-*` presets are for `serial-order-profile` only. They form a curriculum that scores
 the trial in growing parts:
@@ -52,7 +54,10 @@ All three also score the moments outside those parts, as far as the output is ac
 The `-outputs` presets do the same, and also compare each field's output (its activation
 function of the activation) as well as the activation itself. `profile-recall-two-outputs` and
 `profile-recall-three-outputs` add finer steps, scoring each recall up to its second or third
-event.
+event. The `-species` presets raise `minConnectionGenesToNormalize` to 100, so species can form in
+the larger genomes later steps start from. `-threshold-6` also sets the compatibility threshold to 6.
+`profile-one-event-outputs` and `profile-two-events-outputs` show only the first one or two events
+and compare with the reference design's recording on that shorter schedule.
 
 `output-feedback` is not an ablation but a wider search space: mutation may also wire
 connections out of output fields (`GenomeMutationConstants.allowOutputAsConnectionSource`), which it

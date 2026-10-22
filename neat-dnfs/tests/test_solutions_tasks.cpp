@@ -1287,6 +1287,90 @@ TEST_CASE("SerialOrderProfile scores the demonstration alone under profile-demon
     CHECK(SerialOrderProfile::scoredStages().size() == SerialOrderProfile::stages().size());
 }
 
+// A shorter task for a curriculum: only the first events of the sequence are shown, and the reference design's own
+// recording on that schedule is what the fitness compares with.
+TEST_CASE("SerialOrderProfile shows only D under profile-one-event-outputs, and only D and C under profile-two-events-outputs", "[Solutions][SerialOrderProfile]")
+{
+    for (const auto& [preset, stageNames, shown] : std::vector<std::tuple<std::string, std::vector<std::string>, size_t>>{
+        { "profile-one-event-outputs", { "trigger", "event D", "1 X", "1 recall D", "1 release", "2 X", "2 recall D",
+            "2 release", "3 X", "3 recall D", "3 release" }, 1 },
+        { "profile-two-events-outputs", { "trigger", "event D", "event C", "1 X", "1 recall D", "1 recall C",
+            "1 release", "2 X", "2 recall D", "2 recall C", "2 release", "3 X", "3 recall D", "3 recall C",
+            "3 release" }, 2 } })
+    {
+        DYNAMIC_SECTION("preset " << preset)
+        {
+            resetGlobalState();
+            const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+            ConfigLoader::applyAblation(ablationPresetPath(preset));
+            auto reference = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-fitness-test-reference-gauss.dnf");
+
+            CHECK(scoredStageNames() == stageNames);
+            const ActivationProfile recorded = reference.recordProfile();
+            const auto& input = recorded.fields.at("nf 1");
+            for (size_t event = 0; event < serial_order_schedule::eventCount; ++event)
+            {
+                const auto& [label, position, onset] = serial_order_schedule::sequence[event];
+                INFO("event " << label);
+                const auto during = static_cast<size_t>((onset + 30.0) / serial_order_schedule::sampleInterval);
+                const auto index = static_cast<size_t>(std::lround(position)) - 1;
+                CHECK((input[during][index] > 0.0) == (event < shown));
+            }
+            reference.evaluate();
+            CHECK(reference.getFitness() > 0.99);
+        }
+    }
+}
+
+// The saved reference for each shorter task is what the Gauss-only reference design does on its schedule now. Noise
+// moves a recording by 0.03 on average; one sample late would be 0.3.
+TEST_CASE("SerialOrderProfile's saved one- and two-event references are what the reference design does on those schedules", "[Solutions][SerialOrderProfile]")
+{
+    for (const std::string preset : { "profile-one-event-outputs", "profile-two-events-outputs" })
+    {
+        DYNAMIC_SECTION("preset " << preset)
+        {
+            resetGlobalState();
+            const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+            ConfigLoader::applyAblation(ablationPresetPath(preset));
+            auto reference = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-fitness-test-reference-gauss.dnf");
+
+            const ActivationProfile recorded = reference.recordProfile();
+            const ActivationProfile& saved = SerialOrderProfile::referenceProfile();
+
+            REQUIRE(saved.times == recorded.times);
+            for (const auto& [field, samples] : recorded.fields)
+            {
+                double totalDifference = 0.0;
+                size_t values = 0;
+                for (size_t sample = 0; sample < samples.size(); ++sample)
+                {
+                    for (size_t position = 0; position < samples[sample].size(); ++position)
+                    {
+                        totalDifference += std::abs(saved.fields.at(field)[sample][position] - samples[sample][position]);
+                        ++values;
+                    }
+                }
+                INFO(field);
+                CHECK(totalDifference / static_cast<double>(values) < 0.1);
+            }
+        }
+    }
+}
+
+TEST_CASE("SerialOrderProfile's config may only show between one and all four events", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    const auto path = std::filesystem::temp_directory_path() / "neat-dnfs-profile-five-events.json";
+    std::ofstream(path) << R"({ "SolutionConstants": { "profileEventCount": 5 } })";
+
+    CHECK_THROWS_WITH(ConfigLoader::applyAblation(path.generic_string()),
+        Catch::Matchers::ContainsSubstring("profileEventCount"));
+
+    std::filesystem::remove(path);
+}
+
 // Finer steps for the hardest part of the curriculum, going on from one recalled event to the next.
 TEST_CASE("SerialOrderProfile scores up to each recall's second event under profile-recall-two-outputs", "[Solutions][SerialOrderProfile]")
 {

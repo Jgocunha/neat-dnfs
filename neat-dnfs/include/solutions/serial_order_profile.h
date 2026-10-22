@@ -83,7 +83,8 @@ namespace neat_dnfs
 		/// to its end.
 		[[nodiscard]] ActivationProfile recordProfile();
 		/// @brief The profile every design is compared with: the Gauss-only reference design's, read once from
-		/// config/references/serial-order-profile.json.
+		/// config/references/serial-order-profile.json, or, when SolutionConstants::profileEventCount shows only the
+		/// first events, from serial-order-profile-1-event.json, -2-events.json or -3-events.json.
 		/// @return The saved reference profile.
 		[[nodiscard]] static const ActivationProfile& referenceProfile();
 		/// @brief The stages the trial is scored in, the stretches where something happens. The demonstration's follow the
@@ -92,7 +93,7 @@ namespace neat_dnfs
 		/// peak at D; "recall D", "recall C", "recall A" and "recall B" from each event's first peak; and "release" from the
 		/// moment its output falls silent until 50 later. Each is named after its cycle, such as "2 recall C". The hold
 		/// before the first recall and the rests between recalls lie between stages.
-		/// @return The 23 stages, in order.
+		/// @return The stages, in order: 23 for the whole sequence, fewer when only its first events are shown.
 		[[nodiscard]] static const std::vector<Stage>& stages();
 		/// @brief The stages the fitness scores, as SolutionConstants::profileScoredStages sets: only the
 		/// demonstration's ("demonstration"); those, each recall's "X" and its first one, two or three recalled events

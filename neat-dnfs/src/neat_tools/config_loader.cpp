@@ -394,6 +394,13 @@ namespace neat_dnfs
 			optionalField(sc, "profileCountsOutputActivityOutsideStages",
 				&SolutionConstants::profileCountsOutputActivityOutsideStages);
 			optionalField(sc, "profileAlsoComparesFieldOutputs", &SolutionConstants::profileAlsoComparesFieldOutputs);
+			optionalField(sc, "profileEventCount", &SolutionConstants::profileEventCount);
+			if (SolutionConstants::profileEventCount
+				&& (*SolutionConstants::profileEventCount < 1 || *SolutionConstants::profileEventCount > 4))
+			{
+				throw std::runtime_error("ConfigLoader: '" + path + "' sets SolutionConstants.profileEventCount to "
+					+ std::to_string(*SolutionConstants::profileEventCount) + "; it must be between 1 and 4.");
+			}
 
 			// The reference config carries the full "no ablation" baseline, and a
 			// preset in config/ablations/ is merged over it. The reference counts
