@@ -89,7 +89,7 @@ preset, so scores are comparable only within a level.
 | **D1** | **From scratch, full task with outputs, no curriculum** | **0.893** | **Recalls D alone on every cue; still climbing at generation 200.** |
 | O1 / O2 / O3 | C2 / R2 / D1 → one-event task | 0.950 / 0.958 / 0.954 | Tuned the recall of D; no release. O3, from the no-curriculum lineage, raises its field after recall as the reference does (to −4.4 by cycle 3), but D's bump only shrinks and never becomes a trough. |
 | L1 | D1 → full task, 400 generations | 0.898 | 0.893 → 0.898 in 400 generations (20–45 species). Still recalls D alone, then nothing. |
-| L2 | C2 → full task, population 2000 | 0.893 at generation 128 | 0.889 → 0.893, one species. The same plateau. Still running at 07:15; it ends near 08:00 and its README follows then. |
+| L2 | C2 → full task, population 2000 | 0.894 | 0.889 → 0.894 in 200 generations (143 min), one species. The same plateau. |
 
 **What reproduces.** From scratch, comparing field outputs as well:
 
