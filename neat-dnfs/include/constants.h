@@ -374,6 +374,10 @@ namespace neat_dnfs
 		// activation function of the activation, as well as the activation itself, and scores the mean of the two.
 		// Off by default.
 		inline static std::optional<bool> profileAlsoComparesFieldOutputs;
+		// Optional, read by SerialOrderProfile only. When true, each moment compares the output field alone, not the
+		// input: its activation inside the scored stages and, outside them, only its output, its activation function of
+		// the activation. Cannot be combined with profileAlsoComparesFieldOutputs. Off by default.
+		inline static std::optional<bool> profileComparesOutputActivationOnly;
 		// Optional, read by SerialOrderProfile only. How many events of the sequence are shown, from the first: 1 to 4,
 		// all four by default. A shorter sequence is compared with the reference design's recording on that schedule.
 		inline static std::optional<int> profileEventCount;

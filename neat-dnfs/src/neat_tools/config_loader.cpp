@@ -394,6 +394,16 @@ namespace neat_dnfs
 			optionalField(sc, "profileCountsOutputActivityOutsideStages",
 				&SolutionConstants::profileCountsOutputActivityOutsideStages);
 			optionalField(sc, "profileAlsoComparesFieldOutputs", &SolutionConstants::profileAlsoComparesFieldOutputs);
+			optionalField(sc, "profileComparesOutputActivationOnly",
+				&SolutionConstants::profileComparesOutputActivationOnly);
+			if (SolutionConstants::profileComparesOutputActivationOnly.value_or(false)
+				&& SolutionConstants::profileAlsoComparesFieldOutputs.value_or(false))
+			{
+				throw std::runtime_error("ConfigLoader: '" + path + "' sets both SolutionConstants."
+					"profileComparesOutputActivationOnly and profileAlsoComparesFieldOutputs; the first compares only the "
+					"output's activation inside the scored stages, the second each field's output as well, so set at "
+					"most one.");
+			}
 			optionalField(sc, "profileEventCount", &SolutionConstants::profileEventCount);
 			if (SolutionConstants::profileEventCount
 				&& (*SolutionConstants::profileEventCount < 1 || *SolutionConstants::profileEventCount > 4))

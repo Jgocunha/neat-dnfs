@@ -50,7 +50,9 @@ namespace neat_dnfs
 	/// one more term, of the moments outside the scored stages, each counting as much as the output is active then, so
 	/// that a design is not free to peak where nothing should happen; profileAlsoComparesFieldOutputs compares each
 	/// field's output, its activation function of the activation, as well as the activation, so that a peak and a high
-	/// bump in the same place no longer look alike.
+	/// bump in the same place no longer look alike; profileComparesOutputActivationOnly compares the output alone, its
+	/// activation inside the stages, where its pre-shapes below threshold and its troughs below the field count in full,
+	/// and only its output outside them, where a design is judged by its peaks alone.
 	class SerialOrderProfile final : public Solution
 	{
 	public:

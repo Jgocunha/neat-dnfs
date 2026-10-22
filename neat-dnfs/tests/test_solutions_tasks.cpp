@@ -10,6 +10,7 @@
 #include <map>
 #include <numeric>
 #include <sstream>
+#include <utility>
 
 #include <dnf_composer/exceptions/exception.h>
 #include <dnf_composer/simulation/simulation_file_manager.h>
@@ -1402,7 +1403,8 @@ TEST_CASE("SerialOrderProfile scores the reference design about 1 under every cu
     for (const std::string preset : { "profile-demonstration", "profile-recall-start", "profile-activity",
         "profile-demonstration-outputs", "profile-recall-start-outputs", "profile-recall-two-outputs",
         "profile-recall-three-outputs", "profile-recall-two-outputs-species", "profile-recall-three-outputs-species",
-        "profile-full-outputs", "profile-full-outputs-species", "profile-recall-two-outputs-threshold-6" })
+        "profile-full-outputs", "profile-full-outputs-species", "profile-recall-two-outputs-threshold-6",
+        "profile-output-activation" })
     {
         DYNAMIC_SECTION("preset " << preset)
         {
@@ -1564,6 +1566,102 @@ TEST_CASE("SerialOrderProfile scores a peak held at D above silence while D is d
         INFO(past);
         CHECK(stageScore(held, past) < stageScore(silent, past));
     }
+}
+
+// The input is a fixed detection field that no connection can reach, so it matches the reference's for every design and
+// only halves every difference. Compared alone, an output that never responds is worth about half.
+TEST_CASE("SerialOrderProfile, comparing the output's activation alone, gives an output that never responds about half", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    ConfigLoader::applyAblation(ablationPresetPath("profile-output-activation"));
+    auto silent = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-silent.dnf");
+
+    silent.evaluate();
+
+    CHECK(silent.getFitness() > 0.45);
+    CHECK(silent.getFitness() < 0.6);
+}
+
+// The 22 October runs ended recalling D alone on every cue, after which D falls back to a bump above the field, where the
+// reference holds it below. d-only is the best of them (L2). d-only-inhibited is the same design with a release loop
+// added by hand: a field fed by the output that inhibits it locally and is reset by X, which pulls D down to the field
+// after each recall, though not below it. Noise moves either score by about 0.001.
+TEST_CASE("SerialOrderProfile, comparing the output's activation alone, scores a design that recalls D alone below the same design inhibiting D after its recall", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    ConfigLoader::applyAblation(ablationPresetPath("profile-output-activation"));
+    auto dOnly = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-d-only.dnf");
+    auto inhibited = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-d-only-inhibited.dnf");
+
+    dOnly.evaluate();
+    inhibited.evaluate();
+
+    CHECK(inhibited.getFitness() > dOnly.getFitness() + 0.005);
+}
+
+TEST_CASE("SerialOrderProfile, comparing the output's activation alone, still scores a design that never recalls below one that skips D, and both below one that recalls every event in order", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    ConfigLoader::applyAblation(ablationPresetPath("profile-output-activation"));
+    auto neverRecalls = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-never-recalls.dnf");
+    auto skipsD = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-skips-d.dnf");
+    auto inOrder = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-recalls-in-order.dnf");
+
+    neverRecalls.evaluate();
+    skipsD.evaluate();
+    inOrder.evaluate();
+
+    CHECK(neverRecalls.getFitness() < skipsD.getFitness());
+    CHECK(skipsD.getFitness() < inOrder.getFitness());
+}
+
+// Outside the stages only the output's peaks are compared, each moment counting as much as the output is active. The
+// reference, which peaks only inside the stages, loses nothing there. A design that peaks while the sequence is shown
+// loses. never-recalls holds peaks through the demonstration, where the reference holds its highest bumps below
+// threshold: comparing the activation there would pay it, comparing the output does not.
+TEST_CASE("SerialOrderProfile, comparing the output's activation alone, lets no design gain from peaking outside the stages", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    ConfigLoader::applyAblation(ablationPresetPath("profile-output-activation"));
+    auto reference = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-fitness-test-reference-gauss.dnf");
+    auto peaksInDemonstration = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-peaks-in-demonstration.dnf");
+    auto heldPeaks = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-never-recalls.dnf");
+    const auto inStagesThenWithOutside = [](SerialOrderProfile& solution) {
+        SolutionConstants::profileCountsOutputActivityOutsideStages = false;
+        solution.evaluate();
+        const double inStages = solution.getFitness();
+        SolutionConstants::profileCountsOutputActivityOutsideStages = true;
+        solution.evaluate();
+        return std::pair{ inStages, solution.getFitness() };
+    };
+
+    const auto [referenceInStages, referenceWithOutside] = inStagesThenWithOutside(reference);
+    const auto [peaksInStages, peaksWithOutside] = inStagesThenWithOutside(peaksInDemonstration);
+    const auto [heldInStages, heldWithOutside] = inStagesThenWithOutside(heldPeaks);
+
+    CHECK(referenceWithOutside == Catch::Approx(referenceInStages).margin(0.002));
+    CHECK(reference.getParameters().partialFitness.back() > 0.99);
+    CHECK(peaksWithOutside < peaksInStages - 0.01);
+    CHECK(heldWithOutside < heldInStages + 0.002);
+}
+
+TEST_CASE("SerialOrderProfile's config may not compare the output's activation alone and each field's output as well", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    const auto path = std::filesystem::temp_directory_path() / "neat-dnfs-profile-two-comparisons.json";
+    std::ofstream(path) << R"({ "SolutionConstants": { "profileComparesOutputActivationOnly": true,
+        "profileAlsoComparesFieldOutputs": true } })";
+
+    CHECK_THROWS_WITH(ConfigLoader::applyAblation(path.generic_string()),
+        Catch::Matchers::ContainsSubstring("profileComparesOutputActivationOnly")
+        && Catch::Matchers::ContainsSubstring("profileAlsoComparesFieldOutputs"));
+
+    std::filesystem::remove(path);
 }
 
 TEST_CASE("SerialOrder evaluate produces a bounded fitness", "[Solutions][SerialOrder]")

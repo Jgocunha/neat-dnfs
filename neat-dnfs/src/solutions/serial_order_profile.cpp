@@ -101,11 +101,30 @@ namespace neat_dnfs
 			return output;
 		}
 
-		// How closely the fields match the reference's at one sample: each field's agreement mapped to [0, 1], averaged.
-		// With SolutionConstants::profileAlsoComparesFieldOutputs, a field scores the mean of its activation's agreement
-		// and its output's, where a flat output is judged against one position's worth of output.
+		// How closely a field's output matches the reference's, where a flat output is judged against one position's worth
+		// of output.
+		double outputAgreementScore(const std::vector<double>& activation, const std::vector<double>& referenceActivation)
+		{
+			return agreementScore(fieldOutput(activation), fieldOutput(referenceActivation),
+				1.0 / static_cast<double>(activation.size()));
+		}
+
+		bool comparesOutputActivationOnly()
+		{
+			return SolutionConstants::profileComparesOutputActivationOnly.value_or(false);
+		}
+
+		// How closely the fields match the reference's at one sample inside a scored stage: each field's agreement mapped to
+		// [0, 1], averaged. With SolutionConstants::profileAlsoComparesFieldOutputs, a field scores the mean of its
+		// activation's agreement and its output's. With SolutionConstants::profileComparesOutputActivationOnly, only the
+		// output's activation counts, so that its pre-shapes below threshold and its troughs below the field count in full.
 		double momentScore(const ActivationProfile& profile, const ActivationProfile& reference, const size_t sample)
 		{
+			if (comparesOutputActivationOnly())
+			{
+				return agreementScore(profile.fields.at(outputField)[sample], reference.fields.at(outputField)[sample],
+					flatTolerance);
+			}
 			const bool comparesOutputs = SolutionConstants::profileAlsoComparesFieldOutputs.value_or(false);
 			double score = 0.0;
 			for (const auto& [fieldName, samples] : profile.fields)
@@ -115,13 +134,23 @@ namespace neat_dnfs
 				double fieldScore = agreementScore(activation, referenceActivation, flatTolerance);
 				if (comparesOutputs)
 				{
-					const double outputTolerance = 1.0 / static_cast<double>(activation.size());
-					fieldScore = (fieldScore + agreementScore(fieldOutput(activation), fieldOutput(referenceActivation),
-						outputTolerance)) / 2.0;
+					fieldScore = (fieldScore + outputAgreementScore(activation, referenceActivation)) / 2.0;
 				}
 				score += fieldScore;
 			}
 			return score / static_cast<double>(profile.fields.size());
+		}
+
+		// How closely the fields match the reference's at one sample outside the scored stages: as inside them, except that
+		// with SolutionConstants::profileComparesOutputActivationOnly only the output field's output is compared, so that a
+		// design is judged by its peaks alone where nothing should happen.
+		double outsideMomentScore(const ActivationProfile& profile, const ActivationProfile& reference, const size_t sample)
+		{
+			if (!comparesOutputActivationOnly())
+			{
+				return momentScore(profile, reference, sample);
+			}
+			return outputAgreementScore(profile.fields.at(outputField)[sample], reference.fields.at(outputField)[sample]);
 		}
 
 		// How active the output is at one sample: its own activation function at its highest point, near 0 below
@@ -334,7 +363,7 @@ namespace neat_dnfs
 				if (!inStage[sample])
 				{
 					const double activity = outputActivity(profile, sample);
-					outsideTotal += activity * momentScore(profile, reference, sample);
+					outsideTotal += activity * outsideMomentScore(profile, reference, sample);
 					outsideWeight += activity;
 				}
 			}
