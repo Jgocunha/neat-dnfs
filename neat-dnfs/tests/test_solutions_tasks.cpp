@@ -1317,7 +1317,7 @@ TEST_CASE("SerialOrderProfile scores the reference design about 1 under every cu
 {
     for (const std::string preset : { "profile-demonstration", "profile-recall-start", "profile-activity",
         "profile-demonstration-outputs", "profile-recall-start-outputs", "profile-recall-two-outputs",
-        "profile-recall-three-outputs", "profile-full-outputs" })
+        "profile-recall-three-outputs", "profile-recall-two-outputs-species", "profile-full-outputs" })
     {
         DYNAMIC_SECTION("preset " << preset)
         {
