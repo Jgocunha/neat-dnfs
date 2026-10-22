@@ -245,6 +245,11 @@ outside the stages. Fitness under each rule:
 Also scoring the moments where the design's output changes by more than 0.1 per sample works worse. Held peaks do not
 change, so it misses them, and it raises the hold-everything design to 0.862.
 
+## Continued
+
+The overnight experiments of 21–22 October 2026, which added the curriculum, the activity term, the field-output
+comparison and shorter sequences, are in `serial-order-from-scratch-overnight-2026-10-22.md`.
+
 ## Literature (Undermind deep search, thesis workspace)
 
 - **Concordance correlation:** Lin 1989.
