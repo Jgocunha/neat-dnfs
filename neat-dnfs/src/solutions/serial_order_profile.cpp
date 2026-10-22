@@ -129,8 +129,9 @@ namespace neat_dnfs
 		// What the output field does at one moment, read at the shown events' positions.
 		struct OutputBehaviour
 		{
-			// How active it is at each event, as its activation function gives, near 1 at a peak, then at its highest
-			// point farther than eventReach from every event.
+			// How active it is at its highest point within eventReach of each event, as its activation function gives,
+			// near 1 at a peak, then at its highest point farther than eventReach from every event, so that no peak goes
+			// unseen.
 			std::vector<double> peaks;
 			// How far each event's activation sits above the field's level, a pre-shape, or below it, a trough.
 			std::vector<double> lifts;
@@ -159,13 +160,15 @@ namespace neat_dnfs
 			for (const auto& event : std::span(serial_order_schedule::sequence).first(shownEvents()))
 			{
 				const long index = std::lround(event.position / DimensionConstants::dx) - 1;
-				peakActivations.push_back(activation[index]);
 				behaviour.lifts.push_back(activation[index] - level);
+				double highestNear = std::numeric_limits<double>::lowest();
 				for (long position = std::max(index - eventReach, 0L);
 					position <= std::min(index + eventReach, lastPosition); ++position)
 				{
 					nearEvent[position] = true;
+					highestNear = std::max(highestNear, activation[position]);
 				}
+				peakActivations.push_back(highestNear);
 			}
 			double highestAway = std::numeric_limits<double>::lowest();
 			for (size_t position = 0; position < activation.size(); ++position)

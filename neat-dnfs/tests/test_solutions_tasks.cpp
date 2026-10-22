@@ -1782,6 +1782,27 @@ TEST_CASE("SerialOrderProfile, comparing the output's behaviour, judges the mome
     CHECK(held.getParameters().partialFitness.back() < 0.05);
 }
 
+// The 22 October run from the best of the first run under this rule, d-alone-released (the events held in order, D alone
+// recalled on every cue and released on time), ended on a loophole. peak-beside-d does the same, then from the third
+// recall to the end of the trial holds a peak 5-7 positions beside D, where the reference is quiet. Each event's peak was
+// read at its exact position, and the output away from the events only farther than 15 from every one, so that peak
+// went unseen while the moments it filled outside the stages counted in full: 0.818 against its seed's 0.758. Read at its
+// highest within 15 of the event, it is a peak where the reference has none.
+TEST_CASE("SerialOrderProfile, comparing the output's behaviour, sees a peak held beside an event", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    ConfigLoader::applyAblation(ablationPresetPath("profile-output-behaviour"));
+    auto seed = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-d-alone-released.dnf");
+    auto besideD = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-peak-beside-d.dnf");
+
+    seed.evaluate();
+    besideD.evaluate();
+
+    CHECK(besideD.getParameters().partialFitness.back() < 0.1);
+    CHECK(besideD.getFitness() < seed.getFitness());
+}
+
 TEST_CASE("SerialOrderProfile's config may compare the output's behaviour only on its own", "[Solutions][SerialOrderProfile]")
 {
     for (const std::string other : { "profileComparesOutputActivationOnly", "profileAlsoComparesFieldOutputs" })
