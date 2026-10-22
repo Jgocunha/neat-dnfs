@@ -125,6 +125,25 @@ was paused when this was found and rerun on 0e0a044 (OCS and OC1-OC10).
 Lesson: wherever a weight and a score read the output differently, a design can fill the gap. Here both now read the
 same peaks.
 
+## Ten runs from scratch and a seeded run on the fixed rule (OC1-OC10, OCS)
+
+`data/Serial Order Profile Output Behaviour/2026-10-22 14h26m10s` to `18h33m47s`, frozen at 0e0a044, pop 1000, 200
+generations each, two at a time. Each best was re-recorded three times and its replay stepped headless.
+
+| Best | Runs | What it does |
+|---|---|---|
+| 0.826 | OC2 | D, C, A in order on every cue, and B on the third: one peak at a time, only at the events |
+| 0.728 | OC7 | D then C on every cue; remembers only D and C, so it scores below D alone |
+| 0.712-0.768 | OC1, OC4, OC5, OC6, OC8, OC9, OC10 | D alone |
+| 0.705-0.712 | OC3 | D alone, then D and C together (grouped) |
+| 0.767 | OCS, from OB1's best | OB1's best retuned (D's timing); nothing new |
+
+Two of ten got past D alone, the first from-scratch runs to do so under any rule. Neither pushes a recalled event
+below the field: C wins without a trough. OC2 left the plateau at generation 85 and was still rising at 200; its
+shortfalls are B on the first two cues (its C holds too long), the troughs, and C held above D through the hold.
+The rule ranks OC7 below the D-alone designs because its missing memory of A and B costs more than its recall of C
+earns.
+
 ## Known costs
 
 - A peak at the wrong time costs more than no peak. Designs that hold peaks through the demonstration, the old
