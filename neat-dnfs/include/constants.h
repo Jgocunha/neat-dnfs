@@ -378,6 +378,12 @@ namespace neat_dnfs
 		// input: its activation inside the scored stages and, outside them, only its output, its activation function of
 		// the activation. Cannot be combined with profileAlsoComparesFieldOutputs. Off by default.
 		inline static std::optional<bool> profileComparesOutputActivationOnly;
+		// Optional, read by SerialOrderProfile only. When true, each moment compares what the output field does at the
+		// events' positions, not its activation: which of them peak, and anything away from them; which sit above the
+		// field's level and which below it; and which sits higher than which. The hold before the first recall is then
+		// always scored as one more stage, and outside the stages only the peaks are compared. Cannot be combined with
+		// profileComparesOutputActivationOnly or profileAlsoComparesFieldOutputs. Off by default.
+		inline static std::optional<bool> profileComparesOutputBehaviour;
 		// Optional, read by SerialOrderProfile only. How many events of the sequence are shown, from the first: 1 to 4,
 		// all four by default. A shorter sequence is compared with the reference design's recording on that schedule.
 		inline static std::optional<int> profileEventCount;

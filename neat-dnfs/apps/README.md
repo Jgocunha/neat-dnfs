@@ -41,7 +41,7 @@ Available ablations: `no-growth-io-only`, `no-growth-reference-hidden-field-coun
 `profile-recall-start-outputs`, `profile-recall-two-outputs`, `profile-recall-three-outputs`,
 `profile-full-outputs`, `profile-recall-two-outputs-species`, `profile-recall-three-outputs-species`,
 `profile-full-outputs-species`, `profile-recall-two-outputs-threshold-6`, `profile-one-event-outputs`,
-`profile-two-events-outputs`, `profile-output-activation`.
+`profile-two-events-outputs`, `profile-output-activation`, `profile-output-behaviour`.
 
 The three `profile-*` presets are for `serial-order-profile` only. They form a curriculum that scores
 the trial in growing parts:
@@ -61,6 +61,11 @@ and compare with the reference design's recording on that shorter schedule.
 `profile-output-activation` scores the whole trial on the output field alone, not the fixed input:
 its activation inside the scored parts, so pre-shapes below threshold and troughs below the field
 count in full, and outside them only its output, as far as the output is active then.
+`profile-output-behaviour` also scores the output field alone, but compares what it does at the
+events' positions rather than its activation: which events peak, and whether anything away from
+them does; which sit above the field's level and which below it, in full once as far as the
+reference's or further; and which sits higher than which. It always scores the hold before the
+first recall as well, and outside the scored parts compares the peaks alone.
 
 `output-feedback` is not an ablation but a wider search space: mutation may also wire
 connections out of output fields (`GenomeMutationConstants.allowOutputAsConnectionSource`), which it

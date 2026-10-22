@@ -52,7 +52,11 @@ namespace neat_dnfs
 	/// field's output, its activation function of the activation, as well as the activation, so that a peak and a high
 	/// bump in the same place no longer look alike; profileComparesOutputActivationOnly compares the output alone, its
 	/// activation inside the stages, where its pre-shapes below threshold and its troughs below the field count in full,
-	/// and only its output outside them, where a design is judged by its peaks alone.
+	/// and only its output outside them, where a design is judged by its peaks alone; profileComparesOutputBehaviour
+	/// compares what the output does at the events' positions instead of its activation: which of them peak, and whether
+	/// anything away from them does; which sit above the field's level and which below it, in full once as far as the
+	/// reference's or further; and which sits higher than which. It always scores the hold before the first recall as
+	/// well, and outside the stages compares the peaks alone.
 	class SerialOrderProfile final : public Solution
 	{
 	public:
@@ -99,7 +103,9 @@ namespace neat_dnfs
 		[[nodiscard]] static const std::vector<Stage>& stages();
 		/// @brief The stages the fitness scores, as SolutionConstants::profileScoredStages sets: only the
 		/// demonstration's ("demonstration"); those, each recall's "X" and its first one, two or three recalled events
-		/// ("recall-start", "recall-two", "recall-three"); or every one of stages() ("all", the default).
+		/// ("recall-start", "recall-two", "recall-three"); or every one of stages() ("all", the default). With
+		/// SolutionConstants::profileComparesOutputBehaviour, also "hold" after the demonstration's: the hold before the
+		/// first recall, from the end of the last event's stage to the first recall's X.
 		/// @return The scored stages, in order.
 		[[nodiscard]] static std::vector<Stage> scoredStages();
 	private:

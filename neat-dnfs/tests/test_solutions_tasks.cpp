@@ -1404,7 +1404,7 @@ TEST_CASE("SerialOrderProfile scores the reference design about 1 under every cu
         "profile-demonstration-outputs", "profile-recall-start-outputs", "profile-recall-two-outputs",
         "profile-recall-three-outputs", "profile-recall-two-outputs-species", "profile-recall-three-outputs-species",
         "profile-full-outputs", "profile-full-outputs-species", "profile-recall-two-outputs-threshold-6",
-        "profile-output-activation" })
+        "profile-output-activation", "profile-output-behaviour" })
     {
         DYNAMIC_SECTION("preset " << preset)
         {
@@ -1662,6 +1662,145 @@ TEST_CASE("SerialOrderProfile's config may not compare the output's activation a
         && Catch::Matchers::ContainsSubstring("profileAlsoComparesFieldOutputs"));
 
     std::filesystem::remove(path);
+}
+
+// Comparing the output's behaviour reads, at each moment, what the output does at the events' positions: which of them
+// peak, which sit above the field's level and which below it, and which sits higher than which. The hold before the first
+// recall, where the reference keeps every event above its field and below threshold, D highest and B lowest, is then
+// always scored: right after the demonstration's stages, from the end of the last event's to the first recall's X.
+TEST_CASE("SerialOrderProfile, comparing the output's behaviour, always scores the hold before the first recall", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    ConfigLoader::applyAblation(ablationPresetPath("profile-output-behaviour"));
+
+    const auto scored = SerialOrderProfile::scoredStages();
+    REQUIRE(scored.size() == SerialOrderProfile::stages().size() + 1);
+    CHECK(scored[4].name == "event B");
+    CHECK(scored[5].name == "hold");
+    CHECK(scored[5].start == 1900.0);
+    CHECK(scored[5].end == 2550.0);
+    CHECK(scored[6].name == "1 X");
+
+    SolutionConstants::profileScoredStages = "demonstration";
+    CHECK(scoredStageNames() == std::vector<std::string>{ "trigger", "event D", "event C", "event A", "event B",
+        "hold" });
+}
+
+// With D shown alone there is no order between events to compare, only whether D peaks and how far it sits from the
+// field; the hold then runs from the end of D's stage to the first recall's X.
+TEST_CASE("SerialOrderProfile, comparing the output's behaviour, scores the reference about 1 when only D is shown", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    ConfigLoader::applyAblation(ablationPresetPath("profile-output-behaviour"));
+    SolutionConstants::profileEventCount = 1;
+    auto reference = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-fitness-test-reference-gauss.dnf");
+
+    reference.evaluate();
+
+    const auto scored = SerialOrderProfile::scoredStages();
+    REQUIRE(scored.size() > 2);
+    CHECK(scored[2].name == "hold");
+    CHECK(scored[2].start == 200.0);
+    CHECK(scored[2].end == 2550.0);
+    CHECK(reference.getFitness() > 0.99);
+}
+
+// The 22 October run from scratch under profile-output-activation ended on a shortcut, reversed-gradient: from the
+// demonstration on it holds the events above the field in reverse order, B highest and D at the field, and all four
+// burst briefly after each X. Late in each recall the reference also holds the events still to come above its field,
+// so that comparison scored it above the design that recalls D alone. Through the hold the reference keeps D highest and
+// B lowest, the other way round, and its bursts peak at events the reference does not.
+TEST_CASE("SerialOrderProfile, comparing the output's behaviour, scores a design holding the events in reverse order below one that recalls D alone", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    auto reversed = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-reversed-gradient.dnf");
+    auto dOnly = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-d-only.dnf");
+
+    ConfigLoader::applyAblation(ablationPresetPath("profile-output-activation"));
+    reversed.evaluate();
+    dOnly.evaluate();
+    CHECK(reversed.getFitness() > dOnly.getFitness());
+
+    ConfigLoader::applyAblation(ablationPresetPath("profile-output-behaviour"));
+    reversed.evaluate();
+    dOnly.evaluate();
+    CHECK(reversed.getFitness() < dOnly.getFitness() - 0.05);
+}
+
+// A peak where the reference has none costs as much as a missing one. never-recalls holds peaks at D and C through the
+// demonstration and the hold, where the reference only lifts its events below threshold, so it scores below an output
+// that never responds.
+TEST_CASE("SerialOrderProfile, comparing the output's behaviour, scores peaks held through the demonstration below an output that never responds", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    ConfigLoader::applyAblation(ablationPresetPath("profile-output-behaviour"));
+    auto heldPeaks = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-never-recalls.dnf");
+    auto silent = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-silent.dnf");
+
+    heldPeaks.evaluate();
+    silent.evaluate();
+
+    CHECK(heldPeaks.getFitness() < silent.getFitness() - 0.1);
+}
+
+TEST_CASE("SerialOrderProfile, comparing the output's behaviour, still scores a design that never recalls below one that skips D, and both below one that recalls every event in order", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    ConfigLoader::applyAblation(ablationPresetPath("profile-output-behaviour"));
+    auto neverRecalls = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-never-recalls.dnf");
+    auto skipsD = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-skips-d.dnf");
+    auto inOrder = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-recalls-in-order.dnf");
+
+    neverRecalls.evaluate();
+    skipsD.evaluate();
+    inOrder.evaluate();
+
+    CHECK(neverRecalls.getFitness() < skipsD.getFitness());
+    CHECK(skipsD.getFitness() < inOrder.getFitness());
+}
+
+// Outside the stages a design is judged by its peaks alone, compared as inside them, each moment counting as much as the
+// output is active then. held-d holds a peak at D from the demonstration to the end, where the reference peaks only
+// inside its stages, so it earns nothing there; the reference loses nothing.
+TEST_CASE("SerialOrderProfile, comparing the output's behaviour, judges the moments outside the stages by the output's peaks alone", "[Solutions][SerialOrderProfile]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+    ConfigLoader::applyAblation(ablationPresetPath("profile-output-behaviour"));
+    auto reference = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-fitness-test-reference-gauss.dnf");
+    auto held = loadSequenceTimingFixture<SerialOrderProfile>("serial-order-profile-held-d.dnf");
+
+    reference.evaluate();
+    held.evaluate();
+
+    CHECK(reference.getParameters().partialFitness.back() > 0.99);
+    CHECK(held.getParameters().partialFitness.back() < 0.05);
+}
+
+TEST_CASE("SerialOrderProfile's config may compare the output's behaviour only on its own", "[Solutions][SerialOrderProfile]")
+{
+    for (const std::string other : { "profileComparesOutputActivationOnly", "profileAlsoComparesFieldOutputs" })
+    {
+        DYNAMIC_SECTION("with " << other)
+        {
+            resetGlobalState();
+            const ScopedTaskConfig taskConfig{ "serial-order-profile" };
+            const auto path = std::filesystem::temp_directory_path() / "neat-dnfs-profile-behaviour-and-another.json";
+            std::ofstream(path) << R"({ "SolutionConstants": { "profileComparesOutputBehaviour": true, ")" << other
+                << R"(": true } })";
+
+            CHECK_THROWS_WITH(ConfigLoader::applyAblation(path.generic_string()),
+                Catch::Matchers::ContainsSubstring("profileComparesOutputBehaviour")
+                && Catch::Matchers::ContainsSubstring(other));
+
+            std::filesystem::remove(path);
+        }
+    }
 }
 
 TEST_CASE("SerialOrder evaluate produces a bounded fitness", "[Solutions][SerialOrder]")

@@ -6,6 +6,7 @@
 #include <format>
 #include <fstream>
 #include <iterator>
+#include <limits>
 #include <map>
 #include <mutex>
 #include <span>
@@ -28,6 +29,12 @@ namespace neat_dnfs
 		// Where a field is flat at a moment, as the input between pulses, its level alone is compared: one unit off the
 		// reference's halves the agreement.
 		constexpr double flatTolerance = 1.0;
+		// The reference's bumps rise above its field no farther than 9 positions from their event's, so beyond 15 from
+		// every event the output has nothing to do.
+		constexpr long eventReach = 15;
+		// A difference in activation smaller than this in the reference, as between two troughs of nearly the same depth,
+		// is judged on this scale, so that noise there costs little.
+		constexpr double smallestDifference = 1.0;
 
 		// Three decimals are finer than the noise, which moves a sample by hundredths, and keep a saved field's profile
 		// under a megabyte.
@@ -114,12 +121,151 @@ namespace neat_dnfs
 			return SolutionConstants::profileComparesOutputActivationOnly.value_or(false);
 		}
 
+		bool comparesOutputBehaviour()
+		{
+			return SolutionConstants::profileComparesOutputBehaviour.value_or(false);
+		}
+
+		// What the output field does at one moment, read at the shown events' positions.
+		struct OutputBehaviour
+		{
+			// How active it is at each event, as its activation function gives, near 1 at a peak, then at its highest
+			// point farther than eventReach from every event.
+			std::vector<double> peaks;
+			// How far each event's activation sits above the field's level, a pre-shape, or below it, a trough.
+			std::vector<double> lifts;
+		};
+
+		// The field's level at one moment: the median of its activation, which the few positions an event lifts or
+		// pushes down leave where it is.
+		double fieldLevel(std::vector<double> activation)
+		{
+			const auto middle = activation.begin() + static_cast<std::ptrdiff_t>(activation.size() / 2);
+			std::ranges::nth_element(activation, middle);
+			if (activation.size() % 2 == 1)
+			{
+				return *middle;
+			}
+			return (*std::max_element(activation.begin(), middle) + *middle) / 2.0;
+		}
+
+		OutputBehaviour outputBehaviour(const std::vector<double>& activation)
+		{
+			const double level = fieldLevel(activation);
+			const auto lastPosition = static_cast<long>(activation.size()) - 1;
+			std::vector<bool> nearEvent(activation.size(), false);
+			std::vector<double> peakActivations;
+			OutputBehaviour behaviour;
+			for (const auto& event : std::span(serial_order_schedule::sequence).first(shownEvents()))
+			{
+				const long index = std::lround(event.position / DimensionConstants::dx) - 1;
+				peakActivations.push_back(activation[index]);
+				behaviour.lifts.push_back(activation[index] - level);
+				for (long position = std::max(index - eventReach, 0L);
+					position <= std::min(index + eventReach, lastPosition); ++position)
+				{
+					nearEvent[position] = true;
+				}
+			}
+			double highestAway = std::numeric_limits<double>::lowest();
+			for (size_t position = 0; position < activation.size(); ++position)
+			{
+				if (!nearEvent[position])
+				{
+					highestAway = std::max(highestAway, activation[position]);
+				}
+			}
+			peakActivations.push_back(highestAway);
+			behaviour.peaks.resize(peakActivations.size());
+			NeuralFieldConstants::activationFunction.apply(peakActivations, behaviour.peaks);
+			return behaviour;
+		}
+
+		// How much of the peaks, the design's or the reference's, both have: 1 when neither has any, 0 when they peak in
+		// different places.
+		double peakOverlap(const std::vector<double>& peaks, const std::vector<double>& referencePeaks)
+		{
+			double difference = 0.0;
+			double either = 0.0;
+			for (size_t peak = 0; peak < peaks.size(); ++peak)
+			{
+				difference += std::abs(peaks[peak] - referencePeaks[peak]);
+				either += std::max(peaks[peak], referencePeaks[peak]);
+			}
+			return 1.0 - difference / std::max(either, 1.0);
+		}
+
+		// The scale a difference in the reference's activation is judged on: its own size, or smallestDifference.
+		double scaleOf(const double referenceDifference)
+		{
+			return std::max(std::abs(referenceDifference), smallestDifference);
+		}
+
+		// How far a design's difference falls short of the reference's: nothing once it goes as far the same way or
+		// further, the reference's whole size at none, twice it once it goes as far the other way.
+		double shortfall(const double difference, const double referenceDifference)
+		{
+			const double scale = scaleOf(referenceDifference);
+			return std::abs(std::clamp(difference, -scale, scale) - referenceDifference);
+		}
+
+		// How far each event sits from the field the reference's way: 1 once as far or further, 0.5 at the field's level,
+		// 0 once as far the other way; averaged over the events.
+		double liftAgreement(const std::vector<double>& lifts, const std::vector<double>& referenceLifts)
+		{
+			double total = 0.0;
+			for (size_t event = 0; event < lifts.size(); ++event)
+			{
+				total += 1.0 - shortfall(lifts[event], referenceLifts[event]) / (2.0 * scaleOf(referenceLifts[event]));
+			}
+			return total / static_cast<double>(lifts.size());
+		}
+
+		// How far the design orders the events as the reference does: each pair's difference in activation judged as a
+		// lift is, the pairs' shortfalls summed over twice their scales, so that a pair counts as much as the reference
+		// sets it apart; a peak far above a trough outweighs two troughs of nearly the same depth.
+		double orderAgreement(const std::vector<double>& lifts, const std::vector<double>& referenceLifts)
+		{
+			double total = 0.0;
+			double scales = 0.0;
+			for (size_t first = 0; first < lifts.size(); ++first)
+			{
+				for (size_t second = first + 1; second < lifts.size(); ++second)
+				{
+					const double referenceDifference = referenceLifts[first] - referenceLifts[second];
+					total += shortfall(lifts[first] - lifts[second], referenceDifference);
+					scales += scaleOf(referenceDifference);
+				}
+			}
+			return 1.0 - total / (2.0 * scales);
+		}
+
+		// How closely the output's behaviour matches the reference's at one moment: the mean of how their peaks overlap,
+		// how far its events sit from the field the reference's way and, with more than one event shown, how it orders
+		// them.
+		double behaviourScore(const OutputBehaviour& behaviour, const OutputBehaviour& reference)
+		{
+			const double peaksAndLifts = peakOverlap(behaviour.peaks, reference.peaks)
+				+ liftAgreement(behaviour.lifts, reference.lifts);
+			if (behaviour.lifts.size() < 2)
+			{
+				return peaksAndLifts / 2.0;
+			}
+			return (peaksAndLifts + orderAgreement(behaviour.lifts, reference.lifts)) / 3.0;
+		}
+
 		// How closely the fields match the reference's at one sample inside a scored stage: each field's agreement mapped to
 		// [0, 1], averaged. With SolutionConstants::profileAlsoComparesFieldOutputs, a field scores the mean of its
 		// activation's agreement and its output's. With SolutionConstants::profileComparesOutputActivationOnly, only the
 		// output's activation counts, so that its pre-shapes below threshold and its troughs below the field count in full.
+		// With SolutionConstants::profileComparesOutputBehaviour, what the output does at the events' positions counts.
 		double momentScore(const ActivationProfile& profile, const ActivationProfile& reference, const size_t sample)
 		{
+			if (comparesOutputBehaviour())
+			{
+				return behaviourScore(outputBehaviour(profile.fields.at(outputField)[sample]),
+					outputBehaviour(reference.fields.at(outputField)[sample]));
+			}
 			if (comparesOutputActivationOnly())
 			{
 				return agreementScore(profile.fields.at(outputField)[sample], reference.fields.at(outputField)[sample],
@@ -142,10 +288,16 @@ namespace neat_dnfs
 		}
 
 		// How closely the fields match the reference's at one sample outside the scored stages: as inside them, except that
-		// with SolutionConstants::profileComparesOutputActivationOnly only the output field's output is compared, so that a
-		// design is judged by its peaks alone where nothing should happen.
+		// with SolutionConstants::profileComparesOutputActivationOnly only the output field's output is compared, and with
+		// SolutionConstants::profileComparesOutputBehaviour only its peaks, so that a design is judged by its peaks alone
+		// where nothing should happen.
 		double outsideMomentScore(const ActivationProfile& profile, const ActivationProfile& reference, const size_t sample)
 		{
+			if (comparesOutputBehaviour())
+			{
+				return peakOverlap(outputBehaviour(profile.fields.at(outputField)[sample]).peaks,
+					outputBehaviour(reference.fields.at(outputField)[sample]).peaks);
+			}
 			if (!comparesOutputActivationOnly())
 			{
 				return momentScore(profile, reference, sample);
@@ -161,6 +313,26 @@ namespace neat_dnfs
 			NeuralFieldConstants::activationFunction.apply({ std::ranges::max(profile.fields.at(outputField)[sample]) },
 				activity);
 			return activity.front();
+		}
+
+		// Whether @p stage belongs to a recall cycle: its name starts with the cycle's number.
+		bool inRecallCycle(const SerialOrderProfile::Stage& stage)
+		{
+			return std::isdigit(static_cast<unsigned char>(stage.name.front())) != 0;
+		}
+
+		// @p scored and, with SolutionConstants::profileComparesOutputBehaviour, one more stage after the demonstration's:
+		// "hold", the hold before the first recall, from the end of the last event's stage to the first recall's X.
+		std::vector<SerialOrderProfile::Stage> withHold(std::vector<SerialOrderProfile::Stage> scored)
+		{
+			if (!comparesOutputBehaviour())
+			{
+				return scored;
+			}
+			const SerialOrderProfile::Stage hold{ "hold", SerialOrderProfile::stages()[shownEvents()].end,
+				serial_order_schedule::cueTimes[1] };
+			scored.insert(std::ranges::find_if(scored, inRecallCycle), hold);
+			return scored;
 		}
 	}
 
@@ -303,7 +475,7 @@ namespace neat_dnfs
 		const std::string part = SolutionConstants::profileScoredStages.value_or("all");
 		if (part == "all")
 		{
-			return stages();
+			return withHold(stages());
 		}
 		const size_t events = recalledEvents.at(part);
 		std::vector<std::string> scoredInCycle;
@@ -316,13 +488,13 @@ namespace neat_dnfs
 			scoredInCycle.push_back(std::format("recall {}", serial_order_schedule::sequence[event].label));
 		}
 		const auto scored = [&scoredInCycle](const Stage& stage) {
-			const bool inCycle = std::isdigit(static_cast<unsigned char>(stage.name.front()));
+			const bool inCycle = inRecallCycle(stage);
 			return !inCycle || std::ranges::find(scoredInCycle, stage.name.substr(stage.name.find(' ') + 1))
 				!= scoredInCycle.end();
 		};
 		std::vector<Stage> result;
 		std::ranges::copy_if(stages(), std::back_inserter(result), scored);
-		return result;
+		return withHold(std::move(result));
 	}
 
 	void SerialOrderProfile::testPhenotype()

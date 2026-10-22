@@ -404,6 +404,16 @@ namespace neat_dnfs
 					"output's activation inside the scored stages, the second each field's output as well, so set at "
 					"most one.");
 			}
+			optionalField(sc, "profileComparesOutputBehaviour", &SolutionConstants::profileComparesOutputBehaviour);
+			if (SolutionConstants::profileComparesOutputBehaviour.value_or(false)
+				&& (SolutionConstants::profileComparesOutputActivationOnly.value_or(false)
+					|| SolutionConstants::profileAlsoComparesFieldOutputs.value_or(false)))
+			{
+				throw std::runtime_error("ConfigLoader: '" + path + "' sets SolutionConstants."
+					"profileComparesOutputBehaviour with profileComparesOutputActivationOnly or "
+					"profileAlsoComparesFieldOutputs; the first compares what the output does at the events' positions, "
+					"the others its activation, so set only one.");
+			}
 			optionalField(sc, "profileEventCount", &SolutionConstants::profileEventCount);
 			if (SolutionConstants::profileEventCount
 				&& (*SolutionConstants::profileEventCount < 1 || *SolutionConstants::profileEventCount > 4))
