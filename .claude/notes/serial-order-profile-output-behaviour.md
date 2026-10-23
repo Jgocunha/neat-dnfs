@@ -144,6 +144,24 @@ shortfalls are B on the first two cues (its C holds too long), the troughs, and 
 The rule ranks OC7 below the D-alone designs because its missing memory of A and B costs more than its recall of C
 earns.
 
+## A seeded run from OC2's best and 500 generations from scratch (ODS, OD1-OD7)
+
+`data/Serial Order Profile Output Behaviour/2026-10-22 21h34m04s` to `2026-10-23 08h34m31s`, same rule and settings.
+A 500-generation run took 3-4 hours with two at once. The user stopped the batch on 23 October at 09:11 (OD6 at
+generation 320, OD7 at 119; OD8-OD10 never ran).
+
+| Best | Runs | What it does |
+|---|---|---|
+| 0.859-0.866 | ODS, from OC2's best | D, C, A, B in order on the second and third cues, D, C, A on the first; hold in order; no troughs |
+| 0.804 | OD1 | D alone, with a deep trough at D after each recall (45 below the field) |
+| 0.790 | OD5 | D alone, D pulled to the field after each recall; after the third, the field raised with all four below it |
+| 0.737-0.767 | OD2, OD3, OD4, OD6, OD7 | D alone (OD3: a weak C after D, then a weak grouped recall) |
+
+From scratch, 500 generations gave no run past D alone, but two built the release that OC2 lacks: OD1 the trough,
+OD5 the reference's released state. OD1 left the plateau only after generation 300. The two halves of the step from
+D to C, a release and a drive that lets C take over, again formed in different lineages. The bests are collected in
+`.claude/temp/output-behaviour-runs/od-batch/` with a table.
+
 ## Known costs
 
 - A peak at the wrong time costs more than no peak. Designs that hold peaks through the demonstration, the old
