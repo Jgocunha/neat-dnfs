@@ -599,7 +599,7 @@ namespace neat_dnfs
 
 	bool Population::hasFitnessImprovedOverTheLastGenerations()
 	{
-		if (bestSolution->getFitness() > previousBestFitness)
+		if (bestSolution->getFitness() > previousBestFitness + PopulationConstants::improvementFitnessEpsilonInPopulation)
 		{
 			previousBestFitness = bestSolution->getFitness();
 			generationsWithoutImprovement = 0;
@@ -861,12 +861,25 @@ namespace neat_dnfs
 
 	bool Population::endConditionMet() const
 	{
-		const auto& partialFitness = bestSolution->getParameters().partialFitness;
-		const bool fitnessCondition = !partialFitness.empty() &&
-			std::ranges::all_of(partialFitness, [this](const double fitness)
-				{ return fitness > parameters.targetFitness; });
+		const bool fitnessCondition = bestSolution->reachedTarget(parameters.targetFitness) && targetConfirmed();
 		const bool generationCondition = parameters.currentGeneration >= parameters.numGenerations;
 		return fitnessCondition || generationCondition || control.stop;
+	}
+
+	bool Population::targetConfirmed() const
+	{
+		for (int evaluation = 0; evaluation < PopulationConstants::targetConfirmationEvaluations; ++evaluation)
+		{
+			// A copy of the genome, so the best keeps the evaluation it was ranked on.
+			const SolutionPtr retest = bestSolution->crossover(bestSolution);
+			retest->prepareTargetConfirmation(static_cast<size_t>(evaluation));
+			retest->evaluate();
+			if (!retest->reachedTarget(parameters.targetFitness))
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 
 	void Population::validateElitism()

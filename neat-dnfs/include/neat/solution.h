@@ -4,6 +4,7 @@
 #include <dnf_composer/elements/timed_gauss_stimulus.h>
 #include <format>
 #include <optional>
+#include <unordered_map>
 
 namespace neat_dnfs
 {
@@ -55,6 +56,8 @@ namespace neat_dnfs
 		inline constexpr double troughFullDepth = 2.0;
 		inline constexpr double bumpPositionTolerance = 2.0;
 		inline constexpr double fullCreditPeakHeight = 2.0;
+		inline constexpr double fullCreditPeakWidth = 30.0;
+		inline constexpr double noCreditPeakWidth = 60.0;
 
 		/// @brief Default weights for Solution::oneBumpAtPositionWithAmplitudeAndWidth.
 		/// @return The weight set {0.45, 0.45, 0.05, 0.05}.
@@ -174,6 +177,15 @@ namespace neat_dnfs
 		[[nodiscard]] std::string getName() const { return name; }
 		[[nodiscard]] std::string getAddress() const;
 		[[nodiscard]] double getFitness() const;
+		/// @brief Whether the last evaluation reached the target, which ends a run.
+		/// @param targetFitness The level each term must exceed.
+		/// @return Whether every partial fitness exceeds @p targetFitness. A task whose fitness is not the weighted sum of
+		/// its partial fitness overrides this with the terms its fitness was computed from.
+		[[nodiscard]] virtual bool reachedTarget(double targetFitness) const;
+		/// @brief Prepares this solution's next evaluation as one confirmation of a reached target, so a task whose trials
+		/// are drawn afresh each evaluation can make its confirmations cover them all. Does nothing by default.
+		/// @param confirmation Which confirmation the next evaluation is, from 0.
+		virtual void prepareTargetConfirmation(size_t confirmation) {}
 		[[nodiscard]] size_t getNumFieldGenes() const { return genome.getFieldGenes().size(); }
 		/// @brief Number of connection genes in this solution's genome. Also used
 		/// as the normalization factor N in the NEAT compatibility distance formula
@@ -277,6 +289,17 @@ namespace neat_dnfs
 		void initSimulation();
 		void stopSimulation();
 		void runSimulation(int iterations);
+		/// @brief Every element's components (activation, output, input...), keyed by element, then component name.
+		using SimulationState = std::unordered_map<std::string, std::unordered_map<std::string, std::vector<double>>>;
+		/// @brief Copies the state of every element of the phenotype, so a run can later continue from this moment.
+		/// @return Every element's components as they are now.
+		[[nodiscard]] SimulationState simulationState() const;
+		/// @brief Puts every element of the phenotype back in a state taken by simulationState().
+		/// @details The values are copied into the existing components, so pointers elements keep to each other's
+		/// components stay valid. The simulation time is not rewound: a continuation runs on from the current time,
+		/// which is the same dynamics as long as no timed stimulus is on then.
+		/// @param state A state taken from this phenotype, after it was initialised.
+		void restoreSimulationState(const SimulationState& state);
 		void addGaussianStimulus(const std::string& targetElement,
 			const dnf_composer::element::GaussStimulusParameters& stimulusParameters,
 			const dnf_composer::element::ElementDimensions& dimensions
@@ -408,6 +431,26 @@ namespace neat_dnfs
 		/// @return The depth below the median over @p fullDepth, in [0,1].
 		double troughBelowFieldAtPosition(const std::string& fieldName, double position,
 			double fullDepth = BumpFitnessDefaults::troughFullDepth) const;
+		/// @brief Fitness score for a pre-shape at @p position: an activation below threshold, raised above @p level.
+		/// @details Unlike preShapeAboveFieldAtPosition(), the height is measured from a level the caller reads, such
+		/// as the field far from every place a task expects activity, which troughs elsewhere do not lower.
+		/// @param fieldName Name of the neural field to score.
+		/// @param position Field position of the pre-shape.
+		/// @param level Activation the height is measured from.
+		/// @param fullElevation Height above @p level from which the pre-shape earns full credit.
+		/// @return 0 at or above threshold, otherwise the height above @p level over @p fullElevation, in [0,1].
+		[[nodiscard]] double preShapeAboveLevelAtPosition(const std::string& fieldName, double position, double level,
+			double fullElevation = BumpFitnessDefaults::preShapeFullElevation) const;
+		/// @brief Fitness score for a trough at @p position: an activation pushed below @p level.
+		/// @details Unlike troughBelowFieldAtPosition(), the depth is measured from a level the caller reads, such as
+		/// the field far from every place a task expects activity, which troughs elsewhere do not lower.
+		/// @param fieldName Name of the neural field to score.
+		/// @param position Field position of the trough.
+		/// @param level Activation the depth is measured from.
+		/// @param fullDepth Depth below @p level from which the trough earns full credit.
+		/// @return The depth below @p level over @p fullDepth, in [0,1].
+		[[nodiscard]] double troughBelowLevelAtPosition(const std::string& fieldName, double position, double level,
+			double fullDepth = BumpFitnessDefaults::troughFullDepth) const;
 		/// @brief Scores how close a field's nearest bump lies to @p position.
 		/// @details Unlike the position share of oneBumpAtPositionWithAmplitudeAndWidth(), which still pays
 		/// 1 / (1 + distance), this falls to nothing for a bump at another place in the field. Multiplying a bump score
@@ -428,6 +471,25 @@ namespace neat_dnfs
 		/// @return 0 with no bump, otherwise the nearest bump's height over @p fullHeight, at most 1.
 		[[nodiscard]] double heightCreditOfNearestBumpToPosition(const std::string& fieldName, double position,
 			double fullHeight = BumpFitnessDefaults::fullCreditPeakHeight) const;
+		/// @brief Scores the width of a field's bump nearest to @p position: full for a peak, nothing for a field-wide
+		/// stretch above threshold.
+		/// @details dnf-composer joins activity above threshold at both ends of a field into one bump centred opposite
+		/// the gap, so a field that flashes above threshold everywhere but one place reads as a single bump half a field
+		/// away. Multiplying a bump score by this pays only a bump as narrow as a peak.
+		/// @param fieldName Name of the neural field to score.
+		/// @param position Field position the bump should lie at.
+		/// @param fullCreditWidth Width up to which the bump earns full credit.
+		/// @param noCreditWidth Width from which the bump earns nothing.
+		/// @return 0 with no bump, otherwise 1 up to @p fullCreditWidth, falling linearly to 0 at @p noCreditWidth.
+		[[nodiscard]] double widthCreditOfNearestBumpToPosition(const std::string& fieldName, double position,
+			double fullCreditWidth = BumpFitnessDefaults::fullCreditPeakWidth,
+			double noCreditWidth = BumpFitnessDefaults::noCreditPeakWidth) const;
+		/// @brief Reads the centre of a field's bump nearest to @p position.
+		/// @param fieldName Name of the neural field to read.
+		/// @param position Field position the bump is looked for near.
+		/// @return The nearest bump's centroid, or nothing if the field has no bump.
+		[[nodiscard]] std::optional<double> centroidOfNearestBumpToPosition(const std::string& fieldName,
+			double position) const;
 		/// @brief Scores how far below threshold a field is at @p position, graded across threshold.
 		/// @details A field crosses its threshold gradually, so a step at 0 would pay an activation of -0.01 half and one
 		/// of +0.01 nothing. This rises linearly instead, the complement of a peak's height credit.
@@ -447,6 +509,14 @@ namespace neat_dnfs
 		/// @param fieldName Name of the neural field to read.
 		/// @return The median activation.
 		[[nodiscard]] double medianActivation(const std::string& fieldName) const;
+		/// @brief Reads the median of a field's activation at @p positions only.
+		/// @details Read over the places a task expects no activity, it gives the level of the field there, which no
+		/// peak, pre-shape or trough at the expected places moves, however many there are.
+		/// @param fieldName Name of the neural field to read.
+		/// @param positions Field positions to read; at least one.
+		/// @return The median of the activations at @p positions.
+		[[nodiscard]] double medianActivationAtPositions(const std::string& fieldName,
+			const std::vector<double>& positions) const;
 		/// @brief Fitness score for exactly one bump at any one of @p positions.
 		/// @param fieldName Name of the neural field to score.
 		/// @param positions Accepted target centroids; the closest one is credited.

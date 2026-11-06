@@ -198,6 +198,138 @@ private:
     void createPhenotypeEnvironment() override {}
 };
 
+// Reports fixed partial fitness, one of them below any target, but judges its own target reached: a task whose fitness
+// is the larger of two scores stops on the terms of the score that won.
+class SelfJudgedTargetSolution final : public Solution
+{
+public:
+    explicit SelfJudgedTargetSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "SelfJudgedTarget";
+    }
+
+    SelfJudgedTargetSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "SelfJudgedTarget";
+    }
+
+    SolutionPtr clone() const override
+    {
+        return std::make_shared<SelfJudgedTargetSolution>(initialTopology);
+    }
+
+    SolutionPtr copy() const override
+    {
+        return std::make_shared<SelfJudgedTargetSolution>(initialTopology, phenotype);
+    }
+
+    [[nodiscard]] bool reachedTarget(double) const override { return true; }
+
+private:
+    void testPhenotype() override
+    {
+        parameters.partialFitness = { 0.99, 0.99, 0.3 };
+        parameters.fitness = 0.99;
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
+// Judges its target reached only on the first luckyEvaluations evaluations made by any instance, as a noisy task can
+// pass its target on one lucky evaluation and miss it on the next.
+class LuckyEarlySolution final : public Solution
+{
+public:
+    inline static std::atomic<int> evaluations{ 0 };
+    inline static int luckyEvaluations = 0;
+
+    static void reset(const int lucky)
+    {
+        evaluations = 0;
+        luckyEvaluations = lucky;
+    }
+
+    explicit LuckyEarlySolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "LuckyEarly";
+    }
+
+    LuckyEarlySolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "LuckyEarly";
+    }
+
+    SolutionPtr clone() const override
+    {
+        return std::make_shared<LuckyEarlySolution>(initialTopology);
+    }
+
+    SolutionPtr copy() const override
+    {
+        return std::make_shared<LuckyEarlySolution>(initialTopology, phenotype);
+    }
+
+    [[nodiscard]] bool reachedTarget(double) const override { return lucky; }
+
+private:
+    bool lucky = false;
+
+    void testPhenotype() override
+    {
+        lucky = evaluations++ < luckyEvaluations;
+        parameters.partialFitness = { 0.99 };
+        parameters.fitness = 0.99;
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
+// Always reaches its target, and records which confirmation each of its evaluations was prepared as.
+class ConfirmationRecordingSolution final : public Solution
+{
+public:
+    inline static std::vector<size_t> confirmations;
+
+    explicit ConfirmationRecordingSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "ConfirmationRecording";
+    }
+
+    ConfirmationRecordingSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "ConfirmationRecording";
+    }
+
+    SolutionPtr clone() const override
+    {
+        return std::make_shared<ConfirmationRecordingSolution>(initialTopology);
+    }
+
+    SolutionPtr copy() const override
+    {
+        return std::make_shared<ConfirmationRecordingSolution>(initialTopology, phenotype);
+    }
+
+    void prepareTargetConfirmation(const size_t confirmation) override { confirmations.push_back(confirmation); }
+
+    [[nodiscard]] bool reachedTarget(double) const override { return true; }
+
+private:
+    void testPhenotype() override
+    {
+        parameters.partialFitness = { 0.99 };
+        parameters.fitness = 0.99;
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
 // Stand-in whose testPhenotype() calls a fitness helper with a field name
 // that doesn't exist in its own topology, used to verify that the shared
 // null-field guard (Solution::getNeuralFieldOrThrow) raises an indicative
@@ -1326,6 +1458,8 @@ public:
 
     using Solution::initSimulation;
     using Solution::runSimulation;
+    using Solution::simulationState;
+    using Solution::restoreSimulationState;
     using Solution::noBumps;
     using Solution::oneBumpAtPositionWithAmplitudeAndWidth;
     using Solution::preShapednessAtPosition;
@@ -1333,9 +1467,14 @@ public:
     using Solution::activationsDescendAcrossPositions;
     using Solution::preShapeAboveFieldAtPosition;
     using Solution::troughBelowFieldAtPosition;
+    using Solution::medianActivationAtPositions;
+    using Solution::preShapeAboveLevelAtPosition;
+    using Solution::troughBelowLevelAtPosition;
     using Solution::activationAtPosition;
     using Solution::closenessOfNearestBumpToPosition;
     using Solution::heightCreditOfNearestBumpToPosition;
+    using Solution::widthCreditOfNearestBumpToPosition;
+    using Solution::centroidOfNearestBumpToPosition;
     using Solution::belowThresholdAtPosition;
     using Solution::medianActivation;
     using Solution::addTimedGaussianStimulus;

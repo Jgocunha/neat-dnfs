@@ -338,6 +338,11 @@ namespace neat_dnfs
 		// Optional. When set, a Gauss connection's amplitude magnitude is drawn log-uniformly and
 		// mutates by multiplying or dividing by this factor instead of by GaussKernelConstants::ampStep.
 		inline static std::optional<double> gaussAmpMutationFactor;
+		// The share of Gauss connection amplitude mutations that redraw the magnitude as a new connection draws it,
+		// keeping the sign, instead of stepping it. Below the strength a connection needs, steps earn nothing, so a
+		// weak connection rarely climbs; and a weak connection blocks a new one between the same two fields. Optional
+		// in a config file; absent is 0, every amplitude mutation steps, as before it existed.
+		inline static double gaussAmpRedrawProbability = 0.0;
 	};
 
 	struct SolutionConstants
@@ -369,6 +374,16 @@ namespace neat_dnfs
 		inline static double pruneRatio;
 		inline static int generationsWithoutImprovementThresholdInPopulation;
 		inline static int generationsWithoutImprovementThresholdInSpecies;
+		// The best of a generation counts as an improvement on the best so far only when it is higher by more than
+		// this. Under noisy fitness a re-evaluation scores a hair higher almost every generation, which kept
+		// restarting the population's stagnation count, so the refocus on the top two species never fired. Rises
+		// smaller than this add up until they exceed it. Optional in a config file; absent is 0, any rise counts, as
+		// before it existed.
+		inline static double improvementFitnessEpsilonInPopulation = 0.0;
+		// Under noisy fitness the best can pass the target on one lucky evaluation. A run then stops only if the best,
+		// evaluated this many more times, passes the target every time. Optional in a config file; absent is 0, the
+		// best's own evaluation decides, as before it existed.
+		inline static int targetConfirmationEvaluations = 0;
 		inline static bool elitism;
 		// Tolerance for the elitism validation check. The DNF simulation is
 		// stochastic (see NoiseConstants::amplitude), so re-evaluating the same

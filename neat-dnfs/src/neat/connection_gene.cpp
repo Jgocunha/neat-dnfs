@@ -24,6 +24,13 @@ namespace neat_dnfs
 				: generateRandomDouble(gaussAmplitudeMin(), gaussAmplitudeMax());
 		}
 
+		// At 0 no number is drawn, so a config without a redraw mutation evolves exactly as before it existed.
+		bool redrawsGaussAmplitude()
+		{
+			return ConnectionGeneConstants::gaussAmpRedrawProbability > 0.0 &&
+				tools::utils::generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::gaussAmpRedrawProbability;
+		}
+
 		double mutatedGaussAmplitudeMagnitude(const double magnitude, const int signal)
 		{
 			const double mutated = ConnectionGeneConstants::gaussAmpMutationFactor
@@ -482,12 +489,20 @@ namespace neat_dnfs
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneGaussKernelAmplitudeProbability)
 		{
-			const int direction = stepSign(signal);
-			const double magnitude = std::abs(gkp.amplitude);
-			gkp.amplitude = amp_sign * mutatedGaussAmplitudeMagnitude(magnitude, direction);
-			mutationsInLastGeneration += ConnectionGeneConstants::gaussAmpMutationFactor
-				? std::format("(cg gk amp. x{})", std::pow(*ConnectionGeneConstants::gaussAmpMutationFactor, direction))
-				: std::format("(cg gk amp. {})", GaussKernelConstants::ampStep * direction);
+			if (redrawsGaussAmplitude())
+			{
+				gkp.amplitude = amp_sign * randomGaussAmplitudeMagnitude();
+				mutationsInLastGeneration += "(cg gk redraw amp.)";
+			}
+			else
+			{
+				const int direction = stepSign(signal);
+				const double magnitude = std::abs(gkp.amplitude);
+				gkp.amplitude = amp_sign * mutatedGaussAmplitudeMagnitude(magnitude, direction);
+				mutationsInLastGeneration += ConnectionGeneConstants::gaussAmpMutationFactor
+					? std::format("(cg gk amp. x{})", std::pow(*ConnectionGeneConstants::gaussAmpMutationFactor, direction))
+					: std::format("(cg gk amp. {})", GaussKernelConstants::ampStep * direction);
+			}
 		}
 
 		if (generateRandomDouble(0.0, 1.0) < ConnectionGeneConstants::mutateConnectionGeneGaussKernelGlobalAmplitudeProbability)

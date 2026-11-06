@@ -21,6 +21,9 @@ public:
     static void setBestSolution(Population& population, const SolutionPtr& solution) { population.bestSolution = solution; }
     static std::vector<SolutionPtr>& solutions(Population& population) { return population.solutions; }
     static void setHighWaterFitness(Population& population, const double fitness) { population.previousBestFitness = fitness; }
+    static double highWaterFitness(const Population& population) { return population.previousBestFitness; }
+    static int generationsWithoutImprovement(const Population& population) { return population.generationsWithoutImprovement; }
+    static bool hasFitnessImprovedOverTheLastGenerations(Population& population) { return population.hasFitnessImprovedOverTheLastGenerations(); }
 };
 
 } // namespace neat_dnfs::test

@@ -606,6 +606,31 @@ static void runFieldProbe(const FieldProbeSolution::Scenario& scenario)
 // A profile this narrow raises its own sample only: its neighbours move by under 0.4% of the amplitude.
 static constexpr double oneSampleWidth = 0.3;
 
+// A task can step a shared stretch once and run two continuations from where it ended, as the incremental recall tasks'
+// probe does.
+TEST_CASE("Solution restores every element to a saved state in place, so a run continues from the saved moment", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    std::vector<double> saved;
+    std::vector<double> movedOn;
+    std::vector<double> restored;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        auto& activation = probe.activationOf("nf 1");
+        addGaussianProfile(activation, 15.0, 50.0, 3.0);
+        probe.runUntil(20.0);
+        saved = activation;
+        const auto state = probe.simulationState();
+        probe.runUntil(100.0);
+        movedOn = activation;
+        probe.restoreSimulationState(state);
+        restored = activation;
+    });
+
+    REQUIRE(movedOn != saved);
+    CHECK(restored == saved);
+}
+
 TEST_CASE("Solution preShapednessAtPosition reads the activation at the position it is given", "[Solution][FieldHelpers]")
 {
     resetGlobalState();
@@ -865,6 +890,64 @@ TEST_CASE("Solution heightCreditOfNearestBumpToPosition grows with the nearest b
     CHECK(credits[1] == Catch::Approx(1.0));
 }
 
+TEST_CASE("Solution widthCreditOfNearestBumpToPosition is full up to the first width given and nothing from the second", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    std::vector<NeuralFieldBump> bumps;
+    double withoutBumps = -1.0;
+    std::vector<double> credits;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        probe.runSimulation(static_cast<int>(SimulationConstants::maxSimulationSteps));
+        withoutBumps = probe.widthCreditOfNearestBumpToPosition("nf 1", 50.0);
+        probe.stimulate("nf 1", GaussStimulusConstants::amplitude, 30.0);
+        probe.runSimulation(static_cast<int>(SimulationConstants::maxSimulationSteps));
+        bumps = probe.bumpsOf("nf 1");
+        if (bumps.size() == 1)
+        {
+            const double width = bumps.front().width;
+            credits.push_back(probe.widthCreditOfNearestBumpToPosition("nf 1", 30.0, width, 2.0 * width));
+            credits.push_back(probe.widthCreditOfNearestBumpToPosition("nf 1", 30.0, 0.5 * width, 1.5 * width));
+            credits.push_back(probe.widthCreditOfNearestBumpToPosition("nf 1", 30.0, 0.25 * width, 0.5 * width));
+        }
+    });
+
+    CHECK(withoutBumps == 0.0);
+    REQUIRE(bumps.size() == 1);
+    REQUIRE(bumps.front().width > 0.0);
+    REQUIRE(credits.size() == 3);
+    CHECK(credits[0] == Catch::Approx(1.0));
+    CHECK(credits[1] == Catch::Approx(0.5));
+    CHECK(credits[2] == 0.0);
+}
+
+TEST_CASE("Solution centroidOfNearestBumpToPosition gives the centre of the bump nearest a position, and none with no bump", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    std::vector<NeuralFieldBump> bumps;
+    std::optional<double> withoutBumps = 0.0;
+    std::optional<double> nearFirstBump;
+    std::optional<double> nearSecondBump;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        probe.runSimulation(static_cast<int>(SimulationConstants::maxSimulationSteps));
+        withoutBumps = probe.centroidOfNearestBumpToPosition("nf 1", 70.0);
+        probe.stimulate("nf 1", GaussStimulusConstants::amplitude, 30.0);
+        probe.stimulate("nf 1", GaussStimulusConstants::amplitude, 70.0);
+        probe.runSimulation(static_cast<int>(SimulationConstants::maxSimulationSteps));
+        bumps = probe.bumpsOf("nf 1");
+        nearFirstBump = probe.centroidOfNearestBumpToPosition("nf 1", 40.0);
+        nearSecondBump = probe.centroidOfNearestBumpToPosition("nf 1", 65.0);
+    });
+
+    CHECK_FALSE(withoutBumps.has_value());
+    REQUIRE(bumps.size() == 2);
+    REQUIRE(nearFirstBump.has_value());
+    REQUIRE(nearSecondBump.has_value());
+    CHECK(*nearFirstBump == Catch::Approx(bumps.front().centroid));
+    CHECK(*nearSecondBump == Catch::Approx(bumps.back().centroid));
+}
+
 TEST_CASE("Solution preShapeAboveFieldAtPosition scores a sub-threshold activation by its height above the field", "[Solution][FieldHelpers]")
 {
     resetGlobalState();
@@ -963,6 +1046,74 @@ TEST_CASE("Solution troughBelowFieldAtPosition scores zero for a field lowered a
     });
 
     CHECK(score == 0.0);
+}
+
+TEST_CASE("Solution medianActivationAtPositions reads the median over the given positions only", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    std::vector<double> medians;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        auto& activation = probe.activationOf("nf 1");
+        std::ranges::fill(activation, -40.0);
+        addGaussianProfile(activation, 36.0, 10.0, oneSampleWidth);
+        addGaussianProfile(activation, 35.0, 20.0, oneSampleWidth);
+        addGaussianProfile(activation, 33.0, 30.0, oneSampleWidth);
+        medians.push_back(probe.medianActivationAtPositions("nf 1", { 10.0, 20.0, 30.0 }));
+        medians.push_back(probe.medianActivationAtPositions("nf 1", { 10.0, 30.0 }));
+    });
+
+    // The field's median, -40, is not where the positions read.
+    REQUIRE(medians.size() == 2);
+    CHECK(medians[0] == Catch::Approx(-5.0));
+    CHECK(medians[1] == Catch::Approx(-5.5));
+}
+
+TEST_CASE("Solution preShapeAboveLevelAtPosition measures the height from the level it is given", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    static constexpr double fullElevation = 2.0;
+    std::vector<double> scores;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        auto& activation = probe.activationOf("nf 1");
+        std::ranges::fill(activation, -40.0);
+        addGaussianProfile(activation, 36.0, 50.0, oneSampleWidth);
+        addGaussianProfile(activation, 41.0, 70.0, oneSampleWidth);
+        scores.push_back(probe.preShapeAboveLevelAtPosition("nf 1", 50.0, -5.0, fullElevation));
+        scores.push_back(probe.preShapeAboveLevelAtPosition("nf 1", 50.0, -4.5, fullElevation));
+        scores.push_back(probe.preShapeAboveLevelAtPosition("nf 1", 50.0, -3.0, fullElevation));
+        scores.push_back(probe.preShapeAboveLevelAtPosition("nf 1", 70.0, -5.0, fullElevation));
+    });
+
+    // Half from 1 above the level, a quarter from 0.5 above, none under it, and none at or above threshold.
+    REQUIRE(scores.size() == 4);
+    CHECK(scores[0] == Catch::Approx(0.5));
+    CHECK(scores[1] == Catch::Approx(0.25));
+    CHECK(scores[2] == 0.0);
+    CHECK(scores[3] == 0.0);
+}
+
+TEST_CASE("Solution troughBelowLevelAtPosition measures the depth from the level it is given", "[Solution][FieldHelpers]")
+{
+    resetGlobalState();
+    static constexpr double fullDepth = 2.0;
+    std::vector<double> scores;
+    runFieldProbe([&](FieldProbeSolution& probe) {
+        probe.initSimulation();
+        auto& activation = probe.activationOf("nf 1");
+        std::ranges::fill(activation, -40.0);
+        addGaussianProfile(activation, 34.0, 50.0, oneSampleWidth);
+        scores.push_back(probe.troughBelowLevelAtPosition("nf 1", 50.0, -5.0, fullDepth));
+        scores.push_back(probe.troughBelowLevelAtPosition("nf 1", 50.0, -2.0, fullDepth));
+        scores.push_back(probe.troughBelowLevelAtPosition("nf 1", 50.0, -7.0, fullDepth));
+    });
+
+    // The rest of the field lies far below, but the depth is read from the level: half 1 below it, all of it 4 below.
+    REQUIRE(scores.size() == 3);
+    CHECK(scores[0] == Catch::Approx(0.5));
+    CHECK(scores[1] == 1.0);
+    CHECK(scores[2] == 0.0);
 }
 
 TEST_CASE("Solution belowThresholdAtPosition grades an activation across threshold", "[Solution][FieldHelpers]")

@@ -209,6 +209,10 @@ namespace neat_dnfs
 		void reproduceAndSelect();
 
 		[[nodiscard]] bool endConditionMet() const;
+		/// @brief Whether a copy of the best, evaluated PopulationConstants::targetConfirmationEvaluations times, reaches
+		/// the target every time. The best's own recorded fitness is left as it is.
+		/// @return True if every evaluation of the copy reaches the target, or none is asked for.
+		[[nodiscard]] bool targetConfirmed() const;
 
 		void startup();
 		void upkeep();

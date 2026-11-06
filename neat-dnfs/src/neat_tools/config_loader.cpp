@@ -368,6 +368,7 @@ namespace neat_dnfs
 			optionalField(cg, "gaussAmpMinVal", &ConnectionGeneConstants::gaussAmpMinVal);
 			optionalField(cg, "gaussAmpMaxVal", &ConnectionGeneConstants::gaussAmpMaxVal);
 			optionalField(cg, "gaussAmpMutationFactor", &ConnectionGeneConstants::gaussAmpMutationFactor);
+			ConnectionGeneConstants::gaussAmpRedrawProbability = cg.value("gaussAmpRedrawProbability", 0.0);
 
 			const auto& sc = j.at("SolutionConstants");
 			field(sc, "minInitialInputGenes", &SolutionConstants::minInitialInputGenes);
@@ -410,6 +411,8 @@ namespace neat_dnfs
 			field(pc, "pruneRatio", &PopulationConstants::pruneRatio);
 			field(pc, "generationsWithoutImprovementThresholdInPopulation", &PopulationConstants::generationsWithoutImprovementThresholdInPopulation);
 			field(pc, "generationsWithoutImprovementThresholdInSpecies", &PopulationConstants::generationsWithoutImprovementThresholdInSpecies);
+			PopulationConstants::improvementFitnessEpsilonInPopulation = pc.value("improvementFitnessEpsilonInPopulation", 0.0);
+			PopulationConstants::targetConfirmationEvaluations = pc.value("targetConfirmationEvaluations", 0);
 			field(pc, "elitism", &PopulationConstants::elitism);
 			field(pc, "elitismFitnessEpsilon", &PopulationConstants::elitismFitnessEpsilon);
 			field(pc, "logSolutions", &PopulationConstants::logSolutions);

@@ -324,6 +324,36 @@ namespace neat_dnfs
                 return (lowerMiddle + *middle) / 2.0;
             }
 
+            /// @brief Average of @p values.
+            /// @param values Values to average; at least one.
+            /// @return Their sum divided by their count.
+            [[nodiscard]] inline double mean(const std::span<const double> values)
+            {
+                double sum = 0.0;
+                for (const double value : values)
+                {
+                    sum += value;
+                }
+                return sum / static_cast<double>(values.size());
+            }
+
+            /// @brief Average of @p values, each counted as many times as its weight.
+            /// @param values Values to average.
+            /// @param weights One non-negative weight per value; their sum must be positive.
+            /// @return The sum of each value times its weight, divided by the sum of the weights.
+            [[nodiscard]] inline double weightedMean(const std::span<const double> values,
+                const std::span<const double> weights)
+            {
+                double sum = 0.0;
+                double totalWeight = 0.0;
+                for (size_t i = 0; i < values.size(); ++i)
+                {
+                    sum += values[i] * weights[i];
+                    totalWeight += weights[i];
+                }
+                return sum / totalWeight;
+            }
+
             /// @brief How closely a profile agrees with a reference profile: Lin's concordance correlation, with a
             /// tolerance that lets two flat profiles at the same level agree in full.
             ///

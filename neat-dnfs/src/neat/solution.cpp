@@ -149,6 +149,12 @@ namespace neat_dnfs
 		return parameters.fitness;
 	}
 
+	bool Solution::reachedTarget(const double targetFitness) const
+	{
+		return !parameters.partialFitness.empty() && std::ranges::all_of(parameters.partialFitness,
+			[targetFitness](const double fitness) { return fitness > targetFitness; });
+	}
+
 	void Solution::clearGenerationalInnovations()
 	{
 		Genome::clearGenerationalInnovations();
@@ -809,6 +815,27 @@ namespace neat_dnfs
 		}
 	}
 
+	Solution::SimulationState Solution::simulationState() const
+	{
+		SimulationState state;
+		for (const auto& element : phenotype.getElements())
+		{
+			state.emplace(element->getUniqueName(), *element->getComponents());
+		}
+		return state;
+	}
+
+	void Solution::restoreSimulationState(const SimulationState& state)
+	{
+		for (const auto& element : phenotype.getElements())
+		{
+			for (const auto& [componentName, values] : state.at(element->getUniqueName()))
+			{
+				std::ranges::copy(values, element->getComponentPtr(componentName)->begin());
+			}
+		}
+	}
+
 	void Solution::addGaussianStimulus(const std::string& targetElement, const dnf_composer::element::GaussStimulusParameters& stimulusParameters, 
 		const dnf_composer::element::ElementDimensions& dimensions)
 	{
@@ -1216,23 +1243,29 @@ namespace neat_dnfs
 
 	double Solution::preShapeAboveFieldAtPosition(const std::string& fieldName, const double position, const double fullElevation) const
 	{
-		const auto neuralField = getNeuralFieldOrThrow(fieldName, "preShapeAboveFieldAtPosition");
-		const auto& activation = neuralField->getComponents()->at("activation");
-		const double atPosition = activation[clampedIndexForPosition(neuralField, position)];
-		if (atPosition >= 0.0)
-		{
-			return 0.0;
-		}
-		const double elevation = atPosition - tools::utils::median(activation);
-		return std::clamp(elevation / fullElevation, 0.0, 1.0);
+		return preShapeAboveLevelAtPosition(fieldName, position, medianActivation(fieldName), fullElevation);
 	}
 
 	double Solution::troughBelowFieldAtPosition(const std::string& fieldName, const double position, const double fullDepth) const
 	{
-		const auto neuralField = getNeuralFieldOrThrow(fieldName, "troughBelowFieldAtPosition");
-		const auto& activation = neuralField->getComponents()->at("activation");
-		const double depth = tools::utils::median(activation) - activation[clampedIndexForPosition(neuralField, position)];
-		return std::clamp(depth / fullDepth, 0.0, 1.0);
+		return troughBelowLevelAtPosition(fieldName, position, medianActivation(fieldName), fullDepth);
+	}
+
+	double Solution::preShapeAboveLevelAtPosition(const std::string& fieldName, const double position, const double level,
+		const double fullElevation) const
+	{
+		const double atPosition = activationAtPosition(fieldName, position);
+		if (atPosition >= 0.0)
+		{
+			return 0.0;
+		}
+		return std::clamp((atPosition - level) / fullElevation, 0.0, 1.0);
+	}
+
+	double Solution::troughBelowLevelAtPosition(const std::string& fieldName, const double position, const double level,
+		const double fullDepth) const
+	{
+		return std::clamp((level - activationAtPosition(fieldName, position)) / fullDepth, 0.0, 1.0);
 	}
 
 	double Solution::closenessOfNearestBumpToPosition(const std::string& fieldName, const double position,
@@ -1262,6 +1295,30 @@ namespace neat_dnfs
 		return std::clamp(nearest.amplitude / fullHeight, 0.0, 1.0);
 	}
 
+	double Solution::widthCreditOfNearestBumpToPosition(const std::string& fieldName, const double position,
+		const double fullCreditWidth, const double noCreditWidth) const
+	{
+		const auto& bumps = getNeuralFieldOrThrow(fieldName, "widthCreditOfNearestBumpToPosition")->getBumps();
+		if (bumps.empty())
+		{
+			return 0.0;
+		}
+		const auto& nearest = std::ranges::min(bumps, {},
+			[position](const dnf_composer::element::NeuralFieldBump& bump) { return std::abs(bump.centroid - position); });
+		return 1.0 - tools::utils::normalize(nearest.width, fullCreditWidth, noCreditWidth);
+	}
+
+	std::optional<double> Solution::centroidOfNearestBumpToPosition(const std::string& fieldName, const double position) const
+	{
+		const auto& bumps = getNeuralFieldOrThrow(fieldName, "centroidOfNearestBumpToPosition")->getBumps();
+		if (bumps.empty())
+		{
+			return std::nullopt;
+		}
+		return std::ranges::min(bumps, {},
+			[position](const dnf_composer::element::NeuralFieldBump& bump) { return std::abs(bump.centroid - position); }).centroid;
+	}
+
 	double Solution::belowThresholdAtPosition(const std::string& fieldName, const double position, const double fullHeight) const
 	{
 		return std::clamp((fullHeight - activationAtPosition(fieldName, position)) / (2.0 * fullHeight), 0.0, 1.0);
@@ -1276,6 +1333,19 @@ namespace neat_dnfs
 	double Solution::medianActivation(const std::string& fieldName) const
 	{
 		return tools::utils::median(getNeuralFieldOrThrow(fieldName, "medianActivation")->getComponents()->at("activation"));
+	}
+
+	double Solution::medianActivationAtPositions(const std::string& fieldName, const std::vector<double>& positions) const
+	{
+		const auto neuralField = getNeuralFieldOrThrow(fieldName, "medianActivationAtPositions");
+		const auto& activation = neuralField->getComponents()->at("activation");
+		std::vector<double> atPositions;
+		atPositions.reserve(positions.size());
+		for (const double position : positions)
+		{
+			atPositions.push_back(activation[clampedIndexForPosition(neuralField, position)]);
+		}
+		return tools::utils::median(std::move(atPositions));
 	}
 
 	void Solution::moveGaussianStimulusContinuously(const std::string& name, const double targetPosition, const double step)
