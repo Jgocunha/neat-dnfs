@@ -590,6 +590,21 @@ TEST_CASE("Population stagnation: a config written before improvementFitnessEpsi
     std::filesystem::remove(path);
 }
 
+TEST_CASE("Population stagnation: the global config leaves improvementFitnessEpsilonInPopulation at 0, the sequence-timing tasks set 0.01", "[Population]")
+{
+    const ImprovementEpsilonGuard guard(0.5);
+
+    ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
+    CHECK_THAT(PopulationConstants::improvementFitnessEpsilonInPopulation, Catch::Matchers::WithinAbs(0.0, 1e-12));
+    for (const auto* task : { "sequence-timing-behaviour", "sequence-timing-behaviour-guided" })
+    {
+        ConfigLoader::loadConfig(ConfigLoader::defaultGlobalConfigPath(), task);
+        CHECK_THAT(PopulationConstants::improvementFitnessEpsilonInPopulation, Catch::Matchers::WithinAbs(0.01, 1e-12));
+    }
+
+    ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
+}
+
 TEST_CASE("PopulationParameters - parallelEvolution defaults to true", "[Population]")
 {
     const PopulationParameters parameters(10, 5, 0.9);

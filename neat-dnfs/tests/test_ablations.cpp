@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <algorithm>
@@ -591,6 +592,23 @@ TEST_CASE("Output Feedback: the preset allows connections out of the output and 
     CHECK(AblationConstants::label == " Output Feedback");
 }
 
+// A key misspelt inside a known section would load silently and change nothing, so the preset's values are read back.
+TEST_CASE("Timing Search Levers: the preset sets the five search settings tried on the sequence-timing tasks", "[ablations][timing_search_levers]")
+{
+    using Catch::Matchers::WithinAbs;
+    AblationFlagGuard ablationGuard;
+    const ScopedTaskConfig taskConfig{ "sequence-timing-behaviour" };
+    REQUIRE(AblationPresets::applyByName("timing-search-levers"));
+
+    CHECK_THAT(GenomeMutationConstants::addFieldGeneProbability, WithinAbs(0.03, 1e-12));
+    REQUIRE(NeuralFieldConstants::tauMutationFactor.has_value());
+    CHECK_THAT(*NeuralFieldConstants::tauMutationFactor, WithinAbs(4.0, 1e-12));
+    CHECK_THAT(NeuralFieldConstants::restingLevelStep, WithinAbs(0.25, 1e-12));
+    CHECK(PopulationConstants::generationsWithoutImprovementThresholdInSpecies == 30);
+    CHECK(PopulationConstants::generationsWithoutImprovementThresholdInPopulation == 50);
+    CHECK(AblationConstants::label.empty()); // its runs share the task's data folder
+}
+
 TEST_CASE("Output Feedback: a config written before allowOutputAsConnectionSource existed still loads, with it off", "[ablations][output_feedback]")
 {
     OutputSourceRuleGuard guard;
@@ -637,7 +655,8 @@ TEST_CASE("Output Feedback: a config that still sets it among the ablation const
 TEST_CASE("Output Feedback: serial order and sequence timing allow connections out of the output, other tasks do not", "[ablations][output_feedback]")
 {
     OutputSourceRuleGuard guard;
-    for (const std::string slug : { "serial-order-behaviour", "serial-order-behaviour-guided" })
+    for (const std::string slug : { "serial-order-behaviour", "serial-order-behaviour-guided", "sequence-timing-behaviour",
+        "sequence-timing-behaviour-guided" })
     {
         const ScopedTaskConfig taskConfig{ slug };
         INFO("task " << slug);

@@ -155,6 +155,7 @@ set(header
         "include/solutions/xor.h"
         "include/solutions/hri_packaging_task.h"
         "include/solutions/recall_behaviour.h"
+        "include/solutions/sequence_timing_behaviour.h"
         "include/solutions/serial_order_behaviour.h"
         "include/solutions/serial_order_schedule.h"
 
@@ -189,6 +190,7 @@ set(src
         "src/solutions/xor.cpp"
         "src/solutions/hri_packaging_task.cpp"
         "src/solutions/recall_behaviour.cpp"
+        "src/solutions/sequence_timing_behaviour.cpp"
         "src/solutions/serial_order_behaviour.cpp"
         "src/solutions/serial_order_schedule.cpp"
 

@@ -455,3 +455,21 @@ TEST_CASE("ConnectionGene: a config written before gaussAmpRedrawProbability exi
     ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
     std::filesystem::remove(path);
 }
+
+TEST_CASE("ConnectionGene: the global config leaves gaussAmpRedrawProbability at 0; the sequence-timing tasks redraw 0.1, add connections at 0.25 and cap amplitudes at 1050", "[ConnectionGene][AmplitudeRedraw]")
+{
+    ConnectionGeneConstants::gaussAmpRedrawProbability = 0.5;
+
+    ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
+    CHECK_THAT(ConnectionGeneConstants::gaussAmpRedrawProbability, Catch::Matchers::WithinAbs(0.0, 1e-12));
+    for (const auto* task : { "sequence-timing-behaviour", "sequence-timing-behaviour-guided" })
+    {
+        ConfigLoader::loadConfig(ConfigLoader::defaultGlobalConfigPath(), task);
+        CHECK_THAT(ConnectionGeneConstants::gaussAmpRedrawProbability, Catch::Matchers::WithinAbs(0.1, 1e-12));
+        CHECK_THAT(GenomeMutationConstants::addConnectionGeneProbability, Catch::Matchers::WithinAbs(0.25, 1e-12));
+        REQUIRE(ConnectionGeneConstants::gaussAmpMaxVal.has_value());
+        CHECK_THAT(*ConnectionGeneConstants::gaussAmpMaxVal, Catch::Matchers::WithinAbs(1050.0, 1e-12));
+    }
+
+    ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
+}

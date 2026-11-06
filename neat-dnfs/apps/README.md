@@ -29,11 +29,12 @@ Every binary supports `--list` (print available tasks and ablations) and
 | `--config PATH` | all | Reference hyperparameter JSON | `config/neat_dnfs.json` |
 
 Available tasks: `and`, `xor`, `detection-instability`, `memory-instability`, `selection-instability`,
-`memory-trace`, `dmts`, `ior`, `hri-packaging`, `serial-order-behaviour`,
-`serial-order-behaviour-guided`.
+`memory-trace`, `dmts`, `ior`, `hri-packaging`, `sequence-timing-behaviour`,
+`sequence-timing-behaviour-guided`, `serial-order-behaviour`, `serial-order-behaviour-guided`.
 
 Available ablations: `no-growth-io-only`, `no-growth-reference-hidden-field-count`, `no-speciation`,
-`no-crossover`, `random-initial-topology`, `compat-threshold-4`, `output-feedback`.
+`no-crossover`, `random-initial-topology`, `compat-threshold-4`, `output-feedback`,
+`timing-search-levers`.
 
 The two `serial-order-*` tasks run the same trial and differ only in how they score it, each from
 its own `config/solutions/<task>.json`:
@@ -42,10 +43,25 @@ its own `config/solutions/<task>.json`:
 - `serial-order-behaviour-guided` also scores what the reference design holds below threshold: the
   events pre-shaped in order, and each recalled event pushed below the field.
 
+The two `sequence-timing-behaviour*` tasks score the same way, and also when each event is recalled: after X, D, C, A
+and B must peak at the times they were shown, 100, 600, 800 and 1800 after it. Each evaluation runs a probe trial
+without X, as long as its longest recall trial, then three recall trials after gaps drawn afresh from 300-1500, each
+from rest. Any peak at an event in the probe costs recall credit, however brief. `-guided` pays the larger of its
+guided score and what `sequence-timing-behaviour` pays for the same trials.
+
 `output-feedback` is not an ablation but a wider search space: mutation may also wire
 connections out of output fields (`GenomeMutationConstants.allowOutputAsConnectionSource`), which it
 otherwise never does. Its runs go to their own `data/<Task> Output Feedback/` folder. The serial-order
 and sequence-timing tasks turn this on in their own config, so they need no preset for it.
+
+`timing-search-levers` is not an ablation either. It is a set of search settings tried on the sequence-timing tasks:
+- new fields three times as often (`addFieldGeneProbability` 0.03);
+- tau stepping by ×4 rather than ×2;
+- resting levels stepping by 0.25 rather than 0.5;
+- species and the population each given twice as many generations without improvement before they are cut back (30
+  and 50).
+
+Its runs share the task's own data folder; each run's config snapshot records the preset.
 
 ## Configuration
 
@@ -124,7 +140,7 @@ neat-dnfs-inc-evol --task dmts --template "C:/path/to/solution.json" --runs 20
 ```
 
 Evaluate a loaded solution 5 times and print its fitness each time. For a task that records what each evaluation
-observed (`serial-order-behaviour*`), every evaluation's trace follows its fitness as an
+observed (`sequence-timing-behaviour*`, `serial-order-behaviour*`), every evaluation's trace follows its fitness as an
 `evaluation trace:` line of JSON:
 
 ```bash

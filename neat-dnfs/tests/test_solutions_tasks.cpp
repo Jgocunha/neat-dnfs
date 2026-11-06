@@ -26,6 +26,7 @@
 #include "solutions/and.h"
 #include "solutions/xor.h"
 #include "solutions/hri_packaging_task.h"
+#include "solutions/sequence_timing_behaviour.h"
 #include "solutions/serial_order_behaviour.h"
 #include "solutions/serial_order_schedule.h"
 #include "neat_tools/config_loader.h"
@@ -916,6 +917,423 @@ static void checkOnlyConnectionsEvolutionCanMake(const Solution& solution)
     }
 }
 
+// The tasks of the sequence-timing experiment, intended behaviour alone and with guides.
+static const std::array<std::string, 2> sequenceTimingTasks{ "sequence-timing-behaviour", "sequence-timing-behaviour-guided" };
+
+// The reference design the fitness was written from (the hand-built boost design with its order and timing gradient
+// read out into the output, 25 October 2026), and the same design with Gauss self-kernels in place of its Mexican hats,
+// as evolution here makes them.
+static const std::array<std::string, 2> sequenceTimingReferences{ "sequence-timing-behaviour-reference.dnf",
+    "sequence-timing-behaviour-reference-gauss.dnf" };
+
+// Every trial of an evaluation, read from its trace.
+static nlohmann::json timingTrials(const Solution& solution)
+{
+    return nlohmann::json::parse(solution.getParameters().evaluationTrace).at("trials");
+}
+
+TEST_CASE("SequenceTimingBehaviour contract", "[Solutions][SequenceTimingBehaviour]")
+{
+    resetGlobalState();
+    checkSolutionContract<SequenceTimingBehaviour>(makeTopology(1, 1));
+}
+
+TEST_CASE("SequenceTimingBehaviourGuided contract", "[Solutions][SequenceTimingBehaviour]")
+{
+    resetGlobalState();
+    checkSolutionContract<SequenceTimingBehaviourGuided>(makeTopology(1, 1));
+}
+
+TEST_CASE("SequenceTimingBehaviour and its guided variant name their runs apart and clone and copy as themselves", "[Solutions][SequenceTimingBehaviour]")
+{
+    resetGlobalState();
+
+    SequenceTimingBehaviour behaviour(sequenceTimingTopology());
+    SequenceTimingBehaviourGuided guided(sequenceTimingTopology());
+    for (Solution* solution : std::initializer_list<Solution*>{ &behaviour, &guided })
+    {
+        solution->initialize();
+        solution->buildPhenotype();
+    }
+
+    CHECK(behaviour.getName() == "Sequence Timing Behaviour");
+    CHECK(guided.getName() == "Sequence Timing Behaviour Guided");
+    CHECK(behaviour.clone()->getName() == behaviour.getName());
+    CHECK(behaviour.copy()->getName() == behaviour.getName());
+    CHECK(std::dynamic_pointer_cast<SequenceTimingBehaviourGuided>(guided.clone()) != nullptr);
+    CHECK(std::dynamic_pointer_cast<SequenceTimingBehaviourGuided>(guided.copy()) != nullptr);
+}
+
+TEST_CASE("SequenceTimingBehaviourGuided scores both reference designs above 0.9 on every term", "[Solutions][SequenceTimingBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-behaviour-guided" };
+
+    for (const auto& fixture : sequenceTimingReferences)
+    {
+        auto solution = loadSequenceTimingFixture<SequenceTimingBehaviourGuided>(fixture);
+        for (int evaluation = 0; evaluation < 2; ++evaluation)
+        {
+            solution.evaluate();
+            const auto& partials = solution.getParameters().partialFitness;
+            REQUIRE(partials.size() == 8);
+            for (size_t term = 0; term < partials.size(); ++term)
+            {
+                INFO(fixture << ", evaluation " << evaluation << ", f" << term + 1);
+                CHECK(partials[term] > 0.9);
+            }
+            CHECK(solution.getFitness() > 0.95);
+        }
+    }
+}
+
+// Recall, timing, release and stop are scored as in the guided task; only what lies below threshold no longer counts.
+TEST_CASE("SequenceTimingBehaviour scores both reference designs above 0.9 on each of its six terms", "[Solutions][SequenceTimingBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-behaviour" };
+
+    for (const auto& fixture : sequenceTimingReferences)
+    {
+        auto solution = loadSequenceTimingFixture<SequenceTimingBehaviour>(fixture);
+        solution.evaluate();
+        const auto& partials = solution.getParameters().partialFitness;
+        REQUIRE(partials.size() == 6);
+        for (size_t term = 0; term < partials.size(); ++term)
+        {
+            INFO(fixture << ", f" << term + 1);
+            CHECK(partials[term] > 0.9);
+        }
+    }
+}
+
+// The hand-built design the reference was made from recalls the same way, but holds the order and timing only in hidden
+// fields: its output shows no pre-shape before X, and each waiting event's only shortly before its peak. The guides do
+// not pay it; the guided fitness is the larger of the guided score and the intended behaviour's, so it keeps the
+// latter.
+TEST_CASE("SequenceTimingBehaviourGuided pays the reference's pre-shapes, which the hand-built design it extends lacks", "[Solutions][SequenceTimingBehaviour]")
+{
+    resetGlobalState();
+    double intendedFitness = 0.0;
+    {
+        const ScopedTaskConfig taskConfig{ "sequence-timing-behaviour" };
+        auto handBuilt = loadSequenceTimingFixture<SequenceTimingBehaviour>("sequence-timing-boost-handbuilt.dnf");
+        handBuilt.evaluate();
+        intendedFitness = handBuilt.getFitness();
+        CHECK(intendedFitness > 0.9);
+    }
+    const ScopedTaskConfig taskConfig{ "sequence-timing-behaviour-guided" };
+    auto handBuilt = loadSequenceTimingFixture<SequenceTimingBehaviourGuided>("sequence-timing-boost-handbuilt.dnf");
+    auto reference = loadSequenceTimingFixture<SequenceTimingBehaviourGuided>("sequence-timing-behaviour-reference.dnf");
+    handBuilt.evaluate();
+    reference.evaluate();
+
+    const auto& partials = handBuilt.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[2] < 0.1); // no memory in the output before X
+    CHECK(partials[5] < 0.2); // the waiting events barely pre-shaped
+    CHECK(partials[3] > 0.9); // but recalled in order
+    CHECK(partials[4] > 0.9); // and on time
+    const auto scores = nlohmann::json::parse(handBuilt.getParameters().evaluationTrace).at("fitness");
+    CHECK(scores.at("guided").get<double>() < reference.getFitness() - 0.1);
+    CHECK(handBuilt.getFitness() == Catch::Approx(intendedFitness).margin(0.02));
+}
+
+// Saved from timing-batch-1 (run TG01, 25 October 2026): D, C, A and B in order, at a steady pace of about 480 each that
+// ignores the demonstrated intervals, with every guide in place. A design that recalls on time without the guides ranks
+// above it.
+TEST_CASE("SequenceTimingBehaviourGuided ranks recall on time without the guides above recall off time with them", "[Solutions][SequenceTimingBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-behaviour-guided" };
+
+    auto onTime = loadSequenceTimingFixture<SequenceTimingBehaviourGuided>("sequence-timing-boost-handbuilt.dnf");
+    auto steadyPace = loadSequenceTimingFixture<SequenceTimingBehaviourGuided>("sequence-timing-behaviour-steady-pace.dnf");
+    onTime.evaluate();
+    steadyPace.evaluate();
+
+    CHECK(onTime.getFitness() > 0.9);
+    CHECK(onTime.getFitness() > steadyPace.getFitness());
+}
+
+// With no connection into the output field, nothing can ever drive a peak there: the output earns full credit for
+// staying quiet before X and none for recall.
+TEST_CASE("SequenceTimingBehaviour gives an output that never peaks no recall, timing, release or stop credit", "[Solutions][SequenceTimingBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-behaviour" };
+
+    SequenceTimingBehaviour solution(sequenceTimingTopology());
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 6);
+    CHECK(partials[1] == Catch::Approx(1.0));
+    CHECK(partials[2] == 0.0);
+    CHECK(partials[3] == 0.0);
+    CHECK(partials[4] == 0.0);
+    CHECK(partials[5] == 0.0);
+}
+
+// The hand-built serial-order design recalls all four, one at a time, at its own pace (+50, +300, +430, +560) rather
+// than at the demonstrated times. Under this demonstration it brings B before A, so its order credit is not full either.
+TEST_CASE("SequenceTimingBehaviour pays recall in order at its own pace for the order, not the timing", "[Solutions][SequenceTimingBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-behaviour" };
+
+    auto solution = loadSequenceTimingFixture<SequenceTimingBehaviour>("serial-order-handbuilt.dnf");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 6);
+    CHECK(partials[2] > 0.8);
+    CHECK(partials[3] < 0.3);
+}
+
+// Saved from a from-scratch boost run: a few hundred time units after X the output ignites at every event at once.
+TEST_CASE("SequenceTimingBehaviour gives a burst of simultaneous peaks little recall credit", "[Solutions][SequenceTimingBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-behaviour" };
+
+    auto solution = loadSequenceTimingFixture<SequenceTimingBehaviour>("sequence-timing-boost-burst.dnf");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 6);
+    CHECK(partials[2] < 0.3);
+    CHECK(partials[3] < 0.3);
+}
+
+// Saved from a from-scratch run (run 23): it replays D, C, A, B in order at a fixed lag after the demonstration, and so
+// also fires when X never comes.
+TEST_CASE("SequenceTimingBehaviour scales recall credit by how quiet the output stays in the probe trial without X", "[Solutions][SequenceTimingBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-behaviour" };
+
+    auto solution = loadSequenceTimingFixture<SequenceTimingBehaviour>("sequence-timing-boost-fixed-lag.dnf");
+    solution.evaluate();
+
+    const auto trials = timingTrials(solution);
+    REQUIRE(trials.front().at("kind") == "probe");
+    const double probeQuiet = trials.front().at("quietWithoutCue").get<double>();
+    REQUIRE(probeQuiet < 0.9);
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 6);
+    for (size_t term = 2; term < partials.size(); ++term)
+    {
+        INFO("f" << term + 1);
+        CHECK(partials[term] <= probeQuiet + 1e-9);
+    }
+}
+
+// Saved from timing-batch-1 (run T01, 25 October 2026): about 2550 after the demonstration, whatever the gap, it fires D,
+// C, A and B one after another within 80, and lets go. So brief a burst leaves the probe trial quiet at almost every
+// sample, but every event peaks there without X.
+TEST_CASE("SequenceTimingBehaviour gives almost no credit to a brief burst at a fixed lag after the demonstration", "[Solutions][SequenceTimingBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-behaviour" };
+
+    auto solution = loadSequenceTimingFixture<SequenceTimingBehaviour>("sequence-timing-behaviour-fixed-lag-burst.dnf");
+    solution.evaluate();
+
+    CHECK(solution.getFitness() < 0.2);
+}
+
+// Saved from timing-batch-1 (run T02, 25 October 2026): after X it recalls D, C, A and B in order, but 40, 80, 100 and
+// 110 after it, far earlier than their times. Far from its time the Gaussian is flat, so the timing credit keeps a share
+// that grows with the delay up to the due time.
+TEST_CASE("SequenceTimingBehaviour gives recall far too early a little timing credit", "[Solutions][SequenceTimingBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-behaviour" };
+
+    auto solution = loadSequenceTimingFixture<SequenceTimingBehaviour>("sequence-timing-behaviour-fast-cascade.dnf");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 6);
+    REQUIRE(partials[2] > 0.5);
+    CHECK(partials[3] > 0.02);
+    CHECK(partials[3] < 0.2);
+}
+
+// Saved from a from-scratch run: the output is active almost everywhere, almost all the time (quiet at 1-33% of the
+// samples, varying between evaluations), and after X travelling waves sweep the field, so each event sees a peak pass.
+// Each recall's credit is scaled by how quiet the output was before X.
+TEST_CASE("SequenceTimingBehaviour gives no recall credit to an output that is never quiet before X", "[Solutions][SequenceTimingBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-behaviour" };
+
+    auto solution = loadSequenceTimingFixture<SequenceTimingBehaviour>("sequence-timing-wave-exploit.dnf");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 6);
+    REQUIRE(partials[1] < 0.5);
+    CHECK(partials[2] < 0.05);
+    CHECK(partials[3] < 0.05);
+}
+
+// Fresh gaps on every evaluation stop a design from tuning its timing to a fixed set of gaps; one from each third of
+// 300-1500 spans short and long gaps in every evaluation. Rounded to the sampling interval, X falls on a sample.
+TEST_CASE("SequenceTimingBehaviour runs the probe, then draws a fresh gap from each third of 300-1500 for each recall", "[Solutions][SequenceTimingBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-behaviour" };
+
+    SequenceTimingBehaviour solution(sequenceTimingTopology());
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    const auto recallGaps = [&solution]() {
+        solution.evaluate();
+        const auto trials = timingTrials(solution);
+        REQUIRE(trials.size() == 4);
+        CHECK(trials.front().at("kind") == "probe");
+        std::vector<double> gaps;
+        for (size_t trial = 1; trial < trials.size(); ++trial)
+        {
+            CHECK(trials[trial].at("kind") == "recall");
+            gaps.push_back(trials[trial].at("gap").get<double>());
+        }
+        return gaps;
+    };
+
+    const auto first = recallGaps();
+    const auto second = recallGaps();
+    for (size_t i = 0; i < first.size(); ++i)
+    {
+        CHECK(first[i] >= 300.0 + 400.0 * static_cast<double>(i));
+        CHECK(first[i] <= 700.0 + 400.0 * static_cast<double>(i));
+        CHECK(std::fmod(first[i], 10.0) == Catch::Approx(0.0).margin(1e-9));
+    }
+    CHECK(first != second);
+}
+
+// Each recall trial's trace says when each event first peaked after X and how close that came to its time.
+TEST_CASE("SequenceTimingBehaviourGuided traces when each event first peaked after X, and its timing credit", "[Solutions][SequenceTimingBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-behaviour-guided" };
+
+    auto solution = loadSequenceTimingFixture<SequenceTimingBehaviourGuided>("sequence-timing-behaviour-reference.dnf");
+    solution.evaluate();
+
+    const std::map<std::string, double> demonstrated{ { "D", 100.0 }, { "C", 600.0 }, { "A", 800.0 }, { "B", 1800.0 } };
+    const auto trials = timingTrials(solution);
+    REQUIRE(trials.size() == 4);
+    for (size_t trial = 1; trial < trials.size(); ++trial)
+    {
+        const auto& events = trials[trial].at("recall").at("events");
+        for (const auto& [label, onset] : demonstrated)
+        {
+            INFO("trial " << trial << ", " << label);
+            const double afterCue = events.at(label).at("afterCue").get<double>();
+            CHECK(std::abs(afterCue - onset) <= 0.2 * onset);
+            CHECK(events.at(label).at("onTime").get<double>() > 0.5);
+        }
+        CHECK(trials[trial].at("quietBeforeCue").get<double>() == Catch::Approx(1.0));
+        CHECK(trials[trial].at("snapshots").size() > 8);
+    }
+}
+
+// A saved solution carries what createPhenotypeEnvironment() adds: a recall trial with a gap of 700, the trial of the
+// reference's behaviour table, so a saved design opened in dnf-composer replays it.
+TEST_CASE("SequenceTimingBehaviourGuided saves a recall trial with a gap of 700, so a saved design replays it", "[Solutions][SequenceTimingBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "sequence-timing-behaviour-guided" };
+    const auto fixture = loadFixtureSimulation("sequence-timing-behaviour-reference.dnf");
+    SequenceTimingBehaviourGuided solution(sequenceTimingTopology(), *fixture);
+    const auto saveDirectory = std::filesystem::temp_directory_path() / "neat-dnfs-sequence-timing-behaviour-replay";
+
+    // As PopulationFileManager saves a solution: into <directory>/<identifier>/<identifier>.dnf.
+    Solution& saved = solution;
+    saved.buildPhenotype();
+    saved.createPhenotypeEnvironment();
+    std::filesystem::path savedFile;
+    {
+        const auto simulation = std::make_shared<dnf_composer::Simulation>(saved.getPhenotype());
+        dnf_composer::SimulationFileManager(simulation, saveDirectory.generic_string()).saveElementsToJson();
+        const std::string identifier = simulation->getUniqueIdentifier();
+        savedFile = saveDirectory / identifier / (identifier + ".dnf");
+    }
+    saved.clearPhenotype();
+    REQUIRE(std::filesystem::exists(savedFile));
+
+    const auto replay = std::make_shared<dnf_composer::Simulation>();
+    dnf_composer::SimulationFileManager(replay, savedFile.generic_string()).loadElementsFromJson();
+    replay->init();
+    const auto output = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(replay->getElement("nf 2"));
+    REQUIRE(output != nullptr);
+    // Inside the reference's peaks: X comes again at 2550.
+    for (const auto& [time, position] : std::vector<std::pair<double, double>>{ { 2690.0, 180.0 }, { 3170.0, 120.0 },
+        { 3370.0, 20.0 }, { 4340.0, 80.0 } })
+    {
+        while (replay->getT() < time - 1e-9)
+        {
+            replay->step();
+        }
+        const auto bumps = output->getBumps();
+        INFO("t " << time);
+        REQUIRE(bumps.size() == 1);
+        CHECK(std::abs(bumps.front().centroid - position) <= 1.0);
+    }
+    std::filesystem::remove_all(saveDirectory);
+}
+
+// The fitness is written from the reference's responses, so evolving it from scratch is only a fair test if each task's
+// ranges reach every setting of that design. Evolution here makes Gauss kernels only, so the design it can reach is the
+// reference with Gauss self-kernels in place of the Mexican hats of the memory nf 3 and the past-events field nf 6.
+TEST_CASE("Every sequence-timing task's evolvable ranges reach every setting of the Gauss-only reference design", "[Solutions][SequenceTimingBehaviour]")
+{
+    for (const std::string slug : sequenceTimingTasks)
+    {
+        DYNAMIC_SECTION("task " << slug)
+        {
+            OutputSourceRuleGuard guard;
+            resetGlobalState();
+            const ScopedTaskConfig taskConfig{ slug };
+            const auto* task = findTask(slug);
+            REQUIRE(task != nullptr);
+
+            const auto solution = task->makeFromTemplate(defaultTopologyFor(*task),
+                *loadFixtureSimulation("sequence-timing-behaviour-reference-gauss.dnf"));
+            REQUIRE(solution->getGenome().getFieldGenes().size() == 8);
+            for (const auto& gene : solution->getGenome().getFieldGenes())
+            {
+                checkFieldGeneEvolvable(gene);
+            }
+            for (const auto& gene : solution->getGenome().getConnectionGenes())
+            {
+                checkConnectionGeneEvolvable(gene);
+            }
+            // Reachable without output feedback, which these configs turn on.
+            GenomeMutationConstants::allowOutputAsConnectionSource = false;
+            checkOnlyConnectionsEvolutionCanMake(*solution);
+        }
+    }
+}
+
+TEST_CASE("Every sequence-timing task is registered with one input and one output, starting from the sequence-timing template", "[SolutionRegistry]")
+{
+    for (const std::string slug : sequenceTimingTasks)
+    {
+        INFO("task " << slug);
+        const auto* task = findTask(slug);
+        REQUIRE(task != nullptr);
+        CHECK(task->templateFile == "sequence-timing.dnf");
+        CHECK(task->inputs == 1);
+        CHECK(task->outputs == 1);
+    }
+}
+
 TEST_CASE("Genome lists the connections evolution cannot make, honouring allowOutputAsConnectionSource", "[genome][legal_connections]")
 {
     OutputSourceRuleGuard guard;
@@ -1007,11 +1425,13 @@ TEST_CASE("ScopedTaskConfig restores every constant the task's config overrode",
 }
 
 // Population::endConditionMet() stops a run once every *recorded* partial
-// fitness passes the target, while the fitness it reports is the one
+// fitness passes the target, while the fitness it reports is the weighted sum
 // testPhenotype() computed. If a task records a different term than it weighs,
 // a run can stop early on a solution whose fitness never reached the target.
-// A task must report exactly the weighted sum of the terms it records, by the
-// weights its config/solutions file sets.
+// A task may instead pay the larger of that sum and a second score it records in
+// its trace (sequence-timing-behaviour-guided: the intended behaviour's); its
+// fitness is then never below the sum, so the stop rule is just as safe, also
+// where reachedTarget() checks the terms of the larger score instead.
 TEST_CASE("Every registered task's fitness is the weighted sum of the partial fitness it records", "[Solutions][SolutionRegistry]")
 {
     for (const auto& task : taskEntries())
@@ -1028,11 +1448,23 @@ TEST_CASE("Every registered task's fitness is the weighted sum of the partial fi
             const auto& recorded = solution->getParameters().partialFitness;
             const auto weights = ConfigLoader::loadFitnessWeights(std::string(task.slug), recorded.size());
             const double weightedSum = std::inner_product(recorded.begin(), recorded.end(), weights.begin(), 0.0);
-            REQUIRE(solution->getFitness() == Catch::Approx(weightedSum).margin(1e-9));
+
+            const auto& traceText = solution->getParameters().evaluationTrace;
+            const auto trace = traceText.empty() ? nlohmann::json::object() : nlohmann::json::parse(traceText);
+            if (trace.contains("fitness"))
+            {
+                const auto& scores = trace.at("fitness");
+                REQUIRE(scores.at("guided").get<double>() == Catch::Approx(weightedSum).margin(1e-9));
+                const double larger = std::max(weightedSum, scores.at("intended").get<double>());
+                REQUIRE(solution->getFitness() == Catch::Approx(larger).margin(1e-9));
+            }
+            else
+            {
+                REQUIRE(solution->getFitness() == Catch::Approx(weightedSum).margin(1e-9));
+            }
         }
     }
 }
-
 
 TEST_CASE("Every registered task's template file exists under templates/", "[SolutionRegistry]")
 {
