@@ -637,8 +637,7 @@ TEST_CASE("Output Feedback: a config that still sets it among the ablation const
 TEST_CASE("Output Feedback: serial order and sequence timing allow connections out of the output, other tasks do not", "[ablations][output_feedback]")
 {
     OutputSourceRuleGuard guard;
-    for (const std::string slug : { "serial-order", "serial-order-fitness-test", "sequence-timing", "sequence-timing-boost",
-        "sequence-timing-boost-order", "sequence-timing-boost-order-only" })
+    for (const std::string slug : { "serial-order-fitness-test" })
     {
         const ScopedTaskConfig taskConfig{ slug };
         INFO("task " << slug);

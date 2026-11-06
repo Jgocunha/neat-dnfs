@@ -362,31 +362,6 @@ namespace neat_dnfs
 		inline static int numberGenerations;
 		inline static int numberRuns;
 		inline static double targetFitness;
-
-		// Optional, read by SerialOrderProfile only. Which part of the trial it scores: "demonstration";
-		// "recall-start", "recall-two" or "recall-three" (also each recall up to its first, second or third event); or
-		// "all", the default. Lets a curriculum score the trial in growing parts.
-		inline static std::optional<std::string> profileScoredStages;
-		// Optional, read by SerialOrderProfile only. When true, the moments outside the scored stages count too, each
-		// as much as the output is active then. Off by default.
-		inline static std::optional<bool> profileCountsOutputActivityOutsideStages;
-		// Optional, read by SerialOrderProfile only. When true, each moment compares each field's output, its
-		// activation function of the activation, as well as the activation itself, and scores the mean of the two.
-		// Off by default.
-		inline static std::optional<bool> profileAlsoComparesFieldOutputs;
-		// Optional, read by SerialOrderProfile only. When true, each moment compares the output field alone, not the
-		// input: its activation inside the scored stages and, outside them, only its output, its activation function of
-		// the activation. Cannot be combined with profileAlsoComparesFieldOutputs. Off by default.
-		inline static std::optional<bool> profileComparesOutputActivationOnly;
-		// Optional, read by SerialOrderProfile only. When true, each moment compares what the output field does at the
-		// events' positions, not its activation: which of them peak, and anything away from them; which sit above the
-		// field's level and which below it; and which sits higher than which. The hold before the first recall is then
-		// always scored as one more stage, and outside the stages only the peaks are compared. Cannot be combined with
-		// profileComparesOutputActivationOnly or profileAlsoComparesFieldOutputs. Off by default.
-		inline static std::optional<bool> profileComparesOutputBehaviour;
-		// Optional, read by SerialOrderProfile only. How many events of the sequence are shown, from the first: 1 to 4,
-		// all four by default. A shorter sequence is compared with the reference design's recording on that schedule.
-		inline static std::optional<int> profileEventCount;
 	};
 
 	struct PopulationConstants

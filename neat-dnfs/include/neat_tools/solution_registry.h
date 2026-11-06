@@ -56,8 +56,6 @@ namespace neat_dnfs
 		std::optional<int> numGenerations;
 		std::optional<double> targetFitness;
 		std::optional<int> evaluations;
-		/// @brief Where a tool writes what it makes (--out); only the profile recorder takes it.
-		std::optional<std::string> outputFile;
 		bool listRequested = false;
 		bool helpRequested = false;
 	};

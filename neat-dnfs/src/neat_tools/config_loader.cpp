@@ -141,18 +141,6 @@ namespace neat_dnfs
 		// value containing a path separator or ".." would let a custom --config
 		// write outside data/<solutionName>/ entirely. The built-in presets never
 		// set a label containing one; this only guards a user-supplied config file.
-		void validateProfileScoredStages(const std::optional<std::string>& scoredStages, const std::string& path)
-		{
-			static const std::set<std::string> known{ "demonstration", "recall-start", "recall-two", "recall-three",
-				"all" };
-			if (scoredStages && !known.contains(*scoredStages))
-			{
-				throw std::runtime_error("ConfigLoader: '" + path + "' sets SolutionConstants.profileScoredStages to '"
-					+ *scoredStages + "'; it must be \"demonstration\", \"recall-start\", \"recall-two\", "
-					"\"recall-three\" or \"all\".");
-			}
-		}
-
 		void validateAblationLabel(const std::string& label, const std::string& path)
 		{
 			if (label.find_first_of("/\\") != std::string::npos
@@ -389,38 +377,6 @@ namespace neat_dnfs
 			field(sc, "numberGenerations", &SolutionConstants::numberGenerations);
 			field(sc, "numberRuns", &SolutionConstants::numberRuns);
 			field(sc, "targetFitness", &SolutionConstants::targetFitness);
-			optionalField(sc, "profileScoredStages", &SolutionConstants::profileScoredStages);
-			validateProfileScoredStages(SolutionConstants::profileScoredStages, path);
-			optionalField(sc, "profileCountsOutputActivityOutsideStages",
-				&SolutionConstants::profileCountsOutputActivityOutsideStages);
-			optionalField(sc, "profileAlsoComparesFieldOutputs", &SolutionConstants::profileAlsoComparesFieldOutputs);
-			optionalField(sc, "profileComparesOutputActivationOnly",
-				&SolutionConstants::profileComparesOutputActivationOnly);
-			if (SolutionConstants::profileComparesOutputActivationOnly.value_or(false)
-				&& SolutionConstants::profileAlsoComparesFieldOutputs.value_or(false))
-			{
-				throw std::runtime_error("ConfigLoader: '" + path + "' sets both SolutionConstants."
-					"profileComparesOutputActivationOnly and profileAlsoComparesFieldOutputs; the first compares only the "
-					"output's activation inside the scored stages, the second each field's output as well, so set at "
-					"most one.");
-			}
-			optionalField(sc, "profileComparesOutputBehaviour", &SolutionConstants::profileComparesOutputBehaviour);
-			if (SolutionConstants::profileComparesOutputBehaviour.value_or(false)
-				&& (SolutionConstants::profileComparesOutputActivationOnly.value_or(false)
-					|| SolutionConstants::profileAlsoComparesFieldOutputs.value_or(false)))
-			{
-				throw std::runtime_error("ConfigLoader: '" + path + "' sets SolutionConstants."
-					"profileComparesOutputBehaviour with profileComparesOutputActivationOnly or "
-					"profileAlsoComparesFieldOutputs; the first compares what the output does at the events' positions, "
-					"the others its activation, so set only one.");
-			}
-			optionalField(sc, "profileEventCount", &SolutionConstants::profileEventCount);
-			if (SolutionConstants::profileEventCount
-				&& (*SolutionConstants::profileEventCount < 1 || *SolutionConstants::profileEventCount > 4))
-			{
-				throw std::runtime_error("ConfigLoader: '" + path + "' sets SolutionConstants.profileEventCount to "
-					+ std::to_string(*SolutionConstants::profileEventCount) + "; it must be between 1 and 4.");
-			}
 
 			// The reference config carries the full "no ablation" baseline, and a
 			// preset in config/ablations/ is merged over it. The reference counts
