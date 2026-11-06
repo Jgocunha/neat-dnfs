@@ -16,6 +16,7 @@
 #include "solutions/delayed_match_to_sample.h"
 #include "solutions/inhibition_of_return.h"
 #include "solutions/hri_packaging_task.h"
+#include "solutions/incremental_recall.h"
 #include "solutions/sequence_and_timing_recall.h"
 #include "solutions/sequence_timing_behaviour.h"
 #include "solutions/serial_order_behaviour.h"
@@ -97,6 +98,15 @@ namespace neat_dnfs
 			entry<SerialOrderBehaviour>("serial-order-behaviour", "serial-order.dnf", 1, 1),
 			entry<SerialOrderBehaviourGuided>("serial-order-behaviour-guided", "serial-order.dnf", 1, 1),
 			entry<SequenceAndTimingRecall>("sequence-and-timing-recall", "sequence-and-timing-recall.dnf", 1, 1),
+			entry<IncrementalRecall<RecallStage::singleOrder>>("incremental-recall-1-single-order", "incremental-recall.dnf", 1, 1),
+			entry<IncrementalRecall<RecallStage::singleOrderAndTiming>>("incremental-recall-2-single-order-and-timing",
+				"incremental-recall.dnf", 1, 1),
+			entry<IncrementalRecall<RecallStage::repeatableOrder>>("incremental-recall-3-repeatable-order",
+				"incremental-recall.dnf", 1, 1),
+			entry<IncrementalRecall<RecallStage::repeatableOrderAndTiming>>("incremental-recall-4-repeatable-order-and-timing",
+				"incremental-recall.dnf", 1, 1),
+			entry<IncrementalRecall<RecallStage::consecutiveOrder>>("incremental-recall-5-consecutive-order",
+				"incremental-recall.dnf", 1, 1),
 		};
 		return entries;
 	}

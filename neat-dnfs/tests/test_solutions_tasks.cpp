@@ -26,6 +26,7 @@
 #include "solutions/and.h"
 #include "solutions/xor.h"
 #include "solutions/hri_packaging_task.h"
+#include "solutions/incremental_recall.h"
 #include "solutions/sequence_and_timing_recall.h"
 #include "solutions/sequence_timing_behaviour.h"
 #include "solutions/serial_order_behaviour.h"
@@ -1892,6 +1893,1314 @@ TEST_CASE("SequenceAndTimingRecall is registered with one input and one output, 
     const auto* task = findTask(sequenceAndTimingRecall);
     REQUIRE(task != nullptr);
     CHECK(task->templateFile == "sequence-and-timing-recall.dnf");
+    CHECK(task->inputs == 1);
+    CHECK(task->outputs == 1);
+}
+
+// The incremental-evolution test (from 2 November 2026): four events E1-E4 on fields of 100, one task per stage of
+// behaviour, each stage's best seeding the next. Stage 1 recalls the order once.
+using SingleOrderRecall = IncrementalRecall<RecallStage::singleOrder>;
+static const std::string singleOrderRecall{ "incremental-recall-1-single-order" };
+
+// The four events in their order, each with where it lies and when it is due after the memory recall trigger.
+struct IncrementalRecallEvent
+{
+    std::string label;
+    double position;
+    double due;
+};
+static const std::array<IncrementalRecallEvent, 4> incrementalRecallEvents{ { { "E1", 40.0, 100.0 },
+    { "E2", 90.0, 250.0 }, { "E3", 15.0, 600.0 }, { "E4", 65.0, 1200.0 } } };
+
+static SingleOrderRecall loadSingleOrderFixture(const std::string& name)
+{
+    return loadSequenceTimingFixture<SingleOrderRecall>("incremental-recall-single-order-" + name + ".dnf");
+}
+
+static nlohmann::json trialOfKind(const Solution& solution, const std::string& kind)
+{
+    for (const auto& trial : timingTrials(solution))
+    {
+        if (trial.at("kind") == kind)
+        {
+            return trial;
+        }
+    }
+    FAIL("no " << kind << " trial in the trace");
+    return {};
+}
+
+TEST_CASE("SingleOrderRecall contract", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    checkSolutionContract<SingleOrderRecall>(makeTopology(1, 1));
+}
+
+TEST_CASE("SingleOrderRecall names its runs, and clones and copies as itself", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ singleOrderRecall };
+    SingleOrderRecall solution(sequenceTimingTopology());
+    solution.initialize();
+    solution.buildPhenotype();
+
+    CHECK(solution.getName() == "Incremental Recall 1 - Single Order");
+    CHECK(std::dynamic_pointer_cast<SingleOrderRecall>(solution.clone()) != nullptr);
+    CHECK(std::dynamic_pointer_cast<SingleOrderRecall>(solution.copy()) != nullptr);
+}
+
+// The stage-1 reference recalls the four in order, one at a time, a third faster than they were shown, and lets each go,
+// leaving a trough. Below threshold its output holds the stored events, the earliest highest, so it earns the guides in
+// part; it reaches 0.9 through the intended behaviour, whose terms then decide whether a run stops.
+TEST_CASE("SingleOrderRecall scores the stage-1 reference above 0.9 on every behaviour term", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ singleOrderRecall };
+    auto solution = loadSingleOrderFixture("reference");
+
+    for (int evaluation = 0; evaluation < 2; ++evaluation)
+    {
+        solution.evaluate();
+        const auto& partials = solution.getParameters().partialFitness;
+        REQUIRE(partials.size() == 8);
+        for (const size_t term : std::initializer_list<size_t>{ 0, 1, 3, 4, 6, 7 })
+        {
+            INFO("evaluation " << evaluation << ", f" << term + 1);
+            CHECK(partials[term] > 0.9);
+        }
+        CHECK(partials[2] > 0.2); // memory: the stored events, the earliest highest
+        CHECK(partials[2] < 0.9);
+        CHECK(partials[5] > 0.2); // the events to come
+        const auto scores = nlohmann::json::parse(solution.getParameters().evaluationTrace).at("fitness");
+        CHECK(scores.at("intended").get<double>() > scores.at("guided").get<double>());
+        CHECK(scores.at("intended").get<double>() > 0.9);
+        CHECK(solution.getFitness() > 0.9);
+        CHECK(solution.reachedTarget(0.9));
+    }
+}
+
+// With no connection into the output, nothing drives a peak there, nor holds anything below threshold: the output earns
+// the input and quiet terms alone.
+TEST_CASE("SingleOrderRecall gives an output that never responds the input and quiet terms alone", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ singleOrderRecall };
+    SingleOrderRecall solution(sequenceTimingTopology());
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[1] == Catch::Approx(1.0));
+    CHECK(partials[2] < 0.05);
+    CHECK(partials[5] < 0.05);
+    for (const size_t term : std::initializer_list<size_t>{ 3, 4, 6, 7 })
+    {
+        INFO("f" << term + 1);
+        CHECK(partials[term] == 0.0);
+    }
+    CHECK(solution.getFitness() == Catch::Approx(0.15).margin(0.02));
+    CHECK_FALSE(solution.reachedTarget(0.9));
+}
+
+// The best of stage-1-batch-1's R01: after the trigger each event flashes for a single sample, which the best single
+// sample once paid as a full peak. A peak now earns its best three samples running, so a flash earns a third.
+TEST_CASE("SingleOrderRecall pays a one-sample flash a third of a peak", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ singleOrderRecall };
+    auto solution = loadSingleOrderFixture("flashes");
+
+    for (int evaluation = 0; evaluation < 3; ++evaluation)
+    {
+        solution.evaluate();
+        const auto& partials = solution.getParameters().partialFitness;
+        REQUIRE(partials.size() == 8);
+        INFO("evaluation " << evaluation);
+        CHECK(partials[3] < 0.5);
+        CHECK(partials[4] < 0.5);
+        CHECK(solution.getFitness() < 0.6);
+    }
+}
+
+// The reference with nf 6 at tau 80: each event is released later, so E1's peak is still up when E2's comes. The order
+// is kept, but the peaks do not come one at a time.
+TEST_CASE("SingleOrderRecall pays ordered peaks that overlap for the order, not for coming one at a time", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ singleOrderRecall };
+    auto solution = loadSingleOrderFixture("overlapping-peaks");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[3] > 0.8);
+    CHECK(partials[4] < 0.85);
+}
+
+// The reference with 8-5 at 2000: the stamps climb so fast that E1 and E2 peak together just after the trigger, with E3
+// up by the time they go, and E4 after. E2 loses its place (a tie is no order), and the peaks are not one at a time.
+TEST_CASE("SingleOrderRecall gives a burst part of the order credit and little for one at a time", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ singleOrderRecall };
+    auto solution = loadSingleOrderFixture("burst");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[3] < 0.8);
+    CHECK(partials[4] < 0.6);
+    CHECK(solution.getFitness() < 0.7);
+}
+
+// The reference with 7-8's global part at 0.55: the pending events open the recall window by themselves as the
+// demonstration ends, and it replays the sequence with no trigger. The probe, which never gives the trigger, sees it.
+TEST_CASE("SingleOrderRecall gives an output that recalls without the trigger almost no recall credit", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ singleOrderRecall };
+    auto solution = loadSingleOrderFixture("fires-without-boost");
+    solution.evaluate();
+
+    const auto probe = trialOfKind(solution, "probe");
+    CHECK(probe.at("quietWithoutCue").get<double>() * probe.at("eventsQuietWithoutCue").get<double>() < 0.5);
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    for (size_t term = 3; term < partials.size(); ++term)
+    {
+        INFO("f" << term + 1);
+        CHECK(partials[term] < 0.3);
+    }
+    CHECK(solution.getFitness() < 0.35);
+}
+
+// The best of stage-1-batch-2's R03: after the trigger it recalls the four in order, but without it, it recalls them
+// anyway from 2400 after the demonstration, past what a wait and a recall window reach. The probe runs 3200 to see it.
+TEST_CASE("SingleOrderRecall gives an output that recalls without the trigger late almost no recall credit", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ singleOrderRecall };
+    auto solution = loadSingleOrderFixture("recalls-late-without-trigger");
+    solution.evaluate();
+
+    const auto probe = trialOfKind(solution, "probe");
+    CHECK(probe.at("eventsQuietWithoutCue").get<double>() < 0.5);
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[3] < 0.5);
+    CHECK(solution.getFitness() < 0.6);
+}
+
+// One demonstration, then three recalls, each after a wait drawn from its own third of 300-500, all three branching off
+// the same run, which goes on without the trigger as the probe for 3200 after the demonstration. Every term is the mean
+// over the three recalls.
+TEST_CASE("SingleOrderRecall recalls after a wait from each third of 300-500 and probes the same demonstration without the trigger", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ singleOrderRecall };
+    SingleOrderRecall solution(sequenceTimingTopology());
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+
+    std::vector<double> firstWaits;
+    for (int evaluation = 0; evaluation < 4; ++evaluation)
+    {
+        solution.evaluate();
+        const auto trials = timingTrials(solution);
+        REQUIRE(trials.size() == 4);
+        std::vector<double> quietBeforeCue;
+        for (size_t trial = 0; trial < 3; ++trial)
+        {
+            INFO("evaluation " << evaluation << ", recall " << trial);
+            REQUIRE(trials[trial].at("kind") == "recall");
+            const double wait = trials[trial].at("wait").get<double>();
+            const double third = 200.0 / 3.0;
+            CHECK(wait >= 300.0 + third * static_cast<double>(trial) - 5.0);
+            CHECK(wait <= 300.0 + third * static_cast<double>(trial + 1) + 5.0);
+            CHECK(std::fmod(wait, 10.0) == Catch::Approx(0.0).margin(1e-9));
+            CHECK(trials[trial].at("cue").get<double>() == Catch::Approx(1250.0 + wait));
+            quietBeforeCue.push_back(trials[trial].at("quietBeforeCue").get<double>());
+        }
+        const auto& probe = trials[3];
+        REQUIRE(probe.at("kind") == "probe");
+        CHECK(probe.at("watchedFrom").get<double>() == Catch::Approx(1250.0));
+        CHECK(probe.at("length").get<double>() == Catch::Approx(3200.0));
+        CHECK(solution.getParameters().partialFitness[1] == Catch::Approx(
+            std::accumulate(quietBeforeCue.begin(), quietBeforeCue.end(), 0.0) / 3.0));
+        firstWaits.push_back(trials[0].at("wait").get<double>());
+    }
+    CHECK(std::ranges::adjacent_find(firstWaits, std::not_equal_to{}) != firstWaits.end());
+}
+
+// Each recall's trace says when each event first peaked after the trigger, its place in the order, and how far it peaked
+// alone.
+TEST_CASE("SingleOrderRecall traces each event's first peak after the trigger, its place and how far it was alone", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ singleOrderRecall };
+    auto solution = loadSingleOrderFixture("reference");
+    solution.evaluate();
+
+    const auto recall = trialOfKind(solution, "recall");
+    const auto& events = recall.at("recall").at("events");
+    double previous = 0.0;
+    for (const auto& event : incrementalRecallEvents)
+    {
+        INFO(event.label);
+        const double afterCue = events.at(event.label).at("afterCue").get<double>();
+        CHECK(afterCue > previous);
+        CHECK(events.at(event.label).at("inPlace").get<double>() == Catch::Approx(1.0));
+        CHECK(events.at(event.label).at("alone").get<double>() == Catch::Approx(1.0));
+        CHECK_FALSE(events.at(event.label).at("releasedAt").is_null());
+        previous = afterCue;
+    }
+}
+
+// A saved solution carries what createPhenotypeEnvironment() adds: the demonstration and the trigger after a wait of 300,
+// where stage 1 recalls, so a saved design opened in dnf-composer replays it.
+TEST_CASE("SingleOrderRecall saves a recall after a wait of 300, so a saved design replays it", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ singleOrderRecall };
+    const auto fixture = loadFixtureSimulation("incremental-recall-single-order-reference.dnf");
+    SingleOrderRecall solution(sequenceTimingTopology(), *fixture);
+    const auto saveDirectory = std::filesystem::temp_directory_path() / "neat-dnfs-incremental-recall-replay";
+
+    Solution& saved = solution;
+    saved.buildPhenotype();
+    saved.createPhenotypeEnvironment();
+    std::filesystem::path savedFile;
+    {
+        const auto simulation = std::make_shared<dnf_composer::Simulation>(saved.getPhenotype());
+        dnf_composer::SimulationFileManager(simulation, saveDirectory.generic_string()).saveElementsToJson();
+        const std::string identifier = simulation->getUniqueIdentifier();
+        savedFile = saveDirectory / identifier / (identifier + ".dnf");
+    }
+    saved.clearPhenotype();
+    REQUIRE(std::filesystem::exists(savedFile));
+
+    const auto replay = std::make_shared<dnf_composer::Simulation>();
+    dnf_composer::SimulationFileManager(replay, savedFile.generic_string()).loadElementsFromJson();
+    replay->init();
+    const auto output = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(replay->getElement("nf 2"));
+    REQUIRE(output != nullptr);
+    // The trigger comes again at 1550; the reference's peaks are up 100, 190, 440 and 870 after it.
+    const std::array<double, 4> upAfterCue{ 100.0, 190.0, 440.0, 870.0 };
+    for (size_t event = 0; event < incrementalRecallEvents.size(); ++event)
+    {
+        const double time = 1550.0 + upAfterCue[event];
+        while (replay->getT() < time - 1e-9)
+        {
+            replay->step();
+        }
+        const auto bumps = output->getBumps();
+        INFO("t " << time << ", " << incrementalRecallEvents[event].label);
+        REQUIRE(bumps.size() == 1);
+        CHECK(std::abs(bumps.front().centroid - incrementalRecallEvents[event].position) <= 1.0);
+    }
+    std::filesystem::remove_all(saveDirectory);
+}
+
+// The fitness is checked against the reference's behaviour, so evolving it is only a fair test if the task's ranges
+// reach every setting of that design.
+TEST_CASE("SingleOrderRecall's evolvable ranges reach every setting of the stage-1 reference", "[Solutions][IncrementalRecall]")
+{
+    OutputSourceRuleGuard guard;
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ singleOrderRecall };
+    const auto* task = findTask(singleOrderRecall);
+    REQUIRE(task != nullptr);
+
+    const auto solution = task->makeFromTemplate(defaultTopologyFor(*task),
+        *loadFixtureSimulation("incremental-recall-single-order-reference.dnf"));
+    REQUIRE(solution->getGenome().getFieldGenes().size() == 9);
+    for (const auto& gene : solution->getGenome().getFieldGenes())
+    {
+        checkFieldGeneEvolvable(gene);
+    }
+    for (const auto& gene : solution->getGenome().getConnectionGenes())
+    {
+        checkConnectionGeneEvolvable(gene);
+    }
+    GenomeMutationConstants::allowOutputAsConnectionSource = false;
+    checkOnlyConnectionsEvolutionCanMake(*solution);
+}
+
+TEST_CASE("SingleOrderRecall is registered with one input and one output, starting from the incremental-recall template", "[SolutionRegistry]")
+{
+    const auto* task = findTask(singleOrderRecall);
+    REQUIRE(task != nullptr);
+    CHECK(task->templateFile == "incremental-recall.dnf");
+    CHECK(task->inputs == 1);
+    CHECK(task->outputs == 1);
+}
+
+// Stage 2 recalls the order once, each event at its demonstrated time after the trigger: stage 1's terms and a timing
+// term, f6.
+using SingleOrderAndTimingRecall = IncrementalRecall<RecallStage::singleOrderAndTiming>;
+static const std::string singleOrderAndTimingRecall{ "incremental-recall-2-single-order-and-timing" };
+
+TEST_CASE("SingleOrderAndTimingRecall contract", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    checkSolutionContract<SingleOrderAndTimingRecall>(makeTopology(1, 1));
+}
+
+TEST_CASE("SingleOrderAndTimingRecall names its runs, and clones and copies as itself", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ singleOrderAndTimingRecall };
+    SingleOrderAndTimingRecall solution(sequenceTimingTopology());
+    solution.initialize();
+    solution.buildPhenotype();
+
+    CHECK(solution.getName() == "Incremental Recall 2 - Single Order And Timing");
+    CHECK(std::dynamic_pointer_cast<SingleOrderAndTimingRecall>(solution.clone()) != nullptr);
+    CHECK(std::dynamic_pointer_cast<SingleOrderAndTimingRecall>(solution.copy()) != nullptr);
+}
+
+// The stage-2 reference recalls the four in order, one at a time, each at its demonstrated time after the trigger.
+TEST_CASE("SingleOrderAndTimingRecall scores the stage-2 reference above 0.9 on every behaviour term", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ singleOrderAndTimingRecall };
+    auto solution = loadSequenceTimingFixture<SingleOrderAndTimingRecall>(
+        "incremental-recall-single-order-and-timing-reference.dnf");
+
+    for (int evaluation = 0; evaluation < 2; ++evaluation)
+    {
+        solution.evaluate();
+        const auto& partials = solution.getParameters().partialFitness;
+        REQUIRE(partials.size() == 9);
+        for (const size_t term : std::initializer_list<size_t>{ 0, 1, 3, 4, 5, 7, 8 })
+        {
+            INFO("evaluation " << evaluation << ", f" << term + 1);
+            CHECK(partials[term] > 0.9);
+        }
+        const auto scores = nlohmann::json::parse(solution.getParameters().evaluationTrace).at("fitness");
+        CHECK(scores.at("intended").get<double>() > 0.9);
+        CHECK(solution.getFitness() > 0.9);
+        CHECK(solution.reachedTarget(0.9));
+    }
+}
+
+// The stage-1 reference recalls the order a third faster than it was shown: in order, but each event a quarter early.
+TEST_CASE("SingleOrderAndTimingRecall pays the stage-1 reference's order in full and its timing in part", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ singleOrderAndTimingRecall };
+    auto solution = loadSequenceTimingFixture<SingleOrderAndTimingRecall>("incremental-recall-single-order-reference.dnf");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 9);
+    CHECK(partials[3] > 0.9);
+    CHECK(partials[5] > 0.2);
+    CHECK(partials[5] < 0.7);
+    CHECK(solution.getFitness() < 0.9);
+    CHECK_FALSE(solution.reachedTarget(0.9));
+}
+
+// The best of stage-2-batch-1's R04: it recalls the four in order and on time, but about 1900 after the trigger
+// activity comes back at both ends of the field and travels along it. Silence after a recall is watched as long as
+// the probe watches without the trigger, so it is seen.
+TEST_CASE("SingleOrderAndTimingRecall charges activity that comes back long after the recall to the stop", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ singleOrderAndTimingRecall };
+    auto solution = loadSequenceTimingFixture<SingleOrderAndTimingRecall>(
+        "incremental-recall-single-order-and-timing-restarts-after-recall.dnf");
+    solution.evaluate();
+
+    for (const auto& trial : timingTrials(solution))
+    {
+        if (trial.at("kind") == "recall")
+        {
+            INFO("wait " << trial.at("wait"));
+            CHECK(trial.at("recall").at("afterSequence").at("quiet").get<double>() < 0.8);
+        }
+    }
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 9);
+    CHECK(partials[5] > 0.85);
+    CHECK(partials[8] < 0.9);
+    CHECK_FALSE(solution.reachedTarget(0.9));
+}
+
+TEST_CASE("SingleOrderAndTimingRecall gives an output that never responds the input and quiet terms alone", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ singleOrderAndTimingRecall };
+    SingleOrderAndTimingRecall solution(sequenceTimingTopology());
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 9);
+    for (const size_t term : std::initializer_list<size_t>{ 3, 4, 5, 7, 8 })
+    {
+        INFO("f" << term + 1);
+        CHECK(partials[term] == 0.0);
+    }
+    CHECK(solution.getFitness() == Catch::Approx(0.10).margin(0.02));
+    CHECK_FALSE(solution.reachedTarget(0.9));
+}
+
+TEST_CASE("SingleOrderAndTimingRecall is registered with one input and one output, starting from the incremental-recall template", "[SolutionRegistry]")
+{
+    const auto* task = findTask(singleOrderAndTimingRecall);
+    REQUIRE(task != nullptr);
+    CHECK(task->templateFile == "incremental-recall.dnf");
+    CHECK(task->inputs == 1);
+    CHECK(task->outputs == 1);
+}
+
+using RepeatableOrderRecall = IncrementalRecall<RecallStage::repeatableOrder>;
+static const std::string repeatableOrderRecall{ "incremental-recall-3-repeatable-order" };
+
+TEST_CASE("RepeatableOrderRecall contract", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    checkSolutionContract<RepeatableOrderRecall>(makeTopology(1, 1));
+}
+
+TEST_CASE("RepeatableOrderRecall names its runs, and clones and copies as itself", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ repeatableOrderRecall };
+    RepeatableOrderRecall solution(sequenceTimingTopology());
+    solution.initialize();
+    solution.buildPhenotype();
+
+    CHECK(solution.getName() == "Incremental Recall 3 - Repeatable Order");
+    CHECK(std::dynamic_pointer_cast<RepeatableOrderRecall>(solution.clone()) != nullptr);
+    CHECK(std::dynamic_pointer_cast<RepeatableOrderRecall>(solution.copy()) != nullptr);
+}
+
+// The stage-3 reference holds its memories through the longest wait: it recalls the four in order after any of them.
+TEST_CASE("RepeatableOrderRecall scores the stage-3 reference above 0.9 on every behaviour term", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ repeatableOrderRecall };
+    auto solution = loadSequenceTimingFixture<RepeatableOrderRecall>("incremental-recall-repeatable-order-reference.dnf");
+
+    for (int evaluation = 0; evaluation < 2; ++evaluation)
+    {
+        solution.evaluate();
+        const auto& partials = solution.getParameters().partialFitness;
+        REQUIRE(partials.size() == 8);
+        for (const size_t term : std::initializer_list<size_t>{ 0, 1, 3, 4, 6, 7 })
+        {
+            INFO("evaluation " << evaluation << ", f" << term + 1);
+            CHECK(partials[term] > 0.9);
+        }
+        CHECK(solution.getFitness() > 0.9);
+        CHECK(solution.reachedTarget(0.9));
+    }
+}
+
+// The stage-2 reference's memories fade about 1800 after their event: it recalls after a short wait, not a long one.
+TEST_CASE("RepeatableOrderRecall pays the stage-2 reference only for its recall after the shortest waits", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ repeatableOrderRecall };
+    auto solution = loadSequenceTimingFixture<RepeatableOrderRecall>(
+        "incremental-recall-single-order-and-timing-reference.dnf");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[3] < 0.7);
+    CHECK(solution.getFitness() < 0.8);
+    CHECK_FALSE(solution.reachedTarget(0.9));
+}
+
+// The three waits now span 300-1500, from the shortest wait of stage 1 to the longest the probe was built to cover.
+TEST_CASE("RepeatableOrderRecall recalls after a wait from each third of 300-1500", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ repeatableOrderRecall };
+    RepeatableOrderRecall solution(sequenceTimingTopology());
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+
+    for (int evaluation = 0; evaluation < 4; ++evaluation)
+    {
+        solution.evaluate();
+        const auto trials = timingTrials(solution);
+        REQUIRE(trials.size() == 4);
+        for (size_t trial = 0; trial < 3; ++trial)
+        {
+            INFO("evaluation " << evaluation << ", recall " << trial);
+            REQUIRE(trials[trial].at("kind") == "recall");
+            const double wait = trials[trial].at("wait").get<double>();
+            CHECK(wait >= 300.0 + 400.0 * static_cast<double>(trial) - 5.0);
+            CHECK(wait <= 300.0 + 400.0 * static_cast<double>(trial + 1) + 5.0);
+        }
+        CHECK(trials[3].at("length").get<double>() == Catch::Approx(3200.0));
+    }
+}
+
+// Stage 3 is about memories that hold, so a saved design replays the trigger after the longest wait, 1500.
+TEST_CASE("RepeatableOrderRecall saves a recall after a wait of 1500, so a saved design replays it", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ repeatableOrderRecall };
+    const auto fixture = loadFixtureSimulation("incremental-recall-repeatable-order-reference.dnf");
+    RepeatableOrderRecall solution(sequenceTimingTopology(), *fixture);
+    const auto saveDirectory = std::filesystem::temp_directory_path() / "neat-dnfs-incremental-recall-3-replay";
+
+    Solution& saved = solution;
+    saved.buildPhenotype();
+    saved.createPhenotypeEnvironment();
+    std::filesystem::path savedFile;
+    {
+        const auto simulation = std::make_shared<dnf_composer::Simulation>(saved.getPhenotype());
+        dnf_composer::SimulationFileManager(simulation, saveDirectory.generic_string()).saveElementsToJson();
+        const std::string identifier = simulation->getUniqueIdentifier();
+        savedFile = saveDirectory / identifier / (identifier + ".dnf");
+    }
+    saved.clearPhenotype();
+    REQUIRE(std::filesystem::exists(savedFile));
+
+    const auto replay = std::make_shared<dnf_composer::Simulation>();
+    dnf_composer::SimulationFileManager(replay, savedFile.generic_string()).loadElementsFromJson();
+    replay->init();
+    const auto output = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(replay->getElement("nf 2"));
+    REQUIRE(output != nullptr);
+    // The trigger comes again at 2750; the reference's peaks are up 230, 380, 730 and 1320 after it.
+    const std::array<double, 4> upAfterCue{ 230.0, 380.0, 730.0, 1320.0 };
+    for (size_t event = 0; event < incrementalRecallEvents.size(); ++event)
+    {
+        const double time = 2750.0 + upAfterCue[event];
+        while (replay->getT() < time - 1e-9)
+        {
+            replay->step();
+        }
+        const auto bumps = output->getBumps();
+        INFO("t " << time << ", " << incrementalRecallEvents[event].label);
+        REQUIRE(bumps.size() == 1);
+        CHECK(std::abs(bumps.front().centroid - incrementalRecallEvents[event].position) <= 1.0);
+    }
+    std::filesystem::remove_all(saveDirectory);
+}
+
+TEST_CASE("RepeatableOrderRecall is registered with one input and one output, starting from the incremental-recall template", "[SolutionRegistry]")
+{
+    const auto* task = findTask(repeatableOrderRecall);
+    REQUIRE(task != nullptr);
+    CHECK(task->templateFile == "incremental-recall.dnf");
+    CHECK(task->inputs == 1);
+    CHECK(task->outputs == 1);
+}
+
+using RepeatableOrderAndTimingRecall = IncrementalRecall<RecallStage::repeatableOrderAndTiming>;
+static const std::string repeatableOrderAndTimingRecall{ "incremental-recall-4-repeatable-order-and-timing" };
+
+TEST_CASE("RepeatableOrderAndTimingRecall contract", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    checkSolutionContract<RepeatableOrderAndTimingRecall>(makeTopology(1, 1));
+}
+
+TEST_CASE("RepeatableOrderAndTimingRecall names its runs, and clones and copies as itself", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ repeatableOrderAndTimingRecall };
+    RepeatableOrderAndTimingRecall solution(sequenceTimingTopology());
+    solution.initialize();
+    solution.buildPhenotype();
+
+    CHECK(solution.getName() == "Incremental Recall 4 - Repeatable Order And Timing");
+    CHECK(std::dynamic_pointer_cast<RepeatableOrderAndTimingRecall>(solution.clone()) != nullptr);
+    CHECK(std::dynamic_pointer_cast<RepeatableOrderAndTimingRecall>(solution.copy()) != nullptr);
+}
+
+// The stage-4 reference's stamps hold through the longest wait: each event at its time after any of them.
+TEST_CASE("RepeatableOrderAndTimingRecall scores the stage-4 reference above 0.9 on every behaviour term", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ repeatableOrderAndTimingRecall };
+    auto solution = loadSequenceTimingFixture<RepeatableOrderAndTimingRecall>(
+        "incremental-recall-repeatable-order-and-timing-reference.dnf");
+
+    for (int evaluation = 0; evaluation < 2; ++evaluation)
+    {
+        solution.evaluate();
+        const auto& partials = solution.getParameters().partialFitness;
+        REQUIRE(partials.size() == 9);
+        for (const size_t term : std::initializer_list<size_t>{ 0, 1, 3, 4, 5, 7, 8 })
+        {
+            INFO("evaluation " << evaluation << ", f" << term + 1);
+            CHECK(partials[term] > 0.9);
+        }
+        CHECK(solution.getFitness() > 0.9);
+        CHECK(solution.reachedTarget(0.9));
+    }
+}
+
+// The stage-3 reference's stamps leak through the wait: on time after a short wait, later and later after longer ones.
+TEST_CASE("RepeatableOrderAndTimingRecall pays the stage-3 reference's order in full and its timing in part", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ repeatableOrderAndTimingRecall };
+    auto solution = loadSequenceTimingFixture<RepeatableOrderAndTimingRecall>(
+        "incremental-recall-repeatable-order-reference.dnf");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 9);
+    CHECK(partials[3] > 0.9);
+    CHECK(partials[5] < 0.9);
+    CHECK_FALSE(solution.reachedTarget(0.9));
+}
+
+TEST_CASE("RepeatableOrderAndTimingRecall recalls after a wait from each third of 300-1500", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ repeatableOrderAndTimingRecall };
+    RepeatableOrderAndTimingRecall solution(sequenceTimingTopology());
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    solution.evaluate();
+
+    const auto trials = timingTrials(solution);
+    REQUIRE(trials.size() == 4);
+    for (size_t trial = 0; trial < 3; ++trial)
+    {
+        INFO("recall " << trial);
+        const double wait = trials[trial].at("wait").get<double>();
+        CHECK(wait >= 300.0 + 400.0 * static_cast<double>(trial) - 5.0);
+        CHECK(wait <= 300.0 + 400.0 * static_cast<double>(trial + 1) + 5.0);
+    }
+    CHECK(solution.getParameters().partialFitness.size() == 9);
+}
+
+TEST_CASE("RepeatableOrderAndTimingRecall is registered with one input and one output, starting from the incremental-recall template", "[SolutionRegistry]")
+{
+    const auto* task = findTask(repeatableOrderAndTimingRecall);
+    REQUIRE(task != nullptr);
+    CHECK(task->templateFile == "incremental-recall.dnf");
+    CHECK(task->inputs == 1);
+    CHECK(task->outputs == 1);
+}
+
+using ConsecutiveOrderRecall = IncrementalRecall<RecallStage::consecutiveOrder>;
+static const std::string consecutiveOrderRecall{ "incremental-recall-5-consecutive-order" };
+
+TEST_CASE("ConsecutiveOrderRecall contract", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    checkSolutionContract<ConsecutiveOrderRecall>(makeTopology(1, 1));
+}
+
+TEST_CASE("ConsecutiveOrderRecall names its runs, and clones and copies as itself", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ consecutiveOrderRecall };
+    ConsecutiveOrderRecall solution(sequenceTimingTopology());
+    solution.initialize();
+    solution.buildPhenotype();
+
+    CHECK(solution.getName() == "Incremental Recall 5 - Consecutive Order");
+    CHECK(std::dynamic_pointer_cast<ConsecutiveOrderRecall>(solution.clone()) != nullptr);
+    CHECK(std::dynamic_pointer_cast<ConsecutiveOrderRecall>(solution.copy()) != nullptr);
+}
+
+// The stage-5 reference winds back after each recall, so the trigger recalls the order again, and again. Its wind-back
+// leaves shallower troughs than the guides ask (as at every stage), so released and stopped fall a little short with
+// them; the intended behaviour, without the guides, passes the target.
+TEST_CASE("ConsecutiveOrderRecall scores the stage-5 reference's intended behaviour above 0.9", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ consecutiveOrderRecall };
+    auto solution = loadSequenceTimingFixture<ConsecutiveOrderRecall>("incremental-recall-consecutive-order-reference.dnf");
+
+    for (int evaluation = 0; evaluation < 2; ++evaluation)
+    {
+        solution.evaluate();
+        const auto& partials = solution.getParameters().partialFitness;
+        REQUIRE(partials.size() == 8);
+        for (const size_t term : std::initializer_list<size_t>{ 0, 1, 3, 4 })
+        {
+            INFO("evaluation " << evaluation << ", f" << term + 1);
+            CHECK(partials[term] > 0.9);
+        }
+        CHECK(partials[6] > 0.8);
+        CHECK(partials[7] > 0.8);
+        const auto scores = nlohmann::json::parse(solution.getParameters().evaluationTrace).at("fitness");
+        CHECK(scores.at("intended").get<double>() > 0.9);
+        CHECK(solution.getFitness() > 0.9);
+        CHECK(solution.reachedTarget(0.9));
+    }
+}
+
+// The stage-4 reference's stamps are used up by its first recall: a second trigger fires all four together.
+TEST_CASE("ConsecutiveOrderRecall pays the stage-4 reference for its first recall only", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ consecutiveOrderRecall };
+    auto solution = loadSequenceTimingFixture<ConsecutiveOrderRecall>(
+        "incremental-recall-repeatable-order-and-timing-reference.dnf");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[3] < 0.7);
+    CHECK(solution.getFitness() < 0.9);
+    CHECK_FALSE(solution.reachedTarget(0.9));
+}
+
+// R02 of stage-5-batch-1 stopped on its target, yet after its first recall its output holds one weak bump that rolls
+// slowly round the field, over E2, E3 and E4 in turn. It moves about one unit a sample, which a drift read from one
+// sample to the next takes for still; over three samples it moves three or more, so it peaks at no event it passes.
+TEST_CASE("ConsecutiveOrderRecall counts no peak at an event a bump rolls past", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ consecutiveOrderRecall };
+    auto solution = loadSequenceTimingFixture<ConsecutiveOrderRecall>(
+        "incremental-recall-consecutive-order-rolling-bump.dnf");
+
+    for (int evaluation = 0; evaluation < 5; ++evaluation)
+    {
+        solution.evaluate();
+        const auto& partials = solution.getParameters().partialFitness;
+        REQUIRE(partials.size() == 8);
+        INFO("evaluation " << evaluation);
+        // E1 peaks in every recall, and the bump stops at E4 or E3 in some; the rest it rolls past.
+        CHECK(partials[3] < 0.8);
+        CHECK_FALSE(solution.reachedTarget(0.9));
+    }
+}
+
+// Six triggers in turn in one run after the demonstration.
+static constexpr size_t consecutiveRecalls = 6;
+
+// One value of each recall trial's evaluation trace, in turn.
+static std::vector<double> perRecall(const Solution& solution, const std::string& key)
+{
+    std::vector<double> values;
+    const auto trace = nlohmann::json::parse(solution.getParameters().evaluationTrace);
+    for (const auto& trial : trace.at("trials"))
+    {
+        if (trial.at("kind") == "recall")
+        {
+            values.push_back(trial.at(key).get<double>());
+        }
+    }
+    return values;
+}
+
+// One term each recall trial earned, as its evaluation trace records it, in turn.
+static std::vector<double> perRecallTerm(const Solution& solution, const std::string& term)
+{
+    std::vector<double> values;
+    const auto trace = nlohmann::json::parse(solution.getParameters().evaluationTrace);
+    for (const auto& trial : trace.at("trials"))
+    {
+        if (trial.at("kind") == "recall")
+        {
+            values.push_back(trial.at("terms").at(term).get<double>());
+        }
+    }
+    return values;
+}
+
+// How far, at each recall's samples with a bump on the output until the sequence is released, every bump stood still at
+// an event: a bump standing between the events, or rolling past them, costs one at a time.
+static std::vector<double> stillAtEventsPerRecall(const Solution& solution)
+{
+    return perRecall(solution, "stillAtEvents");
+}
+
+TEST_CASE("ConsecutiveOrderRecall traces how far the output's bumps stood still at events in each recall", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ consecutiveOrderRecall };
+
+    SECTION("the stage-5 reference's bumps stand still at events in every recall")
+    {
+        auto solution = loadSequenceTimingFixture<ConsecutiveOrderRecall>(
+            "incremental-recall-consecutive-order-reference.dnf");
+        solution.evaluate();
+        const auto shares = stillAtEventsPerRecall(solution);
+        REQUIRE(shares.size() == consecutiveRecalls);
+        for (const double share : shares)
+        {
+            CHECK(share > 0.95);
+        }
+    }
+
+    SECTION("the rolling bump's stand still at events in the first recall only")
+    {
+        auto solution = loadSequenceTimingFixture<ConsecutiveOrderRecall>(
+            "incremental-recall-consecutive-order-rolling-bump.dnf");
+        // Later its still samples are E1's peak and any stop the bump makes at an event, as each draw of waits allows.
+        std::vector<double> later;
+        for (int evaluation = 0; evaluation < 5; ++evaluation)
+        {
+            solution.evaluate();
+            const auto shares = stillAtEventsPerRecall(solution);
+            REQUIRE(shares.size() == consecutiveRecalls);
+            for (size_t recall = 0; recall < shares.size(); ++recall)
+            {
+                INFO("evaluation " << evaluation << ", recall " << recall);
+                if (recall == 0)
+                {
+                    CHECK(shares[recall] > 0.95);
+                }
+                else
+                {
+                    later.push_back(shares[recall]);
+                }
+            }
+        }
+        CHECK(std::accumulate(later.begin(), later.end(), 0.0) / static_cast<double>(later.size()) < 0.6);
+    }
+}
+
+// R02 of stage-5-batch-2 stopped on its target, yet at its handovers the event before is still up as the next comes, for
+// a sample or three: two peaks up together, which one peak at a time forbids. A peak's credit fell only by its share of
+// samples not alone, so such a recall still earned 0.85-0.95. Each sample two peaks are up together now costs a third
+// of the recall's one-at-a-time credit, so one such sample in any recall keeps the term below the target.
+TEST_CASE("ConsecutiveOrderRecall's one at a time loses a third of a recall's credit for each sample two peaks are up together", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ consecutiveOrderRecall };
+
+    SECTION("the stage-5 reference's peaks never share the output")
+    {
+        auto solution = loadSequenceTimingFixture<ConsecutiveOrderRecall>(
+            "incremental-recall-consecutive-order-reference.dnf");
+        for (int evaluation = 0; evaluation < 3; ++evaluation)
+        {
+            solution.evaluate();
+            const auto shared = perRecall(solution, "sharedSamples");
+            REQUIRE(shared.size() == consecutiveRecalls);
+            INFO("evaluation " << evaluation);
+            CHECK(std::ranges::all_of(shared, [](const double samples) { return samples == 0.0; }));
+            CHECK(solution.reachedTarget(0.9));
+        }
+    }
+
+    SECTION("overlapping handovers never reach the target")
+    {
+        auto solution = loadSequenceTimingFixture<ConsecutiveOrderRecall>(
+            "incremental-recall-consecutive-order-overlapping-handovers.dnf");
+        double mostShared = 0.0;
+        for (int evaluation = 0; evaluation < 6; ++evaluation)
+        {
+            solution.evaluate();
+            const auto shared = perRecall(solution, "sharedSamples");
+            REQUIRE(shared.size() == consecutiveRecalls);
+            mostShared = std::max(mostShared, std::ranges::max(shared));
+            const auto oneAtATime = perRecallTerm(solution, "oneAtATime");
+            REQUIRE(oneAtATime.size() == consecutiveRecalls);
+            for (size_t recall = 0; recall < shared.size(); ++recall)
+            {
+                INFO("evaluation " << evaluation << ", recall " << recall << ", shared " << shared[recall]);
+                CHECK(oneAtATime[recall] <= std::max(0.0, 1.0 - shared[recall] / 3.0) + 0.005);
+            }
+            INFO("evaluation " << evaluation);
+            CHECK_FALSE(solution.reachedTarget(0.9));
+        }
+        CHECK(mostShared > 0.0);
+    }
+}
+
+// The recall trials of one evaluation, in turn.
+static std::vector<nlohmann::json> recallTrials(const Solution& solution)
+{
+    std::vector<nlohmann::json> recalls;
+    for (const auto& trial : timingTrials(solution))
+    {
+        if (trial.at("kind") == "recall")
+        {
+            recalls.push_back(trial);
+        }
+    }
+    return recalls;
+}
+
+// Each trigger's wait in turn.
+static std::vector<double> waitsInTurn(const Solution& solution)
+{
+    std::vector<double> waits;
+    for (const auto& recall : recallTrials(solution))
+    {
+        waits.push_back(recall.at("wait").get<double>());
+    }
+    return waits;
+}
+
+// Which of the two sequences of six triggers @p waits follow: 0 for 300, M1, 1500, 300, 1500, M2, and 1 for 1500, 300,
+// M1, 1500, M2, 300, with M1 from 700-900 and M2 from 900-1100, each on the sampling grid; nothing if neither.
+static std::optional<size_t> consecutiveSequenceOf(const std::vector<double>& waits)
+{
+    constexpr std::array<std::array<char, 6>, 2> sequences{ { { 'S', '1', 'L', 'S', 'L', '2' },
+        { 'L', 'S', '1', 'L', '2', 'S' } } };
+    const auto fits = [](const char wait, const double value) {
+        const bool onGrid = std::abs(std::fmod(value, 10.0)) < 1e-9;
+        switch (wait)
+        {
+        case 'S': return std::abs(value - 300.0) < 1e-9;
+        case 'L': return std::abs(value - 1500.0) < 1e-9;
+        case '1': return onGrid && value >= 700.0 && value <= 900.0;
+        default: return onGrid && value >= 900.0 && value <= 1100.0;
+        }
+    };
+    for (size_t sequence = 0; sequence < sequences.size(); ++sequence)
+    {
+        if (waits.size() == sequences[sequence].size()
+            && std::ranges::equal(sequences[sequence], waits, fits))
+        {
+            return sequence;
+        }
+    }
+    return std::nullopt;
+}
+
+// R01 of stage-5-batch-3 recalled in turn only when each wait was shorter than the one before: one evaluation scored
+// one order of the waits, so it scored 0.999 on that order and 0.6-0.93 on the others, and evolution kept the lucky
+// draws. R01 of stage-5-batch-4 then recalled out of order whenever the first trigger came 460 or less after the
+// demonstration. Both were caught by three orders of three waits, each from one demonstration.
+// From 5 November 2026 (the user: one demonstration, then recall as many times as asked) one run recalls after six
+// triggers in turn: each of 300 and 1500 twice, and two middle waits, one from 700-900 and one from 900-1100, in one of
+// two sequences. Each wait comes once among the first three triggers and once among the last three, and between the
+// two sequences every wait follows every other.
+TEST_CASE("ConsecutiveOrderRecall recalls after six triggers in turn in one run, each wait once early and once late", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ consecutiveOrderRecall };
+    ConsecutiveOrderRecall solution(sequenceTimingTopology());
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+
+    std::set<size_t> sequencesSeen;
+    std::set<double> middleWaits;
+    for (int evaluation = 0; evaluation < 8; ++evaluation)
+    {
+        solution.evaluate();
+        const auto trials = timingTrials(solution);
+        REQUIRE(trials.size() == consecutiveRecalls + 1);
+        CHECK(trials.back().at("kind") == "probe");
+        const auto recalls = recallTrials(solution);
+        REQUIRE(recalls.size() == consecutiveRecalls);
+
+        const auto waits = waitsInTurn(solution);
+        const auto sequence = consecutiveSequenceOf(waits);
+        INFO("evaluation " << evaluation);
+        REQUIRE(sequence.has_value());
+        sequencesSeen.insert(*sequence);
+        middleWaits.insert(waits.begin(), waits.end());
+
+        // The run branches off the demonstration after its first wait, and each later trigger comes its wait after the
+        // recall window before it.
+        double windowEnd = 1250.0;
+        for (size_t trigger = 0; trigger < recalls.size(); ++trigger)
+        {
+            INFO("evaluation " << evaluation << ", trigger " << trigger);
+            CHECK(recalls[trigger].at("cue").get<double>() == Catch::Approx(windowEnd + waits[trigger]));
+            windowEnd = recalls[trigger].at("cue").get<double>() + 1700.0;
+        }
+    }
+    // Either sequence, drawn afresh each evaluation, and middle waits drawn afresh too.
+    CHECK(sequencesSeen.size() == 2);
+    CHECK(middleWaits.size() > 4);
+}
+
+// A design that recalls in turn after some sequences of the waits only fails the others. Confirmations take the two
+// sequences in turn, so any two together replay both.
+TEST_CASE("ConsecutiveOrderRecall's confirmations of a reached target take the two sequences of triggers in turn", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ consecutiveOrderRecall };
+    CHECK(PopulationConstants::targetConfirmationEvaluations == 6);
+
+    for (size_t confirmation = 0; confirmation < 4; ++confirmation)
+    {
+        ConsecutiveOrderRecall solution(sequenceTimingTopology());
+        solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+        solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+        solution.prepareTargetConfirmation(confirmation);
+        solution.evaluate();
+        INFO("confirmation " << confirmation);
+        const auto sequence = consecutiveSequenceOf(waitsInTurn(solution));
+        REQUIRE(sequence.has_value());
+        CHECK(*sequence == confirmation % 2);
+    }
+}
+
+// Each event's place, from when every event first peaked: the share of the other three on the right side of it.
+static double placeAmongAll(const std::array<std::optional<double>, 4>& firstPeaks, const size_t event)
+{
+    if (!firstPeaks[event])
+    {
+        return 0.0;
+    }
+    double right = 0.0;
+    for (size_t other = 0; other < firstPeaks.size(); ++other)
+    {
+        if (other < event)
+        {
+            right += firstPeaks[other] && *firstPeaks[other] < *firstPeaks[event] ? 1.0 : 0.0;
+        }
+        else if (other > event)
+        {
+            right += !firstPeaks[other] || *firstPeaks[other] > *firstPeaks[event] ? 1.0 : 0.0;
+        }
+    }
+    return right / 3.0;
+}
+
+// A recall that always ended E4, E3 kept E3 in full, as E1 and E2 came before it, and so kept 0.92 of its credit, past
+// the target. From stage 5 each event's place is the share of the other three on the right side of it, so both events
+// of a swapped pair lose a third. R03 of stage-5-batch-3 recalls events out of turn in most of its recalls.
+TEST_CASE("ConsecutiveOrderRecall places each event among all the others, so both events of a swapped pair lose a third", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ consecutiveOrderRecall };
+    auto solution = loadSequenceTimingFixture<ConsecutiveOrderRecall>("incremental-recall-consecutive-order-refires.dnf");
+
+    size_t outOfPlace = 0;
+    for (int evaluation = 0; evaluation < 2; ++evaluation)
+    {
+        solution.evaluate();
+        const auto recalls = recallTrials(solution);
+        REQUIRE(recalls.size() == consecutiveRecalls);
+        for (size_t recall = 0; recall < recalls.size(); ++recall)
+        {
+            const auto& events = recalls[recall].at("recall").at("events");
+            std::array<std::optional<double>, 4> firstPeaks;
+            for (size_t event = 0; event < incrementalRecallEvents.size(); ++event)
+            {
+                const auto& firstPeak = events.at(incrementalRecallEvents[event].label).at("firstPeak");
+                if (!firstPeak.is_null())
+                {
+                    firstPeaks[event] = firstPeak.get<double>();
+                }
+            }
+            for (size_t event = 0; event < incrementalRecallEvents.size(); ++event)
+            {
+                INFO("evaluation " << evaluation << ", recall " << recall << ", " << incrementalRecallEvents[event].label);
+                const double place = placeAmongAll(firstPeaks, event);
+                CHECK(events.at(incrementalRecallEvents[event].label).at("inPlace").get<double>()
+                    == Catch::Approx(place).margin(0.005));
+                outOfPlace += place < 1.0 ? 1 : 0;
+            }
+        }
+    }
+    CHECK(outOfPlace > 0);
+}
+
+// The target asks each recall to pass, not the mean over them, so one recall out of order or overlapping keeps a design
+// short of it however well the others go.
+TEST_CASE("ConsecutiveOrderRecall reaches its target only if every recall passes it", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ consecutiveOrderRecall };
+
+    SECTION("every recall of the stage-5 reference passes")
+    {
+        auto solution = loadSequenceTimingFixture<ConsecutiveOrderRecall>(
+            "incremental-recall-consecutive-order-reference.dnf");
+        solution.evaluate();
+        for (const std::string term : { "recalled", "oneAtATime", "releasedWithoutGuide", "stoppedWithoutGuide" })
+        {
+            const auto values = perRecallTerm(solution, term);
+            REQUIRE(values.size() == consecutiveRecalls);
+            INFO(term);
+            CHECK(std::ranges::min(values) > 0.9);
+        }
+        CHECK(solution.reachedTarget(0.9));
+    }
+
+    SECTION("a design that recalls in turn after one order of the waits never does")
+    {
+        auto solution = loadSequenceTimingFixture<ConsecutiveOrderRecall>(
+            "incremental-recall-consecutive-order-one-wait-order.dnf");
+        for (int evaluation = 0; evaluation < 3; ++evaluation)
+        {
+            solution.evaluate();
+            const auto recalled = perRecallTerm(solution, "recalled");
+            const auto oneAtATime = perRecallTerm(solution, "oneAtATime");
+            REQUIRE(recalled.size() == consecutiveRecalls);
+            INFO("evaluation " << evaluation);
+            CHECK(std::min(std::ranges::min(recalled), std::ranges::min(oneAtATime)) <= 0.9);
+            CHECK_FALSE(solution.reachedTarget(0.9));
+        }
+    }
+}
+
+// R01 of stage-5-batch-4 recalls out of order when the first trigger comes 460 or less after the demonstration, and
+// scored 0.999 on the evaluations that drew a longer first wait. 300 comes twice in every evaluation, first in one of the
+// two sequences, so it fails every time.
+TEST_CASE("ConsecutiveOrderRecall fails a design that recalls out of order after the shortest wait on every evaluation", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ consecutiveOrderRecall };
+    auto solution = loadSequenceTimingFixture<ConsecutiveOrderRecall>(
+        "incremental-recall-consecutive-order-short-first-wait.dnf");
+    for (size_t confirmation = 0; confirmation < 4; ++confirmation)
+    {
+        solution.prepareTargetConfirmation(confirmation);
+        solution.evaluate();
+        const auto recalls = recallTrials(solution);
+        REQUIRE(recalls.size() == consecutiveRecalls);
+        INFO("confirmation " << confirmation);
+        if (confirmation % 2 == 0)
+        {
+            // The first sequence starts with the shortest wait, so its first recall comes 300 after the demonstration.
+            CHECK(recalls.front().at("wait").get<double>() == Catch::Approx(300.0));
+            CHECK(recalls.front().at("terms").at("recalled").get<double>() < 0.9);
+        }
+        CHECK(solution.getFitness() < 0.95);
+        CHECK_FALSE(solution.reachedTarget(0.9));
+    }
+}
+
+// R01 of stage-5-batch-5 logged 0.97, recalls in order twice, then out of order or with stray peaks at a third trigger
+// (the user's replay, 5 November 2026: "at the third one the behaviour was overt").
+TEST_CASE("ConsecutiveOrderRecall fails a design whose third recall breaks down", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ consecutiveOrderRecall };
+    auto solution = loadSequenceTimingFixture<ConsecutiveOrderRecall>(
+        "incremental-recall-consecutive-order-fails-third-recall.dnf");
+    for (size_t confirmation = 0; confirmation < 2; ++confirmation)
+    {
+        solution.prepareTargetConfirmation(confirmation);
+        solution.evaluate();
+        INFO("confirmation " << confirmation);
+        CHECK_FALSE(solution.reachedTarget(0.9));
+    }
+}
+
+// To pass, the fitness itself must exceed the target as well as each term (the user, 5 November 2026). With weights
+// that add up to 1 the terms already imply it; the rule holds whatever they add up to.
+TEST_CASE("ConsecutiveOrderRecall reaches its target only with a fitness above it", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ consecutiveOrderRecall };
+    auto solution = loadSequenceTimingFixture<ConsecutiveOrderRecall>(
+        "incremental-recall-consecutive-order-reference.dnf");
+    solution.evaluate();
+    REQUIRE(solution.reachedTarget(0.9));
+    CHECK(solution.getFitness() > 0.9);
+    CHECK_FALSE(solution.reachedTarget(solution.getFitness()));
+}
+
+// S01 of stage-5-batch-3 lets E3 or E4 go, then peaks there again after the sequence, in most recalls. Below threshold
+// for most of the samples after its release, such an event kept about 97% of its release credit. With the shortest
+// and longest waits in every evaluation S01 no longer peaks again; R03 of the same batch does, in most recalls. From stage 5 each
+// sample an event peaks again after its release, until the next trigger, costs a third of the recall's release credit.
+TEST_CASE("ConsecutiveOrderRecall's release loses a third of a recall's credit for each sample an event peaks again", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ consecutiveOrderRecall };
+
+    SECTION("the stage-5 reference's events never peak again")
+    {
+        auto solution = loadSequenceTimingFixture<ConsecutiveOrderRecall>(
+            "incremental-recall-consecutive-order-reference.dnf");
+        for (int evaluation = 0; evaluation < 2; ++evaluation)
+        {
+            solution.evaluate();
+            const auto refired = perRecall(solution, "refiredSamples");
+            REQUIRE(refired.size() == consecutiveRecalls);
+            INFO("evaluation " << evaluation);
+            CHECK(std::ranges::all_of(refired, [](const double samples) { return samples == 0.0; }));
+            CHECK(solution.reachedTarget(0.9));
+        }
+    }
+
+    SECTION("an event that peaks again costs its recall's release")
+    {
+        auto solution = loadSequenceTimingFixture<ConsecutiveOrderRecall>("incremental-recall-consecutive-order-refires.dnf");
+        double mostRefired = 0.0;
+        for (int evaluation = 0; evaluation < 2; ++evaluation)
+        {
+            solution.evaluate();
+            const auto refired = perRecall(solution, "refiredSamples");
+            REQUIRE(refired.size() == consecutiveRecalls);
+            mostRefired = std::max(mostRefired, std::ranges::max(refired));
+            for (const std::string term : { "released", "releasedWithoutGuide" })
+            {
+                const auto released = perRecallTerm(solution, term);
+                REQUIRE(released.size() == consecutiveRecalls);
+                for (size_t recall = 0; recall < refired.size(); ++recall)
+                {
+                    INFO("evaluation " << evaluation << ", " << term << ", recall " << recall << ", refired " << refired[recall]);
+                    CHECK(released[recall] <= std::max(0.0, 1.0 - refired[recall] / 3.0) + 0.005);
+                }
+            }
+            CHECK_FALSE(solution.reachedTarget(0.9));
+        }
+        CHECK(mostRefired >= 3.0);
+    }
+}
+
+// A saved design replays the first sequence of six triggers, each middle wait at the middle of its range: waits of 300,
+// 800, 1500, 300, 1500 and 1000, each from the end of the recall window before it.
+TEST_CASE("ConsecutiveOrderRecall saves six triggers in turn, so a saved design replays consecutive recall", "[Solutions][IncrementalRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ consecutiveOrderRecall };
+    const auto fixture = loadFixtureSimulation("incremental-recall-consecutive-order-reference.dnf");
+    ConsecutiveOrderRecall solution(sequenceTimingTopology(), *fixture);
+    const auto saveDirectory = std::filesystem::temp_directory_path() / "neat-dnfs-incremental-recall-5-replay";
+
+    Solution& saved = solution;
+    saved.buildPhenotype();
+    saved.createPhenotypeEnvironment();
+    std::filesystem::path savedFile;
+    {
+        const auto simulation = std::make_shared<dnf_composer::Simulation>(saved.getPhenotype());
+        dnf_composer::SimulationFileManager(simulation, saveDirectory.generic_string()).saveElementsToJson();
+        const std::string identifier = simulation->getUniqueIdentifier();
+        savedFile = saveDirectory / identifier / (identifier + ".dnf");
+    }
+    saved.clearPhenotype();
+    REQUIRE(std::filesystem::exists(savedFile));
+
+    const auto replay = std::make_shared<dnf_composer::Simulation>();
+    dnf_composer::SimulationFileManager(replay, savedFile.generic_string()).loadElementsFromJson();
+    replay->init();
+    const auto output = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(replay->getElement("nf 2"));
+    REQUIRE(output != nullptr);
+    // The triggers come at 1550, 4050, 7250, 9250, 12450 and 15150. The reference's first recall peaks 130, 270, 610 and
+    // 1210 after its trigger; it winds back a little early, so the later ones peak 90, 180 and 520 after theirs, and E4
+    // about 10 earlier with each recall, from 1100 to 1060 after its trigger.
+    const std::array<double, 6> cues{ 1550.0, 4050.0, 7250.0, 9250.0, 12450.0, 15150.0 };
+    const std::array<std::array<double, 4>, 6> upAfterCue{ { { 130.0, 270.0, 610.0, 1210.0 },
+        { 90.0, 180.0, 520.0, 1100.0 }, { 90.0, 180.0, 520.0, 1090.0 }, { 90.0, 180.0, 520.0, 1080.0 },
+        { 90.0, 180.0, 520.0, 1070.0 }, { 90.0, 180.0, 520.0, 1060.0 } } };
+    for (size_t recall = 0; recall < cues.size(); ++recall)
+    {
+        for (size_t event = 0; event < incrementalRecallEvents.size(); ++event)
+        {
+            const double time = cues[recall] + upAfterCue[recall][event];
+            while (replay->getT() < time - 1e-9)
+            {
+                replay->step();
+            }
+            const auto bumps = output->getBumps();
+            INFO("recall " << recall << ", t " << time << ", " << incrementalRecallEvents[event].label);
+            REQUIRE(bumps.size() == 1);
+            CHECK(std::abs(bumps.front().centroid - incrementalRecallEvents[event].position) <= 1.0);
+        }
+    }
+    std::filesystem::remove_all(saveDirectory);
+}
+
+TEST_CASE("ConsecutiveOrderRecall is registered with one input and one output, starting from the incremental-recall template", "[SolutionRegistry]")
+{
+    const auto* task = findTask(consecutiveOrderRecall);
+    REQUIRE(task != nullptr);
+    CHECK(task->templateFile == "incremental-recall.dnf");
     CHECK(task->inputs == 1);
     CHECK(task->outputs == 1);
 }

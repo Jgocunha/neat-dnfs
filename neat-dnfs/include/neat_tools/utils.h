@@ -310,6 +310,35 @@ namespace neat_dnfs
                     / static_cast<double>(index);
             }
 
+            /// @brief Score in [0,1] for how far one item of a sequence came in its place among all the others.
+            ///
+            /// Unlike shareInPlace(), which credits a later item by the items due before it alone, this weighs every
+            /// other item: each one due before it as far as it came before it, and each one due after it as far as it
+            /// did not come before it or at the same time. One due after it that never came does not count against it.
+            /// Both items of a swapped pair lose a share.
+            /// @param firstTimes When each item first came, in the order the items are due; empty for one that never
+            /// came.
+            /// @param index Position of the item in the sequence.
+            /// @return 0 if the item never came, otherwise the share of the other items on the right side of it (1 if
+            /// there are none).
+            [[nodiscard]] inline double shareInPlaceAmongAll(const std::span<const std::optional<double>> firstTimes, const size_t index)
+            {
+                const auto& came = firstTimes[index];
+                if (!came)
+                {
+                    return 0.0;
+                }
+                if (firstTimes.size() == 1)
+                {
+                    return 1.0;
+                }
+                const auto cameBefore = [&came](const std::optional<double>& other) { return other && *other < *came; };
+                const auto notBefore = [&came](const std::optional<double>& other) { return !other || *other > *came; };
+                const auto onTheRightSide = std::ranges::count_if(firstTimes.first(index), cameBefore)
+                    + std::ranges::count_if(firstTimes.subspan(index + 1), notBefore);
+                return static_cast<double>(onTheRightSide) / static_cast<double>(firstTimes.size() - 1);
+            }
+
             /// @brief Whether one item of a sequence came at its position: the k-th of the items that came, in time,
             /// and the k-th of them in the sequence.
             ///

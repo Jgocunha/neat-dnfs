@@ -260,6 +260,65 @@ TEST_CASE("shareInPlace counts an item that never came, or came at the same time
     CHECK(shareInPlace(together, 1) == 0.0);
 }
 
+TEST_CASE("shareInPlaceAmongAll gives every item of a sequence that came in order its full place", "[shareInPlaceAmongAll]")
+{
+    using neat_dnfs::tools::utils::shareInPlaceAmongAll;
+    const std::vector<std::optional<double>> inOrder{ 10.0, 20.0, 30.0, 40.0 };
+
+    for (size_t item = 0; item < inOrder.size(); ++item)
+    {
+        CHECK(shareInPlaceAmongAll(inOrder, item) == 1.0);
+    }
+}
+
+// shareInPlace passes the later item of a swapped pair in full, as the items due before it came before it, so a
+// sequence always ending with its last two swapped keeps over 0.9 of its credit. Here both items of the pair lose a
+// third, wherever the pair lies.
+TEST_CASE("shareInPlaceAmongAll takes a third from both items of a swapped pair of four", "[shareInPlaceAmongAll]")
+{
+    using neat_dnfs::tools::utils::shareInPlaceAmongAll;
+    const std::vector<std::vector<std::optional<double>>> swapped{
+        { 20.0, 10.0, 30.0, 40.0 }, { 10.0, 30.0, 20.0, 40.0 }, { 10.0, 20.0, 40.0, 30.0 } };
+
+    for (size_t pair = 0; pair < swapped.size(); ++pair)
+    {
+        for (size_t item = 0; item < 4; ++item)
+        {
+            INFO("pair " << pair << ", item " << item);
+            const bool inPair = item == pair || item == pair + 1;
+            CHECK(shareInPlaceAmongAll(swapped[pair], item) == Catch::Approx(inPair ? 2.0 / 3.0 : 1.0));
+        }
+    }
+}
+
+TEST_CASE("shareInPlaceAmongAll gives a sequence that came in reverse no place", "[shareInPlaceAmongAll]")
+{
+    using neat_dnfs::tools::utils::shareInPlaceAmongAll;
+    const std::vector<std::optional<double>> reversed{ 40.0, 30.0, 20.0, 10.0 };
+
+    for (size_t item = 0; item < reversed.size(); ++item)
+    {
+        CHECK(shareInPlaceAmongAll(reversed, item) == 0.0);
+    }
+}
+
+// An item due later that never came is no fault of an item that came: only the missing item loses its place.
+TEST_CASE("shareInPlaceAmongAll counts an item due before that never came against it, one due after not", "[shareInPlaceAmongAll]")
+{
+    using neat_dnfs::tools::utils::shareInPlaceAmongAll;
+    const std::vector<std::optional<double>> withoutLast{ 10.0, 20.0, 30.0, std::nullopt };
+    const std::vector<std::optional<double>> withoutFirst{ std::nullopt, 10.0, 20.0, 30.0 };
+    const std::vector<std::optional<double>> together{ 10.0, 10.0 };
+
+    CHECK(shareInPlaceAmongAll(withoutLast, 0) == 1.0);
+    CHECK(shareInPlaceAmongAll(withoutLast, 2) == 1.0);
+    CHECK(shareInPlaceAmongAll(withoutLast, 3) == 0.0);
+    CHECK(shareInPlaceAmongAll(withoutFirst, 0) == 0.0);
+    CHECK(shareInPlaceAmongAll(withoutFirst, 1) == Catch::Approx(2.0 / 3.0));
+    CHECK(shareInPlaceAmongAll(together, 0) == 0.0);
+    CHECK(shareInPlaceAmongAll(together, 1) == 0.0);
+}
+
 TEST_CASE("cameInPosition puts every item of a sequence that came in order in its position", "[cameInPosition]")
 {
     using neat_dnfs::tools::utils::cameInPosition;
