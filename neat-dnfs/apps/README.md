@@ -30,7 +30,8 @@ Every binary supports `--list` (print available tasks and ablations) and
 
 Available tasks: `and`, `xor`, `detection-instability`, `memory-instability`, `selection-instability`,
 `memory-trace`, `dmts`, `ior`, `hri-packaging`, `sequence-timing-behaviour`,
-`sequence-timing-behaviour-guided`, `serial-order-behaviour`, `serial-order-behaviour-guided`.
+`sequence-timing-behaviour-guided`, `serial-order-behaviour`, `serial-order-behaviour-guided`,
+`sequence-and-timing-recall`.
 
 Available ablations: `no-growth-io-only`, `no-growth-reference-hidden-field-count`, `no-speciation`,
 `no-crossover`, `random-initial-topology`, `compat-threshold-4`, `output-feedback`,
@@ -48,6 +49,24 @@ and B must peak at the times they were shown, 100, 600, 800 and 1800 after it. E
 without X, as long as its longest recall trial, then three recall trials after gaps drawn afresh from 300-1500, each
 from rest. Any peak at an event in the probe costs recall credit, however brief. `-guided` pays the larger of its
 guided score and what `sequence-timing-behaviour` pays for the same trials.
+
+`sequence-and-timing-recall` scores ten events 20 apart on fields of 240: after the memory recall trigger (a boost of
+the input field), LA2B, RA3A, LA1A, RA1B, RA2B, LA3A, RA1A, LA1B, HOL and HOS must first peak in that order, 50, 150,
+350, 450, 650, 750, 950, 1050, 1900 and 2800 after it. Each evaluation runs a probe, a demonstration and 1500 without
+the trigger; then one demonstration and the trigger five times in turn, each after a wait drawn afresh from 500-1500
+(the first from the end of the demonstration, each later one from the end of the recall window before it); then a tail
+of 1500 without the trigger. Order is asked of each event: did it first peak at its position, the k-th of the events
+that peaked and the k-th of them in the demonstration? Two events first peaking at one sample count as in order, three
+or more do not. An event's credit is its best peak score, over three samples running, if it came at its position, and
+order is the mean credit times the share of clean samples (at most two events up, each bump at an event and no wider
+than a peak, no released event peaking again). Timing, troughs once passed and quiet after the sequence are each paid as
+far as the recall was in order. Every recall counts the same, and every recall term is multiplied by the share of
+samples with no output bump in the demonstration, the probe and the tail. The guides read the order of the output's
+levels at the events: the shown events through the demonstration, the waiting events during recall, and all ten before
+the next trigger. Its fitness is the larger of its guided score and the intended behaviour's, whose five weights are in
+`config/solutions/sequence-and-timing-recall-intended.json`. A run stops on target only when the fitness and every term
+of the larger score, each recall term at its worst recall, exceed it, over six confirmations. A saved solution replays
+triggers after waits of 500, 1500, 1000, 500 and 1500.
 
 `output-feedback` is not an ablation but a wider search space: mutation may also wire
 connections out of output fields (`GenomeMutationConstants.allowOutputAsConnectionSource`), which it

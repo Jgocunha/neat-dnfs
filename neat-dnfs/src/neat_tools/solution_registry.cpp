@@ -16,6 +16,7 @@
 #include "solutions/delayed_match_to_sample.h"
 #include "solutions/inhibition_of_return.h"
 #include "solutions/hri_packaging_task.h"
+#include "solutions/sequence_and_timing_recall.h"
 #include "solutions/sequence_timing_behaviour.h"
 #include "solutions/serial_order_behaviour.h"
 
@@ -95,6 +96,7 @@ namespace neat_dnfs
 			entry<SequenceTimingBehaviourGuided>("sequence-timing-behaviour-guided", "sequence-timing.dnf", 1, 1),
 			entry<SerialOrderBehaviour>("serial-order-behaviour", "serial-order.dnf", 1, 1),
 			entry<SerialOrderBehaviourGuided>("serial-order-behaviour-guided", "serial-order.dnf", 1, 1),
+			entry<SequenceAndTimingRecall>("sequence-and-timing-recall", "sequence-and-timing-recall.dnf", 1, 1),
 		};
 		return entries;
 	}

@@ -27,6 +27,8 @@
 #include <charconv>
 #include <optional>
 #include <span>
+#include <stdexcept>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -306,6 +308,63 @@ namespace neat_dnfs
                 }
                 return static_cast<double>(std::ranges::count_if(firstTimes.first(index), cameBefore))
                     / static_cast<double>(index);
+            }
+
+            /// @brief Whether one item of a sequence came at its position: the k-th of the items that came, in time,
+            /// and the k-th of them in the sequence.
+            ///
+            /// Positions are counted among the items that came, so a missing item does not move the others. Items
+            /// that came at the same time share the positions they span, so a pair may come together; an item that
+            /// came together with more than @p mostTied items in all is not in its position.
+            /// @param firstTimes When each item first came, in the order the items are due; empty for one that never
+            /// came.
+            /// @param index Position of the item in the sequence.
+            /// @param mostTied How many items may come at one time and still count as in their positions.
+            /// @return False if the item never came, came at one time with more than @p mostTied items in all, or came
+            /// at another position.
+            [[nodiscard]] inline bool cameInPosition(const std::span<const std::optional<double>> firstTimes,
+                const size_t index, const size_t mostTied)
+            {
+                const auto& came = firstTimes[index];
+                if (!came)
+                {
+                    return false;
+                }
+                const auto together = static_cast<size_t>(std::ranges::count_if(firstTimes,
+                    [&came](const std::optional<double>& other) { return other && *other == *came; }));
+                if (together > mostTied)
+                {
+                    return false;
+                }
+                const auto earlier = static_cast<size_t>(std::ranges::count_if(firstTimes,
+                    [&came](const std::optional<double>& other) { return other && *other < *came; }));
+                const auto position = static_cast<size_t>(std::ranges::count_if(firstTimes.first(index),
+                    [](const std::optional<double>& other) { return other.has_value(); }));
+                return position >= earlier && position < earlier + together;
+            }
+
+            /// @brief Score in [0,1] for how far @p values fall from each one to the next.
+            /// @param values Values in the order they should fall, highest first; at least two.
+            /// @param deadZone How far a pair must fall before it earns anything, such as the noise between two places
+            /// of a field.
+            /// @param fullStep How much further it must fall for full credit.
+            /// @return The mean, over neighbouring pairs, of the fall beyond @p deadZone over @p fullStep, each kept in
+            /// [0,1]: a rise earns nothing.
+            /// @throws std::invalid_argument if fewer than two values are given.
+            [[nodiscard]] inline double descendingShare(const std::span<const double> values, const double deadZone,
+                const double fullStep)
+            {
+                if (values.size() < 2)
+                {
+                    throw std::invalid_argument("descendingShare: a fall needs at least two values, got "
+                        + std::to_string(values.size()) + ".");
+                }
+                double credit = 0.0;
+                for (size_t value = 1; value < values.size(); ++value)
+                {
+                    credit += std::clamp((values[value - 1] - values[value] - deadZone) / fullStep, 0.0, 1.0);
+                }
+                return credit / static_cast<double>(values.size() - 1);
             }
 
             /// @brief Middle value of @p values, unmoved by a minority of outliers such as a few peaks in a field.

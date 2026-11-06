@@ -26,6 +26,7 @@
 #include "solutions/and.h"
 #include "solutions/xor.h"
 #include "solutions/hri_packaging_task.h"
+#include "solutions/sequence_and_timing_recall.h"
 #include "solutions/sequence_timing_behaviour.h"
 #include "solutions/serial_order_behaviour.h"
 #include "solutions/serial_order_schedule.h"
@@ -808,6 +809,12 @@ static bool onConnectionGlobalStep(const double amplitudeGlobal)
     return std::abs(std::remainder(amplitudeGlobal, step)) < 1e-9;
 }
 
+// Mutation moves a value by whole steps, so stepping lands on a setting only if it sits on a multiple of the step.
+static bool onStep(const double value, const double step)
+{
+    return std::abs(std::remainder(value, step)) < 1e-9;
+}
+
 // A parameter the task fixes for the input or output is only reachable at exactly that value.
 static void checkFixedParametersMatch(const FieldGene& gene)
 {
@@ -1332,6 +1339,561 @@ TEST_CASE("Every sequence-timing task is registered with one input and one outpu
         CHECK(task->inputs == 1);
         CHECK(task->outputs == 1);
     }
+}
+
+// The final task of the serial-order and timing work (from 29 October 2026): ten events 20 apart on fields of 240.
+static const std::string sequenceAndTimingRecall{ "sequence-and-timing-recall" };
+
+// The ten events in their order, each with when it is due after the memory recall trigger.
+static const std::array<std::pair<std::string, double>, 10> recallEvents{ { { "LA2B", 50.0 }, { "RA3A", 150.0 },
+    { "LA1A", 350.0 }, { "RA1B", 450.0 }, { "RA2B", 650.0 }, { "LA3A", 750.0 }, { "RA1A", 950.0 }, { "LA1B", 1050.0 },
+    { "HOL", 1900.0 }, { "HOS", 2800.0 } } };
+
+// Where each event lies on the input and output fields, in the same order.
+static const std::array<double, 10> recallEventPositions{ 40.0, 160.0, 60.0, 100.0, 120.0, 80.0, 140.0, 20.0, 200.0,
+    220.0 };
+
+static SequenceAndTimingRecall loadRecallFixture(const std::string& name)
+{
+    return loadSequenceTimingFixture<SequenceAndTimingRecall>("sequence-and-timing-recall-" + name + ".dnf");
+}
+
+// How many triggers come in turn after the one demonstration of an evaluation.
+static constexpr size_t recallTriggers = 5;
+
+// Every recall of an evaluation, in turn: the five of its one demonstration.
+static std::vector<nlohmann::json> recallsOf(const nlohmann::json& trials)
+{
+    std::vector<nlohmann::json> recalls;
+    for (const auto& trial : trials)
+    {
+        if (trial.at("kind") == "consecutive")
+        {
+            for (const auto& recall : trial.at("recalls"))
+            {
+                recalls.push_back(recall);
+            }
+        }
+    }
+    return recalls;
+}
+
+// One value of every recall of the last evaluation, in turn.
+static std::vector<double> perRecallOf(const Solution& solution, const std::string& key)
+{
+    std::vector<double> values;
+    for (const auto& recall : recallsOf(timingTrials(solution)))
+    {
+        values.push_back(recall.at(key).get<double>());
+    }
+    return values;
+}
+
+// The share of samples with no output bump in the demonstration and first wait, the probe and the tail: every recall
+// term is multiplied by it.
+static double recallGateOf(const Solution& solution)
+{
+    return nlohmann::json::parse(solution.getParameters().evaluationTrace).at("gate").at("gate").get<double>();
+}
+
+TEST_CASE("SequenceAndTimingRecall contract", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    checkSolutionContract<SequenceAndTimingRecall>(makeTopology(1, 1));
+}
+
+TEST_CASE("SequenceAndTimingRecall names its runs, and clones and copies as itself", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    SequenceAndTimingRecall solution(sequenceTimingTopology());
+    solution.initialize();
+    solution.buildPhenotype();
+
+    CHECK(solution.getName() == "Sequence And Timing Recall");
+    CHECK(std::dynamic_pointer_cast<SequenceAndTimingRecall>(solution.clone()) != nullptr);
+    CHECK(std::dynamic_pointer_cast<SequenceAndTimingRecall>(solution.copy()) != nullptr);
+}
+
+// The hand-built reference recalls all ten in order and on time after every trigger, lets each go into a trough, and
+// holds a primacy gradient between recalls. Its HOL and HOS sit level in that gradient, so the guides that read the
+// gradient (f2, f6 and the guided half of f8) stay below 1.
+TEST_CASE("SequenceAndTimingRecall scores the reference design at least 0.9", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("reference");
+
+    for (int evaluation = 0; evaluation < 2; ++evaluation)
+    {
+        solution.evaluate();
+        const auto& partials = solution.getParameters().partialFitness;
+        REQUIRE(partials.size() == 8);
+        for (const size_t term : std::initializer_list<size_t>{ 0, 2, 3, 4, 6 })
+        {
+            INFO("evaluation " << evaluation << ", f" << term + 1);
+            CHECK(partials[term] > 0.9);
+        }
+        for (const size_t term : std::initializer_list<size_t>{ 1, 5, 7 })
+        {
+            INFO("evaluation " << evaluation << ", guide f" << term + 1);
+            CHECK(partials[term] > 0.7);
+        }
+        CHECK(recallGateOf(solution) == Catch::Approx(1.0));
+        const auto scores = nlohmann::json::parse(solution.getParameters().evaluationTrace).at("fitness");
+        CHECK(scores.at("intended").get<double>() >= 0.9);
+        CHECK(solution.getFitness() >= 0.9);
+    }
+}
+
+// With no connection into the output, nothing drives a peak or a pre-shape there: the design earns the input terms
+// alone, a twentieth of either weighted sum.
+TEST_CASE("SequenceAndTimingRecall gives an output that never responds the input terms alone", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    SequenceAndTimingRecall solution(sequenceTimingTopology());
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[0] > 0.9);
+    CHECK(partials[1] == 0.0);
+    CHECK(partials[2] > 0.9);
+    for (size_t term = 3; term < partials.size(); ++term)
+    {
+        INFO("f" << term + 1);
+        CHECK(partials[term] == 0.0);
+    }
+    CHECK(solution.getFitness() == Catch::Approx(0.05).margin(0.005));
+}
+
+// The reference with 4-5 at 0 records no stamps, so every event fires at once after each trigger. Three or more events
+// first peaking at one sample are not in order (the user's tie rule of 5 November 2026), and none is on time.
+TEST_CASE("SequenceAndTimingRecall gives a burst almost no order and no timing credit", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("burst");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[3] < 0.2);
+    CHECK(partials[4] < 0.1);
+    CHECK(solution.getFitness() < 0.2);
+}
+
+// The reference with 8-5 and 8-10 at 800: it recalls the ten in order at about a quarter of their times, after every
+// trigger.
+TEST_CASE("SequenceAndTimingRecall pays a fast cascade in order for the order, not the timing", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("fast-cascade");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[3] > 0.8);
+    CHECK(partials[4] < 0.2);
+}
+
+// The reference with nf 6 at tau 120: each event is released later, so two or three peaks are up together, each where
+// and when it is due. Two up together are clean; three are not, but only for a few samples.
+TEST_CASE("SequenceAndTimingRecall gives ordered peaks that overlap in time full order and timing credit", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("overlapping-peaks");
+    solution.evaluate();
+
+    const auto recalls = recallsOf(timingTrials(solution));
+    REQUIRE(recalls.size() == recallTriggers);
+    for (size_t recall = 0; recall < recalls.size(); ++recall)
+    {
+        const auto& events = recalls[recall].at("recall").at("events");
+        size_t mostUpTogether = 0;
+        for (const auto& [label, due] : recallEvents)
+        {
+            const double firstPeak = events.at(label).at("firstPeak").get<double>();
+            // Up at that moment: peaked already, and not yet released.
+            const auto upTogether = std::ranges::count_if(recallEvents, [&](const auto& other) {
+                const auto& otherEvent = events.at(other.first);
+                const auto& releasedAt = otherEvent.at("releasedAt");
+                return !otherEvent.at("firstPeak").is_null() && otherEvent.at("firstPeak").get<double>() <= firstPeak
+                    && (releasedAt.is_null() || releasedAt.get<double>() > firstPeak);
+            });
+            mostUpTogether = std::max(mostUpTogether, static_cast<size_t>(upTogether));
+        }
+        INFO("recall " << recall);
+        CHECK(mostUpTogether >= 2U);
+        CHECK(recalls[recall].at("clean").get<double>() > 0.9);
+    }
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[3] > 0.9);
+    CHECK(partials[4] > 0.9);
+}
+
+// The reference with 7-8's global part at 0.2: ten pending events open the window by themselves, so it starts recalling
+// without any trigger and keeps firing. The probe and the first wait catch it, and the gate takes most of every recall
+// term.
+TEST_CASE("SequenceAndTimingRecall gives an output that fires without the trigger almost no recall credit", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("fires-without-trigger");
+    solution.evaluate();
+
+    const auto trials = timingTrials(solution);
+    REQUIRE(trials.front().at("kind") == "probe");
+    CHECK(trials.front().at("quietWithoutCue").get<double>() < 0.5);
+    CHECK(recallGateOf(solution) < 0.8);
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    for (size_t term = 3; term < partials.size(); ++term)
+    {
+        INFO("f" << term + 1);
+        CHECK(partials[term] < 0.2);
+    }
+    CHECK(solution.getFitness() < 0.2);
+}
+
+// From 6 November 2026 (the user): the probe watches 1500 after the demonstration without a trigger; then one
+// demonstration and five triggers in turn, each wait drawn afresh from 500-1500 (from the end of the demonstration, then
+// from the end of the recall window before it); then a tail of 1500 without a trigger.
+TEST_CASE("SequenceAndTimingRecall runs a probe of 1500, then one demonstration, five triggers after waits of 500-1500 and a tail of 1500", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    SequenceAndTimingRecall solution(sequenceTimingTopology());
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+    solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+
+    constexpr double demonstrationEnd = 2850.0;
+    constexpr double recallWindow = 3300.0;
+    std::set<double> waitsSeen;
+    for (int evaluation = 0; evaluation < 8; ++evaluation)
+    {
+        solution.evaluate();
+        const auto trials = timingTrials(solution);
+        REQUIRE(trials.size() == 2);
+        CHECK(trials.front().at("kind") == "probe");
+        CHECK(trials.front().at("watched").get<double>() == 1500.0);
+        REQUIRE(trials.back().at("kind") == "consecutive");
+        CHECK(trials.back().at("tail").at("watched").get<double>() == 1500.0);
+        const auto recalls = recallsOf(trials);
+        REQUIRE(recalls.size() == recallTriggers);
+
+        double windowEnd = demonstrationEnd;
+        for (size_t trigger = 0; trigger < recalls.size(); ++trigger)
+        {
+            INFO("evaluation " << evaluation << ", trigger " << trigger);
+            const double wait = recalls[trigger].at("wait").get<double>();
+            CHECK(wait >= 500.0);
+            CHECK(wait <= 1500.0);
+            CHECK(std::abs(std::fmod(wait, 10.0)) < 1e-9);
+            CHECK(recalls[trigger].at("cue").get<double>() == Catch::Approx(windowEnd + wait));
+            CHECK(recalls[trigger].at("recall").at("events").size() == 10);
+            windowEnd = recalls[trigger].at("cue").get<double>() + recallWindow;
+            waitsSeen.insert(wait);
+        }
+    }
+    CHECK(waitsSeen.size() > 20);
+}
+
+// The reference with 9-5 at 0: no wind-back, so after its first recall every stamp stays above threshold, and each later
+// trigger fires the events nearly together. Every recall counts the same, so recalling once earns about a fifth.
+TEST_CASE("SequenceAndTimingRecall pays a design that recalls only after the first trigger about a fifth of the recall credit", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("recalls-once");
+    solution.evaluate();
+
+    const auto recalls = recallsOf(timingTrials(solution));
+    REQUIRE(recalls.size() == recallTriggers);
+    const auto eventsOnTime = [](const nlohmann::json& recall) {
+        const auto& events = recall.at("recall").at("events");
+        return std::ranges::count_if(recallEvents,
+            [&events](const auto& event) { return events.at(event.first).at("onTime").get<double>() > 0.5; });
+    };
+    CHECK(eventsOnTime(recalls[0]) == 10);
+    for (size_t recall = 1; recall < recalls.size(); ++recall)
+    {
+        INFO("recall " << recall);
+        CHECK(eventsOnTime(recalls[recall]) <= 2);
+    }
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[3] < 0.35);
+    CHECK(partials[4] < 0.35);
+    CHECK(solution.getFitness() < 0.4);
+    CHECK_FALSE(solution.reachedTarget(0.9));
+}
+
+// The memory a recall starts from is read in the last 100 before its trigger: the ten events' output levels, each below
+// the one due before it. The reference's wind-back restores its gradient after each recall; recalls-once has no
+// wind-back, so after its first recall the gradient is gone.
+TEST_CASE("SequenceAndTimingRecall reads the memory before every trigger, not only after the demonstration", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    const auto meanBeforeLaterTriggers = [](const Solution& solution) {
+        const auto memory = perRecallOf(solution, "memoryBeforeCue");
+        REQUIRE(memory.size() == recallTriggers);
+        return std::accumulate(memory.begin() + 1, memory.end(), 0.0) / static_cast<double>(memory.size() - 1);
+    };
+    auto reference = loadRecallFixture("reference");
+    auto recallsOnce = loadRecallFixture("recalls-once");
+    for (int evaluation = 0; evaluation < 2; ++evaluation)
+    {
+        reference.evaluate();
+        recallsOnce.evaluate();
+        INFO("evaluation " << evaluation);
+        CHECK(perRecallOf(reference, "memoryBeforeCue").front() > 0.7);
+        CHECK(meanBeforeLaterTriggers(reference) > 0.7);
+        CHECK(meanBeforeLaterTriggers(recallsOnce) < 0.3);
+    }
+}
+
+// The best of batch-2's R08 (31 October 2026): after each trigger the output flickers, a sample at a time, at places all
+// over the field, in no order. A flash earns a third of a peak, and its place in the order is chance.
+TEST_CASE("SequenceAndTimingRecall pays a one-sample flicker almost nothing", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("flickers");
+    for (int evaluation = 0; evaluation < 2; ++evaluation)
+    {
+        solution.evaluate();
+        const auto& partials = solution.getParameters().partialFitness;
+        REQUIRE(partials.size() == 8);
+        INFO("evaluation " << evaluation);
+        CHECK(partials[3] < 0.15);
+        CHECK(solution.getFitness() < 0.2);
+    }
+}
+
+// The best of batch-3's R02 (5 November 2026): at every trigger a wave spreads out from LA2B's place, so each event peaks
+// once, cleanly, in order of its distance from LA2B, not in the demonstrated order. The old order rule paid it about two
+// thirds of its credit, which ranked it above the only run that recalled in order; asked of each event whether it came
+// at its position, almost none does.
+TEST_CASE("SequenceAndTimingRecall gives a wave across the field, in order of place, almost no order credit", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("wave");
+    for (int evaluation = 0; evaluation < 2; ++evaluation)
+    {
+        solution.evaluate();
+        const auto& partials = solution.getParameters().partialFitness;
+        REQUIRE(partials.size() == 8);
+        INFO("evaluation " << evaluation);
+        CHECK(partials[3] < 0.25);
+        CHECK(partials[4] < 0.15);
+        CHECK(solution.getFitness() < 0.2);
+    }
+}
+
+// The best of batch-2's R04 (31 October 2026) lets events go and then peaks there again. A sample with a released event
+// peaking again, before the sequence is over, is not clean; after it, it is not quiet.
+TEST_CASE("SequenceAndTimingRecall counts an event that peaks again after its release against the recall", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+
+    SECTION("the reference's events never peak again, and its recalls are clean")
+    {
+        auto solution = loadRecallFixture("reference");
+        solution.evaluate();
+        const auto refired = perRecallOf(solution, "refiredSamples");
+        REQUIRE(refired.size() == recallTriggers);
+        CHECK(std::ranges::all_of(refired, [](const double samples) { return samples == 0.0; }));
+        const auto clean = perRecallOf(solution, "clean");
+        CHECK(std::ranges::all_of(clean, [](const double share) { return share > 0.95; }));
+    }
+
+    SECTION("a design whose events peak again loses order and after-recall credit")
+    {
+        auto solution = loadRecallFixture("refires");
+        double mostRefired = 0.0;
+        for (int evaluation = 0; evaluation < 2; ++evaluation)
+        {
+            solution.evaluate();
+            const auto refired = perRecallOf(solution, "refiredSamples");
+            mostRefired = std::max(mostRefired, std::ranges::max(refired));
+            const auto& partials = solution.getParameters().partialFitness;
+            REQUIRE(partials.size() == 8);
+            INFO("evaluation " << evaluation);
+            CHECK(partials[3] < 0.5);
+            CHECK(partials[7] < 0.5);
+        }
+        CHECK(mostRefired >= 3.0);
+    }
+}
+
+// The run stops on target only when the fitness and every term of the larger weighted sum, each recall term at its worst
+// recall, exceed it (the user, 5 November 2026), so one recall that fails keeps a design short of it.
+TEST_CASE("SequenceAndTimingRecall reaches its target only with a fitness above it and every recall's terms above it", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("reference");
+    solution.evaluate();
+    REQUIRE(solution.reachedTarget(0.9));
+    CHECK(solution.getFitness() > 0.9);
+    CHECK_FALSE(solution.reachedTarget(solution.getFitness()));
+}
+
+// Each recall's trace says when each event first peaked after the trigger, whether it came at its position, and how
+// close it came to its time.
+TEST_CASE("SequenceAndTimingRecall traces when each event first peaked after the trigger, its position and its timing credit", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("reference");
+    solution.evaluate();
+
+    const auto trials = timingTrials(solution);
+    REQUIRE(trials.size() == 2);
+    CHECK(trials.back().at("snapshots").size() > 50);
+    const auto recalls = recallsOf(trials);
+    REQUIRE(recalls.size() == recallTriggers);
+    for (size_t recall = 0; recall < recalls.size(); ++recall)
+    {
+        const auto& events = recalls[recall].at("recall").at("events");
+        for (const auto& [label, due] : recallEvents)
+        {
+            INFO("recall " << recall << ", " << label);
+            const double afterCue = events.at(label).at("afterCue").get<double>();
+            CHECK(std::abs(afterCue - due) <= 0.2 * due);
+            CHECK(events.at(label).at("inPosition").get<bool>());
+            CHECK(events.at(label).at("onTime").get<double>() > 0.5);
+        }
+        CHECK(recalls[recall].at("terms").contains("order"));
+    }
+}
+
+// A saved solution carries what createPhenotypeEnvironment() adds: the judge's first schedule, triggers after waits of
+// 500, 1500, 1000, 500 and 1500, so a saved design opened in dnf-composer replays one demonstration and five recalls,
+// after short and long waits.
+TEST_CASE("SequenceAndTimingRecall saves five triggers in turn, after 500, 1500, 1000, 500 and 1500, so a saved design replays them", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    const auto fixture = loadFixtureSimulation("sequence-and-timing-recall-reference.dnf");
+    SequenceAndTimingRecall solution(sequenceTimingTopology(), *fixture);
+    const auto saveDirectory = std::filesystem::temp_directory_path() / "neat-dnfs-sequence-and-timing-recall-replay";
+
+    // As PopulationFileManager saves a solution: into <directory>/<identifier>/<identifier>.dnf.
+    Solution& saved = solution;
+    saved.buildPhenotype();
+    saved.createPhenotypeEnvironment();
+    std::filesystem::path savedFile;
+    {
+        const auto simulation = std::make_shared<dnf_composer::Simulation>(saved.getPhenotype());
+        dnf_composer::SimulationFileManager(simulation, saveDirectory.generic_string()).saveElementsToJson();
+        const std::string identifier = simulation->getUniqueIdentifier();
+        savedFile = saveDirectory / identifier / (identifier + ".dnf");
+    }
+    saved.clearPhenotype();
+    REQUIRE(std::filesystem::exists(savedFile));
+
+    const auto replay = std::make_shared<dnf_composer::Simulation>();
+    dnf_composer::SimulationFileManager(replay, savedFile.generic_string()).loadElementsFromJson();
+    replay->init();
+    const auto output = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(replay->getElement("nf 2"));
+    REQUIRE(output != nullptr);
+    // Each trigger comes its wait after the recall window before it ends (the demonstration's end, for the first).
+    constexpr std::array<double, recallTriggers> cues{ 3350.0, 8150.0, 12450.0, 16250.0, 21050.0 };
+    for (size_t recall = 0; recall < cues.size(); ++recall)
+    {
+        // When the output first peaks at each event after this trigger: the ten in their order.
+        std::array<std::optional<double>, 10> firstPeaks{};
+        while (replay->getT() < cues[recall] + 3300.0 - 1e-9)
+        {
+            replay->step();
+            const double time = replay->getT();
+            if (time < cues[recall])
+            {
+                continue;
+            }
+            for (const auto& bump : output->getBumps())
+            {
+                for (size_t event = 0; event < recallEventPositions.size(); ++event)
+                {
+                    if (!firstPeaks[event] && std::abs(bump.centroid - recallEventPositions[event]) <= 1.0)
+                    {
+                        firstPeaks[event] = time;
+                    }
+                }
+            }
+        }
+        INFO("recall " << recall);
+        REQUIRE(std::ranges::all_of(firstPeaks, [](const auto& time) { return time.has_value(); }));
+        for (size_t event = 1; event < firstPeaks.size(); ++event)
+        {
+            INFO("recall " << recall << ", " << recallEvents[event].first);
+            CHECK(*firstPeaks[event] > *firstPeaks[event - 1]);
+        }
+    }
+    std::filesystem::remove_all(saveDirectory);
+}
+
+// The fitness is written from the reference's responses, so evolving it from scratch is only a fair test if the task's
+// ranges reach every setting of that design.
+TEST_CASE("SequenceAndTimingRecall's evolvable ranges reach every setting of the reference design", "[Solutions][SequenceAndTimingRecall]")
+{
+    OutputSourceRuleGuard guard;
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    const auto* task = findTask(sequenceAndTimingRecall);
+    REQUIRE(task != nullptr);
+
+    const auto solution = task->makeFromTemplate(defaultTopologyFor(*task),
+        *loadFixtureSimulation("sequence-and-timing-recall-reference.dnf"));
+    REQUIRE(solution->getGenome().getFieldGenes().size() == 10);
+    for (const auto& gene : solution->getGenome().getFieldGenes())
+    {
+        checkFieldGeneEvolvable(gene);
+        INFO("field " << gene.getParameters().id);
+        CHECK(onStep(gene.getNeuralField()->getParameters().startingRestingLevel, NeuralFieldConstants::restingLevelStep));
+        const auto gauss = std::dynamic_pointer_cast<dnf_composer::element::GaussKernel>(gene.getKernel());
+        REQUIRE(gauss != nullptr);
+        CHECK(onStep(gauss->getParameters().width, GaussKernelConstants::widthStep));
+    }
+    for (const auto& gene : solution->getGenome().getConnectionGenes())
+    {
+        checkConnectionGeneEvolvable(gene);
+    }
+    // Reachable without output feedback, which the config turns on.
+    GenomeMutationConstants::allowOutputAsConnectionSource = false;
+    checkOnlyConnectionsEvolutionCanMake(*solution);
+}
+
+TEST_CASE("SequenceAndTimingRecall leaves the input and output fields free to evolve", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    for (const auto& fixed : { FieldGeneConstants::fixedInputField, FieldGeneConstants::fixedOutputField })
+    {
+        CHECK_FALSE(fixed.tau.has_value());
+        CHECK_FALSE(fixed.restingLevel.has_value());
+        CHECK_FALSE(fixed.gaussKernel.has_value());
+    }
+}
+
+TEST_CASE("SequenceAndTimingRecall is registered with one input and one output, starting from its own template", "[SolutionRegistry]")
+{
+    const auto* task = findTask(sequenceAndTimingRecall);
+    REQUIRE(task != nullptr);
+    CHECK(task->templateFile == "sequence-and-timing-recall.dnf");
+    CHECK(task->inputs == 1);
+    CHECK(task->outputs == 1);
 }
 
 TEST_CASE("Genome lists the connections evolution cannot make, honouring allowOutputAsConnectionSource", "[genome][legal_connections]")

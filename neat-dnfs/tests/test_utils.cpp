@@ -260,6 +260,102 @@ TEST_CASE("shareInPlace counts an item that never came, or came at the same time
     CHECK(shareInPlace(together, 1) == 0.0);
 }
 
+TEST_CASE("cameInPosition puts every item of a sequence that came in order in its position", "[cameInPosition]")
+{
+    using neat_dnfs::tools::utils::cameInPosition;
+    const std::vector<std::optional<double>> inOrder{ 10.0, 20.0, 30.0, 40.0 };
+
+    for (size_t item = 0; item < inOrder.size(); ++item)
+    {
+        CHECK(cameInPosition(inOrder, item, 2));
+    }
+}
+
+// Due A, B, C, D, E; came B, A, C, D, E: the swapped pair is out of position, the rest are not.
+TEST_CASE("cameInPosition takes the position from both items of a swapped pair", "[cameInPosition]")
+{
+    using neat_dnfs::tools::utils::cameInPosition;
+    const std::vector<std::optional<double>> swapped{ 20.0, 10.0, 30.0, 40.0, 50.0 };
+
+    CHECK_FALSE(cameInPosition(swapped, 0, 2));
+    CHECK_FALSE(cameInPosition(swapped, 1, 2));
+    for (size_t item = 2; item < swapped.size(); ++item)
+    {
+        CHECK(cameInPosition(swapped, item, 2));
+    }
+}
+
+// The position is counted among the items that came, so a missing item does not move the others.
+TEST_CASE("cameInPosition counts positions among the items that came", "[cameInPosition]")
+{
+    using neat_dnfs::tools::utils::cameInPosition;
+    const std::vector<std::optional<double>> withoutFirst{ std::nullopt, 10.0, 20.0, 30.0 };
+
+    CHECK_FALSE(cameInPosition(withoutFirst, 0, 2));
+    CHECK(cameInPosition(withoutFirst, 1, 2));
+    CHECK(cameInPosition(withoutFirst, 2, 2));
+    CHECK(cameInPosition(withoutFirst, 3, 2));
+}
+
+// The user's tie rule (5 November 2026): two items at one time count as in order, three or more are a burst.
+TEST_CASE("cameInPosition lets a pair share a time, never a burst", "[cameInPosition]")
+{
+    using neat_dnfs::tools::utils::cameInPosition;
+    const std::vector<std::optional<double>> pair{ 10.0, 20.0, 20.0, 30.0 };
+    const std::vector<std::optional<double>> burst{ 10.0, 20.0, 20.0, 20.0 };
+
+    for (size_t item = 0; item < pair.size(); ++item)
+    {
+        CHECK(cameInPosition(pair, item, 2));
+    }
+    CHECK(cameInPosition(burst, 0, 2));
+    for (size_t item = 1; item < burst.size(); ++item)
+    {
+        CHECK_FALSE(cameInPosition(burst, item, 2));
+    }
+}
+
+// One item moved from first to last shifts every other item by one position.
+TEST_CASE("cameInPosition puts no item of a rotated sequence in its position", "[cameInPosition]")
+{
+    using neat_dnfs::tools::utils::cameInPosition;
+    const std::vector<std::optional<double>> rotated{ 40.0, 10.0, 20.0, 30.0 };
+
+    for (size_t item = 0; item < rotated.size(); ++item)
+    {
+        CHECK_FALSE(cameInPosition(rotated, item, 2));
+    }
+}
+
+TEST_CASE("descendingShare gives values that fall by a full step beyond the dead zone at each pair full credit", "[descendingShare]")
+{
+    using neat_dnfs::tools::utils::descendingShare;
+    const std::vector<double> falling{ -1.0, -2.0, -3.5, -5.0 };
+
+    CHECK(descendingShare(falling, 0.03, 0.05) == 1.0);
+}
+
+// A pair counts only once it falls by more than the dead zone, so the noise of a flat field earns nothing.
+TEST_CASE("descendingShare credits each pair in proportion to its fall beyond the dead zone, and nothing for a rise", "[descendingShare]")
+{
+    using neat_dnfs::tools::utils::descendingShare;
+    const std::vector<double> flat{ -5.0, -5.0, -5.0 };
+    const std::vector<double> noisy{ -5.0, -5.02, -4.99, -5.01 };
+    const std::vector<double> mixed{ -1.0, -1.055, -0.5 }; // half a step beyond the dead zone down, then up
+
+    CHECK(descendingShare(flat, 0.03, 0.05) == 0.0);
+    CHECK(descendingShare(noisy, 0.03, 0.05) == 0.0);
+    CHECK(descendingShare(mixed, 0.03, 0.05) == Catch::Approx(0.25));
+}
+
+TEST_CASE("descendingShare needs at least two values", "[descendingShare]")
+{
+    using neat_dnfs::tools::utils::descendingShare;
+    const std::vector<double> one{ -1.0 };
+
+    CHECK_THROWS_AS(descendingShare(one, 0.03, 0.05), std::invalid_argument);
+}
+
 TEST_CASE("normalizeWithFlatheadGaussian is 1.0 inside the flat region", "[normalizeWithFlatheadGaussian]")
 {
     using neat_dnfs::tools::utils::normalizeWithFlatheadGaussian;
