@@ -315,10 +315,10 @@ TEST_CASE("FieldGene: the reference config fixes no field parameters", "[FieldGe
 
 // The input only detects: as in the reference design, its peak should go when the stimulus does, so it cannot hold
 // the events. The output must be fast enough to step and release within a recall cycle.
-TEST_CASE("FieldGene: serial-order-fitness-test fixes its input as a detection field and its output's time scale", "[FieldGene][FixedFields]")
+TEST_CASE("FieldGene: serial-order-behaviour-guided fixes its input as a detection field and its output's time scale", "[FieldGene][FixedFields]")
 {
     FixedFieldsGuard guard;
-    const neat_dnfs::test::ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+    const neat_dnfs::test::ScopedTaskConfig taskConfig{ "serial-order-behaviour-guided" };
 
     const FieldGene input(FieldGeneParameters(FieldGeneType::INPUT, 1));
     requireDetectionField(input);
@@ -443,11 +443,11 @@ TEST_CASE("FieldGene: with independent step signs, each parameter one mutation c
     CHECK(neuralField.opposite > 0);
 }
 
-TEST_CASE("FieldGene: the reference config shares one step sign; serial-order-fitness-test draws one per parameter", "[FieldGene][StepSigns]")
+TEST_CASE("FieldGene: the reference config shares one step sign; serial-order-behaviour-guided draws one per parameter", "[FieldGene][StepSigns]")
 {
     StepSignsGuard guard;
     {
-        const neat_dnfs::test::ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+        const neat_dnfs::test::ScopedTaskConfig taskConfig{ "serial-order-behaviour-guided" };
         CHECK(GenomeMutationConstants::independentStepSigns);
     }
     CHECK_FALSE(GenomeMutationConstants::independentStepSigns);

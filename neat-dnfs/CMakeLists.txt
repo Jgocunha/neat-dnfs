@@ -154,7 +154,8 @@ set(header
         "include/solutions/and.h"
         "include/solutions/xor.h"
         "include/solutions/hri_packaging_task.h"
-        "include/solutions/serial_order_fitness_test.h"
+        "include/solutions/recall_behaviour.h"
+        "include/solutions/serial_order_behaviour.h"
         "include/solutions/serial_order_schedule.h"
 
         "include/neat_tools/logger.h"
@@ -187,7 +188,8 @@ set(src
         "src/solutions/and.cpp"
         "src/solutions/xor.cpp"
         "src/solutions/hri_packaging_task.cpp"
-        "src/solutions/serial_order_fitness_test.cpp"
+        "src/solutions/recall_behaviour.cpp"
+        "src/solutions/serial_order_behaviour.cpp"
         "src/solutions/serial_order_schedule.cpp"
 
         "src/neat_tools/logger.cpp"

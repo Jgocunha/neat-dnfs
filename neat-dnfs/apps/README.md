@@ -29,10 +29,18 @@ Every binary supports `--list` (print available tasks and ablations) and
 | `--config PATH` | all | Reference hyperparameter JSON | `config/neat_dnfs.json` |
 
 Available tasks: `and`, `xor`, `detection-instability`, `memory-instability`, `selection-instability`,
-`memory-trace`, `dmts`, `ior`, `hri-packaging`, `serial-order-fitness-test`.
+`memory-trace`, `dmts`, `ior`, `hri-packaging`, `serial-order-behaviour`,
+`serial-order-behaviour-guided`.
 
 Available ablations: `no-growth-io-only`, `no-growth-reference-hidden-field-count`, `no-speciation`,
 `no-crossover`, `random-initial-topology`, `compat-threshold-4`, `output-feedback`.
+
+The two `serial-order-*` tasks run the same trial and differ only in how they score it, each from
+its own `config/solutions/<task>.json`:
+- `serial-order-behaviour` scores what the output does: it stays quiet while the sequence is shown,
+  recalls D, C, A and B in order on each cue, releases each recalled event below threshold, and stops;
+- `serial-order-behaviour-guided` also scores what the reference design holds below threshold: the
+  events pre-shaped in order, and each recalled event pushed below the field.
 
 `output-feedback` is not an ablation but a wider search space: mutation may also wire
 connections out of output fields (`GenomeMutationConstants.allowOutputAsConnectionSource`), which it
@@ -116,7 +124,7 @@ neat-dnfs-inc-evol --task dmts --template "C:/path/to/solution.json" --runs 20
 ```
 
 Evaluate a loaded solution 5 times and print its fitness each time. For a task that records what each evaluation
-observed (`serial-order-fitness-test`), every evaluation's trace follows its fitness as an
+observed (`serial-order-behaviour*`), every evaluation's trace follows its fitness as an
 `evaluation trace:` line of JSON:
 
 ```bash

@@ -2,6 +2,7 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include <array>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -9,6 +10,8 @@
 #include <iostream>
 #include <map>
 #include <numeric>
+#include <ranges>
+#include <set>
 #include <sstream>
 #include <utility>
 
@@ -23,7 +26,7 @@
 #include "solutions/and.h"
 #include "solutions/xor.h"
 #include "solutions/hri_packaging_task.h"
-#include "solutions/serial_order_fitness_test.h"
+#include "solutions/serial_order_behaviour.h"
 #include "solutions/serial_order_schedule.h"
 #include "neat_tools/config_loader.h"
 #include "neat_tools/resource_paths.h"
@@ -279,7 +282,7 @@ static std::shared_ptr<dnf_composer::Simulation> loadFixtureSimulation(const std
     return simulation;
 }
 
-// Loads a saved solution for a sequence-timing task from tests/fixtures.
+// Loads a saved solution for a serial-order or sequence-timing task from tests/fixtures.
 template <typename Task>
 static Task loadSequenceTimingFixture(const std::string& fileName)
 {
@@ -287,35 +290,51 @@ static Task loadSequenceTimingFixture(const std::string& fileName)
     return Task(sequenceTimingTopology(), *simulation);
 }
 
-TEST_CASE("SerialOrderFitnessTest contract", "[Solutions][SerialOrderFitnessTest]")
+// The tasks of the serial-order experiment, intended behaviour alone and with guides.
+static const std::array<std::string, 2> serialOrderTasks{ "serial-order-behaviour", "serial-order-behaviour-guided" };
+
+TEST_CASE("SerialOrderBehaviour contract", "[Solutions][SerialOrderBehaviour]")
 {
     resetGlobalState();
-    checkSolutionContract<SerialOrderFitnessTest>(makeTopology(1, 1));
+    checkSolutionContract<SerialOrderBehaviour>(makeTopology(1, 1));
 }
 
-// Runs are filed under the solution's name, and a population is built from clone() and copy(), so a copy
-// that returned another task would evolve and save as that task.
-TEST_CASE("SerialOrderFitnessTest names its runs and clones and copies as itself", "[Solutions][SerialOrderFitnessTest]")
+TEST_CASE("SerialOrderBehaviourGuided contract", "[Solutions][SerialOrderBehaviour]")
+{
+    resetGlobalState();
+    checkSolutionContract<SerialOrderBehaviourGuided>(makeTopology(1, 1));
+}
+
+// Runs are filed under the solution's name, and a population is built from clone() and copy(), so a copy that kept the
+// other variant's name or type would evolve and save as the other task.
+TEST_CASE("SerialOrderBehaviour and its guided variant name their runs apart and clone and copy as themselves", "[Solutions][SerialOrderBehaviour]")
 {
     resetGlobalState();
 
-    SerialOrderFitnessTest solution(sequenceTimingTopology());
-    solution.initialize();
-    solution.buildPhenotype();
+    SerialOrderBehaviour behaviour(sequenceTimingTopology());
+    SerialOrderBehaviourGuided guided(sequenceTimingTopology());
+    for (Solution* solution : std::initializer_list<Solution*>{ &behaviour, &guided })
+    {
+        solution->initialize();
+        solution->buildPhenotype();
+    }
 
-    CHECK(solution.getName() == "Serial Order Fitness Test");
-    CHECK(std::dynamic_pointer_cast<SerialOrderFitnessTest>(solution.clone()) != nullptr);
-    CHECK(std::dynamic_pointer_cast<SerialOrderFitnessTest>(solution.copy()) != nullptr);
+    CHECK(behaviour.getName() == "Serial Order Behaviour");
+    CHECK(guided.getName() == "Serial Order Behaviour Guided");
+    CHECK(behaviour.clone()->getName() == behaviour.getName());
+    CHECK(behaviour.copy()->getName() == behaviour.getName());
+    CHECK(std::dynamic_pointer_cast<SerialOrderBehaviourGuided>(guided.clone()) != nullptr);
+    CHECK(std::dynamic_pointer_cast<SerialOrderBehaviourGuided>(guided.copy()) != nullptr);
 }
 
 // The reference is the design whose responses the fitness was written from: the hand-built serial-order design of
 // 18 October 2026, with the competition in the output.
-TEST_CASE("SerialOrderFitnessTest scores the reference design above 0.9 on every term", "[Solutions][SerialOrderFitnessTest]")
+TEST_CASE("SerialOrderBehaviourGuided scores the reference design above 0.9 on every term", "[Solutions][SerialOrderBehaviour]")
 {
     resetGlobalState();
-    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour-guided" };
     const auto simulation = loadFixtureSimulation("serial-order-fitness-test-reference.dnf");
-    SerialOrderFitnessTest solution(sequenceTimingTopology(), *simulation);
+    SerialOrderBehaviourGuided solution(sequenceTimingTopology(), *simulation);
 
     for (int evaluation = 0; evaluation < 3; ++evaluation)
     {
@@ -334,11 +353,11 @@ TEST_CASE("SerialOrderFitnessTest scores the reference design above 0.9 on every
 // nf 3 and the done field nf 7: the same design within a Gauss-only search space. Gauss amplitude 9-13, width 1-1.75
 // and global 0 to -0.05 all score 0.95-0.96; a Gauss kernel shaped like the Mexican hat (amplitude 20, width 2.5) does
 // not, 0.30-0.38.
-TEST_CASE("SerialOrderFitnessTest scores the Gauss-only reference design above 0.9 on every term", "[Solutions][SerialOrderFitnessTest]")
+TEST_CASE("SerialOrderBehaviourGuided scores the Gauss-only reference design above 0.9 on every term", "[Solutions][SerialOrderBehaviour]")
 {
     resetGlobalState();
-    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
-    auto solution = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-reference-gauss.dnf");
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour-guided" };
+    auto solution = loadSequenceTimingFixture<SerialOrderBehaviourGuided>("serial-order-fitness-test-reference-gauss.dnf");
 
     for (int evaluation = 0; evaluation < 3; ++evaluation)
     {
@@ -353,15 +372,153 @@ TEST_CASE("SerialOrderFitnessTest scores the Gauss-only reference design above 0
     }
 }
 
-// A saved solution carries what createPhenotypeEnvironment() adds, and the evaluation runs on that same schedule, so a
-// saved design opened in dnf-composer replays what was scored.
-TEST_CASE("SerialOrderFitnessTest saves its schedule with each solution, so a saved design replays its evaluation", "[Solutions][SerialOrderFitnessTest]")
+// Recall, release and stop are scored as in the guided task; only what lies below threshold no longer counts.
+TEST_CASE("SerialOrderBehaviour scores the Gauss-only reference design above 0.9 on each of its five terms", "[Solutions][SerialOrderBehaviour]")
 {
     resetGlobalState();
-    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour" };
+    auto solution = loadSequenceTimingFixture<SerialOrderBehaviour>("serial-order-fitness-test-reference-gauss.dnf");
+
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 5);
+    for (size_t term = 0; term < partials.size(); ++term)
+    {
+        INFO("f" << term + 1);
+        CHECK(partials[term] > 0.9);
+    }
+}
+
+// From-scratch run h3 of 20 October 2026 stores D, C and A in order as pre-shapes, then from the first X sinks D and C
+// into deep troughs without either ever peaking. The guided task pays the pre-shapes; this one pays only what the output
+// does above threshold, which is nothing, so it scores no more than an output that never responds.
+TEST_CASE("SerialOrderBehaviour gives pre-shapes and troughs without recall no more than an output that never responds", "[Solutions][SerialOrderBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour" };
+    auto troughs = loadSequenceTimingFixture<SerialOrderBehaviour>("serial-order-fitness-test-troughs-without-recall.dnf");
+    auto silent = loadSequenceTimingFixture<SerialOrderBehaviour>("serial-order-profile-silent.dnf");
+
+    troughs.evaluate();
+    silent.evaluate();
+
+    const auto& partials = troughs.getParameters().partialFitness;
+    REQUIRE(partials.size() == 5);
+    CHECK(partials[2] == 0.0); // nothing was recalled
+    CHECK(partials[3] < 0.05);
+    CHECK(partials[4] < 0.05);
+    CHECK(troughs.getFitness() <= silent.getFitness() + 0.005);
+}
+
+// The reference design with its done field's inhibition of the output weakened from -30 to -12: each recalled event
+// returns to about the rest of the field rather than below it. The guided task pays half of a release for lying below
+// the field; this one asks only that the event lie below threshold, so the same release earns more here.
+TEST_CASE("SerialOrderBehaviour asks a released event to lie below threshold, not below the field", "[Solutions][SerialOrderBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour" };
+    auto weakRelease = loadSequenceTimingFixture<SerialOrderBehaviour>("serial-order-fitness-test-weak-release.dnf");
+    auto weakReleaseGuided = loadSequenceTimingFixture<SerialOrderBehaviourGuided>("serial-order-fitness-test-weak-release.dnf");
+
+    weakRelease.evaluate();
+    weakReleaseGuided.evaluate();
+
+    REQUIRE(weakRelease.getParameters().partialFitness.size() == 5);
+    CHECK(weakRelease.getParameters().partialFitness[3] > weakReleaseGuided.getParameters().partialFitness[5] + 0.1);
+}
+
+// From-scratch run B01 of 23 October 2026 has no memory. On each cue its whole output flashes above threshold except
+// around the event shown last, B. dnf-composer joins a stretch above threshold at both ends of the field into one bump
+// centred opposite the gap, so the flash reads as a bump about 185 wide centred on D, and earned D's recall. A recalled
+// peak is now scored by its width too, so the flash earns nothing, and the design falls below one that honestly recalls
+// D alone (L2).
+TEST_CASE("Both serial-order behaviour tasks give a field-wide flash no recall credit", "[Solutions][SerialOrderBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour" };
+    auto flash = loadSequenceTimingFixture<SerialOrderBehaviour>("serial-order-behaviour-wrap-around-flash.dnf");
+    auto flashGuided = loadSequenceTimingFixture<SerialOrderBehaviourGuided>("serial-order-behaviour-wrap-around-flash.dnf");
+    auto dAlone = loadSequenceTimingFixture<SerialOrderBehaviour>("serial-order-profile-d-only.dnf");
+
+    flash.evaluate();
+    flashGuided.evaluate();
+    dAlone.evaluate();
+
+    REQUIRE(flash.getParameters().partialFitness.size() == 5);
+    REQUIRE(flashGuided.getParameters().partialFitness.size() == 7);
+    CHECK(flash.getParameters().partialFitness[2] < 0.05);
+    CHECK(flashGuided.getParameters().partialFitness[3] < 0.05);
+    CHECK(flash.getFitness() < dAlone.getFitness());
+}
+
+// From-scratch run B07 of 24 October 2026 remembers only D. On each cue its output forms one peak at D that then travels
+// around the field, about a third of a position per unit of time, and passes the other events in turn. Each passage
+// counted as that event recalled, which paid D then C. A recalled peak is now scored by how far it stays in place, so
+// the travelling bump earns no more than D's share of recall.
+TEST_CASE("Both serial-order behaviour tasks give a travelling bump recall credit for no more than D", "[Solutions][SerialOrderBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour" };
+    auto travelling = loadSequenceTimingFixture<SerialOrderBehaviour>("serial-order-behaviour-travelling-bump.dnf");
+    auto travellingGuided = loadSequenceTimingFixture<SerialOrderBehaviourGuided>("serial-order-behaviour-travelling-bump.dnf");
+
+    travelling.evaluate();
+    travellingGuided.evaluate();
+
+    REQUIRE(travelling.getParameters().partialFitness.size() == 5);
+    REQUIRE(travellingGuided.getParameters().partialFitness.size() == 7);
+    CHECK(travelling.getParameters().partialFitness[2] < 0.3);
+    CHECK(travellingGuided.getParameters().partialFitness[3] < 0.3);
+}
+
+// From-scratch run B06 of 23 October 2026 recalls D, C, A and B in order on every cue, then peaks at D again before the
+// next cue, at times that vary: up to 500 after X inside the recall window, and once about 720 after the third X. The
+// output after recall was read only at 600 after X and just before the next X, so those peaks cost nothing: that term
+// equalled its recall, 0.95. It is now read at every sample from the moment every event has been released until the
+// next X, and B06 has a peak at about a tenth of them.
+TEST_CASE("SerialOrderBehaviour charges a peak at any moment between the end of the sequence and the next cue", "[Solutions][SerialOrderBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour" };
+    auto peaksAgain = loadSequenceTimingFixture<SerialOrderBehaviour>("serial-order-behaviour-peaks-again-after-recall.dnf");
+
+    peaksAgain.evaluate();
+
+    const auto& partials = peaksAgain.getParameters().partialFitness;
+    REQUIRE(partials.size() == 5);
+    CHECK(partials[2] > 0.9);                // the sequence itself is recalled in order
+    CHECK(partials[4] < partials[2] - 0.05); // and the output peaks again after it
+}
+
+// From-scratch run BG05 of 23 October 2026 recalls D, C, A and B in order on every cue, one stationary peak 4-9 wide at
+// a time, and releases each through a field the cue resets. Scoring a recalled peak's width and how far it stays in
+// place leaves its recall credit as it was, 0.92-0.93.
+TEST_CASE("Both serial-order behaviour tasks leave an evolved recall in order its recall credit", "[Solutions][SerialOrderBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour" };
+    auto inOrder = loadSequenceTimingFixture<SerialOrderBehaviour>("serial-order-behaviour-recalls-with-done-field.dnf");
+    auto inOrderGuided = loadSequenceTimingFixture<SerialOrderBehaviourGuided>("serial-order-behaviour-recalls-with-done-field.dnf");
+
+    inOrder.evaluate();
+    inOrderGuided.evaluate();
+
+    REQUIRE(inOrder.getParameters().partialFitness.size() == 5);
+    REQUIRE(inOrderGuided.getParameters().partialFitness.size() == 7);
+    CHECK(inOrder.getParameters().partialFitness[2] > 0.88);
+    CHECK(inOrderGuided.getParameters().partialFitness[3] > 0.88);
+}
+
+// A saved solution carries what createPhenotypeEnvironment() adds, and the evaluation runs on that same schedule, so a
+// saved design opened in dnf-composer replays what was scored.
+TEST_CASE("SerialOrderBehaviourGuided saves its schedule with each solution, so a saved design replays its evaluation", "[Solutions][SerialOrderBehaviour]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour-guided" };
     const auto fixture = loadFixtureSimulation("serial-order-fitness-test-reference.dnf");
-    SerialOrderFitnessTest solution(sequenceTimingTopology(), *fixture);
-    const auto saveDirectory = std::filesystem::temp_directory_path() / "neat-dnfs-serial-order-fitness-test-replay";
+    SerialOrderBehaviourGuided solution(sequenceTimingTopology(), *fixture);
+    const auto saveDirectory = std::filesystem::temp_directory_path() / "neat-dnfs-serial-order-behaviour-replay";
 
     // As PopulationFileManager saves a solution: into <directory>/<identifier>/<identifier>.dnf.
     Solution& saved = solution;
@@ -400,11 +557,11 @@ TEST_CASE("SerialOrderFitnessTest saves its schedule with each solution, so a sa
 
 // Each evaluation records what the input and output looked like at every point it was scored, so a run's best
 // solution can be read from its overview without re-simulating it.
-TEST_CASE("SerialOrderFitnessTest traces the input and output at every point it scores them", "[Solutions][SerialOrderFitnessTest]")
+TEST_CASE("SerialOrderBehaviourGuided traces the input and output at every point it scores them", "[Solutions][SerialOrderBehaviour]")
 {
     resetGlobalState();
-    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
-    auto solution = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-reference.dnf");
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour-guided" };
+    auto solution = loadSequenceTimingFixture<SerialOrderBehaviourGuided>("serial-order-fitness-test-reference.dnf");
 
     solution.evaluate();
 
@@ -465,16 +622,16 @@ TEST_CASE("SerialOrderFitnessTest traces the input and output at every point it 
 // half of a recall point wherever it was: f4 0.53 and 0.63.
 // - w1's earns nothing: only a peak near an event counts.
 // - w2's earns nothing: recall is scored by order, and C counts only after D.
-TEST_CASE("SerialOrderFitnessTest gives a peak held through recall no credit off an event or out of order", "[Solutions][SerialOrderFitnessTest]")
+TEST_CASE("SerialOrderBehaviourGuided gives a peak held through recall no credit off an event or out of order", "[Solutions][SerialOrderBehaviour]")
 {
     resetGlobalState();
-    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour-guided" };
 
-    auto offEvent = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-held-peak-off-event.dnf");
+    auto offEvent = loadSequenceTimingFixture<SerialOrderBehaviourGuided>("serial-order-fitness-test-held-peak-off-event.dnf");
     offEvent.evaluate();
     CHECK(offEvent.getParameters().partialFitness[3] < 0.05);
 
-    auto atC = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-held-peak-before-cue.dnf");
+    auto atC = loadSequenceTimingFixture<SerialOrderBehaviourGuided>("serial-order-fitness-test-held-peak-before-cue.dnf");
     atC.evaluate();
     CHECK(atC.getParameters().partialFitness[3] < 0.05);
 }
@@ -483,12 +640,12 @@ TEST_CASE("SerialOrderFitnessTest gives a peak held through recall no credit off
 // D, C, A and B in order every cycle, each alone, but each peak comes about 100 later, and a recalled event returns to
 // about the rest of the field rather than below it. Scored at the reference's own recall times, it earned f4 0.40-0.47
 // and f6 0.04. Scored by order, it earns most of the recall credit and part of the release.
-TEST_CASE("SerialOrderFitnessTest pays recall in order whatever its pace, and a shallow release in part", "[Solutions][SerialOrderFitnessTest]")
+TEST_CASE("SerialOrderBehaviourGuided pays recall in order whatever its pace, and a shallow release in part", "[Solutions][SerialOrderBehaviour]")
 {
     resetGlobalState();
-    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour-guided" };
 
-    auto weakRelease = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-weak-release.dnf");
+    auto weakRelease = loadSequenceTimingFixture<SerialOrderBehaviourGuided>("serial-order-fitness-test-weak-release.dnf");
     weakRelease.evaluate();
 
     const auto& partials = weakRelease.getParameters().partialFitness;
@@ -499,12 +656,12 @@ TEST_CASE("SerialOrderFitnessTest pays recall in order whatever its pace, and a 
 
 // From-scratch run t1 of 20 October 2026: after X, D and C rise together and are held. Rising together is not
 // recalling in order, so only D, the first, earns recall credit.
-TEST_CASE("SerialOrderFitnessTest gives two events that peak together order credit for the first only", "[Solutions][SerialOrderFitnessTest]")
+TEST_CASE("SerialOrderBehaviourGuided gives two events that peak together order credit for the first only", "[Solutions][SerialOrderBehaviour]")
 {
     resetGlobalState();
-    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour-guided" };
 
-    auto together = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-held-double-peak.dnf");
+    auto together = loadSequenceTimingFixture<SerialOrderBehaviourGuided>("serial-order-fitness-test-held-double-peak.dnf");
     together.evaluate();
 
     CHECK(together.getParameters().partialFitness[3] < 0.25);
@@ -513,14 +670,14 @@ TEST_CASE("SerialOrderFitnessTest gives two events that peak together order cred
 // From-scratch run t6 of 20 October 2026 steps D, C, A in turn, a slot later than the reference. Each released event goes
 // back to being pre-shaped rather than below the field. That is the start of a release, so it earns some f6, and
 // stepping beats t1's held peaks.
-TEST_CASE("SerialOrderFitnessTest pays stepping from one event to the next over holding them", "[Solutions][SerialOrderFitnessTest]")
+TEST_CASE("SerialOrderBehaviourGuided pays stepping from one event to the next over holding them", "[Solutions][SerialOrderBehaviour]")
 {
     resetGlobalState();
-    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour-guided" };
 
-    auto stepping = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-late-stepping.dnf");
+    auto stepping = loadSequenceTimingFixture<SerialOrderBehaviourGuided>("serial-order-fitness-test-late-stepping.dnf");
     stepping.evaluate();
-    auto held = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-held-double-peak.dnf");
+    auto held = loadSequenceTimingFixture<SerialOrderBehaviourGuided>("serial-order-fitness-test-held-double-peak.dnf");
     held.evaluate();
 
     CHECK(stepping.getParameters().partialFitness[5] > 0.1);
@@ -531,12 +688,12 @@ TEST_CASE("SerialOrderFitnessTest pays stepping from one event to the next over 
 // on, reads them out as graded pre-shapes in the output, and steps through them one peak at a time. The input is a
 // detection field: it peaks while an event is shown and lets go after. Pre-shapes now count as memory only as far as the
 // input is at rest, so this keeps its recall credit but earns little for its memory, which earned f3 0.60 and f5 0.93.
-TEST_CASE("SerialOrderFitnessTest gives little memory credit while the input holds the events", "[Solutions][SerialOrderFitnessTest]")
+TEST_CASE("SerialOrderBehaviourGuided gives little memory credit while the input holds the events", "[Solutions][SerialOrderBehaviour]")
 {
     resetGlobalState();
-    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour-guided" };
 
-    auto inputHolds = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-input-holds-items.dnf");
+    auto inputHolds = loadSequenceTimingFixture<SerialOrderBehaviourGuided>("serial-order-fitness-test-input-holds-items.dnf");
     inputHolds.evaluate();
 
     const auto& partials = inputHolds.getParameters().partialFitness;
@@ -550,14 +707,14 @@ TEST_CASE("SerialOrderFitnessTest gives little memory credit while the input hol
 // Recall is one peak at a time, so each sample's recall credit is now shared among the peaks up together. The burst
 // keeps a little, a start to build on, but far less than o1's recall one peak at a time. Its common fade earned f6 0.47;
 // a release now counts only as far as the event was recalled in its place.
-TEST_CASE("SerialOrderFitnessTest shares recall credit among the peaks up together", "[Solutions][SerialOrderFitnessTest]")
+TEST_CASE("SerialOrderBehaviourGuided shares recall credit among the peaks up together", "[Solutions][SerialOrderBehaviour]")
 {
     resetGlobalState();
-    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour-guided" };
 
-    auto burst = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-burst.dnf");
+    auto burst = loadSequenceTimingFixture<SerialOrderBehaviourGuided>("serial-order-fitness-test-burst.dnf");
     burst.evaluate();
-    auto oneAtATime = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-input-holds-items.dnf");
+    auto oneAtATime = loadSequenceTimingFixture<SerialOrderBehaviourGuided>("serial-order-fitness-test-input-holds-items.dnf");
     oneAtATime.evaluate();
 
     const double burstRecall = burst.getParameters().partialFitness[3];
@@ -570,12 +727,12 @@ TEST_CASE("SerialOrderFitnessTest shares recall credit among the peaks up togeth
 // From-scratch run t6 of 20 October 2026 forms a peak at D during the demonstration, before any X. Memory is pre-shapes
 // below threshold, so a demonstration sample's memory now counts only as far as the output has no peak; it earned f3
 // 0.82.
-TEST_CASE("SerialOrderFitnessTest gives less memory credit while the output peaks during the demonstration", "[Solutions][SerialOrderFitnessTest]")
+TEST_CASE("SerialOrderBehaviourGuided gives less memory credit while the output peaks during the demonstration", "[Solutions][SerialOrderBehaviour]")
 {
     resetGlobalState();
-    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour-guided" };
 
-    auto peaksEarly = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-late-stepping.dnf");
+    auto peaksEarly = loadSequenceTimingFixture<SerialOrderBehaviourGuided>("serial-order-fitness-test-late-stepping.dnf");
     peaksEarly.evaluate();
 
     CHECK(peaksEarly.getParameters().partialFitness[2] < 0.7);
@@ -584,12 +741,12 @@ TEST_CASE("SerialOrderFitnessTest gives less memory credit while the output peak
 // From-scratch run g2 of 20 October 2026: the output sits at threshold and crosses it by 0.0-0.1 at A and B exactly when
 // they are due. Height was a twentieth of a recall point, so those crossings earned f4 0.30-0.38. A recalled peak now
 // earns its credit in proportion to its height, in full from 2, and they earn almost nothing.
-TEST_CASE("SerialOrderFitnessTest gives an output flickering at threshold almost no recall credit", "[Solutions][SerialOrderFitnessTest]")
+TEST_CASE("SerialOrderBehaviourGuided gives an output flickering at threshold almost no recall credit", "[Solutions][SerialOrderBehaviour]")
 {
     resetGlobalState();
-    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour-guided" };
 
-    auto flicker = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-threshold-flicker.dnf");
+    auto flicker = loadSequenceTimingFixture<SerialOrderBehaviourGuided>("serial-order-fitness-test-threshold-flicker.dnf");
     flicker.evaluate();
 
     CHECK(flicker.getParameters().partialFitness[3] < 0.05);
@@ -599,12 +756,12 @@ TEST_CASE("SerialOrderFitnessTest gives an output flickering at threshold almost
 // troughs without either ever peaking. Troughs at every earlier event were paid whether or not that event had been
 // recalled, so this earned f6 0.89 and f7 0.75. A trough now earns credit only for an event that peaked when due in that
 // cycle, and an output with no peak only as far as the cycle recalled, so these earn nothing: f6 and f7 are 0.
-TEST_CASE("SerialOrderFitnessTest pays a trough only at an event recalled first", "[Solutions][SerialOrderFitnessTest]")
+TEST_CASE("SerialOrderBehaviourGuided pays a trough only at an event recalled first", "[Solutions][SerialOrderBehaviour]")
 {
     resetGlobalState();
-    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour-guided" };
 
-    auto troughs = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-troughs-without-recall.dnf");
+    auto troughs = loadSequenceTimingFixture<SerialOrderBehaviourGuided>("serial-order-fitness-test-troughs-without-recall.dnf");
     troughs.evaluate();
 
     const auto& partials = troughs.getParameters().partialFitness;
@@ -617,11 +774,11 @@ TEST_CASE("SerialOrderFitnessTest pays a trough only at an event recalled first"
 // recalled or suppressed. Noise moves single samples by hundredths, so those terms come out near zero, not exactly.
 // An output with no peak after recall used to earn half of f7 even when nothing was recalled; silence now counts only
 // as far as the cycle recalled in order, so a silent output earns no f7.
-TEST_CASE("SerialOrderFitnessTest gives no memory or recall credit to an output that never responds", "[Solutions][SerialOrderFitnessTest]")
+TEST_CASE("SerialOrderBehaviourGuided gives no memory or recall credit to an output that never responds", "[Solutions][SerialOrderBehaviour]")
 {
     resetGlobalState();
-    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
-    SerialOrderFitnessTest solution(sequenceTimingTopology());
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour-guided" };
+    SerialOrderBehaviourGuided solution(sequenceTimingTopology());
     solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
     solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
 
@@ -719,23 +876,32 @@ static void checkConnectionGeneEvolvable(const ConnectionGene& gene)
     CHECK(onConnectionGlobalStep(kernel.amplitudeGlobal));
 }
 
-// The fitness is written from the reference's responses, so evolving it from scratch is only a fair test if this
-// task's ranges reach every setting of that design. Evolution here makes Gauss kernels only, so the design it can reach
-// is the reference with Gauss self-kernels in place of the Mexican hats of nf 3 and the done field nf 7.
-TEST_CASE("SerialOrderFitnessTest's evolvable ranges reach every setting of the Gauss-only reference design", "[Solutions][SerialOrderFitnessTest]")
+// The fitness is written from the reference's responses, so evolving it from scratch is only a fair test if each task's
+// ranges reach every setting of that design. Evolution here makes Gauss kernels only, so the design it can reach is the
+// reference with Gauss self-kernels in place of the Mexican hats of nf 3 and the done field nf 7.
+TEST_CASE("Every serial-order task's evolvable ranges reach every setting of the Gauss-only reference design", "[Solutions][SerialOrderBehaviour]")
 {
-    resetGlobalState();
-    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
-
-    const auto solution = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-fitness-test-reference-gauss.dnf");
-
-    for (const auto& gene : solution.getGenome().getFieldGenes())
+    for (const std::string slug : serialOrderTasks)
     {
-        checkFieldGeneEvolvable(gene);
-    }
-    for (const auto& gene : solution.getGenome().getConnectionGenes())
-    {
-        checkConnectionGeneEvolvable(gene);
+        DYNAMIC_SECTION("task " << slug)
+        {
+            resetGlobalState();
+            const ScopedTaskConfig taskConfig{ slug };
+            const auto* task = findTask(slug);
+            REQUIRE(task != nullptr);
+
+            const auto solution = task->makeFromTemplate(defaultTopologyFor(*task),
+                *loadFixtureSimulation("serial-order-fitness-test-reference-gauss.dnf"));
+
+            for (const auto& gene : solution->getGenome().getFieldGenes())
+            {
+                checkFieldGeneEvolvable(gene);
+            }
+            for (const auto& gene : solution->getGenome().getConnectionGenes())
+            {
+                checkConnectionGeneEvolvable(gene);
+            }
+        }
     }
 }
 
@@ -754,12 +920,12 @@ TEST_CASE("Genome lists the connections evolution cannot make, honouring allowOu
 {
     OutputSourceRuleGuard guard;
     resetGlobalState();
-    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour" };
     GenomeMutationConstants::allowOutputAsConnectionSource = false;
 
     // Built from the earlier serial-order design, whose output fed its done field (gk cg 2-7).
-    const auto outputFedDone = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-overlapping-peaks.dnf");
-    const auto handBuilt = loadSequenceTimingFixture<SerialOrderFitnessTest>("serial-order-handbuilt.dnf");
+    const auto outputFedDone = loadSequenceTimingFixture<SerialOrderBehaviour>("serial-order-overlapping-peaks.dnf");
+    const auto handBuilt = loadSequenceTimingFixture<SerialOrderBehaviour>("serial-order-handbuilt.dnf");
 
     CHECK(outputFedDone.getGenome().connectionTuplesEvolutionCannotMake() == std::vector{ ConnectionTuple{ 2, 7 } });
     CHECK(handBuilt.getGenome().connectionTuplesEvolutionCannotMake().empty());
@@ -791,9 +957,9 @@ TEST_CASE("Loading a template warns about each connection evolution cannot make"
 {
     OutputSourceRuleGuard guard;
     resetGlobalState();
-    const ScopedTaskConfig taskConfig{ "serial-order-fitness-test" };
+    const ScopedTaskConfig taskConfig{ "serial-order-behaviour" };
     GenomeMutationConstants::allowOutputAsConnectionSource = false;
-    const auto* task = findTask("serial-order-fitness-test");
+    const auto* task = findTask("serial-order-behaviour");
     REQUIRE(task != nullptr);
     const auto loadTemplate = [task](const std::string& fixture) {
         const auto simulation = loadFixtureSimulation(fixture);
@@ -811,13 +977,17 @@ TEST_CASE("Loading a template warns about each connection evolution cannot make"
     CHECK(loadTemplate("serial-order-overlapping-peaks.dnf").find("evolution cannot make") == std::string::npos);
 }
 
-TEST_CASE("SerialOrderFitnessTest is registered with one input and one output, starting from serial order's template", "[SolutionRegistry]")
+TEST_CASE("Every serial-order task is registered with one input and one output, starting from serial order's template", "[SolutionRegistry]")
 {
-    const auto* task = findTask("serial-order-fitness-test");
-    REQUIRE(task != nullptr);
-    REQUIRE(task->templateFile == "serial-order.dnf");
-    REQUIRE(task->inputs == 1);
-    REQUIRE(task->outputs == 1);
+    for (const std::string slug : serialOrderTasks)
+    {
+        INFO("task " << slug);
+        const auto* task = findTask(slug);
+        REQUIRE(task != nullptr);
+        REQUIRE(task->templateFile == "serial-order.dnf");
+        REQUIRE(task->inputs == 1);
+        REQUIRE(task->outputs == 1);
+    }
 }
 
 // ConfigLoader::loadConfig() sets every process-wide constant a task's config
