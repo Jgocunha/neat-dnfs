@@ -16,10 +16,9 @@
 #include "solutions/delayed_match_to_sample.h"
 #include "solutions/inhibition_of_return.h"
 #include "solutions/hri_packaging_task.h"
-#include "solutions/sequence_timing.h"
-#include "solutions/serial_order.h"
-#include "solutions/serial_order_fitness_test.h"
-#include "solutions/serial_order_profile.h"
+#include "solutions/sequence_and_timing_recall.h"
+#include "solutions/sequence_timing_behaviour.h"
+#include "solutions/serial_order_behaviour.h"
 
 namespace neat_dnfs
 {
@@ -93,13 +92,11 @@ namespace neat_dnfs
 			entry<DelayedMatchToSample>("dmts", "delayed-match-to-sample.dnf", 1, 1),
 			entry<InhibitionOfReturn>("ior", "inhibition-of-return.dnf", 1, 1),
 			entry<HRIPackagingTask>("hri-packaging", "hri-packaging-task.dnf", 3, 1),
-			entry<SequenceTiming>("sequence-timing", "sequence-timing.dnf", 1, 1),
-			entry<SequenceTimingBoost>("sequence-timing-boost", "sequence-timing-boost.dnf", 1, 1),
-			entry<SequenceTimingBoostOrder>("sequence-timing-boost-order", "sequence-timing-boost.dnf", 1, 1),
-			entry<SequenceTimingBoostOrderOnly>("sequence-timing-boost-order-only", "sequence-timing-boost.dnf", 1, 1),
-			entry<SerialOrder>("serial-order", "serial-order.dnf", 1, 1),
-			entry<SerialOrderFitnessTest>("serial-order-fitness-test", "serial-order.dnf", 1, 1),
-			entry<SerialOrderProfile>("serial-order-profile", "serial-order.dnf", 1, 1),
+			entry<SequenceTimingBehaviour>("sequence-timing-behaviour", "sequence-timing.dnf", 1, 1),
+			entry<SequenceTimingBehaviourGuided>("sequence-timing-behaviour-guided", "sequence-timing.dnf", 1, 1),
+			entry<SerialOrderBehaviour>("serial-order-behaviour", "serial-order.dnf", 1, 1),
+			entry<SerialOrderBehaviourGuided>("serial-order-behaviour-guided", "serial-order.dnf", 1, 1),
+			entry<SequenceAndTimingRecall>("sequence-and-timing-recall", "sequence-and-timing-recall.dnf", 1, 1),
 		};
 		return entries;
 	}
@@ -139,8 +136,7 @@ namespace neat_dnfs
 		{
 			return flag == "--task" || flag == "--ablation" || flag == "--template"
 				|| flag == "--runs" || flag == "--pop" || flag == "--gens"
-				|| flag == "--target" || flag == "--evals" || flag == "--config"
-				|| flag == "--out";
+				|| flag == "--target" || flag == "--evals" || flag == "--config";
 		}
 	}
 
@@ -180,7 +176,6 @@ namespace neat_dnfs
 			else if (flag == "--target") options.targetFitness = std::stod(value);
 			else if (flag == "--evals") options.evaluations = std::stoi(value);
 			else if (flag == "--config") options.config = value;
-			else if (flag == "--out") options.outputFile = value;
 		}
 		return options;
 	}
@@ -189,7 +184,6 @@ namespace neat_dnfs
 	{
 		out << "Usage: " << exeName << " [--task NAME] [--ablation NAME] [--template PATH]\n"
 			<< "           [--config PATH] [--runs N] [--pop N] [--gens N] [--target F] [--evals N]\n"
-			<< "           [--out PATH]\n"
 			<< "           [--list] [--help]\n\n"
 			<< "  --task NAME       Task to evolve/evaluate (default varies by binary). See --list.\n"
 			<< "  --ablation NAME   Ablation preset to apply before initialize() (default: none). See --list.\n"
@@ -204,7 +198,6 @@ namespace neat_dnfs
 			<< "  --target F        Target fitness that ends a run early.\n"
 			<< "                    (--runs/--pop/--gens/--target override the config files.)\n"
 			<< "  --evals N         Number of evaluate() calls (solution-evaluation binary only).\n"
-			<< "  --out PATH        Where to write the recorded activation profile (profile recorder only).\n"
 			<< "  --list            List available tasks and ablation presets, then exit.\n"
 			<< "  --help            Show this message and exit.\n";
 	}

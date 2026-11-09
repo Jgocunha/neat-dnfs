@@ -1,8 +1,14 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <algorithm>
 #include <cmath>
+#include <filesystem>
+#include <fstream>
+#include <vector>
 
 #include "neat/connection_gene.h"
+#include "neat_tools/config_loader.h"
 
 using namespace neat_dnfs;
 using namespace dnf_composer::element;
@@ -344,4 +350,126 @@ TEST_CASE("ConnectionGene: with independent step signs, each kernel parameter on
 
     CHECK(same > 0);
     CHECK(opposite > 0);
+}
+
+namespace
+{
+    // Sets the connection constants so that every mutation of a Gauss connection changes only its amplitude, drawn
+    // log-uniformly in [100, 1000] and stepped by x1.3, and reloads the global config when the test ends.
+    class AmplitudeOnlyMutation
+    {
+    public:
+        explicit AmplitudeOnlyMutation(const double redrawProbability)
+        {
+            ConnectionGeneConstants::mutateConnectionGeneKernelProbability = 1.0;
+            ConnectionGeneConstants::mutateConnectionGeneKernelTypeProbability = 0.0;
+            ConnectionGeneConstants::mutateConnectionGeneConnectionSignalProbability = 0.0;
+            ConnectionGeneConstants::mutateConnectionGeneGaussKernelAmplitudeProbability = 1.0;
+            ConnectionGeneConstants::mutateConnectionGeneGaussKernelWidthProbability = 0.0;
+            ConnectionGeneConstants::mutateConnectionGeneGaussKernelGlobalAmplitudeProbability = 0.0;
+            ConnectionGeneConstants::gaussAmpMinVal = 100.0;
+            ConnectionGeneConstants::gaussAmpMaxVal = 1000.0;
+            ConnectionGeneConstants::gaussAmpMutationFactor = 1.3;
+            ConnectionGeneConstants::gaussAmpRedrawProbability = redrawProbability;
+        }
+        ~AmplitudeOnlyMutation() { ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath()); }
+        AmplitudeOnlyMutation(const AmplitudeOnlyMutation&) = delete;
+        AmplitudeOnlyMutation& operator=(const AmplitudeOnlyMutation&) = delete;
+    };
+
+    struct MutatedAmplitudes
+    {
+        std::vector<double> amplitudes;
+        int redrawsRecorded = 0;
+    };
+
+    MutatedAmplitudes amplitudesAfterOneMutation(const double startingAmplitude)
+    {
+        MutatedAmplitudes result;
+        for (int trial = 0; trial < 300; ++trial)
+        {
+            ConnectionGene gene(ConnectionTuple(1, 2), 1, GaussKernelParameters{ 2.0, startingAmplitude, 0.0,
+                KernelConstants::circularity, KernelConstants::normalization });
+            gene.mutate();
+            result.amplitudes.push_back(std::dynamic_pointer_cast<GaussKernel>(gene.getKernel())->getParameters().amplitude);
+            if (gene.getMutationsInLastGeneration().find("(cg gk redraw amp.)") != std::string::npos)
+            {
+                ++result.redrawsRecorded;
+            }
+        }
+        return result;
+    }
+
+    bool isOneStepFrom(const double amplitude, const double startingAmplitude)
+    {
+        return std::abs(amplitude - startingAmplitude * 1.3) < 1e-9 || std::abs(amplitude - startingAmplitude / 1.3) < 1e-9;
+    }
+}
+
+TEST_CASE("ConnectionGene: with gaussAmpRedrawProbability at 0, a Gauss amplitude mutation steps by the factor", "[ConnectionGene][AmplitudeRedraw]")
+{
+    const AmplitudeOnlyMutation mutation(0.0);
+
+    const auto [amplitudes, redrawsRecorded] = amplitudesAfterOneMutation(200.0);
+
+    CHECK(std::ranges::all_of(amplitudes, [](const double amplitude) { return isOneStepFrom(amplitude, 200.0); }));
+    CHECK(redrawsRecorded == 0);
+}
+
+TEST_CASE("ConnectionGene: with gaussAmpRedrawProbability at 1, a Gauss amplitude mutation redraws the magnitude in range and keeps the sign", "[ConnectionGene][AmplitudeRedraw]")
+{
+    const AmplitudeOnlyMutation mutation(1.0);
+
+    for (const double startingAmplitude : { 200.0, -200.0 })
+    {
+        const auto [amplitudes, redrawsRecorded] = amplitudesAfterOneMutation(startingAmplitude);
+
+        CHECK(std::ranges::all_of(amplitudes, [startingAmplitude](const double amplitude)
+            { return (amplitude > 0.0) == (startingAmplitude > 0.0) && std::abs(amplitude) >= 100.0 && std::abs(amplitude) <= 1000.0; }));
+        CHECK(std::ranges::count_if(amplitudes, [startingAmplitude](const double amplitude)
+            { return !isOneStepFrom(amplitude, startingAmplitude); }) > 250);
+        CHECK(redrawsRecorded == static_cast<int>(amplitudes.size()));
+    }
+}
+
+TEST_CASE("ConnectionGene: a redraw reaches strong amplitudes that steps from a weak connection do not", "[ConnectionGene][AmplitudeRedraw]")
+{
+    const AmplitudeOnlyMutation mutation(1.0);
+
+    const auto [amplitudes, redrawsRecorded] = amplitudesAfterOneMutation(120.0);
+
+    CHECK(std::ranges::any_of(amplitudes, [](const double amplitude) { return amplitude >= 600.0; }));
+}
+
+TEST_CASE("ConnectionGene: a config written before gaussAmpRedrawProbability existed still loads, with it at 0", "[ConnectionGene][AmplitudeRedraw]")
+{
+    ConnectionGeneConstants::gaussAmpRedrawProbability = 0.5;
+    auto config = ConfigLoader::loadJsonFile(ConfigLoader::defaultGlobalConfigPath());
+    config.at("ConnectionGeneConstants").erase("gaussAmpRedrawProbability");
+    const auto path = std::filesystem::temp_directory_path() / "neat-dnfs-config-before-amplitude-redraw.json";
+    std::ofstream(path) << config.dump();
+
+    REQUIRE_NOTHROW(ConfigLoader::loadGlobalConfig(path.generic_string()));
+    CHECK_THAT(ConnectionGeneConstants::gaussAmpRedrawProbability, Catch::Matchers::WithinAbs(0.0, 1e-12));
+
+    ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
+    std::filesystem::remove(path);
+}
+
+TEST_CASE("ConnectionGene: the global config leaves gaussAmpRedrawProbability at 0; the sequence-timing tasks redraw 0.1, add connections at 0.25 and cap amplitudes at 1050", "[ConnectionGene][AmplitudeRedraw]")
+{
+    ConnectionGeneConstants::gaussAmpRedrawProbability = 0.5;
+
+    ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
+    CHECK_THAT(ConnectionGeneConstants::gaussAmpRedrawProbability, Catch::Matchers::WithinAbs(0.0, 1e-12));
+    for (const auto* task : { "sequence-timing-behaviour", "sequence-timing-behaviour-guided" })
+    {
+        ConfigLoader::loadConfig(ConfigLoader::defaultGlobalConfigPath(), task);
+        CHECK_THAT(ConnectionGeneConstants::gaussAmpRedrawProbability, Catch::Matchers::WithinAbs(0.1, 1e-12));
+        CHECK_THAT(GenomeMutationConstants::addConnectionGeneProbability, Catch::Matchers::WithinAbs(0.25, 1e-12));
+        REQUIRE(ConnectionGeneConstants::gaussAmpMaxVal.has_value());
+        CHECK_THAT(*ConnectionGeneConstants::gaussAmpMaxVal, Catch::Matchers::WithinAbs(1050.0, 1e-12));
+    }
+
+    ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
 }

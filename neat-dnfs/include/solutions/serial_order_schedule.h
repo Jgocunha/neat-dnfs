@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -34,6 +35,8 @@ namespace neat_dnfs::serial_order_schedule
 	/// @brief Width of X's pulse: wide enough to lift the whole input field evenly, as a boost would, as a stimulus a
 	/// saved file can replay.
 	inline constexpr double cueWidth = 1e6;
+	/// @brief Name of the stimulus element that delivers X.
+	inline const std::string cueStimulusName{ "tgs X" };
 	/// @brief How often the fields are sampled through the trial.
 	inline constexpr double sampleInterval = 10.0;
 
@@ -50,4 +53,17 @@ namespace neat_dnfs::serial_order_schedule
 	/// the configured field.
 	/// @return X, then D, C, A and B.
 	[[nodiscard]] std::vector<Stimulus> stimuli();
+	/// @brief A trial's stimuli with X at the given cues: X at each, and each event's pulse after the first.
+	/// @param cues When X starts, the demonstration's first.
+	/// @return X, then D, C, A and B.
+	[[nodiscard]] std::vector<Stimulus> stimuli(std::span<const double> cues);
+	/// @brief How many events the demonstration has shown by @p time.
+	/// @param time Simulation time since the demonstration's X.
+	/// @return The number of events whose pulse started before @p time.
+	[[nodiscard]] size_t eventsShownBy(double time);
+	/// @brief The positions of a run of the sequence's events.
+	/// @param first Index of the first event, in sequence order.
+	/// @param last Index one past the last event.
+	/// @return Their positions, in sequence order.
+	[[nodiscard]] std::vector<double> positionsOf(size_t first, size_t last);
 }

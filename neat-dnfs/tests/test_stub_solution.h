@@ -1333,9 +1333,14 @@ public:
     using Solution::activationsDescendAcrossPositions;
     using Solution::preShapeAboveFieldAtPosition;
     using Solution::troughBelowFieldAtPosition;
+    using Solution::medianActivationAtPositions;
+    using Solution::preShapeAboveLevelAtPosition;
+    using Solution::troughBelowLevelAtPosition;
     using Solution::activationAtPosition;
     using Solution::closenessOfNearestBumpToPosition;
     using Solution::heightCreditOfNearestBumpToPosition;
+    using Solution::widthCreditOfNearestBumpToPosition;
+    using Solution::centroidOfNearestBumpToPosition;
     using Solution::belowThresholdAtPosition;
     using Solution::medianActivation;
     using Solution::addTimedGaussianStimulus;

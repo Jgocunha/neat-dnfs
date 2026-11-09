@@ -599,7 +599,7 @@ namespace neat_dnfs
 
 	bool Population::hasFitnessImprovedOverTheLastGenerations()
 	{
-		if (bestSolution->getFitness() > previousBestFitness)
+		if (bestSolution->getFitness() > previousBestFitness + PopulationConstants::improvementFitnessEpsilonInPopulation)
 		{
 			previousBestFitness = bestSolution->getFitness();
 			generationsWithoutImprovement = 0;

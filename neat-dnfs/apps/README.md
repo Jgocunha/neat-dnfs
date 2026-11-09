@@ -1,6 +1,6 @@
 # Examples
 
-Four executables, each built from one `.cpp` file here plus the shared
+Three executables, each built from one `.cpp` file here plus the shared
 [`solution_registry.h/.cpp`](solution_registry.h) (task lookup + CLI parsing).
 Binaries are found in your build output directory (e.g. `build/Debug/` on
 Windows, `build/` on Linux/macOS).
@@ -10,7 +10,6 @@ Windows, `build/` on Linux/macOS).
 | `neat-dnfs-evol` | `neat_dnfs_evol.cpp` | Evolves a task from a minimal (or ablation-seeded) genome |
 | `neat-dnfs-inc-evol` | `neat_dnfs_incremental_evolution.cpp` | Evolves a task starting from a loaded template solution |
 | `neat-dnfs-sol-eval` | `neat_dnfs_solution_evaluation.cpp` | Loads a template solution and repeatedly calls `evaluate()` — no evolution |
-| `neat-dnfs-record-profile` | `neat_dnfs_record_profile.cpp` | Records what a saved design's input and output do through the serial-order trial, as `serial-order-profile` compares them, and writes it as JSON (`--template`, `--out`, optionally `--ablation`). Wrote `config/references/serial-order-profile.json` from the Gauss-only reference design, and `serial-order-profile-1-event.json` and `-2-events.json` with `--ablation profile-one-event-outputs` and `profile-two-events-outputs`. Not packaged |
 
 Every binary supports `--list` (print available tasks and ablations) and
 `--help` (print all flags).
@@ -27,50 +26,53 @@ Every binary supports `--list` (print available tasks and ablations) and
 | `--gens N` | evol, inc-evol | Max generations per run | `SolutionConstants.numberGenerations` from config |
 | `--target F` | evol, inc-evol | Ends a run early once every partial fitness of the best solution exceeds F | `SolutionConstants.targetFitness` from config |
 | `--evals N` | sol-eval | Number of `evaluate()` calls | 20 |
-| `--out PATH` | record-profile | Where to write the recorded activation profile | none: required |
 | `--config PATH` | all | Reference hyperparameter JSON | `config/neat_dnfs.json` |
 
 Available tasks: `and`, `xor`, `detection-instability`, `memory-instability`,
-`selection-instability`, `memory-trace`, `dmts`, `ior`, `hri-packaging`, `sequence-timing`,
-`sequence-timing-boost`, `sequence-timing-boost-order`, `sequence-timing-boost-order-only`, `serial-order`,
-`serial-order-fitness-test`, `serial-order-profile`.
+`selection-instability`, `memory-trace`, `dmts`, `ior`, `hri-packaging`, `sequence-timing-behaviour`,
+`sequence-timing-behaviour-guided`, `serial-order-behaviour`, `serial-order-behaviour-guided`,
+`sequence-and-timing-recall`.
 
 Available ablations: `no-growth-io-only`, `no-growth-reference-hidden-field-count`,
 `no-speciation`, `no-crossover`, `random-initial-topology`, `compat-threshold-4`, `output-feedback`,
-`profile-demonstration`, `profile-recall-start`, `profile-activity`, `profile-demonstration-outputs`,
-`profile-recall-start-outputs`, `profile-recall-two-outputs`, `profile-recall-three-outputs`,
-`profile-full-outputs`, `profile-recall-two-outputs-species`, `profile-recall-three-outputs-species`,
-`profile-full-outputs-species`, `profile-recall-two-outputs-threshold-6`, `profile-one-event-outputs`,
-`profile-two-events-outputs`, `profile-output-activation`, `profile-output-behaviour`.
+`timing-search-levers`.
 
-The three `profile-*` presets are for `serial-order-profile` only. They form a curriculum that scores
-the trial in growing parts:
-- `profile-demonstration` scores the demonstration alone;
-- `profile-recall-start` scores the demonstration and each recall up to its first event;
-- `profile-activity` scores all of it.
+The two `serial-order-*` tasks run the same trial and differ only in how they score it, each from
+its own `config/solutions/<task>.json`:
+- `serial-order-behaviour` scores what the output does: it stays quiet while the sequence is shown,
+  recalls D, C, A and B in order on each cue, releases each recalled event below threshold, and stops;
+- `serial-order-behaviour-guided` also scores what the reference design holds below threshold: the
+  events pre-shaped in order, and each recalled event pushed below the field.
 
-All three also score the moments outside those parts, as far as the output is active then.
+The two `sequence-timing-behaviour*` tasks score the same way, and also when each event is recalled: after X, D, C, A
+and B must peak at the times they were shown, 100, 600, 800 and 1800 after it. Each evaluation runs a probe trial
+without X, as long as its longest recall trial, then three recall trials after gaps drawn afresh from 300-1500, each
+from rest. Any peak at an event in the probe costs recall credit, however brief. `-guided` pays the larger of its
+guided score and what `sequence-timing-behaviour` pays for the same trials.
 
-The `-outputs` presets do the same, and also compare each field's output (its activation
-function of the activation) as well as the activation itself. `profile-recall-two-outputs` and
-`profile-recall-three-outputs` add finer steps, scoring each recall up to its second or third
-event. The `-species` presets raise `minConnectionGenesToNormalize` to 100, so species can form in
-the larger genomes later steps start from. `-threshold-6` also sets the compatibility threshold to 6.
-`profile-one-event-outputs` and `profile-two-events-outputs` show only the first one or two events
-and compare with the reference design's recording on that shorter schedule.
-`profile-output-activation` scores the whole trial on the output field alone, not the fixed input:
-its activation inside the scored parts, so pre-shapes below threshold and troughs below the field
-count in full, and outside them only its output, as far as the output is active then.
-`profile-output-behaviour` also scores the output field alone, but compares what it does at the
-events' positions rather than its activation: which events peak, and whether anything away from
-them does; which sit above the field's level and which below it, in full once as far as the
-reference's or further; and which sits higher than which. It always scores the hold before the
-first recall as well, and outside the scored parts compares the peaks alone.
+`sequence-and-timing-recall` scores the same way, on ten events 20 apart on fields of 240: after the memory recall
+trigger (a boost of the input field), LA2B, RA3A, LA1A, RA1B, RA2B, LA3A, RA1A, LA1B, HOL and HOS must first peak in
+that order, 50, 150, 350, 450, 650, 750, 950, 1050, 1900 and 2800 after it. After the probe and the three recall
+trials, each evaluation runs a consecutive trial: one demonstration, then the trigger three times, one wait from each
+third of 300-1500 in a shuffled order, each recall scored as a recall trial's, so recalling once and never again costs
+credit. Each recall right after a demonstration counts twice a later recall of the consecutive trial, and order weighs
+more than timing. Peaks may overlap in time, so an event's credit is not shared with the peaks up with it. The guides measure pre-shapes and troughs from the output's level far
+from every event. Its fitness is the larger of its guided score and the intended behaviour's, whose six weights are in
+`config/solutions/sequence-and-timing-recall-intended.json`.
 
 `output-feedback` is not an ablation but a wider search space: mutation may also wire
 connections out of output fields (`GenomeMutationConstants.allowOutputAsConnectionSource`), which it
 otherwise never does. Its runs go to their own `data/<Task> Output Feedback/` folder. The serial-order
 and sequence-timing tasks turn this on in their own config, so they need no preset for it.
+
+`timing-search-levers` is not an ablation either. It is a set of search settings tried on the sequence-timing tasks:
+- new fields three times as often (`addFieldGeneProbability` 0.03);
+- tau stepping by ×4 rather than ×2;
+- resting levels stepping by 0.25 rather than 0.5;
+- species and the population each given twice as many generations without improvement before they are cut back (30
+  and 50).
+
+Its runs share the task's own data folder; each run's config snapshot records the preset.
 
 ## Configuration
 
@@ -149,7 +151,7 @@ neat-dnfs-inc-evol --task dmts --template "C:/path/to/solution.json" --runs 20
 ```
 
 Evaluate a loaded solution 5 times and print its fitness each time. For a task that records what each evaluation
-observed (`sequence-timing*`, `serial-order`, `serial-order-fitness-test`), every evaluation's trace follows its fitness as an
+observed (`sequence-timing-behaviour*`, `serial-order-behaviour*`), every evaluation's trace follows its fitness as an
 `evaluation trace:` line of JSON:
 
 ```bash

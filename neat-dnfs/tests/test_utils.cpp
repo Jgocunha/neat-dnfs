@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <algorithm>
 #include <cmath>
 #include <optional>
@@ -396,6 +397,26 @@ TEST_CASE("median is not moved by a few outlying values", "[median]")
     std::vector<double> mostlyAtRest(100, -10.0);
     std::fill_n(mostlyAtRest.begin(), 20, 5.0);
     REQUIRE(median(mostlyAtRest) == -10.0);
+}
+
+TEST_CASE("mean is the average of the values", "[mean]")
+{
+    using neat_dnfs::tools::utils::mean;
+
+    REQUIRE_THAT(mean(std::vector<double>{ 3.0, -1.0, 7.0 }), Catch::Matchers::WithinAbs(3.0, 1e-12));
+    REQUIRE_THAT(mean(std::vector<double>{ 0.25 }), Catch::Matchers::WithinAbs(0.25, 1e-12));
+}
+
+TEST_CASE("weightedMean weighs each value by its weight", "[weightedMean]")
+{
+    using neat_dnfs::tools::utils::weightedMean;
+
+    REQUIRE_THAT(weightedMean(std::vector<double>{ 1.0, 0.0 }, std::vector<double>{ 2.0, 1.0 }),
+        Catch::Matchers::WithinAbs(2.0 / 3.0, 1e-12));
+    REQUIRE_THAT(weightedMean(std::vector<double>{ 3.0, -1.0, 7.0 }, std::vector<double>{ 1.0, 1.0, 1.0 }),
+        Catch::Matchers::WithinAbs(3.0, 1e-12));
+    REQUIRE_THAT(weightedMean(std::vector<double>{ 0.5, 9.0 }, std::vector<double>{ 1.0, 0.0 }),
+        Catch::Matchers::WithinAbs(0.5, 1e-12));
 }
 
 TEST_CASE("concordance is 1 for a profile and itself, flat profiles included", "[concordance]")

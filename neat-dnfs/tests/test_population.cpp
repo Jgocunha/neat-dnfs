@@ -1,7 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
+#include <fstream>
 #include <thread>
 #include <set>
 
@@ -382,6 +385,112 @@ TEST_CASE("Population::reproduceAndSelect keeps the current best unchanged even 
     REQUIRE(std::ranges::find(next, currentBest) != next.end());
     CHECK(currentBest->getGenome() == currentBestGenome);
     CHECK(next.size() == static_cast<size_t>(populationSize));
+}
+
+namespace
+{
+    struct ImprovementEpsilonGuard
+    {
+        explicit ImprovementEpsilonGuard(const double epsilon)
+            : previous(PopulationConstants::improvementFitnessEpsilonInPopulation)
+        {
+            PopulationConstants::improvementFitnessEpsilonInPopulation = epsilon;
+        }
+        ~ImprovementEpsilonGuard() { PopulationConstants::improvementFitnessEpsilonInPopulation = previous; }
+        ImprovementEpsilonGuard(const ImprovementEpsilonGuard&) = delete;
+        ImprovementEpsilonGuard& operator=(const ImprovementEpsilonGuard&) = delete;
+        double previous;
+    };
+
+    SolutionPtr evaluatedFixedFitness(const SolutionTopology& topology, const double fitness)
+    {
+        const auto solution = std::make_shared<FixedFitnessSolution>(topology, fitness);
+        solution->initialize();
+        solution->evaluate();
+        return solution;
+    }
+}
+
+// Under noisy fitness, the best of a generation beats the best so far by a hair almost every generation, so the
+// population's stagnation count kept restarting and the refocus on the top two species never fired.
+TEST_CASE("Population stagnation: a best less than improvementFitnessEpsilonInPopulation above the best so far is not an improvement", "[Population]")
+{
+    resetGlobalState();
+    const ImprovementEpsilonGuard guard(0.01);
+    const auto topology = makeTopology(1, 1);
+    Population population(PopulationParameters(4, 1, 1.1, false), std::make_shared<FixedFitnessSolution>(topology, 0.5), false);
+    population.initialize();
+    PopulationTestAccess::setHighWaterFitness(population, 0.9);
+
+    PopulationTestAccess::setBestSolution(population, evaluatedFixedFitness(topology, 0.905));
+    PopulationTestAccess::hasFitnessImprovedOverTheLastGenerations(population);
+
+    CHECK(PopulationTestAccess::generationsWithoutImprovement(population) == 1);
+    CHECK_THAT(PopulationTestAccess::highWaterFitness(population), Catch::Matchers::WithinAbs(0.9, 1e-12));
+}
+
+TEST_CASE("Population stagnation: small rises that add up to more than improvementFitnessEpsilonInPopulation are an improvement", "[Population]")
+{
+    resetGlobalState();
+    const ImprovementEpsilonGuard guard(0.01);
+    const auto topology = makeTopology(1, 1);
+    Population population(PopulationParameters(4, 1, 1.1, false), std::make_shared<FixedFitnessSolution>(topology, 0.5), false);
+    population.initialize();
+    PopulationTestAccess::setHighWaterFitness(population, 0.9);
+
+    PopulationTestAccess::setBestSolution(population, evaluatedFixedFitness(topology, 0.905));
+    PopulationTestAccess::hasFitnessImprovedOverTheLastGenerations(population);
+    PopulationTestAccess::setBestSolution(population, evaluatedFixedFitness(topology, 0.912));
+    PopulationTestAccess::hasFitnessImprovedOverTheLastGenerations(population);
+
+    CHECK(PopulationTestAccess::generationsWithoutImprovement(population) == 0);
+    CHECK_THAT(PopulationTestAccess::highWaterFitness(population), Catch::Matchers::WithinAbs(0.912, 1e-12));
+}
+
+TEST_CASE("Population stagnation: with improvementFitnessEpsilonInPopulation at 0, any rise is an improvement", "[Population]")
+{
+    resetGlobalState();
+    const ImprovementEpsilonGuard guard(0.0);
+    const auto topology = makeTopology(1, 1);
+    Population population(PopulationParameters(4, 1, 1.1, false), std::make_shared<FixedFitnessSolution>(topology, 0.5), false);
+    population.initialize();
+    PopulationTestAccess::setHighWaterFitness(population, 0.9);
+
+    PopulationTestAccess::setBestSolution(population, evaluatedFixedFitness(topology, 0.9001));
+    PopulationTestAccess::hasFitnessImprovedOverTheLastGenerations(population);
+
+    CHECK(PopulationTestAccess::generationsWithoutImprovement(population) == 0);
+    CHECK_THAT(PopulationTestAccess::highWaterFitness(population), Catch::Matchers::WithinAbs(0.9001, 1e-12));
+}
+
+TEST_CASE("Population stagnation: a config written before improvementFitnessEpsilonInPopulation existed still loads, with it at 0", "[Population]")
+{
+    const ImprovementEpsilonGuard guard(0.5);
+    auto config = ConfigLoader::loadJsonFile(ConfigLoader::defaultGlobalConfigPath());
+    config.at("PopulationConstants").erase("improvementFitnessEpsilonInPopulation");
+    const auto path = std::filesystem::temp_directory_path() / "neat-dnfs-config-before-improvement-epsilon.json";
+    std::ofstream(path) << config.dump();
+
+    REQUIRE_NOTHROW(ConfigLoader::loadGlobalConfig(path.generic_string()));
+    CHECK_THAT(PopulationConstants::improvementFitnessEpsilonInPopulation, Catch::Matchers::WithinAbs(0.0, 1e-12));
+
+    ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
+    std::filesystem::remove(path);
+}
+
+TEST_CASE("Population stagnation: the global config leaves improvementFitnessEpsilonInPopulation at 0, the sequence-timing tasks set 0.01", "[Population]")
+{
+    const ImprovementEpsilonGuard guard(0.5);
+
+    ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
+    CHECK_THAT(PopulationConstants::improvementFitnessEpsilonInPopulation, Catch::Matchers::WithinAbs(0.0, 1e-12));
+    for (const auto* task : { "sequence-timing-behaviour", "sequence-timing-behaviour-guided" })
+    {
+        ConfigLoader::loadConfig(ConfigLoader::defaultGlobalConfigPath(), task);
+        CHECK_THAT(PopulationConstants::improvementFitnessEpsilonInPopulation, Catch::Matchers::WithinAbs(0.01, 1e-12));
+    }
+
+    ConfigLoader::loadGlobalConfig(ConfigLoader::defaultGlobalConfigPath());
 }
 
 TEST_CASE("PopulationParameters - parallelEvolution defaults to true", "[Population]")

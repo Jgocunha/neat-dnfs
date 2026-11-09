@@ -33,7 +33,7 @@ Hand-built designs that relied on one, found on 19 October 2026:
 |---|---|---|---|
 | `tests/fixtures/serial-order-handbuilt.dnf` | `gk cg 2-7` | output → done field D | competition moved into a hidden selection field, which feeds D; the output copies it (`serial-order-handbuilt-design.md`). A test guards it |
 | `serial-order-overlapping-peaks.dnf`, `serial-order-single-recall.dnf` | `gk cg 2-7` | as above | unchanged: failure-mode fixtures built from the earlier design |
-| `tests/fixtures/sequence-timing-boost-handbuilt.dnf` | `gk cg 2-6` | output → past-events field E | E reads the integrator G instead (`gk cg 5-6`), below. A test guards it |
+| `tests/fixtures/sequence-timing-boost-handbuilt.dnf` | `gk cg 2-6` | output → past-events field E | E reads the integrator G instead (`gk cg 5-6`), below. Since 25 October 2026 a test guards the Gauss-only reference built from it, `sequence-timing-behaviour-reference-gauss.dnf` |
 | bundle only: `sequence-timing/architectures/handbuilt-gaussian-x.dnf`, `handbuilt-boost-v1-fixture.dnf` | `gk cg 2-8`, `gk cg 2-6` | output → E | unchanged: superseded designs, not test fixtures. None of the seeds built from them has an E |
 
 No genome evolved in the 56 saved runs (every sequence-timing and serial-order run in the experiment bundle) has a

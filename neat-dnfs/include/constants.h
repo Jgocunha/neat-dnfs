@@ -338,6 +338,11 @@ namespace neat_dnfs
 		// Optional. When set, a Gauss connection's amplitude magnitude is drawn log-uniformly and
 		// mutates by multiplying or dividing by this factor instead of by GaussKernelConstants::ampStep.
 		inline static std::optional<double> gaussAmpMutationFactor;
+		// The share of Gauss connection amplitude mutations that redraw the magnitude as a new connection draws it,
+		// keeping the sign, instead of stepping it. Below the strength a connection needs, steps earn nothing, so a
+		// weak connection rarely climbs; and a weak connection blocks a new one between the same two fields. Optional
+		// in a config file; absent is 0, every amplitude mutation steps, as before it existed.
+		inline static double gaussAmpRedrawProbability = 0.0;
 	};
 
 	struct SolutionConstants
@@ -362,31 +367,6 @@ namespace neat_dnfs
 		inline static int numberGenerations;
 		inline static int numberRuns;
 		inline static double targetFitness;
-
-		// Optional, read by SerialOrderProfile only. Which part of the trial it scores: "demonstration";
-		// "recall-start", "recall-two" or "recall-three" (also each recall up to its first, second or third event); or
-		// "all", the default. Lets a curriculum score the trial in growing parts.
-		inline static std::optional<std::string> profileScoredStages;
-		// Optional, read by SerialOrderProfile only. When true, the moments outside the scored stages count too, each
-		// as much as the output is active then. Off by default.
-		inline static std::optional<bool> profileCountsOutputActivityOutsideStages;
-		// Optional, read by SerialOrderProfile only. When true, each moment compares each field's output, its
-		// activation function of the activation, as well as the activation itself, and scores the mean of the two.
-		// Off by default.
-		inline static std::optional<bool> profileAlsoComparesFieldOutputs;
-		// Optional, read by SerialOrderProfile only. When true, each moment compares the output field alone, not the
-		// input: its activation inside the scored stages and, outside them, only its output, its activation function of
-		// the activation. Cannot be combined with profileAlsoComparesFieldOutputs. Off by default.
-		inline static std::optional<bool> profileComparesOutputActivationOnly;
-		// Optional, read by SerialOrderProfile only. When true, each moment compares what the output field does at the
-		// events' positions, not its activation: which of them peak, and anything away from them; which sit above the
-		// field's level and which below it; and which sits higher than which. The hold before the first recall is then
-		// always scored as one more stage, and outside the stages only the peaks are compared. Cannot be combined with
-		// profileComparesOutputActivationOnly or profileAlsoComparesFieldOutputs. Off by default.
-		inline static std::optional<bool> profileComparesOutputBehaviour;
-		// Optional, read by SerialOrderProfile only. How many events of the sequence are shown, from the first: 1 to 4,
-		// all four by default. A shorter sequence is compared with the reference design's recording on that schedule.
-		inline static std::optional<int> profileEventCount;
 	};
 
 	struct PopulationConstants
@@ -394,6 +374,12 @@ namespace neat_dnfs
 		inline static double pruneRatio;
 		inline static int generationsWithoutImprovementThresholdInPopulation;
 		inline static int generationsWithoutImprovementThresholdInSpecies;
+		// The best of a generation counts as an improvement on the best so far only when it is higher by more than
+		// this. Under noisy fitness a re-evaluation scores a hair higher almost every generation, which kept
+		// restarting the population's stagnation count, so the refocus on the top two species never fired. Rises
+		// smaller than this add up until they exceed it. Optional in a config file; absent is 0, any rise counts, as
+		// before it existed.
+		inline static double improvementFitnessEpsilonInPopulation = 0.0;
 		inline static bool elitism;
 		// Tolerance for the elitism validation check. The DNF simulation is
 		// stochastic (see NoiseConstants::amplitude), so re-evaluating the same

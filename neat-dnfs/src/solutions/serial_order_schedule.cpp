@@ -1,5 +1,6 @@
 #include "solutions/serial_order_schedule.h"
 
+#include <algorithm>
 #include <format>
 #include <utility>
 
@@ -9,14 +10,19 @@ namespace neat_dnfs::serial_order_schedule
 {
 	std::vector<Stimulus> stimuli()
 	{
+		return stimuli(cueTimes);
+	}
+
+	std::vector<Stimulus> stimuli(const std::span<const double> cues)
+	{
 		using dnf_composer::element::TimedGaussStimulusParameters;
 
 		std::vector<std::pair<double, double>> cueWindows;
-		for (const double cue : cueTimes)
+		for (const double cue : cues)
 		{
 			cueWindows.emplace_back(cue, cue + pulseDuration);
 		}
-		std::vector<Stimulus> result{ { "tgs X", TimedGaussStimulusParameters{ cueWidth, GaussStimulusConstants::amplitude,
+		std::vector<Stimulus> result{ { cueStimulusName, TimedGaussStimulusParameters{ cueWidth, GaussStimulusConstants::amplitude,
 			DimensionConstants::xSize / 2.0, cueWindows, false, false } } };
 
 		for (const auto& event : sequence)
@@ -27,5 +33,20 @@ namespace neat_dnfs::serial_order_schedule
 				GaussStimulusConstants::normalization } });
 		}
 		return result;
+	}
+
+	size_t eventsShownBy(const double time)
+	{
+		return static_cast<size_t>(std::ranges::count_if(sequence, [time](const Event& event) { return event.onset < time; }));
+	}
+
+	std::vector<double> positionsOf(const size_t first, const size_t last)
+	{
+		std::vector<double> positions;
+		for (size_t i = first; i < last; ++i)
+		{
+			positions.push_back(sequence[i].position);
+		}
+		return positions;
 	}
 }
