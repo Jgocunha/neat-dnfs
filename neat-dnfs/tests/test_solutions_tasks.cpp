@@ -1334,17 +1334,15 @@ TEST_CASE("Every sequence-timing task is registered with one input and one outpu
     }
 }
 
-// The final task of the serial-order and timing work (from 29 October 2026): ten events 20 apart on fields of 240.
+// The final task of the serial-order and timing work: from 10 November 2026, six joint goals 20 apart on fields of 120.
 static const std::string sequenceAndTimingRecall{ "sequence-and-timing-recall" };
 
-// The ten events in their order, each with when it is due after the memory recall trigger.
-static const std::array<std::pair<std::string, double>, 10> recallEvents{ { { "LA2B", 50.0 }, { "RA3A", 150.0 },
-    { "LA1A", 350.0 }, { "RA1B", 450.0 }, { "RA2B", 650.0 }, { "LA3A", 750.0 }, { "RA1A", 950.0 }, { "LA1B", 1050.0 },
-    { "HOL", 1900.0 }, { "HOS", 2800.0 } } };
+// The six events in their order, each with when it is due after the memory recall trigger.
+static const std::array<std::pair<std::string, double>, 6> recallEvents{ { { "BSA", 200.0 }, { "BLA", 400.0 },
+    { "BSB", 800.0 }, { "BLB", 1000.0 }, { "BS", 1600.0 }, { "BP", 2000.0 } } };
 
 // Where each event lies on the input and output fields, in the same order.
-static const std::array<double, 10> recallEventPositions{ 40.0, 160.0, 60.0, 100.0, 120.0, 80.0, 140.0, 20.0, 200.0,
-    220.0 };
+static const std::array<double, 6> recallEventPositions{ 10.0, 50.0, 30.0, 70.0, 90.0, 110.0 };
 
 static SequenceAndTimingRecall loadRecallFixture(const std::string& name)
 {
@@ -1391,9 +1389,11 @@ TEST_CASE("SequenceAndTimingRecall names its runs, and clones and copies as itse
     CHECK(std::dynamic_pointer_cast<SequenceAndTimingRecall>(solution.copy()) != nullptr);
 }
 
-// The hand-built reference (29 October 2026) recalls all ten in order and on time, and lets each go. Below threshold it
-// holds only a fading primacy gradient, and the events far from their turn wait flat, so it earns the memory and to-come
-// guides in part; it reaches 0.9 through the intended behaviour.
+// The hand-built reference (10 November 2026, from the ten-event one of 29 October) recalls all six in order and on
+// time, and lets each go. Below threshold it holds only a fading primacy gradient, and the events far from their turn
+// wait flat, so it earns the memory and to-come guides in part; it reaches 0.9 through the intended behaviour. Its
+// wind-back starts once BP is released, and clears the troughs of BS and BP before the recall window ends, so it earns
+// the troughs, half of the guided release and stop, for four events of six.
 TEST_CASE("SequenceAndTimingRecall scores the reference design at least 0.9", "[Solutions][SequenceAndTimingRecall]")
 {
     resetGlobalState();
@@ -1405,11 +1405,13 @@ TEST_CASE("SequenceAndTimingRecall scores the reference design at least 0.9", "[
         solution.evaluate();
         const auto& partials = solution.getParameters().partialFitness;
         REQUIRE(partials.size() == 8);
-        for (const size_t term : std::initializer_list<size_t>{ 0, 1, 3, 4, 6, 7 })
+        for (const size_t term : std::initializer_list<size_t>{ 0, 1, 3, 4 })
         {
             INFO("evaluation " << evaluation << ", f" << term + 1);
             CHECK(partials[term] > 0.9);
         }
+        CHECK(partials[6] > 0.85); // released, half for a trough
+        CHECK(partials[7] > 0.8); // stopped, half for a trough at every event
         CHECK(partials[2] > 0.2); // memory: the primacy gradient
         CHECK(partials[5] > 0.5); // the events to come
         const auto scores = nlohmann::json::parse(solution.getParameters().evaluationTrace).at("fitness");
@@ -1441,9 +1443,8 @@ TEST_CASE("SequenceAndTimingRecall gives an output that never responds the input
     CHECK(solution.getFitness() == Catch::Approx(0.125).margin(0.02));
 }
 
-// The reference with 8-5 at 2000: the stamps climb ten times as fast, and every event fires 40-130 after the trigger,
-// the first five together at 40, the next three at 50, then HOL and HOS. None is on time. The first five earn no place
-// but LA2B's; the five that fire after them do, since each fires after the events due before it.
+// The reference with 4-5 at 0: no time stamps are recorded, so all six fire together about 50 after the trigger, as
+// one bump across the whole field. None is on time, and a bump that wide earns no peak score.
 TEST_CASE("SequenceAndTimingRecall gives a burst no timing credit, and order credit only to the events that fire after the others", "[Solutions][SequenceAndTimingRecall]")
 {
     resetGlobalState();
@@ -1458,8 +1459,8 @@ TEST_CASE("SequenceAndTimingRecall gives a burst no timing credit, and order cre
     CHECK(solution.getFitness() < 0.5);
 }
 
-// The reference with 8-5 at 400: the stamps climb twice as fast, and it recalls the ten in order at about half their
-// times.
+// The reference with 8-5 and 8-10 at 800: the stamps climb four times as fast, and it recalls the six in order at
+// about a quarter of their times.
 TEST_CASE("SequenceAndTimingRecall pays a fast cascade in order for the order, not the timing", "[Solutions][SequenceAndTimingRecall]")
 {
     resetGlobalState();
@@ -1473,8 +1474,8 @@ TEST_CASE("SequenceAndTimingRecall pays a fast cascade in order for the order, n
     CHECK(partials[4] < 0.2);
 }
 
-// The reference with nf 6 at tau 80: each event is released later, so two or three peaks are up together, each where
-// and when it is due. Overlap is allowed: no event's credit is shared with the peaks up with it.
+// The reference with nf 6 at tau 200: each event is released later, so two peaks are up together, each where and when
+// it is due. Overlap is allowed: no event's credit is shared with the peaks up with it.
 TEST_CASE("SequenceAndTimingRecall gives ordered peaks that overlap in time full order and timing credit", "[Solutions][SequenceAndTimingRecall]")
 {
     resetGlobalState();
@@ -1501,7 +1502,7 @@ TEST_CASE("SequenceAndTimingRecall gives ordered peaks that overlap in time full
             mostUpTogether = std::max(mostUpTogether, static_cast<size_t>(upTogether));
         }
         INFO("trial " << trial);
-        CHECK(mostUpTogether >= 3);
+        CHECK(mostUpTogether >= 2);
     }
     const auto& partials = solution.getParameters().partialFitness;
     REQUIRE(partials.size() == 8);
@@ -1509,8 +1510,8 @@ TEST_CASE("SequenceAndTimingRecall gives ordered peaks that overlap in time full
     CHECK(partials[4] > 0.9);
 }
 
-// The reference with 7-8's global part at 0.2: ten pending events open the window by themselves, so 300 after the
-// demonstration it starts recalling without any trigger, and keeps firing.
+// The reference with 7-8's global part at 0.4: six pending events open the window by themselves, so after the
+// demonstration it starts recalling without any trigger.
 TEST_CASE("SequenceAndTimingRecall gives an output that fires without the trigger almost no recall credit", "[Solutions][SequenceAndTimingRecall]")
 {
     resetGlobalState();
@@ -1574,8 +1575,8 @@ TEST_CASE("SequenceAndTimingRecall ends with one demonstration and three trigger
     solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
     solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
 
-    constexpr double demonstrationEnd = 2850.0;
-    constexpr double recallWindow = 3300.0;
+    constexpr double demonstrationEnd = 2050.0;
+    constexpr double recallWindow = 2500.0;
     bool everShuffled = false;
     for (int evaluation = 0; evaluation < 6; ++evaluation)
     {
@@ -1595,7 +1596,7 @@ TEST_CASE("SequenceAndTimingRecall ends with one demonstration and three trigger
             const double wait = recall.at("wait").get<double>();
             CHECK(recall.at("cue").get<double>() == Catch::Approx(windowEnd + wait));
             CHECK(recall.contains("quietBeforeCue"));
-            CHECK(recall.at("recall").at("events").size() == 10);
+            CHECK(recall.at("recall").at("events").size() == 6);
             windowEnd = recall.at("cue").get<double>() + recallWindow;
             waits.push_back(wait);
         }
@@ -1646,7 +1647,7 @@ TEST_CASE("SequenceAndTimingRecall pays a design that recalls only after the fir
         return std::ranges::count_if(recallEvents,
             [&events](const auto& event) { return events.at(event.first).at("onTime").get<double>() > 0.5; });
     };
-    CHECK(eventsOnTime(recalls[0]) == 10);
+    CHECK(eventsOnTime(recalls[0]) == 6);
     CHECK(eventsOnTime(recalls[1]) <= 2);
     CHECK(eventsOnTime(recalls[2]) <= 2);
 
@@ -1669,7 +1670,7 @@ TEST_CASE("SequenceAndTimingRecall traces when each event first peaked after the
     REQUIRE(trials.size() == 5);
     for (size_t trial = 1; trial < 4; ++trial)
     {
-        CHECK(trials[trial].at("snapshots").size() > 20);
+        CHECK(trials[trial].at("snapshots").size() > 2 * recallEvents.size());
     }
     const auto recalls = recallsOf(trials);
     REQUIRE(recalls.size() == 6);
@@ -1716,10 +1717,11 @@ TEST_CASE("SequenceAndTimingRecall saves a recall trial with a wait of 900, so a
     replay->init();
     const auto output = std::dynamic_pointer_cast<dnf_composer::element::NeuralField>(replay->getElement("nf 2"));
     REQUIRE(output != nullptr);
-    // The trigger comes again at 3750; 20 after each event is due, the reference's peak there is up.
+    // The trigger comes again at 2950; 50 after each event is due, the reference's peak there is up (each first peaks
+    // up to 40 after its time).
     for (size_t event = 0; event < recallEvents.size(); ++event)
     {
-        const double time = 3750.0 + recallEvents[event].second + 20.0;
+        const double time = 2950.0 + recallEvents[event].second + 50.0;
         while (replay->getT() < time - 1e-9)
         {
             replay->step();

@@ -24,11 +24,11 @@ namespace neat_dnfs
 			double onset;
 		};
 
-		// The demonstrated sequence: recall must replay it in this order, each event at its onset after the trigger.
-		constexpr std::array<Event, SequenceAndTimingRecall::eventCount> sequence{ { { "LA2B", 40.0, 50.0 },
-			{ "RA3A", 160.0, 150.0 }, { "LA1A", 60.0, 350.0 }, { "RA1B", 100.0, 450.0 }, { "RA2B", 120.0, 650.0 },
-			{ "LA3A", 80.0, 750.0 }, { "RA1A", 140.0, 950.0 }, { "LA1B", 20.0, 1050.0 }, { "HOL", 200.0, 1900.0 },
-			{ "HOS", 220.0, 2800.0 } } };
+		// The demonstrated sequence of joint goals: recall must replay it in this order, each event at its onset after the
+		// trigger.
+		constexpr std::array<Event, SequenceAndTimingRecall::eventCount> sequence{ { { "BSA", 10.0, 200.0 },
+			{ "BLA", 50.0, 400.0 }, { "BSB", 30.0, 800.0 }, { "BLB", 70.0, 1000.0 }, { "BS", 90.0, 1600.0 },
+			{ "BP", 110.0, 2000.0 } } };
 
 		const std::string inputField{ "nf 1" };
 		const std::string outputField{ "nf 2" };
@@ -43,15 +43,15 @@ namespace neat_dnfs
 		constexpr double settleTime = 50.0;
 		constexpr double sampleInterval = 10.0;
 
-		// When the demonstration's last pulse, HOS's, ends.
+		// When the demonstration's last pulse, BP's, ends.
 		constexpr double demonstrationEnd = sequence.back().onset + pulseDuration;
 		// One wait is drawn from each third of this range, so that a fixed delay after the demonstration can match the
 		// recall timing in one trial at most.
 		constexpr double shortestRecallWait = 300.0;
 		constexpr double longestRecallWait = 1500.0;
-		// Recall is recorded until 500 after HOS is due.
+		// Recall is recorded until 500 after BP is due.
 		constexpr double recallDuration = sequence.back().onset + 500.0;
-		// If some event is never released, the sequence counts as over 300 after HOS is due, so the stop is always
+		// If some event is never released, the sequence counts as over 300 after BP is due, so the stop is always
 		// scored.
 		constexpr double sequenceOverAfter = sequence.back().onset + 300.0;
 		// Scalar timing: the error tolerated grows with the time since the trigger.
@@ -81,9 +81,9 @@ namespace neat_dnfs
 		// The nearest bump at two successive samples is the same bump only this close: the events lie 20 apart, so a
 		// peak at the next event is a new bump, not a moved one.
 		constexpr double sameBumpReach = 10.0;
-		// The output's level is read only farther than this from every event, where no peak, pre-shape or trough of a
-		// recall reaches.
-		constexpr double baselineReach = 10.0;
+		// The output's level is read only farther than this from every event. The events lie 20 apart around the whole
+		// field, so these are the places midway between two events, 9 and 10 from both: as far as any place lies.
+		constexpr double baselineReach = 8.0;
 		// The input's peak at a shown event, in the fixed input field.
 		constexpr double inputPeakAmplitude = 7.6;
 		constexpr double inputPeakWidth = 7.0;

@@ -50,14 +50,14 @@ without X, as long as its longest recall trial, then three recall trials after g
 from rest. Any peak at an event in the probe costs recall credit, however brief. `-guided` pays the larger of its
 guided score and what `sequence-timing-behaviour` pays for the same trials.
 
-`sequence-and-timing-recall` scores the same way, on ten events 20 apart on fields of 240: after the memory recall
-trigger (a boost of the input field), LA2B, RA3A, LA1A, RA1B, RA2B, LA3A, RA1A, LA1B, HOL and HOS must first peak in
-that order, 50, 150, 350, 450, 650, 750, 950, 1050, 1900 and 2800 after it. After the probe and the three recall
+`sequence-and-timing-recall` scores the same way, on six joint goals 20 apart on fields of 120: after the memory
+recall trigger (a boost of the input field), BSA (10), BLA (50), BSB (30), BLB (70), BS (90) and BP (110) must first
+peak in that order, 200, 400, 800, 1000, 1600 and 2000 after it. After the probe and the three recall
 trials, each evaluation runs a consecutive trial: one demonstration, then the trigger three times, one wait from each
 third of 300-1500 in a shuffled order, each recall scored as a recall trial's, so recalling once and never again costs
 credit. Each recall right after a demonstration counts twice a later recall of the consecutive trial, and order weighs
 more than timing. Peaks may overlap in time, so an event's credit is not shared with the peaks up with it. The guides measure pre-shapes and troughs from the output's level far
-from every event. Its fitness is the larger of its guided score and the intended behaviour's, whose six weights are in
+from every event, midway between two events. Its fitness is the larger of its guided score and the intended behaviour's, whose six weights are in
 `config/solutions/sequence-and-timing-recall-intended.json`.
 
 `output-feedback` is not an ablation but a wider search space: mutation may also wire

@@ -12,18 +12,17 @@
 
 namespace neat_dnfs
 {
-	/// @brief The sequence-and-timing recall task: a demonstrated sequence of ten events, recalled in order and at the
-	/// demonstrated times once the memory recall trigger comes.
+	/// @brief The sequence-and-timing recall task: a demonstrated sequence of six joint goals, recalled in order and at
+	/// the demonstrated times once the memory recall trigger comes.
 	///
 	/// @details Inspired by Wojtak et al. (2023), "Adaptive timing in a dynamic field architecture for natural
-	/// human-robot interactions". The input is "nf 1" and the output "nf 2", both 240 wide.
+	/// human-robot interactions". The input is "nf 1" and the output "nf 2", both 120 wide.
 	///
-	/// A trial starts from rest. The memory recall trigger, a boost of the whole input field, comes at 0-50; LA2B (40),
-	/// RA3A (160), LA1A (60), RA1B (100), RA2B (120), LA3A (80), RA1A (140), LA1B (20), HOL (200) and HOS (220) follow
-	/// as Gaussian pulses 50 long, at 50, 150, 350, 450, 650, 750, 950, 1050, 1900 and 2800. A recall trial gives the
-	/// trigger again after a wait, at 2850 plus the wait, and records the 3300 after it; the probe trial never gives it,
-	/// and lasts as long as the evaluation's longest recall trial. Each evaluation runs the probe, then three recall
-	/// trials, with waits drawn afresh from each third of 300-1500 and rounded to the sampling interval, then one
+	/// A trial starts from rest. The memory recall trigger, a boost of the whole input field, comes at 0-50; BSA (10),
+	/// BLA (50), BSB (30), BLB (70), BS (90) and BP (110) follow as Gaussian pulses 50 long, at 200, 400, 800, 1000, 1600
+	/// and 2000. A recall trial gives the trigger again after a wait, at 2050 plus the wait, and records the 2500 after
+	/// it; the probe trial never gives it, and lasts as long as the evaluation's longest recall trial. Each evaluation
+	/// runs the probe, then three recall trials, with waits drawn afresh from each third of 300-1500 and rounded to the sampling interval, then one
 	/// consecutive trial: one demonstration, then the trigger three times, with waits drawn afresh from each third in a
 	/// shuffled order, the first from the end of the demonstration and each later one from the end of the previous
 	/// recall window. Its three recalls are scored as the recall trials' are, so a design that recalls once and cannot
@@ -35,7 +34,7 @@ namespace neat_dnfs
 	/// (tests/fixtures/sequence-and-timing-recall-reference.dnf) does there:
 	/// - the input detects each event, and is back at rest by 50 after each pulse;
 	/// - the output stays below threshold through each demonstration and wait;
-	/// - after the trigger the output peaks at each event, first peaking in its place: LA2B as far as no other event
+	/// - after the trigger the output peaks at each event, first peaking in its place: BSA as far as no other event
 	///   peaked before it, each later event as far as the events due before it peaked before it. Overlap is allowed: an
 	///   event's peak score is its own, however many peaks are up with it. A peak scores as far as it lies near the event,
 	///   in proportion to its height (full from 2), as far as it is as narrow as a peak (full up to 30 wide, nothing from
@@ -44,10 +43,10 @@ namespace neat_dnfs
 	///   (scalar timing) and one quarter as the smaller of the delay and that time over the larger;
 	/// - once an event's peak ends, it stays released below threshold;
 	/// - once the sequence is over, the output has no peak until the recall ends. The sequence is over once every event
-	///   has peaked and been released, or 300 after HOS is due if that never happens.
+	///   has peaked and been released, or 300 after BP is due if that never happens.
 	///
-	/// The guides pay what the reference holds below threshold, measured from the output's level far from every event
-	/// (its median over the places more than 10 from all of them), which the troughs of a recall do not lower:
+	/// The guides pay what the reference holds below threshold, measured from the output's level far from every event:
+	/// its median over the places more than 8 from all of them, midway between two events:
 	/// - through each demonstration and wait, the stored events pre-shaped, the earliest highest, as far as the input is
 	///   at rest and the output has no peak;
 	/// - while they wait, the events not yet recalled pre-shaped in order, as far as the input is at rest;
@@ -75,7 +74,7 @@ namespace neat_dnfs
 	{
 	public:
 		/// @brief Number of events demonstrated and recalled.
-		static constexpr size_t eventCount = 10;
+		static constexpr size_t eventCount = 6;
 
 		/// @brief Builds a task solution whose genome is created from @p topology.
 		/// @param topology Fields to start from: the input and the output.
@@ -250,7 +249,7 @@ namespace neat_dnfs
 		/// @brief How far one event first peaked in its place in the recall.
 		/// @param recall Each event's record for the recall.
 		/// @param event Index of the event in the sequence.
-		/// @return For LA2B, the share of the other events that did not peak before it; for any later event, the share of
+		/// @return For BSA, the share of the other events that did not peak before it; for any later event, the share of
 		/// the events due before it that peaked before it; 0 if it never peaked.
 		[[nodiscard]] static double placeOf(const Recall& recall, size_t event);
 		/// @brief How far one event was recalled in its place in the recall.
@@ -296,7 +295,7 @@ namespace neat_dnfs
 		/// and release score; and when the sequence was over and how far the output had no peak from then on.
 		[[nodiscard]] nlohmann::json recallSummary(const Recall& recall, const AfterRecall& after, double cue) const;
 		/// @brief Records what the input and output look like now, for the evaluation trace.
-		/// @param stage Name of the point in the schedule being scored, such as "RA3A shown" or "recall HOL".
+		/// @param stage Name of the point in the schedule being scored, such as "BLA shown" or "recall BS".
 		/// @return The time, the input's bumps, and the output's bumps, baseline and activation at each event.
 		[[nodiscard]] nlohmann::json snapshot(const std::string& stage) const;
 		/// @brief Rounds a value written to the evaluation trace.
@@ -306,7 +305,7 @@ namespace neat_dnfs
 
 		/// @brief When the current trial gives the trigger again: none in the probe trial.
 		std::vector<double> trialCues;
-		/// @brief The places farther than 10 from every event, where baseline() reads the output: set as each evaluation
+		/// @brief The places farther than 8 from every event, where baseline() reads the output: set as each evaluation
 		/// starts, from the configured field size.
 		std::vector<double> baselinePositions;
 		/// @brief Weights of the intended behaviour's six terms.
