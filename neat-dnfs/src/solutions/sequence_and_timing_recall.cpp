@@ -25,10 +25,10 @@ namespace neat_dnfs
 		};
 
 		// The demonstrated sequence of joint goals: recall must replay it in this order, each event at its onset after the
-		// trigger.
-		constexpr std::array<Event, SequenceAndTimingRecall::eventCount> sequence{ { { "BSA", 10.0, 200.0 },
-			{ "BLA", 50.0, 400.0 }, { "BSB", 30.0, 800.0 }, { "BLB", 70.0, 1000.0 }, { "BS", 90.0, 1600.0 },
-			{ "BP", 110.0, 2000.0 } } };
+		// trigger. The onsets are the first six of the ten-event task's, so the pace is as demanding as it was there.
+		constexpr std::array<Event, SequenceAndTimingRecall::eventCount> sequence{ { { "BSA", 10.0, 50.0 },
+			{ "BLA", 50.0, 150.0 }, { "BSB", 30.0, 350.0 }, { "BLB", 70.0, 450.0 }, { "BS", 90.0, 650.0 },
+			{ "BP", 110.0, 750.0 } } };
 
 		const std::string inputField{ "nf 1" };
 		const std::string outputField{ "nf 2" };

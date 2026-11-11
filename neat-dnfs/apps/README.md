@@ -52,7 +52,7 @@ guided score and what `sequence-timing-behaviour` pays for the same trials.
 
 `sequence-and-timing-recall` scores the same way, on six joint goals 20 apart on fields of 120: after the memory
 recall trigger (a boost of the input field), BSA (10), BLA (50), BSB (30), BLB (70), BS (90) and BP (110) must first
-peak in that order, 200, 400, 800, 1000, 1600 and 2000 after it. After the probe and the three recall
+peak in that order, 50, 150, 350, 450, 650 and 750 after it. After the probe and the three recall
 trials, each evaluation runs a consecutive trial: one demonstration, then the trigger three times, one wait from each
 third of 300-1500 in a shuffled order, each recall scored as a recall trial's, so recalling once and never again costs
 credit. Each recall right after a demonstration counts twice a later recall of the consecutive trial, and order weighs

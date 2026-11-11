@@ -19,8 +19,8 @@ namespace neat_dnfs
 	/// human-robot interactions". The input is "nf 1" and the output "nf 2", both 120 wide.
 	///
 	/// A trial starts from rest. The memory recall trigger, a boost of the whole input field, comes at 0-50; BSA (10),
-	/// BLA (50), BSB (30), BLB (70), BS (90) and BP (110) follow as Gaussian pulses 50 long, at 200, 400, 800, 1000, 1600
-	/// and 2000. A recall trial gives the trigger again after a wait, at 2050 plus the wait, and records the 2500 after
+	/// BLA (50), BSB (30), BLB (70), BS (90) and BP (110) follow as Gaussian pulses 50 long, at 50, 150, 350, 450, 650
+	/// and 750. A recall trial gives the trigger again after a wait, at 800 plus the wait, and records the 1250 after
 	/// it; the probe trial never gives it, and lasts as long as the evaluation's longest recall trial. Each evaluation
 	/// runs the probe, then three recall trials, with waits drawn afresh from each third of 300-1500 and rounded to the sampling interval, then one
 	/// consecutive trial: one demonstration, then the trigger three times, with waits drawn afresh from each third in a
