@@ -57,7 +57,8 @@ trials, each evaluation runs a consecutive trial: one demonstration, then the tr
 third of 300-1500 in a shuffled order, each recall scored as a recall trial's, so recalling once and never again costs
 credit. Each recall right after a demonstration counts twice a later recall of the consecutive trial, and order weighs
 more than timing. Peaks may overlap in time, so an event's credit is not shared with the peaks up with it. The guides measure pre-shapes and troughs from the output's level far
-from every event, midway between two events. Its fitness is the larger of its guided score and the intended behaviour's, whose six weights are in
+from every event, midway between two events, and score pre-shapes in order as a staircase: each event as far as it
+stands above the next one in the sequence, the last one above that level, in full from 0.25. Its fitness is the larger of its guided score and the intended behaviour's, whose six weights are in
 `config/solutions/sequence-and-timing-recall-intended.json`.
 
 `output-feedback` is not an ablation but a wider search space: mutation may also wire

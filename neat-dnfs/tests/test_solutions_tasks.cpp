@@ -1420,6 +1420,22 @@ TEST_CASE("SequenceAndTimingRecall scores the reference design at least 0.9", "[
     }
 }
 
+// Below threshold the reference holds a primacy gradient: each stored event pre-shaped above the one stored after it.
+// The guides score it by its steps, so the gradient earns memory and to-come though its later events sit near the
+// output's level: the earliest of them at full height above it would not make a steeper staircase.
+TEST_CASE("SequenceAndTimingRecall pays the reference's primacy gradient by its steps", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("reference");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[2] > 0.6); // memory
+    CHECK(partials[5] > 0.85); // the events to come
+}
+
 // With no connection into the output, nothing drives a peak there: the output earns the input and quiet terms alone,
 // which are an eighth of the intended behaviour.
 TEST_CASE("SequenceAndTimingRecall gives an output that never responds the input and quiet terms alone", "[Solutions][SequenceAndTimingRecall]")

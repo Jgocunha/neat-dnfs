@@ -46,7 +46,10 @@ namespace neat_dnfs
 	///   has peaked and been released, or 300 after BP is due if that never happens.
 	///
 	/// The guides pay what the reference holds below threshold, measured from the output's level far from every event:
-	/// its median over the places more than 8 from all of them, midway between two events:
+	/// its median over the places more than 8 from all of them, midway between two events. Pre-shapes in order are
+	/// scored as a staircase: each event as far as it stands above the next one in the sequence, and the last one above
+	/// that level, in full from 0.25, so a primacy gradient whose later events sit near the output's level earns them in
+	/// full when its steps are visible:
 	/// - through each demonstration and wait, the stored events pre-shaped, the earliest highest, as far as the input is
 	///   at rest and the output has no peak;
 	/// - while they wait, the events not yet recalled pre-shaped in order, as far as the input is at rest;
@@ -207,10 +210,12 @@ namespace neat_dnfs
 		/// @brief The output's level far from every event: its median over baselinePositions.
 		/// @return The median activation there.
 		[[nodiscard]] double baseline() const;
-		/// @brief Scores the output pre-shaped at the events at @p positions, above @p level and in that order.
+		/// @brief Scores the output pre-shaped at the events at @p positions as a staircase descending in that order
+		/// to @p level.
 		/// @param positions Event positions, highest pre-shape expected first.
 		/// @param level The output's baseline at this sample.
-		/// @return The mean pre-shape, with half of it kept only as far as the pre-shapes are in order.
+		/// @return The mean, over the events, of each one's step above the next one's activation (the last one's above
+		/// @p level), in full from 0.25; nothing for an event at or above threshold.
 		[[nodiscard]] double preShapedInOrder(const std::vector<double>& positions, double level) const;
 		/// @brief How fully a peak stands at @p position: near it, tall enough, and no wider than a peak.
 		/// @param position Position of the event.

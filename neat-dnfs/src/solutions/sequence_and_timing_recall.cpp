@@ -84,6 +84,9 @@ namespace neat_dnfs
 		// The output's level is read only farther than this from every event. The events lie 20 apart around the whole
 		// field, so these are the places midway between two events, 9 and 10 from both: as far as any place lies.
 		constexpr double baselineReach = 8.0;
+		// Pre-shapes in order are a staircase: each event's step above the next, the last one's above the output's
+		// level, counts in full from this height, twenty-five times the fields' noise.
+		constexpr double preShapeStep = 0.25;
 		// The input's peak at a shown event, in the fixed input field.
 		constexpr double inputPeakAmplitude = 7.6;
 		constexpr double inputPeakWidth = 7.0;
@@ -455,14 +458,22 @@ namespace neat_dnfs
 
 	double SequenceAndTimingRecall::preShapedInOrder(const std::vector<double>& positions, const double level) const
 	{
-		std::vector<double> preShapes;
+		std::vector<double> activations;
+		activations.reserve(positions.size());
 		for (const double position : positions)
 		{
-			preShapes.push_back(preShapeAboveLevelAtPosition(outputField, position, level));
+			activations.push_back(activationAtPosition(outputField, position));
 		}
-		const double order = positions.size() > 1 ? activationsDescendAcrossPositions(outputField, positions) : 1.0;
-		// Order only counts among real pre-shapes: noise alone puts a flat field's samples in some order.
-		return mean(preShapes) * (0.5 + 0.5 * order);
+		auto steps = tools::utils::stepsDown(activations, level, preShapeStep);
+		// An event at or above threshold is peaking, not pre-shaped.
+		for (size_t event = 0; event < steps.size(); ++event)
+		{
+			if (activations[event] >= 0.0)
+			{
+				steps[event] = 0.0;
+			}
+		}
+		return mean(steps);
 	}
 
 	double SequenceAndTimingRecall::peakAt(const double position) const
