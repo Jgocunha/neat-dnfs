@@ -308,6 +308,29 @@ namespace neat_dnfs
                     / static_cast<double>(index);
             }
 
+            /// @brief How far each value of a sequence stands above the next, and the last above a floor, as a share of
+            /// a full step.
+            ///
+            /// A staircase descending to the floor in steps of at least @p fullStep scores 1 at every value; a flat or
+            /// rising run scores 0 at every value but the last, whose step is down to the floor.
+            /// @param values Values in the order they should descend; at least one.
+            /// @param floor Level the last value should stand above.
+            /// @param fullStep Height of a step that earns full credit; positive.
+            /// @return One credit in [0,1] per value: its height above the next value, or the last value's height above
+            /// @p floor, over @p fullStep.
+            [[nodiscard]] inline std::vector<double> stepsDown(const std::span<const double> values, const double floor,
+                const double fullStep)
+            {
+                std::vector<double> steps;
+                steps.reserve(values.size());
+                for (size_t i = 0; i < values.size(); ++i)
+                {
+                    const double next = i + 1 < values.size() ? values[i + 1] : floor;
+                    steps.push_back(std::clamp((values[i] - next) / fullStep, 0.0, 1.0));
+                }
+                return steps;
+            }
+
             /// @brief Middle value of @p values, unmoved by a minority of outliers such as a few peaks in a field.
             /// @param values Values to take the median of; at least one. Taken by value, since finding the median
             /// reorders them.

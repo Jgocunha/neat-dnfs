@@ -247,6 +247,39 @@ TEST_CASE("shareInPlace credits an item by the share of the items due before it 
     CHECK(shareInPlace(rotated, 3) == Catch::Approx(1.0 / 3.0));
 }
 
+TEST_CASE("stepsDown gives every step of a staircase at least a full step high full credit", "[stepsDown]")
+{
+    using neat_dnfs::tools::utils::stepsDown;
+    const std::vector<double> staircase{ -1.0, -2.0, -3.0 };
+
+    CHECK(stepsDown(staircase, -5.0, 0.25) == std::vector<double>{ 1.0, 1.0, 1.0 });
+}
+
+TEST_CASE("stepsDown credits each step by its height, the last value's step being down to the floor", "[stepsDown]")
+{
+    using neat_dnfs::tools::utils::stepsDown;
+    const std::vector<double> uneven{ -1.0, -1.1, -4.9 };
+
+    const auto steps = stepsDown(uneven, -5.0, 0.25);
+    REQUIRE(steps.size() == 3);
+    CHECK(steps[0] == Catch::Approx(0.4));
+    CHECK(steps[1] == 1.0);
+    CHECK(steps[2] == Catch::Approx(0.4));
+    CHECK(stepsDown(std::vector<double>{ -4.9 }, -5.0, 0.25).front() == Catch::Approx(0.4));
+}
+
+TEST_CASE("stepsDown gives a flat or rising run nothing but the last value's step down to the floor", "[stepsDown]")
+{
+    using neat_dnfs::tools::utils::stepsDown;
+    const std::vector<double> flat{ -2.0, -2.0, -2.0 };
+    const std::vector<double> rising{ -3.0, -2.0, -1.0 };
+    const std::vector<double> belowFloor{ -2.0, -6.0 };
+
+    CHECK(stepsDown(flat, -5.0, 0.25) == std::vector<double>{ 0.0, 0.0, 1.0 });
+    CHECK(stepsDown(rising, -5.0, 0.25) == std::vector<double>{ 0.0, 0.0, 1.0 });
+    CHECK(stepsDown(belowFloor, -5.0, 0.25) == std::vector<double>{ 1.0, 0.0 });
+}
+
 TEST_CASE("shareInPlace counts an item that never came, or came at the same time, as not before", "[shareInPlace]")
 {
     using neat_dnfs::tools::utils::shareInPlace;
