@@ -1827,6 +1827,10 @@ TEST_CASE("SequenceAndTimingRecall's evolvable ranges reach every setting of the
     // Reachable without output feedback, which the config turns on.
     GenomeMutationConstants::allowOutputAsConnectionSource = false;
     checkOnlyConnectionsEvolutionCanMake(*solution);
+    // An added field's connection in starts at the default global and moves by whole steps from there, and every hidden
+    // field keeps one such connection unless a rare toggle replaces it. The memory nf 3 has only one, 1-3, and recalls
+    // nothing in order a step off its global, so that default must lie on the step.
+    CHECK(onConnectionGlobalStep(GaussKernelConstants::amplitudeGlobal));
 }
 
 TEST_CASE("SequenceAndTimingRecall is registered with one input and one output, starting from its own template", "[SolutionRegistry]")
