@@ -175,7 +175,8 @@ namespace neat_dnfs
 		/// @param snapshots Receives a snapshot before the first event and as each event is shown.
 		/// @return How far the output had no peak over the demonstration and the wait.
 		double demonstrate(double until, Scores& scores, nlohmann::json& snapshots);
-		/// @brief Runs the probe trial: a demonstration, then the wait and a recall's length without the trigger.
+		/// @brief Runs the probe trial: a demonstration, then the wait, a recall's length and its silence probe without
+		/// the trigger.
 		/// @param wait How long a recall trial would wait before the trigger: the evaluation's longest.
 		/// @param scores Accumulates the input and quiet output terms.
 		/// @param trials Receives the trial's trace.
@@ -196,15 +197,19 @@ namespace neat_dnfs
 		/// the trial began, for the first, or since the previous recall window ended.
 		/// @param trials Receives the trial's trace.
 		void runConsecutiveTrial(const std::array<double, 3>& waits, Scores& scores, nlohmann::json& trials);
-		/// @brief Samples the recall window after the trigger at @p cue and scores the recall.
+		/// @brief Samples the recall window after the trigger at @p cue, and the silence probe after it if asked, and
+		/// scores the recall.
 		/// @param cue When the trigger was given.
 		/// @param quietBeforeCue How far the output had no peak before the trigger: every recall term is scaled by it.
 		/// @param weight The recall's weight in the recall terms: 2 right after a demonstration, 1 for a later recall of
 		/// the consecutive trial.
+		/// @param probeSilence Whether the output is watched for silence after the window: true for a recall trial and
+		/// for the consecutive trial's last recall, whose windows no later trigger follows. Its samples count as samples
+		/// after the sequence.
 		/// @param scores Accumulates the input rest and the recall terms.
 		/// @param snapshots Receives a snapshot when each event is due and at the window's end.
 		/// @return The recall's summary for the trace (recallSummary()).
-		nlohmann::json recallAfterCue(double cue, double quietBeforeCue, double weight, Scores& scores,
+		nlohmann::json recallAfterCue(double cue, double quietBeforeCue, double weight, bool probeSilence, Scores& scores,
 			nlohmann::json& snapshots);
 
 		/// @brief The output's level far from every event: its median over baselinePositions.
@@ -254,8 +259,9 @@ namespace neat_dnfs
 		/// @brief How far one event first peaked in its place in the recall.
 		/// @param recall Each event's record for the recall.
 		/// @param event Index of the event in the sequence.
-		/// @return For BSA, the share of the other events that did not peak before it; for any later event, the share of
-		/// the events due before it that peaked before it; 0 if it never peaked.
+		/// @return For BSA, the share of the other events that did not peak before it; for any later event, its mean
+		/// credit over the events due before it, each by how far it peaked after that event as a share of half their
+		/// demonstrated gap, up to 1; 0 if it never peaked.
 		[[nodiscard]] static double placeOf(const Recall& recall, size_t event);
 		/// @brief How far one event was recalled in its place in the recall.
 		/// @param recall Each event's record for the recall.

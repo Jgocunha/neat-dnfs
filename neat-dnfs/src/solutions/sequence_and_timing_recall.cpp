@@ -51,6 +51,9 @@ namespace neat_dnfs
 		constexpr double longestRecallWait = 1500.0;
 		// Recall is recorded until 500 after BP is due.
 		constexpr double recallDuration = sequence.back().onset + 500.0;
+		// After a recall window that no trigger follows, the output is watched this much longer for silence: a peak
+		// there is a peak after the sequence.
+		constexpr double silenceProbeDuration = 1000.0;
 		// If some event is never released, the sequence counts as over 300 after BP is due, so the stop is always
 		// scored.
 		constexpr double sequenceOverAfter = sequence.back().onset + 300.0;
@@ -59,6 +62,9 @@ namespace neat_dnfs
 		// Far from its time the Gaussian is flat. This share of the timing credit is the delay over the due time (or the
 		// due time over the delay, if later), which keeps rising all the way to it.
 		constexpr double timingRatioShare = 0.25;
+		// Full order credit needs each event to peak at least this share of its demonstrated gap after each event due
+		// before it: events crowded together in time are not recalled in order.
+		constexpr double orderSpacingShare = 0.5;
 		// The wait of the trial a saved solution replays: the one in the reference's behaviour table.
 		constexpr double replayedWait = 900.0;
 		// A recall right after a demonstration counts twice a later recall of the consecutive trial: recall itself matters
@@ -341,7 +347,7 @@ namespace neat_dnfs
 		// quiet samples still peaks at every event.
 		Recall withoutCue{};
 		std::vector<double> unscoredPreShapes;
-		sampleUntil(demonstrationEnd + wait + recallDuration, scores.inputRest,
+		sampleUntil(demonstrationEnd + wait + recallDuration + silenceProbeDuration, scores.inputRest,
 			[&](const double time, const std::optional<double> inputAtRest) {
 				const double noPeak = noBumps(outputField);
 				scores.outputQuiet.push_back(noPeak);
@@ -371,7 +377,7 @@ namespace neat_dnfs
 		nlohmann::json snapshots = nlohmann::json::array();
 		const double quietBeforeCue = demonstrate(cue, scores, snapshots);
 		snapshots.push_back(snapshot("before the trigger"));
-		const nlohmann::json recall = recallAfterCue(cue, quietBeforeCue, firstRecallWeight, scores, snapshots);
+		const nlohmann::json recall = recallAfterCue(cue, quietBeforeCue, firstRecallWeight, true, scores, snapshots);
 		trials.push_back({ { "kind", "recall" }, { "wait", wait }, { "cue", cue },
 			{ "quietBeforeCue", rounded(quietBeforeCue) }, { "weight", firstRecallWeight }, { "recall", recall },
 			{ "snapshots", snapshots } });
@@ -405,7 +411,8 @@ namespace neat_dnfs
 			}
 			snapshots.push_back(snapshot(std::format("before trigger {}", k + 1)));
 			const double weight = k == 0 ? firstRecallWeight : laterRecallWeight;
-			const nlohmann::json recall = recallAfterCue(cues[k], quietBeforeCue, weight, scores, snapshots);
+			const bool lastRecall = k + 1 == cues.size();
+			const nlohmann::json recall = recallAfterCue(cues[k], quietBeforeCue, weight, lastRecall, scores, snapshots);
 			recalls.push_back({ { "wait", waits[k] }, { "cue", cues[k] }, { "quietBeforeCue", rounded(quietBeforeCue) },
 				{ "weight", weight }, { "recall", recall } });
 		}
@@ -413,7 +420,7 @@ namespace neat_dnfs
 	}
 
 	nlohmann::json SequenceAndTimingRecall::recallAfterCue(const double cue, const double quietBeforeCue,
-		const double weight, Scores& scores, nlohmann::json& snapshots)
+		const double weight, const bool probeSilence, Scores& scores, nlohmann::json& snapshots)
 	{
 		Recall recall{};
 		AfterRecall after{};
@@ -433,6 +440,12 @@ namespace neat_dnfs
 			}
 		});
 		snapshots.push_back(snapshot("recall end"));
+		if (probeSilence)
+		{
+			// Only silence is watched after the window: an event first peaking there is not recalled.
+			sampleUntil(cue + recallDuration + silenceProbeDuration, scores.inputRest,
+				[&](double, std::optional<double>) { after.quiet.push_back(noBumps(outputField)); });
+		}
 
 		// An output active before the trigger sweeps peaks past the events: recall counts only as far as it was quiet.
 		scores.recallWeights.push_back(weight);
@@ -565,7 +578,9 @@ namespace neat_dnfs
 	{
 		std::array<std::optional<double>, eventCount> firstPeaks;
 		std::ranges::transform(recall, firstPeaks.begin(), &EventRecall::firstPeak);
-		return tools::utils::shareInPlace(firstPeaks, event);
+		std::array<double, eventCount> dueTimes{};
+		std::ranges::transform(sequence, dueTimes.begin(), &Event::onset);
+		return tools::utils::spacedShareInPlace(firstPeaks, dueTimes, event, orderSpacingShare);
 	}
 
 	double SequenceAndTimingRecall::creditInPlace(const Recall& recall, const size_t event)

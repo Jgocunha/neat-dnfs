@@ -1478,8 +1478,9 @@ TEST_CASE("SequenceAndTimingRecall gives a burst no timing credit, and order cre
 }
 
 // The reference with 8-5 and 8-10 at 800: the stamps climb four times as fast, and after BSA, which the trigger's lift
-// brings on time, it recalls the other five in order at about a third of their times.
-TEST_CASE("SequenceAndTimingRecall pays a fast cascade in order for the order, not the timing", "[Solutions][SequenceAndTimingRecall]")
+// brings on time, it recalls the other five in order at about a third of their times. Each goal comes about a third of
+// its demonstrated gap after the goals due before it, short of the half that earns full order credit.
+TEST_CASE("SequenceAndTimingRecall pays a fast cascade at a third of its times part of the order credit, not the timing", "[Solutions][SequenceAndTimingRecall]")
 {
     resetGlobalState();
     const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
@@ -1488,8 +1489,53 @@ TEST_CASE("SequenceAndTimingRecall pays a fast cascade in order for the order, n
 
     const auto& partials = solution.getParameters().partialFitness;
     REQUIRE(partials.size() == 8);
-    CHECK(partials[3] > 0.8);
+    CHECK(partials[3] > 0.4); // about 0.54: BLA comes soon after BSA, which the trigger's lift brings on time
+    CHECK(partials[3] < 0.7);
     CHECK(partials[4] < 0.3); // BSA alone on time: a sixth of the credit
+}
+
+// Batch-8 R07 (12 November 2026): after every trigger each goal first peaks in order, 10-30 apart, BSA +60 to BP
+// +120-170. Full order credit needs each goal at least half its demonstrated gap after the goals due before it, so goals
+// crowded together earn little of it, and the release and stop terms, which count only as far as the recall was in
+// order, little with it.
+TEST_CASE("SequenceAndTimingRecall gives goals crowded together in time little order credit", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("crowded-cascade");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[3] < 0.5); // about 0.4, against 0.92 when any lead counted as in order
+    CHECK(solution.getFitness() < 0.5);
+}
+
+// Batch-8 R04 (12 November 2026): a timed chain, released by about +1010, whose output then peaks between the goals
+// from about +1400, after the recall window. A silence probe follows each recall trial's window, and the consecutive
+// trial's last: its samples count as samples after the sequence, so peaks there cost the stop term, while the reference
+// stays quiet through it.
+TEST_CASE("SequenceAndTimingRecall probes for silence after the recall window", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto reference = loadRecallFixture("reference");
+    reference.evaluate();
+    auto solution = loadRecallFixture("peaks-after-window");
+    solution.evaluate();
+
+    for (const auto& recall : recallsOf(timingTrials(reference)))
+    {
+        CHECK(recall.at("recall").at("afterSequence").at("quiet").get<double>() >= 0.95);
+    }
+    const auto trials = timingTrials(solution);
+    REQUIRE(trials.size() == 5);
+    double quietAfter = 0.0;
+    for (size_t trial = 1; trial < 4; ++trial)
+    {
+        quietAfter += trials[trial].at("recall").at("afterSequence").at("quiet").get<double>() / 3.0;
+    }
+    CHECK(quietAfter < 0.9);
 }
 
 // The reference with nf 6 at tau 70: each event is released later, so the peaks of events 100 apart are up together
