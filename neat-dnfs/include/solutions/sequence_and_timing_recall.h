@@ -16,10 +16,10 @@ namespace neat_dnfs
 	/// the demonstrated times once the memory recall trigger comes.
 	///
 	/// @details Inspired by Wojtak et al. (2023), "Adaptive timing in a dynamic field architecture for natural
-	/// human-robot interactions". The input is "nf 1" and the output "nf 2", both 120 wide.
+	/// human-robot interactions". The input is "nf 1" and the output "nf 2", both 200 wide.
 	///
-	/// A trial starts from rest. The memory recall trigger, a boost of the whole input field, comes at 0-50; BSA (10),
-	/// BLA (50), BSB (30), BLB (70), BS (90) and BP (110) follow as Gaussian pulses 50 long, at 50, 150, 350, 450, 650
+	/// A trial starts from rest. The memory recall trigger, a boost of the whole input field, comes at 0-50; BSA (20),
+	/// BLA (100), BSB (60), BLB (120), BS (160) and BP (180) follow as Gaussian pulses 50 long, at 50, 150, 350, 450, 650
 	/// and 750. A recall trial gives the trigger again after a wait, at 800 plus the wait, and records the 1250 after
 	/// it; the probe trial never gives it, and lasts as long as the evaluation's longest recall trial. Each evaluation
 	/// runs the probe, then three recall trials, with waits drawn afresh from each third of 300-1500 and rounded to the sampling interval, then one

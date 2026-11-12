@@ -1334,8 +1334,8 @@ TEST_CASE("Every sequence-timing task is registered with one input and one outpu
     }
 }
 
-// The final task of the serial-order and timing work: from 10 November 2026, six joint goals 20 apart on fields of 120,
-// and from 11 November due at the first six times of the ten-event task.
+// The final task of the serial-order and timing work: from 10 November 2026, six joint goals, from 11 November due at
+// the first six times of the ten-event task, and from 12 November on fields of 200.
 static const std::string sequenceAndTimingRecall{ "sequence-and-timing-recall" };
 
 // The six events in their order, each with when it is due after the memory recall trigger.
@@ -1343,7 +1343,7 @@ static const std::array<std::pair<std::string, double>, 6> recallEvents{ { { "BS
     { "BSB", 350.0 }, { "BLB", 450.0 }, { "BS", 650.0 }, { "BP", 750.0 } } };
 
 // Where each event lies on the input and output fields, in the same order.
-static const std::array<double, 6> recallEventPositions{ 10.0, 50.0, 30.0, 70.0, 90.0, 110.0 };
+static const std::array<double, 6> recallEventPositions{ 20.0, 100.0, 60.0, 120.0, 160.0, 180.0 };
 
 static SequenceAndTimingRecall loadRecallFixture(const std::string& name)
 {
@@ -1391,7 +1391,7 @@ TEST_CASE("SequenceAndTimingRecall names its runs, and clones and copies as itse
 }
 
 // The hand-built reference (11 November 2026: the ten-event design of 29 October on the first six of its times, with
-// thinner peaks and shallower troughs) recalls all six in order and on time, and lets each go. Its timing credit is
+// thinner peaks and shallower troughs; on fields of 200 from 12 November) recalls all six in order and on time, and lets each go. Its timing credit is
 // held below 0.9 by its first two events: the trigger's lift of the stamps brings BSA's first peak to 60, the edge of
 // its window, and BLA's to 120-130, 20-30 early, as it did the first two of the ten events. Its wind-back starts once
 // BP is released, and clears the troughs of BS and BP before the recall window ends.
@@ -1478,9 +1478,9 @@ TEST_CASE("SequenceAndTimingRecall gives a burst no timing credit, and order cre
 }
 
 // The reference with 8-5 and 8-10 at 800: the stamps climb four times as fast, and after BSA, which the trigger's lift
-// brings on time, it recalls the other five in order at about a third of their times. Each goal comes about a third of
-// its demonstrated gap after the goals due before it, short of the half that earns full order credit.
-TEST_CASE("SequenceAndTimingRecall pays a fast cascade at a third of its times part of the order credit, not the timing", "[Solutions][SequenceAndTimingRecall]")
+// brings on time, it recalls the other five in order 20-50 apart, by about +210. Each goal comes well short of half its
+// demonstrated gap after the goals due before it, the spacing that earns full order credit.
+TEST_CASE("SequenceAndTimingRecall pays a fast cascade part of the order credit, not the timing", "[Solutions][SequenceAndTimingRecall]")
 {
     resetGlobalState();
     const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
@@ -1494,8 +1494,8 @@ TEST_CASE("SequenceAndTimingRecall pays a fast cascade at a third of its times p
     CHECK(partials[4] < 0.3); // BSA alone on time: a sixth of the credit
 }
 
-// Batch-8 R07 (12 November 2026): after every trigger each goal first peaks in order, 10-30 apart, BSA +60 to BP
-// +120-170. Full order credit needs each goal at least half its demonstrated gap after the goals due before it, so goals
+// The reference with 8-5 and 8-10 at 1600: the stamps climb eight times as fast, so after every trigger each goal first
+// peaks in order 10-20 apart, BSA +40 to BP +120, as batch-8's R07 did (12 November 2026). Full order credit needs each goal at least half its demonstrated gap after the goals due before it, so goals
 // crowded together earn little of it, and the release and stop terms, which count only as far as the recall was in
 // order, little with it.
 TEST_CASE("SequenceAndTimingRecall gives goals crowded together in time little order credit", "[Solutions][SequenceAndTimingRecall]")
@@ -1507,12 +1507,13 @@ TEST_CASE("SequenceAndTimingRecall gives goals crowded together in time little o
 
     const auto& partials = solution.getParameters().partialFitness;
     REQUIRE(partials.size() == 8);
-    CHECK(partials[3] < 0.5); // about 0.4, against 0.92 when any lead counted as in order
-    CHECK(solution.getFitness() < 0.5);
+    CHECK(partials[3] < 0.5); // about 0.4: any lead counted as fully in order before the spacing rule
+    CHECK(solution.getFitness() < 0.55); // about 0.5: its stored staircase still earns the memory and to-come guides
 }
 
-// Batch-8 R04 (12 November 2026): a timed chain, released by about +1010, whose output then peaks between the goals
-// from about +1400, after the recall window. A silence probe follows each recall trial's window, and the consecutive
+// The reference with 9-5 at -200: the wind-back presses the stamps down less, so after a recall in order and on time
+// BSB climbs back and peaks again from about +1610, after the recall window, as batch-8's R04 peaked between the goals
+// (12 November 2026). A silence probe follows each recall trial's window, and the consecutive
 // trial's last: its samples count as samples after the sequence, so peaks there cost the stop term, while the reference
 // stays quiet through it.
 TEST_CASE("SequenceAndTimingRecall probes for silence after the recall window", "[Solutions][SequenceAndTimingRecall]")
