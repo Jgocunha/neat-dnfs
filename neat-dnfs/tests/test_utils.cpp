@@ -293,6 +293,47 @@ TEST_CASE("shareInPlace counts an item that never came, or came at the same time
     CHECK(shareInPlace(together, 1) == 0.0);
 }
 
+// Due 50, 150, 350, 450, 650, 750 after a trigger; came as the reference of sequence-and-timing-recall recalls them.
+TEST_CASE("spacedShareInPlace gives every item that came at least the share of its gaps after the earlier ones its full place", "[spacedShareInPlace]")
+{
+    using neat_dnfs::tools::utils::spacedShareInPlace;
+    const std::vector<double> due{ 50.0, 150.0, 350.0, 450.0, 650.0, 750.0 };
+    const std::vector<std::optional<double>> spaced{ 60.0, 120.0, 330.0, 430.0, 630.0, 740.0 };
+
+    for (size_t item = 0; item < spaced.size(); ++item)
+    {
+        CHECK(spacedShareInPlace(spaced, due, item, 0.5) == 1.0);
+    }
+}
+
+TEST_CASE("spacedShareInPlace credits each earlier item by how much of half their demonstrated gap came between them", "[spacedShareInPlace]")
+{
+    using neat_dnfs::tools::utils::spacedShareInPlace;
+    const std::vector<double> due{ 50.0, 150.0, 350.0 };
+    const std::vector<std::optional<double>> crowded{ 50.0, 60.0, 70.0 };
+
+    CHECK(spacedShareInPlace(crowded, due, 0, 0.5) == 1.0);
+    CHECK(spacedShareInPlace(crowded, due, 1, 0.5) == Catch::Approx(10.0 / 50.0));
+    CHECK(spacedShareInPlace(crowded, due, 2, 0.5) == Catch::Approx((20.0 / 150.0 + 10.0 / 100.0) / 2.0));
+}
+
+TEST_CASE("spacedShareInPlace gives no credit for an earlier item that came later, at the same time, or never", "[spacedShareInPlace]")
+{
+    using neat_dnfs::tools::utils::spacedShareInPlace;
+    const std::vector<double> due{ 50.0, 150.0, 350.0 };
+    const std::vector<std::optional<double>> swapped{ 60.0, 50.0, 200.0 };
+    const std::vector<std::optional<double>> withoutSecond{ 50.0, std::nullopt, 300.0 };
+    const std::vector<std::optional<double>> together{ 50.0, 50.0, std::nullopt };
+
+    CHECK(spacedShareInPlace(swapped, due, 0, 0.5) == Catch::Approx(0.5)); // the first, as shareInPlace places it
+    CHECK(spacedShareInPlace(swapped, due, 1, 0.5) == 0.0);
+    CHECK(spacedShareInPlace(swapped, due, 2, 0.5) == Catch::Approx((140.0 / 150.0 + 1.0) / 2.0));
+    CHECK(spacedShareInPlace(withoutSecond, due, 1, 0.5) == 0.0);
+    CHECK(spacedShareInPlace(withoutSecond, due, 2, 0.5) == Catch::Approx(0.5));
+    CHECK(spacedShareInPlace(together, due, 1, 0.5) == 0.0);
+    CHECK(spacedShareInPlace(together, due, 2, 0.5) == 0.0);
+}
+
 TEST_CASE("normalizeWithFlatheadGaussian is 1.0 inside the flat region", "[normalizeWithFlatheadGaussian]")
 {
     using neat_dnfs::tools::utils::normalizeWithFlatheadGaussian;

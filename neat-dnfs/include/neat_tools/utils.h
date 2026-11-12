@@ -308,6 +308,39 @@ namespace neat_dnfs
                     / static_cast<double>(index);
             }
 
+            /// @brief Score in [0,1] for how far one item of a sequence came in its place, and spaced from the items due
+            /// before it.
+            ///
+            /// The first item is placed as shareInPlace() places it. Every later item is credited, for each item due
+            /// before it, by how far it came after that item, as a share of @p spacingShare of the gap between their due
+            /// times, up to 1: an item that came before, at the same time as, or without an item due before it gets
+            /// nothing for that item.
+            /// @param firstTimes When each item first came, in the order the items are due; empty for one that never
+            /// came.
+            /// @param dueTimes When each item was due, rising, one per item of @p firstTimes.
+            /// @param index Position of the item in the sequence.
+            /// @param spacingShare Share of each gap between due times that earns full credit; positive.
+            /// @return 0 if the item never came, otherwise its mean credit over the items due before it, as above.
+            [[nodiscard]] inline double spacedShareInPlace(const std::span<const std::optional<double>> firstTimes,
+                const std::span<const double> dueTimes, const size_t index, const double spacingShare)
+            {
+                const auto& came = firstTimes[index];
+                if (!came || index == 0)
+                {
+                    return shareInPlace(firstTimes, index);
+                }
+                double credit = 0.0;
+                for (size_t earlier = 0; earlier < index; ++earlier)
+                {
+                    if (const auto& other = firstTimes[earlier])
+                    {
+                        const double fullGap = spacingShare * (dueTimes[index] - dueTimes[earlier]);
+                        credit += std::clamp((*came - *other) / fullGap, 0.0, 1.0);
+                    }
+                }
+                return credit / static_cast<double>(index);
+            }
+
             /// @brief How far each value of a sequence stands above the next, and the last above a floor, as a share of
             /// a full step.
             ///
