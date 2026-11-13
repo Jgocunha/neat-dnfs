@@ -20,15 +20,15 @@ namespace neat_dnfs
 	///
 	/// A trial starts from rest. The memory recall trigger, a boost of the whole input field, comes at 0-50; BSA (20),
 	/// BLA (100), BSB (60), BLB (120), BS (160) and BP (180) follow as Gaussian pulses 50 long, at 50, 150, 350, 450, 650
-	/// and 750. A recall trial gives the trigger again after a wait, at 800 plus the wait, and records the 1250 after
-	/// it; the probe trial never gives it, and lasts as long as the evaluation's longest recall trial. Each evaluation
-	/// runs the probe, then three recall trials, with waits drawn afresh from each third of 300-1500 and rounded to the sampling interval, then one
-	/// consecutive trial: one demonstration, then the trigger three times, with waits drawn afresh from each third in a
-	/// shuffled order, the first from the end of the demonstration and each later one from the end of the previous
-	/// recall window. Its three recalls are scored as the recall trials' are, so a design that recalls once and cannot
-	/// recall again loses their credit. In the recall terms each recall right after a demonstration (the three recall
-	/// trials' and the consecutive trial's first) counts twice the consecutive trial's second or third. The schedule is laid down as timed stimuli, so a saved solution replays a recall
-	/// trial with a wait of 900 in dnf-composer.
+	/// and 750. Each evaluation runs a probe trial, then three consecutive trials. A consecutive trial is one
+	/// demonstration, then the trigger three times, each recorded for the 1250 after it: the first after a wait from the
+	/// end of the demonstration, each later one after a wait from the end of the previous recall window. The three
+	/// waits are drawn afresh, one from each third of 300-1500 and rounded to the sampling interval; the first wait
+	/// comes from the first third in the first trial, the second in the second and the last in the third, and the
+	/// later two follow in a shuffled order. The probe trial never gives the trigger, and waits as long as the longest
+	/// first wait. All nine recalls count alike in the recall terms, so a design that recalls once after each
+	/// demonstration and cannot recall again loses two thirds of their credit. The schedule is laid down as timed
+	/// stimuli, so a saved solution replays one demonstration and one trigger after a wait of 900 in dnf-composer.
 	///
 	/// Every field is sampled every 10 and scored against what the reference design
 	/// (tests/fixtures/sequence-and-timing-recall-reference.dnf) does there:
@@ -59,7 +59,8 @@ namespace neat_dnfs
 	///
 	/// Each recall's credit is scaled by how far the output had no peak before its trigger (since the trial began, or
 	/// since the previous recall window ended), and all of it by how far the output had no peak in the probe trial after
-	/// its demonstration, and by how far no event peaked there.
+	/// its demonstration, and by how far no event peaked there. After the last recall window of each consecutive trial
+	/// the output is watched 1000 longer for silence: a peak there is a peak after the sequence.
 	///
 	/// The eight partial fitness terms are: f1 the input, f2 the quiet output and f3 its pre-shapes before the trigger,
 	/// f4 the recall in order, f5 its timing, f6 the pre-shapes still to come, f7 the release of each recalled event and
@@ -71,7 +72,7 @@ namespace neat_dnfs
 	/// Every evaluation records a trace in SolutionParameters::evaluationTrace: both weighted sums; per trial, its kind,
 	/// wait and how quiet the output stayed before the trigger; for the probe trial, how far each event peaked without
 	/// the trigger; for each recall, what each event did and its timing credit, and snapshots of the input and output
-	/// as each event is shown and when each is due. The consecutive trial lists its three recalls, each with its wait,
+	/// as each event is shown and when each is due. Each consecutive trial lists its three recalls, each with its wait,
 	/// trigger and how quiet the output stayed before it.
 	class SequenceAndTimingRecall final : public Solution
 	{
@@ -137,10 +138,6 @@ namespace neat_dnfs
 			std::vector<double> stopped;
 			std::vector<double> releasedWithoutGuides;
 			std::vector<double> stoppedWithoutGuides;
-			/// @brief Each recall's weight in the recall terms, in the order the recalls ran.
-			std::vector<double> recallWeights;
-			/// @brief The weight of each recall that had events waiting to score in toCome.
-			std::vector<double> toComeWeights;
 		};
 
 		void testPhenotype() override;
@@ -150,9 +147,14 @@ namespace neat_dnfs
 		/// interval so that the trigger falls on a sample.
 		/// @return The waits, shortest third first.
 		[[nodiscard]] static std::array<double, 3> drawRecallWaits();
+		/// @brief Draws one consecutive trial's three waits: one from each third of 300-1500, the first from the given
+		/// third and the other two in a shuffled order.
+		/// @param firstThird Which third the first wait comes from: 0 the shortest, 2 the longest.
+		/// @return The waits, in the order the trial uses them.
+		[[nodiscard]] static std::array<double, 3> drawConsecutiveWaits(size_t firstThird);
 		/// @brief Sets the trial's memory recall trigger: at 0-50 and again at each of @p cues.
-		/// @param cues When the trial gives the trigger again: none for the probe trial, one for a recall trial, three for
-		/// the consecutive trial.
+		/// @param cues When the trial gives the trigger again: none for the probe trial, three for a consecutive
+		/// trial.
 		void setCues(const std::vector<double>& cues);
 		/// @brief Whether the input should be back at rest at @p time: no trigger or event pulse started within a pulse
 		/// and its settling time.
@@ -170,27 +172,23 @@ namespace neat_dnfs
 			const std::function<void(double, std::optional<double>)>& onSample);
 		/// @brief Runs a trial from rest through its demonstration and up to @p until, scoring the input, the quiet output
 		/// and its memory.
-		/// @param until When to stop: the trigger of a recall trial, or the end of the demonstration in the probe trial.
+		/// @param until When to stop: a consecutive trial's first trigger, or the end of the demonstration in the probe
+		/// trial.
 		/// @param scores Accumulates the input, quiet output and memory terms.
 		/// @param snapshots Receives a snapshot before the first event and as each event is shown.
 		/// @return How far the output had no peak over the demonstration and the wait.
 		double demonstrate(double until, Scores& scores, nlohmann::json& snapshots);
 		/// @brief Runs the probe trial: a demonstration, then the wait, a recall's length and its silence probe without
 		/// the trigger.
-		/// @param wait How long a recall trial would wait before the trigger: the evaluation's longest.
+		/// @param wait How long the trial waits where a consecutive trial would give its first trigger: the evaluation's
+		/// longest first wait.
 		/// @param scores Accumulates the input and quiet output terms.
 		/// @param trials Receives the trial's trace.
 		/// @return How far the output had no peak after the demonstration, times the mean, over the events, of how far
 		/// each did not peak there (1 minus its best peak score).
 		double runProbeTrial(double wait, Scores& scores, nlohmann::json& trials);
-		/// @brief Runs one recall trial and scores its recall.
-		/// @param wait How long the trial waits after the demonstration before the trigger.
-		/// @param scores Accumulates every term; the recall terms are scaled by how far the output had no peak before the
-		/// trigger.
-		/// @param trials Receives the trial's trace.
-		void runRecallTrial(double wait, Scores& scores, nlohmann::json& trials);
-		/// @brief Runs the consecutive trial: one demonstration, then a recall after each of @p waits, and scores each
-		/// recall as a recall trial's.
+		/// @brief Runs one consecutive trial: one demonstration, then a recall after each of @p waits, and scores each
+		/// recall.
 		/// @param waits The waits, the first from the end of the demonstration and each later one from the end of the
 		/// previous recall window.
 		/// @param scores Accumulates every term; each recall's terms are scaled by how far the output had no peak since
@@ -201,15 +199,12 @@ namespace neat_dnfs
 		/// scores the recall.
 		/// @param cue When the trigger was given.
 		/// @param quietBeforeCue How far the output had no peak before the trigger: every recall term is scaled by it.
-		/// @param weight The recall's weight in the recall terms: 2 right after a demonstration, 1 for a later recall of
-		/// the consecutive trial.
-		/// @param probeSilence Whether the output is watched for silence after the window: true for a recall trial and
-		/// for the consecutive trial's last recall, whose windows no later trigger follows. Its samples count as samples
-		/// after the sequence.
+		/// @param probeSilence Whether the output is watched for silence after the window: true for a consecutive trial's
+		/// last recall, whose window no later trigger follows. Its samples count as samples after the sequence.
 		/// @param scores Accumulates the input rest and the recall terms.
 		/// @param snapshots Receives a snapshot when each event is due and at the window's end.
 		/// @return The recall's summary for the trace (recallSummary()).
-		nlohmann::json recallAfterCue(double cue, double quietBeforeCue, double weight, bool probeSilence, Scores& scores,
+		nlohmann::json recallAfterCue(double cue, double quietBeforeCue, bool probeSilence, Scores& scores,
 			nlohmann::json& snapshots);
 
 		/// @brief The output's level far from every event: its median over baselinePositions.

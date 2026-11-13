@@ -68,10 +68,8 @@ namespace neat_dnfs
 		constexpr double orderSpacingShare = 0.5;
 		// The wait of the trial a saved solution replays: the one in the reference's behaviour table.
 		constexpr double replayedWait = 900.0;
-		// A recall right after a demonstration counts twice a later recall of the consecutive trial: recall itself matters
-		// more than recalling it again.
-		constexpr double firstRecallWeight = 2.0;
-		constexpr double laterRecallWeight = 1.0;
+		// Each evaluation runs this many consecutive trials, the first wait of each from its own third of the range.
+		constexpr size_t consecutiveTrialCount = 3;
 
 		constexpr auto taskSlug = "sequence-and-timing-recall";
 		// Holds only the intended behaviour's weights: it is no task of its own.
@@ -101,11 +99,6 @@ namespace neat_dnfs
 		double meanOrZero(const std::vector<double>& values)
 		{
 			return values.empty() ? 0.0 : mean(values);
-		}
-
-		double weightedMeanOrZero(const std::vector<double>& values, const std::vector<double>& weights)
-		{
-			return values.empty() ? 0.0 : tools::utils::weightedMean(values, weights);
 		}
 
 		double aroundTheField(const double from, const double to)
@@ -185,38 +178,35 @@ namespace neat_dnfs
 		nlohmann::json trials = nlohmann::json::array();
 		baselinePositions = farFromEveryEvent();
 		createPhenotypeEnvironment();
-		const auto waits = drawRecallWaits();
-		// The probe waits as long as the longest recall trial, so whatever fires at a fixed lag after the demonstration
-		// before any recall ends fires inside it.
-		const double probeQuiet = runProbeTrial(waits.back(), scores, trials);
-		for (const double wait : waits)
+		std::array<std::array<double, 3>, consecutiveTrialCount> consecutiveWaits{};
+		for (size_t trial = 0; trial < consecutiveWaits.size(); ++trial)
 		{
-			runRecallTrial(wait, scores, trials);
+			consecutiveWaits[trial] = drawConsecutiveWaits(trial);
 		}
-		// Shuffled, so that no fixed delay after the previous recall matches every wait.
-		auto consecutiveWaits = drawRecallWaits();
-		std::ranges::shuffle(consecutiveWaits, tools::utils::engine());
-		runConsecutiveTrial(consecutiveWaits, scores, trials);
+		// The probe waits as long as the longest first wait, so whatever fires at a fixed lag after the demonstration
+		// before any first recall ends fires inside it.
+		const double probeQuiet = runProbeTrial(consecutiveWaits.back().front(), scores, trials);
+		for (const auto& waits : consecutiveWaits)
+		{
+			runConsecutiveTrial(waits, scores, trials);
+		}
 
 		const double input = 0.5 * mean(scores.inputPeaks) + 0.5 * mean(scores.inputRest); // detects, then rests
 		const double quiet = mean(scores.outputQuiet);              // no peak before the trigger, nor without it
 		const double memory = meanOrZero(scores.outputMemory);      // pre-shaped at the stored events, in order
-		// A design that fires without the trigger earns no credit for firing after it.
-		const auto overRecalls = [&scores](const std::vector<double>& perRecall) {
-			return tools::utils::weightedMean(perRecall, scores.recallWeights);
-		};
-		const double recalled = probeQuiet * overRecalls(scores.recalled); // the events recalled in order
-		const double timing = probeQuiet * overRecalls(scores.timing);     // each at its demonstrated time after the trigger
-		// The events still to recall pre-shaped, in order.
-		const double toCome = probeQuiet * weightedMeanOrZero(scores.toCome, scores.toComeWeights);
-		const double released = probeQuiet * overRecalls(scores.released); // each recalled event released
-		const double stopped = probeQuiet * overRecalls(scores.stopped);   // no peak once the sequence is over
+		// A design that fires without the trigger earns no credit for firing after it. Every recall counts alike, the
+		// first after a demonstration and the later ones.
+		const double recalled = probeQuiet * mean(scores.recalled); // the events recalled in order
+		const double timing = probeQuiet * mean(scores.timing);     // each at its demonstrated time after the trigger
+		const double toCome = probeQuiet * meanOrZero(scores.toCome); // the events still to recall pre-shaped, in order
+		const double released = probeQuiet * mean(scores.released); // each recalled event released
+		const double stopped = probeQuiet * mean(scores.stopped);   // no peak once the sequence is over
 
 		parameters.partialFitness = { input, quiet, memory, recalled, timing, toCome, released, stopped };
 		const double guidedFitness = std::inner_product(parameters.partialFitness.begin(), parameters.partialFitness.end(),
 			fitnessWeights.begin(), 0.0);
 		const std::vector<double> intended{ input, quiet, recalled, timing,
-			probeQuiet * overRecalls(scores.releasedWithoutGuides), probeQuiet * overRecalls(scores.stoppedWithoutGuides) };
+			probeQuiet * mean(scores.releasedWithoutGuides), probeQuiet * mean(scores.stoppedWithoutGuides) };
 		const double intendedFitness = std::inner_product(intended.begin(), intended.end(),
 			intendedFitnessWeights.begin(), 0.0);
 		// The guides lead the search toward the reference's way of recalling; they must not rank a design that recalls
@@ -255,6 +245,15 @@ namespace neat_dnfs
 			const double from = shortestRecallWait + third * static_cast<double>(i);
 			waits[i] = std::round(tools::utils::generateRandomDouble(from, from + third) / sampleInterval) * sampleInterval;
 		}
+		return waits;
+	}
+
+	std::array<double, 3> SequenceAndTimingRecall::drawConsecutiveWaits(const size_t firstThird)
+	{
+		auto waits = drawRecallWaits();
+		std::swap(waits.front(), waits[firstThird]);
+		// Shuffled, so that no fixed delay after the previous recall matches every wait.
+		std::ranges::shuffle(waits.begin() + 1, waits.end(), tools::utils::engine());
 		return waits;
 	}
 
@@ -371,19 +370,6 @@ namespace neat_dnfs
 		return quiet * mean(eventsQuiet);
 	}
 
-	void SequenceAndTimingRecall::runRecallTrial(const double wait, Scores& scores, nlohmann::json& trials)
-	{
-		const double cue = demonstrationEnd + wait;
-		setCues({ cue });
-		nlohmann::json snapshots = nlohmann::json::array();
-		const double quietBeforeCue = demonstrate(cue, scores, snapshots);
-		snapshots.push_back(snapshot("before the trigger"));
-		const nlohmann::json recall = recallAfterCue(cue, quietBeforeCue, firstRecallWeight, true, scores, snapshots);
-		trials.push_back({ { "kind", "recall" }, { "wait", wait }, { "cue", cue },
-			{ "quietBeforeCue", rounded(quietBeforeCue) }, { "weight", firstRecallWeight }, { "recall", recall },
-			{ "snapshots", snapshots } });
-	}
-
 	void SequenceAndTimingRecall::runConsecutiveTrial(const std::array<double, 3>& waits, Scores& scores,
 		nlohmann::json& trials)
 	{
@@ -411,17 +397,16 @@ namespace neat_dnfs
 				quietBeforeCue = mean(quietSamples);
 			}
 			snapshots.push_back(snapshot(std::format("before trigger {}", k + 1)));
-			const double weight = k == 0 ? firstRecallWeight : laterRecallWeight;
 			const bool lastRecall = k + 1 == cues.size();
-			const nlohmann::json recall = recallAfterCue(cues[k], quietBeforeCue, weight, lastRecall, scores, snapshots);
+			const nlohmann::json recall = recallAfterCue(cues[k], quietBeforeCue, lastRecall, scores, snapshots);
 			recalls.push_back({ { "wait", waits[k] }, { "cue", cues[k] }, { "quietBeforeCue", rounded(quietBeforeCue) },
-				{ "weight", weight }, { "recall", recall } });
+				{ "recall", recall } });
 		}
 		trials.push_back({ { "kind", "consecutive" }, { "recalls", recalls }, { "snapshots", snapshots } });
 	}
 
 	nlohmann::json SequenceAndTimingRecall::recallAfterCue(const double cue, const double quietBeforeCue,
-		const double weight, const bool probeSilence, Scores& scores, nlohmann::json& snapshots)
+		const bool probeSilence, Scores& scores, nlohmann::json& snapshots)
 	{
 		Recall recall{};
 		AfterRecall after{};
@@ -449,14 +434,12 @@ namespace neat_dnfs
 		}
 
 		// An output active before the trigger sweeps peaks past the events: recall counts only as far as it was quiet.
-		scores.recallWeights.push_back(weight);
 		scores.recalled.push_back(quietBeforeCue * recallInOrder(recall));
 		scores.timing.push_back(quietBeforeCue * timingOf(recall, cue));
 		// A recall where every event peaked by the first sample had nothing waiting to score.
 		if (!waitingPreShapes.empty())
 		{
 			scores.toCome.push_back(quietBeforeCue * mean(waitingPreShapes));
-			scores.toComeWeights.push_back(weight);
 		}
 		scores.released.push_back(quietBeforeCue * releaseAfterRecall(recall, true));
 		scores.stopped.push_back(quietBeforeCue * stoppedAfterRecall(recall, after, true));

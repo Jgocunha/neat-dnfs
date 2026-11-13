@@ -1350,16 +1350,12 @@ static SequenceAndTimingRecall loadRecallFixture(const std::string& name)
     return loadSequenceTimingFixture<SequenceAndTimingRecall>("sequence-and-timing-recall-" + name + ".dnf");
 }
 
-// Every recall of an evaluation, in trace order: the three single-trigger trials', then the consecutive trial's three.
+// Every recall of an evaluation, in trace order: each consecutive trial's three.
 static std::vector<nlohmann::json> recallsOf(const nlohmann::json& trials)
 {
     std::vector<nlohmann::json> recalls;
     for (const auto& trial : trials)
     {
-        if (trial.at("kind") == "recall")
-        {
-            recalls.push_back(trial);
-        }
         if (trial.at("kind") == "consecutive")
         {
             for (const auto& recall : trial.at("recalls"))
@@ -1513,9 +1509,8 @@ TEST_CASE("SequenceAndTimingRecall gives goals crowded together in time little o
 
 // The reference with 9-5 at -200: the wind-back presses the stamps down less, so after a recall in order and on time
 // BSB climbs back and peaks again from about +1610, after the recall window, as batch-8's R04 peaked between the goals
-// (12 November 2026). A silence probe follows each recall trial's window, and the consecutive
-// trial's last: its samples count as samples after the sequence, so peaks there cost the stop term, while the reference
-// stays quiet through it.
+// (12 November 2026). A silence probe follows the last recall window of each consecutive trial: its samples count as
+// samples after the sequence, so peaks there cost the stop term, while the reference stays quiet through it.
 TEST_CASE("SequenceAndTimingRecall probes for silence after the recall window", "[Solutions][SequenceAndTimingRecall]")
 {
     resetGlobalState();
@@ -1530,11 +1525,12 @@ TEST_CASE("SequenceAndTimingRecall probes for silence after the recall window", 
         CHECK(recall.at("recall").at("afterSequence").at("quiet").get<double>() >= 0.95);
     }
     const auto trials = timingTrials(solution);
-    REQUIRE(trials.size() == 5);
+    REQUIRE(trials.size() == 4);
     double quietAfter = 0.0;
     for (size_t trial = 1; trial < 4; ++trial)
     {
-        quietAfter += trials[trial].at("recall").at("afterSequence").at("quiet").get<double>() / 3.0;
+        const auto& lastRecall = trials[trial].at("recalls").back();
+        quietAfter += lastRecall.at("recall").at("afterSequence").at("quiet").get<double>() / 3.0;
     }
     CHECK(quietAfter < 0.9);
 }
@@ -1550,10 +1546,10 @@ TEST_CASE("SequenceAndTimingRecall gives ordered peaks that overlap in time full
     solution.evaluate();
 
     const auto trials = timingTrials(solution);
-    REQUIRE(trials.size() == 5);
+    REQUIRE(trials.size() == 4);
     for (size_t trial = 1; trial < 4; ++trial)
     {
-        const auto& events = trials[trial].at("recall").at("events");
+        const auto& events = trials[trial].at("recalls").front().at("recall").at("events");
         size_t mostUpTogether = 0;
         for (const auto& [label, due] : recallEvents)
         {
@@ -1600,30 +1596,31 @@ TEST_CASE("SequenceAndTimingRecall gives an output that fires without the trigge
     CHECK(solution.getFitness() < 0.2);
 }
 
-TEST_CASE("SequenceAndTimingRecall runs the probe, then draws a fresh wait from each third of 300-1500 for each recall", "[Solutions][SequenceAndTimingRecall]")
+TEST_CASE("SequenceAndTimingRecall runs the probe, then three consecutive trials whose first waits come one from each third of 300-1500", "[Solutions][SequenceAndTimingRecall]")
 {
     resetGlobalState();
     const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
     SequenceAndTimingRecall solution(sequenceTimingTopology());
     solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
     solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
-    const auto recallWaits = [&solution]() {
+    const auto firstWaits = [&solution]() {
         solution.evaluate();
         const auto trials = timingTrials(solution);
-        REQUIRE(trials.size() == 5);
+        REQUIRE(trials.size() == 4);
         CHECK(trials.front().at("kind") == "probe");
         std::vector<double> waits;
         for (size_t trial = 1; trial < 4; ++trial)
         {
-            CHECK(trials[trial].at("kind") == "recall");
-            waits.push_back(trials[trial].at("wait").get<double>());
+            CHECK(trials[trial].at("kind") == "consecutive");
+            waits.push_back(trials[trial].at("recalls").front().at("wait").get<double>());
         }
+        // The probe waits as long as the longest first wait.
         CHECK(trials.front().at("wait").get<double>() == waits.back());
         return waits;
     };
 
-    const auto first = recallWaits();
-    const auto second = recallWaits();
+    const auto first = firstWaits();
+    const auto second = firstWaits();
     for (size_t i = 0; i < first.size(); ++i)
     {
         CHECK(first[i] >= 300.0 + 400.0 * static_cast<double>(i));
@@ -1633,7 +1630,7 @@ TEST_CASE("SequenceAndTimingRecall runs the probe, then draws a fresh wait from 
     CHECK(first != second);
 }
 
-TEST_CASE("SequenceAndTimingRecall ends with one demonstration and three triggers, one wait from each third of 300-1500 in a shuffled order", "[Solutions][SequenceAndTimingRecall]")
+TEST_CASE("SequenceAndTimingRecall gives each consecutive trial one demonstration and three triggers, one wait from each third of 300-1500, the later two in a shuffled order", "[Solutions][SequenceAndTimingRecall]")
 {
     resetGlobalState();
     const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
@@ -1643,56 +1640,70 @@ TEST_CASE("SequenceAndTimingRecall ends with one demonstration and three trigger
 
     constexpr double demonstrationEnd = 800.0;
     constexpr double recallWindow = 1250.0;
-    bool everShuffled = false;
+    bool laterEverAscending = false;
+    bool laterEverDescending = false;
     for (int evaluation = 0; evaluation < 6; ++evaluation)
     {
         solution.evaluate();
         const auto trials = timingTrials(solution);
-        REQUIRE(trials.size() == 5);
-        const auto& consecutive = trials.back();
-        REQUIRE(consecutive.at("kind") == "consecutive");
-        const auto& recalls = consecutive.at("recalls");
-        REQUIRE(recalls.size() == 3);
+        REQUIRE(trials.size() == 4);
+        for (size_t trial = 1; trial < 4; ++trial)
+        {
+            const auto& consecutive = trials[trial];
+            REQUIRE(consecutive.at("kind") == "consecutive");
+            const auto& recalls = consecutive.at("recalls");
+            REQUIRE(recalls.size() == 3);
 
-        std::vector<double> waits;
-        // Each wait runs from the end of the demonstration, then from the end of the previous recall window.
-        double windowEnd = demonstrationEnd;
-        for (const auto& recall : recalls)
-        {
-            const double wait = recall.at("wait").get<double>();
-            CHECK(recall.at("cue").get<double>() == Catch::Approx(windowEnd + wait));
-            CHECK(recall.contains("quietBeforeCue"));
-            CHECK(recall.at("recall").at("events").size() == 6);
-            windowEnd = recall.at("cue").get<double>() + recallWindow;
-            waits.push_back(wait);
-        }
-        everShuffled = everShuffled || !std::ranges::is_sorted(waits);
-        std::ranges::sort(waits);
-        for (size_t i = 0; i < waits.size(); ++i)
-        {
-            CHECK(waits[i] >= 300.0 + 400.0 * static_cast<double>(i));
-            CHECK(waits[i] <= 700.0 + 400.0 * static_cast<double>(i));
-            CHECK(std::fmod(waits[i], 10.0) == Catch::Approx(0.0).margin(1e-9));
+            std::vector<double> waits;
+            // Each wait runs from the end of the demonstration, then from the end of the previous recall window.
+            double windowEnd = demonstrationEnd;
+            for (const auto& recall : recalls)
+            {
+                const double wait = recall.at("wait").get<double>();
+                CHECK(recall.at("cue").get<double>() == Catch::Approx(windowEnd + wait));
+                CHECK(recall.contains("quietBeforeCue"));
+                CHECK(recall.at("recall").at("events").size() == 6);
+                windowEnd = recall.at("cue").get<double>() + recallWindow;
+                waits.push_back(wait);
+            }
+            (waits[1] < waits[2] ? laterEverAscending : laterEverDescending) = true;
+            std::ranges::sort(waits);
+            for (size_t i = 0; i < waits.size(); ++i)
+            {
+                CHECK(waits[i] >= 300.0 + 400.0 * static_cast<double>(i));
+                CHECK(waits[i] <= 700.0 + 400.0 * static_cast<double>(i));
+                CHECK(std::fmod(waits[i], 10.0) == Catch::Approx(0.0).margin(1e-9));
+            }
         }
     }
-    CHECK(everShuffled);
+    CHECK(laterEverAscending);
+    CHECK(laterEverDescending);
 }
 
-TEST_CASE("SequenceAndTimingRecall counts each recall right after a demonstration twice a later consecutive recall", "[Solutions][SequenceAndTimingRecall]")
+// The reference without its wind-back recalls right after each demonstration and bursts at every later trigger. Its
+// three first recalls earn full order credit and its six later ones a burst's, and every recall counts alike.
+TEST_CASE("SequenceAndTimingRecall counts every recall alike, the first after a demonstration and the later ones", "[Solutions][SequenceAndTimingRecall]")
 {
     resetGlobalState();
     const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
-    auto solution = loadRecallFixture("reference");
+    auto solution = loadRecallFixture("recalls-once");
     solution.evaluate();
 
     const auto recalls = recallsOf(timingTrials(solution));
-    REQUIRE(recalls.size() == 6);
-    const std::array<double, 6> weights{ 2.0, 2.0, 2.0, 2.0, 1.0, 1.0 };
-    for (size_t recall = 0; recall < recalls.size(); ++recall)
+    REQUIRE(recalls.size() == 9);
+    double order = 0.0;
+    for (const auto& recall : recalls)
     {
-        INFO("recall " << recall);
-        CHECK(recalls[recall].at("weight").get<double>() == weights[recall]);
+        const auto& events = recall.at("recall").at("events");
+        for (const auto& [label, due] : recallEvents)
+        {
+            order += recall.at("quietBeforeCue").get<double>() * events.at(label).at("bestScore").get<double>()
+                * events.at(label).at("inPlace").get<double>() / static_cast<double>(recalls.size() * recallEvents.size());
+        }
     }
+    // The trace rounds each value to two decimals.
+    CHECK(solution.getParameters().partialFitness[3] == Catch::Approx(order).margin(0.02));
+    CHECK(order < 0.6);
 }
 
 TEST_CASE("SequenceAndTimingRecall pays a design that recalls only after the first trigger less than the reference", "[Solutions][SequenceAndTimingRecall]")
@@ -1708,6 +1719,7 @@ TEST_CASE("SequenceAndTimingRecall pays a design that recalls only after the fir
     REQUIRE(trials.back().at("kind") == "consecutive");
     const auto& recalls = trials.back().at("recalls");
     REQUIRE(recalls.size() == 3);
+    REQUIRE(recallsOf(trials).size() == 9);
     const auto eventsOnTime = [](const nlohmann::json& recall) {
         const auto& events = recall.at("recall").at("events");
         return std::ranges::count_if(recallEvents,
@@ -1717,11 +1729,11 @@ TEST_CASE("SequenceAndTimingRecall pays a design that recalls only after the fir
     CHECK(eventsOnTime(recalls[1]) <= 2);
     CHECK(eventsOnTime(recalls[2]) <= 2);
 
-    // Its later recalls count half as much as a first recall, so it keeps most of the reference's credit, not all.
+    // Six of its nine recalls come after an earlier one, so it loses most of the reference's recall credit.
     const auto& partials = solution.getParameters().partialFitness;
     REQUIRE(partials.size() == 8);
-    CHECK(partials[4] < reference.getParameters().partialFitness[4] - 0.1);
-    CHECK(solution.getFitness() < reference.getFitness() - 0.05);
+    CHECK(partials[4] < reference.getParameters().partialFitness[4] - 0.4);
+    CHECK(solution.getFitness() < reference.getFitness() - 0.3);
 }
 
 // Each recall trial's trace says when each event first peaked after the trigger and how close that came to its time.
@@ -1733,13 +1745,13 @@ TEST_CASE("SequenceAndTimingRecall traces when each event first peaked after the
     solution.evaluate();
 
     const auto trials = timingTrials(solution);
-    REQUIRE(trials.size() == 5);
+    REQUIRE(trials.size() == 4);
     for (size_t trial = 1; trial < 4; ++trial)
     {
         CHECK(trials[trial].at("snapshots").size() > 2 * recallEvents.size());
     }
     const auto recalls = recallsOf(trials);
-    REQUIRE(recalls.size() == 6);
+    REQUIRE(recalls.size() == 9);
     for (size_t recall = 0; recall < recalls.size(); ++recall)
     {
         const auto& events = recalls[recall].at("recall").at("events");

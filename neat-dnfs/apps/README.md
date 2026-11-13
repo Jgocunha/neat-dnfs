@@ -52,14 +52,14 @@ guided score and what `sequence-timing-behaviour` pays for the same trials.
 
 `sequence-and-timing-recall` scores the same way, on six joint goals on fields of 200: after the memory
 recall trigger (a boost of the input field), BSA (20), BLA (100), BSB (60), BLB (120), BS (160) and BP (180) must first
-peak in that order, 50, 150, 350, 450, 650 and 750 after it. After the probe and the three recall
-trials, each evaluation runs a consecutive trial: one demonstration, then the trigger three times, one wait from each
-third of 300-1500 in a shuffled order, each recall scored as a recall trial's, so recalling once and never again costs
-credit. Each recall right after a demonstration counts twice a later recall of the consecutive trial, and order weighs
+peak in that order, 50, 150, 350, 450, 650 and 750 after it. After the probe, each evaluation runs three consecutive
+trials: one demonstration, then the trigger three times, one wait from each third of 300-1500. The first wait comes
+from a different third in each trial, and the later two follow in a shuffled order. All nine recalls count alike, so
+recalling once after each demonstration and never again loses two thirds of the recall credit. Order weighs
 more than timing. Peaks may overlap in time, so an event's credit is not shared with the peaks up with it, but an event
 counts as recalled in order after each event due before it only as far as it first peaks at least half their demonstrated
-gap after it: events crowded together in time earn little order credit. After each recall trial's window, and the
-consecutive trial's last, the output is watched 1000 longer for silence, and a peak there counts as a peak after the
+gap after it: events crowded together in time earn little order credit. After the last recall window of each
+consecutive trial the output is watched 1000 longer for silence, and a peak there counts as a peak after the
 sequence. The guides measure pre-shapes and troughs from the output's level far
 from every event, midway between two events, and score pre-shapes in order as a staircase: each event as far as it
 stands above the next one in the sequence, the last one above that level, in full from 0.25. Its fitness is the larger of its guided score and the intended behaviour's, whose six weights are in
