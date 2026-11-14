@@ -58,7 +58,9 @@ from a different third in each trial, and the later two follow in a shuffled ord
 of a generation meets the same waits, drawn anew each generation, so the generation's ranking compares designs and not
 draws; `neat-dnfs-sol-eval` draws them afresh at every evaluation. All nine recalls count alike, so
 recalling once after each demonstration and never again loses two thirds of the recall credit. Order weighs
-more than timing. Peaks may overlap in time, so an event's credit is not shared with the peaks up with it, but an event
+more than timing. An event first peaking within 20% of its demonstrated time is on time and earns the full timing
+credit; beyond that window the credit falls off steeply with the distance past its edge. A recall's timing is its worst
+event's, so one late event costs the whole recall. Peaks may overlap in time, so an event's credit is not shared with the peaks up with it, but an event
 counts as recalled in order after each event due before it only as far as it first peaks at least half their demonstrated
 gap after it: events crowded together in time earn little order credit. After the last recall window of each
 consecutive trial the output is watched 1000 longer for silence, and a peak there counts as a peak after the

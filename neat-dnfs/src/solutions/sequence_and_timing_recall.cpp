@@ -59,10 +59,13 @@ namespace neat_dnfs
 		// If some event is never released, the sequence counts as over 300 after BP is due, so the stop is always
 		// scored.
 		constexpr double sequenceOverAfter = sequence.back().onset + 300.0;
-		// Scalar timing: the error tolerated grows with the time since the trigger.
+		// Scalar timing: the error tolerated grows with the time since the trigger. An event within it is on time.
 		constexpr double weberFraction = 0.2;
-		// Far from its time the Gaussian is flat. This share of the timing credit is the delay over the due time (or the
-		// due time over the delay, if later), which keeps rising all the way to it.
+		// Past the window's edge the credit falls off this steeply, as a share of the due time, so that an event moved
+		// just out of its window loses most of it.
+		constexpr double timingFallOffFraction = 0.05;
+		// Far from its window the Gaussian is flat. This share of the timing credit is the delay over the window's edge
+		// (or the edge over the delay, if later), which keeps rising all the way to it.
 		constexpr double timingRatioShare = 0.25;
 		// Full order credit needs each event to peak at least this share of its demonstrated gap after each event due
 		// before it: events crowded together in time are not recalled in order.
@@ -597,19 +600,26 @@ namespace neat_dnfs
 		}
 		const double due = sequence[event].onset;
 		const double delay = *firstPeak - cue;
-		const double nearDue = tools::utils::normalizeWithGaussian(delay, due, weberFraction * due);
-		const double ratio = delay > 0.0 ? std::min(delay, due) / std::max(delay, due) : 0.0;
-		return (1.0 - timingRatioShare) * nearDue + timingRatioShare * ratio;
+		const double tolerance = weberFraction * due;
+		const double beyond = std::abs(delay - due) - tolerance;
+		if (beyond <= 0.0)
+		{
+			return 1.0;
+		}
+		const double edge = delay > due ? due + tolerance : due - tolerance;
+		const double nearEdge = tools::utils::normalizeWithGaussian(beyond, 0.0, timingFallOffFraction * due);
+		const double ratio = delay > 0.0 ? std::min(delay, edge) / std::max(delay, edge) : 0.0;
+		return (1.0 - timingRatioShare) * nearEdge + timingRatioShare * ratio;
 	}
 
 	double SequenceAndTimingRecall::timingOf(const Recall& recall, const double cue)
 	{
-		double credit = 0.0;
+		double worst = 1.0;
 		for (size_t event = 0; event < recall.size(); ++event)
 		{
-			credit += creditInPlace(recall, event) * onTime(recall, event, cue);
+			worst = std::min(worst, creditInPlace(recall, event) * onTime(recall, event, cue));
 		}
-		return credit / static_cast<double>(recall.size());
+		return worst;
 	}
 
 	double SequenceAndTimingRecall::releaseAfterRecall(const Recall& recall, const bool withGuides)

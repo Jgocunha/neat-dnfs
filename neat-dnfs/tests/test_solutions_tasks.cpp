@@ -1387,9 +1387,9 @@ TEST_CASE("SequenceAndTimingRecall names its runs, and clones and copies as itse
 }
 
 // The hand-built reference (11 November 2026: the ten-event design of 29 October on the first six of its times, with
-// thinner peaks and shallower troughs; on fields of 200 from 12 November) recalls all six in order and on time, and lets each go. Its timing credit is
-// held below 0.9 by its first two events: the trigger's lift of the stamps brings BSA's first peak to 60, the edge of
-// its window, and BLA's to 120-130, 20-30 early, as it did the first two of the ten events. Its wind-back starts once
+// thinner peaks and shallower troughs; on fields of 200 from 12 November) recalls all six in order and on time, and lets each go. Its first two events
+// come early in their windows: the trigger's lift of the stamps brings BSA's first peak to 60, the edge of its window,
+// and BLA's to 120-130, 20-30 early, as it did the first two of the ten events. Its wind-back starts once
 // BP is released, and clears the troughs of BS and BP before the recall window ends.
 TEST_CASE("SequenceAndTimingRecall scores the reference design at least 0.9", "[Solutions][SequenceAndTimingRecall]")
 {
@@ -1537,7 +1537,7 @@ TEST_CASE("SequenceAndTimingRecall probes for silence after the recall window", 
 
 // The reference with nf 6 at tau 70: each event is released later, so the peaks of events 100 apart are up together
 // for longer, each where and when it is due. Overlap is allowed: no event's credit is shared with the peaks up with it.
-// Its timing is the reference's, held below 0.9 by BSA and BLA.
+// Its timing is the reference's: every event within its window.
 TEST_CASE("SequenceAndTimingRecall gives ordered peaks that overlap in time full order and timing credit", "[Solutions][SequenceAndTimingRecall]")
 {
     resetGlobalState();
@@ -1805,6 +1805,114 @@ TEST_CASE("SequenceAndTimingRecall traces when each event first peaked after the
             CHECK(events.at(label).at("onTime").get<double>() > 0.5);
         }
         CHECK(recalls[recall].at("quietBeforeCue").get<double>() == Catch::Approx(1.0));
+    }
+}
+
+// An event first peaking anywhere within 20% of its demonstrated time counts as on time, so it earns the full timing
+// credit: centring an event already in its window earns nothing more. The reference has every event in its window.
+TEST_CASE("SequenceAndTimingRecall gives every event within 20% of its time full timing credit", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("reference");
+    solution.evaluate();
+
+    for (const auto& recall : recallsOf(timingTrials(solution)))
+    {
+        for (const auto& [label, due] : recallEvents)
+        {
+            const auto& event = recall.at("recall").at("events").at(label);
+            const double afterCue = event.at("afterCue").get<double>();
+            INFO(label << " at " << afterCue);
+            if (std::abs(afterCue - due) <= 0.2 * due)
+            {
+                CHECK(event.at("onTime").get<double>() == Catch::Approx(1.0));
+            }
+        }
+    }
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[4] > 0.95);
+}
+
+// Past the window the credit falls off steeply from 1, but never to 0 for an event that peaked: a quarter of it is the
+// delay over the window's edge (or the edge over the delay), which keeps rising all the way in. The fast cascade
+// recalls every event after BSA far early.
+TEST_CASE("SequenceAndTimingRecall grades timing credit beyond the window by how far past its edge an event comes", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("fast-cascade");
+    solution.evaluate();
+
+    size_t outside = 0;
+    for (const auto& recall : recallsOf(timingTrials(solution)))
+    {
+        for (const auto& [label, due] : recallEvents)
+        {
+            const auto& event = recall.at("recall").at("events").at(label);
+            if (event.at("afterCue").is_null())
+            {
+                continue;
+            }
+            const double afterCue = event.at("afterCue").get<double>();
+            const double edge = afterCue < due ? 0.8 * due : 1.2 * due;
+            if (std::abs(afterCue - due) <= 0.2 * due || afterCue <= 0.0)
+            {
+                continue;
+            }
+            INFO(label << " at " << afterCue);
+            const double edgeRatio = std::min(afterCue, edge) / std::max(afterCue, edge);
+            CHECK(event.at("onTime").get<double>() == Catch::Approx(0.25 * edgeRatio).margin(0.01));
+            ++outside;
+        }
+    }
+    CHECK(outside > 0);
+}
+
+// One late event costs its whole recall: a recall's timing credit is its worst event's credit in place times its
+// timing, not their mean. The fast cascade, with only BSA on time, keeps far less than the sixth BSA would earn it.
+TEST_CASE("SequenceAndTimingRecall scores each recall's timing by its worst event", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    for (const std::string fixture : { "reference", "fast-cascade" })
+    {
+        INFO(fixture);
+        auto solution = loadRecallFixture(fixture);
+        solution.evaluate();
+
+        const auto trials = timingTrials(solution);
+        REQUIRE(trials.front().at("kind") == "probe");
+        const double probeQuiet = trials.front().at("quietWithoutCue").get<double>()
+            * trials.front().at("eventsQuietWithoutCue").get<double>();
+        double worst = 0.0;
+        double average = 0.0;
+        const auto recalls = recallsOf(trials);
+        for (const auto& recall : recalls)
+        {
+            const auto& events = recall.at("recall").at("events");
+            double lowest = 1.0;
+            double sum = 0.0;
+            for (const auto& [label, due] : recallEvents)
+            {
+                const auto& event = events.at(label);
+                const double credit = event.at("bestScore").get<double>() * event.at("inPlace").get<double>()
+                    * event.at("onTime").get<double>();
+                lowest = std::min(lowest, credit);
+                sum += credit;
+            }
+            const double quiet = recall.at("quietBeforeCue").get<double>();
+            worst += quiet * lowest / static_cast<double>(recalls.size());
+            average += quiet * sum / static_cast<double>(recallEvents.size() * recalls.size());
+        }
+        const auto& partials = solution.getParameters().partialFitness;
+        REQUIRE(partials.size() == 8);
+        CHECK(partials[4] == Catch::Approx(probeQuiet * worst).margin(0.01));
+        if (fixture == "fast-cascade")
+        {
+            CHECK(partials[4] < probeQuiet * average - 0.1);
+        }
     }
 }
 
