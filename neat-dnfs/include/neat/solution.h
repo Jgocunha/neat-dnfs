@@ -153,6 +153,10 @@ namespace neat_dnfs
 		/// that two solution types alive at once -- as in the test binary, where
 		/// weight counts differ per task -- cannot read each other's weights.
 		std::vector<double> fitnessWeights;
+		/// The seed a task draws its evaluation's random conditions from, if one was set. A population sets the same
+		/// seed on every solution of a generation, so that they all meet the same conditions. Unset, a task draws from
+		/// the thread's engine, afresh at every evaluation.
+		std::optional<std::uint64_t> evaluationSeed;
 	public:
 		virtual ~Solution() = default;
 
@@ -162,6 +166,9 @@ namespace neat_dnfs
 		virtual SolutionPtr copy() const = 0;
 		SolutionPtr crossover(const SolutionPtr& other);
 		void evaluate();
+		/// @brief Sets the seed the next evaluations draw their random conditions from, for tasks that draw any.
+		/// @param seed Two solutions given the same seed are evaluated under the same conditions.
+		void setEvaluationSeed(const std::uint64_t seed) { evaluationSeed = seed; }
 		void initialize();
 		void mutate();
 		void setSpeciesId(int speciesId);

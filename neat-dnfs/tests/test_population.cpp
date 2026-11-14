@@ -545,6 +545,53 @@ TEST_CASE("Population::evolve - exceptions from parallel evaluation propagate", 
     REQUIRE_THROWS_AS(population.evolve(), std::runtime_error);
 }
 
+// A task that draws random evaluation conditions (waits, positions) from the
+// thread's engine gives each solution its own draw, so the best score of a
+// generation is partly the luckiest draw. One seed per generation lets such a
+// task evaluate every solution under the same conditions; a new seed each
+// generation keeps a design from fitting one draw.
+TEST_CASE("Population::evaluate - gives every solution of a generation one evaluation seed, and the next generation another", "[Population]")
+{
+    const int size = 20;
+    for (const bool parallel : { true, false })
+    {
+        SeedRecordingSolution::seeds.clear();
+        const PopulationParameters parameters(size, 3, 1.1, parallel); // target > 1.0 forces a full run
+        const auto initialSolution = std::make_shared<SeedRecordingSolution>(makeTopology(1, 1));
+        Population population(parameters, initialSolution, false);
+        population.initialize();
+        population.evolve();
+
+        const auto& seeds = SeedRecordingSolution::seeds;
+        REQUIRE(seeds.size() >= 2 * static_cast<size_t>(size));
+        REQUIRE(seeds.size() % size == 0);
+        for (size_t generation = 0; generation * size < seeds.size(); ++generation)
+        {
+            const auto first = seeds.begin() + static_cast<std::ptrdiff_t>(generation * size);
+            REQUIRE(first->has_value());
+            CHECK(std::all_of(first, first + size, [&](const auto& seed) { return seed == *first; }));
+            if (generation > 0)
+            {
+                CHECK(*first != *(first - size));
+            }
+        }
+    }
+}
+
+TEST_CASE("Solution - draws no evaluation seed of its own: unseeded until one is set", "[Population]")
+{
+    SeedRecordingSolution::seeds.clear();
+    SeedRecordingSolution solution(makeTopology(1, 1));
+    solution.initialize();
+    solution.evaluate();
+    solution.setEvaluationSeed(42);
+    solution.evaluate();
+
+    REQUIRE(SeedRecordingSolution::seeds.size() == 2);
+    CHECK_FALSE(SeedRecordingSolution::seeds[0].has_value());
+    CHECK(SeedRecordingSolution::seeds[1] == std::optional<std::uint64_t>{ 42 });
+}
+
 TEST_CASE("Population::evolve - exceptions from serial evaluation propagate", "[Population]")
 {
     const PopulationParameters parameters(20, 1, 1.1, false); // parallelEvolution explicitly disabled

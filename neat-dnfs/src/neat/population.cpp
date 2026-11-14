@@ -158,6 +158,15 @@ namespace neat_dnfs
 		const unsigned hardwareConcurrency = std::max(1U, std::thread::hardware_concurrency());
 		const size_t numWorkers = std::min<size_t>(hardwareConcurrency, solutionCount);
 
+		// One seed a generation: a task that draws random evaluation conditions gives every solution the same ones, so
+		// the generation's ranking compares designs, not draws. A new seed each generation keeps a design from fitting
+		// one draw.
+		const std::uint64_t generationSeed = tools::utils::engine()();
+		for (const auto& solution : solutions)
+		{
+			solution->setEvaluationSeed(generationSeed);
+		}
+
 		if (!parameters.parallelEvolution || numWorkers <= 1)
 		{
 			for (const auto& solution : solutions)

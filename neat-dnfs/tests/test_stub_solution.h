@@ -4,6 +4,8 @@
 #include <cmath>
 #include <format>
 #include <functional>
+#include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
 #include <numeric>
@@ -107,6 +109,55 @@ private:
 
     void createPhenotypeEnvironment() override {}
 };
+
+// Fast stand-in that records the evaluation seed each evaluation was given, in
+// the order the evaluations ran, to verify that Population::evaluate() hands
+// every solution of a generation the same seed.
+class SeedRecordingSolution final : public Solution
+{
+public:
+    explicit SeedRecordingSolution(const SolutionTopology& topology)
+        : Solution(topology)
+    {
+        name = "SeedRecording";
+    }
+
+    SeedRecordingSolution(const SolutionTopology& initialTopology, const dnf_composer::Simulation& phenotype)
+        : Solution(initialTopology, phenotype)
+    {
+        name = "SeedRecording";
+    }
+
+    SolutionPtr clone() const override
+    {
+        SeedRecordingSolution solution(initialTopology);
+        return std::make_shared<SeedRecordingSolution>(solution);
+    }
+
+    SolutionPtr copy() const override
+    {
+        SeedRecordingSolution solution(initialTopology, phenotype);
+        return std::make_shared<SeedRecordingSolution>(solution);
+    }
+
+    static std::mutex seedsMutex;
+    static std::vector<std::optional<std::uint64_t>> seeds;
+
+private:
+    void testPhenotype() override
+    {
+        {
+            const std::lock_guard lock(seedsMutex);
+            seeds.push_back(evaluationSeed);
+        }
+        parameters.fitness = static_cast<double>(getNumFieldGenes() + getNumConnectionGenes()) / 100.0;
+    }
+
+    void createPhenotypeEnvironment() override {}
+};
+
+inline std::mutex SeedRecordingSolution::seedsMutex;
+inline std::vector<std::optional<std::uint64_t>> SeedRecordingSolution::seeds;
 
 // Stand-in whose fitness is set directly by the test rather than computed by
 // a real DNF simulation, for tests that need a specific, deterministic
