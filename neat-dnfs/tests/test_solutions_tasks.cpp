@@ -1387,9 +1387,10 @@ TEST_CASE("SequenceAndTimingRecall names its runs, and clones and copies as itse
 }
 
 // The hand-built reference (11 November 2026: the ten-event design of 29 October on the first six of its times, with
-// thinner peaks and shallower troughs; on fields of 200 from 12 November) recalls all six in order and on time, and lets each go. Its timing credit is
-// held below 0.9 by its first two events: the trigger's lift of the stamps brings BSA's first peak to 60, the edge of
-// its window, and BLA's to 120-130, 20-30 early, as it did the first two of the ten events. Its wind-back starts once
+// thinner peaks and shallower troughs; on fields of 200 from 12 November) recalls all six in order and on time, and lets each go. Its first two events
+// come early in their windows: the trigger's lift of the stamps brings BSA's first peak to 60, the edge of its window,
+// and BLA's to 120-130, 20-30 early, as it did the first two of the ten events; its noise now and then puts BSA one
+// sample past the edge. Its wind-back starts once
 // BP is released, and clears the troughs of BS and BP before the recall window ends.
 TEST_CASE("SequenceAndTimingRecall scores the reference design at least 0.9", "[Solutions][SequenceAndTimingRecall]")
 {
@@ -1537,7 +1538,7 @@ TEST_CASE("SequenceAndTimingRecall probes for silence after the recall window", 
 
 // The reference with nf 6 at tau 70: each event is released later, so the peaks of events 100 apart are up together
 // for longer, each where and when it is due. Overlap is allowed: no event's credit is shared with the peaks up with it.
-// Its timing is the reference's, held below 0.9 by BSA and BLA.
+// Its timing is the reference's: every event within its window.
 TEST_CASE("SequenceAndTimingRecall gives ordered peaks that overlap in time full order and timing credit", "[Solutions][SequenceAndTimingRecall]")
 {
     resetGlobalState();
@@ -1805,6 +1806,72 @@ TEST_CASE("SequenceAndTimingRecall traces when each event first peaked after the
             CHECK(events.at(label).at("onTime").get<double>() > 0.5);
         }
         CHECK(recalls[recall].at("quietBeforeCue").get<double>() == Catch::Approx(1.0));
+    }
+}
+
+// An event first peaking anywhere within 20% of its demonstrated time counts as on time, so it earns the full timing
+// credit: centring an event already in its window earns nothing more, and only bringing a late or early one in pays.
+// The reference has its events within 20%, BSA and BLA at the early edge of their windows; its noise now and then puts
+// BSA one sample past it, where the credit falls off.
+TEST_CASE("SequenceAndTimingRecall gives every event within 20% of its time full timing credit", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("reference");
+    solution.evaluate();
+
+    size_t inWindow = 0;
+    for (const auto& recall : recallsOf(timingTrials(solution)))
+    {
+        for (const auto& [label, due] : recallEvents)
+        {
+            const auto& event = recall.at("recall").at("events").at(label);
+            if (std::abs(event.at("afterCue").get<double>() - due) <= 0.2 * due)
+            {
+                INFO(label << " at " << event.at("afterCue").get<double>());
+                CHECK(event.at("onTime").get<double>() == Catch::Approx(1.0));
+                ++inWindow;
+            }
+        }
+    }
+    CHECK(inWindow >= 50); // of 54: the reference keeps nearly every event in its window
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[4] > 0.95);
+}
+
+// Past the window the credit falls off from 1, the further the less: an event one sample late keeps most of it, one
+// far late little. The fast cascade (every event 30-90 after the trigger) has only BSA on time.
+TEST_CASE("SequenceAndTimingRecall grades timing credit beyond the window by how far past its edge an event comes", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("fast-cascade");
+    solution.evaluate();
+
+    for (const auto& recall : recallsOf(timingTrials(solution)))
+    {
+        double previousBeyond = 0.0;
+        double previousCredit = 1.0;
+        for (const auto& [label, due] : recallEvents)
+        {
+            const auto& event = recall.at("recall").at("events").at(label);
+            if (event.at("afterCue").is_null())
+            {
+                continue;
+            }
+            const double beyond = std::abs(event.at("afterCue").get<double>() - due) / (0.2 * due) - 1.0;
+            const double credit = event.at("onTime").get<double>();
+            INFO(label << " at " << event.at("afterCue").get<double>());
+            CHECK(credit <= 1.0);
+            CHECK(credit >= 0.0);
+            if (beyond > previousBeyond + 0.5)
+            {
+                CHECK(credit < previousCredit);
+            }
+            previousBeyond = std::max(previousBeyond, beyond);
+            previousCredit = std::min(previousCredit, credit);
+        }
     }
 }
 

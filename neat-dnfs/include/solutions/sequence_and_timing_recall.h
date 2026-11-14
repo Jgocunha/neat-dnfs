@@ -276,8 +276,10 @@ namespace neat_dnfs
 		/// @param recall Each event's record for the recall.
 		/// @param event Index of the event in the sequence.
 		/// @param cue When the trigger was given.
-		/// @return Three quarters a Gaussian of the error, 0.2 of the demonstrated time wide, and one quarter the smaller
-		/// of the delay and the demonstrated time over the larger; 0 if the event never peaked.
+		/// @return 1 if the first peak came within 0.2 of the demonstrated time of it; beyond that window, three quarters
+		/// a Gaussian of the distance past its edge, 0.2 of the demonstrated time wide, and one quarter the smaller of the
+		/// delay and the demonstrated time over the larger, relative to that ratio at the window's edge, so the credit
+		/// falls from 1 at the edge; 0 if the event never peaked.
 		[[nodiscard]] static double onTime(const Recall& recall, size_t event, double cue);
 		/// @brief Scores one recall's timing.
 		/// @param recall Each event's record for the recall.
