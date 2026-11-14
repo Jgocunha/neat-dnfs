@@ -9,6 +9,7 @@
 #include <nlohmann/json.hpp>
 
 #include "neat/solution.h"
+#include "neat_tools/utils.h"
 
 namespace neat_dnfs
 {
@@ -25,8 +26,9 @@ namespace neat_dnfs
 	/// end of the demonstration, each later one after a wait from the end of the previous recall window. The three
 	/// waits are drawn afresh, one from each third of 300-1500 and rounded to the sampling interval; the first wait
 	/// comes from the first third in the first trial, the second in the second and the last in the third, and the
-	/// later two follow in a shuffled order. The probe trial never gives the trigger, and waits as long as the longest
-	/// first wait. All nine recalls count alike in the recall terms, so a design that recalls once after each
+	/// later two follow in a shuffled order. With an evaluation seed set the waits follow from it, so that a
+	/// population's solutions all meet the same waits in a generation. The probe trial never gives the trigger, and
+	/// waits as long as the longest first wait. All nine recalls count alike in the recall terms, so a design that recalls once after each
 	/// demonstration and cannot recall again loses two thirds of their credit. The schedule is laid down as timed
 	/// stimuli, so a saved solution replays one demonstration and one trigger after a wait of 900 in dnf-composer.
 	///
@@ -145,13 +147,16 @@ namespace neat_dnfs
 
 		/// @brief Draws the evaluation's three recall waits, one from each third of 300-1500, rounded to the sampling
 		/// interval so that the trigger falls on a sample.
+		/// @param engine The engine the waits are drawn from.
 		/// @return The waits, shortest third first.
-		[[nodiscard]] static std::array<double, 3> drawRecallWaits();
+		[[nodiscard]] static std::array<double, 3> drawRecallWaits(tools::utils::Xoshiro256pp& engine);
 		/// @brief Draws one consecutive trial's three waits: one from each third of 300-1500, the first from the given
 		/// third and the other two in a shuffled order.
 		/// @param firstThird Which third the first wait comes from: 0 the shortest, 2 the longest.
+		/// @param engine The engine the waits are drawn from.
 		/// @return The waits, in the order the trial uses them.
-		[[nodiscard]] static std::array<double, 3> drawConsecutiveWaits(size_t firstThird);
+		[[nodiscard]] static std::array<double, 3> drawConsecutiveWaits(size_t firstThird,
+			tools::utils::Xoshiro256pp& engine);
 		/// @brief Sets the trial's memory recall trigger: at 0-50 and again at each of @p cues.
 		/// @param cues When the trial gives the trigger again: none for the probe trial, three for a consecutive
 		/// trial.

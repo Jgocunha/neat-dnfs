@@ -4,6 +4,7 @@
 #include <cmath>
 #include <format>
 #include <numeric>
+#include <random>
 
 #include <dnf_composer/elements/timed_gauss_stimulus.h>
 
@@ -178,10 +179,13 @@ namespace neat_dnfs
 		nlohmann::json trials = nlohmann::json::array();
 		baselinePositions = farFromEveryEvent();
 		createPhenotypeEnvironment();
+		// Seeded, every solution of a generation meets the same waits; unseeded, the waits are drawn afresh.
+		tools::utils::Xoshiro256pp seededEngine{ evaluationSeed.value_or(0) };
+		tools::utils::Xoshiro256pp& waitEngine = evaluationSeed ? seededEngine : tools::utils::engine();
 		std::array<std::array<double, 3>, consecutiveTrialCount> consecutiveWaits{};
 		for (size_t trial = 0; trial < consecutiveWaits.size(); ++trial)
 		{
-			consecutiveWaits[trial] = drawConsecutiveWaits(trial);
+			consecutiveWaits[trial] = drawConsecutiveWaits(trial, waitEngine);
 		}
 		// The probe waits as long as the longest first wait, so whatever fires at a fixed lag after the demonstration
 		// before any first recall ends fires inside it.
@@ -236,24 +240,26 @@ namespace neat_dnfs
 		trialCues = { cue };
 	}
 
-	std::array<double, 3> SequenceAndTimingRecall::drawRecallWaits()
+	std::array<double, 3> SequenceAndTimingRecall::drawRecallWaits(tools::utils::Xoshiro256pp& engine)
 	{
 		std::array<double, 3> waits{};
 		const double third = (longestRecallWait - shortestRecallWait) / static_cast<double>(waits.size());
 		for (size_t i = 0; i < waits.size(); ++i)
 		{
 			const double from = shortestRecallWait + third * static_cast<double>(i);
-			waits[i] = std::round(tools::utils::generateRandomDouble(from, from + third) / sampleInterval) * sampleInterval;
+			std::uniform_real_distribution<double> withinThird(from, from + third);
+			waits[i] = std::round(withinThird(engine) / sampleInterval) * sampleInterval;
 		}
 		return waits;
 	}
 
-	std::array<double, 3> SequenceAndTimingRecall::drawConsecutiveWaits(const size_t firstThird)
+	std::array<double, 3> SequenceAndTimingRecall::drawConsecutiveWaits(const size_t firstThird,
+		tools::utils::Xoshiro256pp& engine)
 	{
-		auto waits = drawRecallWaits();
+		auto waits = drawRecallWaits(engine);
 		std::swap(waits.front(), waits[firstThird]);
 		// Shuffled, so that no fixed delay after the previous recall matches every wait.
-		std::ranges::shuffle(waits.begin() + 1, waits.end(), tools::utils::engine());
+		std::ranges::shuffle(waits.begin() + 1, waits.end(), engine);
 		return waits;
 	}
 

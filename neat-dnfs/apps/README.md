@@ -54,7 +54,9 @@ guided score and what `sequence-timing-behaviour` pays for the same trials.
 recall trigger (a boost of the input field), BSA (20), BLA (100), BSB (60), BLB (120), BS (160) and BP (180) must first
 peak in that order, 50, 150, 350, 450, 650 and 750 after it. After the probe, each evaluation runs three consecutive
 trials: one demonstration, then the trigger three times, one wait from each third of 300-1500. The first wait comes
-from a different third in each trial, and the later two follow in a shuffled order. All nine recalls count alike, so
+from a different third in each trial, and the later two follow in a shuffled order. In an evolution run every design
+of a generation meets the same waits, drawn anew each generation, so the generation's ranking compares designs and not
+draws; `neat-dnfs-sol-eval` draws them afresh at every evaluation. All nine recalls count alike, so
 recalling once after each demonstration and never again loses two thirds of the recall credit. Order weighs
 more than timing. Peaks may overlap in time, so an event's credit is not shared with the peaks up with it, but an event
 counts as recalled in order after each event due before it only as far as it first peaks at least half their demonstrated

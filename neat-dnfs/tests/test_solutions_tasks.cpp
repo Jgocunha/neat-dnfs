@@ -1630,6 +1630,48 @@ TEST_CASE("SequenceAndTimingRecall runs the probe, then three consecutive trials
     CHECK(first != second);
 }
 
+// In a population every design of a generation must meet the same waits, or the best score of the generation is the
+// luckiest draw: the population gives them one evaluation seed, and the waits follow from it.
+TEST_CASE("SequenceAndTimingRecall draws the same waits from the same evaluation seed, and other waits from another", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    const auto waitsWithSeed = [](const std::uint64_t seed) {
+        SequenceAndTimingRecall solution(sequenceTimingTopology());
+        solution.addFieldGene(makeFixedFieldGene(FieldGeneType::INPUT, 1));
+        solution.addFieldGene(makeFixedFieldGene(FieldGeneType::OUTPUT, 2));
+        solution.setEvaluationSeed(seed);
+        solution.evaluate();
+        const auto trials = timingTrials(solution);
+        REQUIRE(trials.size() == 4);
+        std::vector<double> waits{ trials.front().at("wait").get<double>() };
+        for (size_t trial = 1; trial < trials.size(); ++trial)
+        {
+            for (const auto& recall : trials[trial].at("recalls"))
+            {
+                waits.push_back(recall.at("wait").get<double>());
+            }
+        }
+        return waits;
+    };
+
+    const auto waits = waitsWithSeed(7);
+    REQUIRE(waits.size() == 10);
+    CHECK(waitsWithSeed(7) == waits);
+    CHECK(waitsWithSeed(8) != waits);
+    // Seeded waits keep the unseeded ones' shape: each consecutive trial holds one wait from each third of 300-1500.
+    for (size_t trial = 0; trial < 3; ++trial)
+    {
+        std::vector<double> trialWaits(waits.begin() + 1 + 3 * trial, waits.begin() + 4 + 3 * trial);
+        std::ranges::sort(trialWaits);
+        for (size_t i = 0; i < trialWaits.size(); ++i)
+        {
+            CHECK(trialWaits[i] >= 300.0 + 400.0 * static_cast<double>(i));
+            CHECK(trialWaits[i] <= 700.0 + 400.0 * static_cast<double>(i));
+        }
+    }
+}
+
 TEST_CASE("SequenceAndTimingRecall gives each consecutive trial one demonstration and three triggers, one wait from each third of 300-1500, the later two in a shuffled order", "[Solutions][SequenceAndTimingRecall]")
 {
     resetGlobalState();
