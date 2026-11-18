@@ -37,7 +37,9 @@ namespace neat_dnfs
 	/// - the input detects each event, and is back at rest by 50 after each pulse;
 	/// - the output stays below threshold through each demonstration and wait;
 	/// - after the trigger the output peaks at each event, first peaking in its place: BSA as far as no other event
-	///   peaked before it, each later event as far as the events due before it peaked before it. Overlap is allowed: an
+	///   peaked before it, each later event as far as the events due before it peaked before it. An event first peaks
+	///   when its place first goes above threshold, whatever bump takes it there, so a bump spread over several places
+	///   peaks them all at once, however it splits into peaks centred on each later. Overlap is allowed: an
 	///   event's peak score is its own, however many peaks are up with it. A peak scores as far as it lies near the event,
 	///   in proportion to its height (full from 2), as far as it is as narrow as a peak (full up to 30 wide, nothing from
 	///   60) and as far as it stays in place;
@@ -101,9 +103,10 @@ namespace neat_dnfs
 		{
 			/// @brief Highest peak score: one output bump near the event, tall enough, narrow and staying in place.
 			double bestScore = 0.0;
-			/// @brief When the event first peaked, if it did.
+			/// @brief When the event first peaked, its place first above threshold, if it did.
 			std::optional<double> firstPeak;
-			/// @brief When its first peak ended, if it has.
+			/// @brief When its first peak ended, if it has: its place back below threshold, and no bump near it scoring a
+			/// quarter or more.
 			std::optional<double> releasedAt;
 			/// @brief How far below threshold it lay at each sample since its release.
 			std::vector<double> belowThreshold;

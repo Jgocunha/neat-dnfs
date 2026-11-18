@@ -81,7 +81,9 @@ namespace neat_dnfs
 		constexpr size_t guidedTermCount = 8;
 		constexpr size_t intendedTermCount = 6;
 
-		// An event counts as peaking from this peak score: one bump near it, about a quarter of full height or more.
+		// What belowThresholdAtPosition() reads at threshold: an event's place is above threshold below this.
+		constexpr double atThreshold = 0.5;
+		// A bump near an event still counts as its peak from this peak score: about a quarter of full height or more.
 		constexpr double peakingScore = 0.25;
 		// A recalled peak stays where it is: its centre may move this much from one sample to the next for full credit,
 		constexpr double stillPeakDrift = 1.0;
@@ -522,12 +524,17 @@ namespace neat_dnfs
 			observed.lastCentroid = centroid;
 			observed.lastMove = move;
 			observed.bestScore = std::max(observed.bestScore, score);
-			const bool peaking = score >= peakingScore;
-			if (peaking && !observed.firstPeak)
+			// An event fires when its place first goes above threshold, whatever bump takes it there: a bump over several
+			// places fires them all at once, however it splits into peaks centred on each later.
+			const bool aboveThreshold = belowThresholdAtPosition(outputField, position) < atThreshold;
+			if (aboveThreshold && !observed.firstPeak)
 			{
 				observed.firstPeak = time;
 			}
-			if (observed.firstPeak && !peaking && !observed.releasedAt)
+			// A released peak can split into flanks either side of its place, its centre down first: it has ended only
+			// once they are gone too.
+			const bool peakEnded = !aboveThreshold && score < peakingScore;
+			if (observed.firstPeak && peakEnded && !observed.releasedAt)
 			{
 				observed.releasedAt = time;
 			}

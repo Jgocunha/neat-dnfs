@@ -1596,6 +1596,85 @@ TEST_CASE("SequenceAndTimingRecall gives an output that fires without the trigge
     CHECK(solution.getFitness() < 0.2);
 }
 
+// The latest time any event first went above threshold after the trigger, less the earliest, over the events that did.
+static double firstPeakSpread(const nlohmann::json& recall)
+{
+    std::vector<double> afterCue;
+    for (const auto& [label, due] : recallEvents)
+    {
+        const auto& event = recall.at("recall").at("events").at(label);
+        if (!event.at("afterCue").is_null())
+        {
+            afterCue.push_back(event.at("afterCue").get<double>());
+        }
+    }
+    REQUIRE_FALSE(afterCue.empty());
+    const auto [earliest, latest] = std::ranges::minmax(afterCue);
+    return latest - earliest;
+}
+
+// Batch ladder-L5's best of chain A (L5A04, 18 November 2026): by +10 after every trigger the output holds bumps 24-47
+// wide over all six places, and only later splits them into narrow peaks, at BLA and BLB about +260 and at BS and BP
+// about +590. Counted from when a bump centred on each place, that split read as BLA, BLB, BS and BP recalled later,
+// in order (fitness 0.627). An event fires when its place first goes above threshold, whatever bump takes it there.
+TEST_CASE("SequenceAndTimingRecall fires an event when its place first goes above threshold, so a burst over every place earns no order credit when it splits", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("merged-burst");
+    solution.evaluate();
+
+    for (const auto& recall : recallsOf(timingTrials(solution)))
+    {
+        CHECK(firstPeakSpread(recall) <= 20.0);
+    }
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[3] < 0.25); // only BSA in place, and only as far as nothing fired before it
+    CHECK(partials[4] < 0.05);
+    CHECK(solution.getFitness() < 0.3);
+}
+
+// Batch ladder-L6's best of chain D (L6D04, 18 November 2026): narrow bumps jump around the output, with field-wide
+// flashes. A bump that jumps more than 10 counts as a new one, still in place, so wherever one landed on an event's
+// place that event peaked (fitness 0.596). Its first flash, about +30, puts five of the six places above threshold.
+TEST_CASE("SequenceAndTimingRecall gives bumps jumping across the output almost no recall credit", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("jumping-bumps");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[3] < 0.15);
+    CHECK(partials[4] < 0.05);
+    CHECK(solution.getFitness() < 0.3);
+}
+
+// Bursts and jumping bumps rank below a design that recalls part of the sequence in order with separate narrow peaks
+// (batch ladder-L6's best of chain B, L6B04: single order recall, timing drifting), which ranks below one that
+// recalls in order and on time after every trigger (batch ladder-L3's best of chain D, L3D03, 18 November 2026).
+TEST_CASE("SequenceAndTimingRecall ranks bursts and jumping bumps below a partial recall in order, and that below an evolved recall in order and on time", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    const auto fitnessOf = [](const std::string& fixture) {
+        auto solution = loadRecallFixture(fixture);
+        solution.evaluate();
+        return solution.getFitness();
+    };
+    const double mergedBurst = fitnessOf("merged-burst");
+    const double jumpingBumps = fitnessOf("jumping-bumps");
+    const double partialOrder = fitnessOf("partial-order");
+    const double evolvedRecall = fitnessOf("evolved-recall");
+
+    CHECK(mergedBurst < partialOrder - 0.1);
+    CHECK(jumpingBumps < partialOrder - 0.1);
+    CHECK(partialOrder < evolvedRecall - 0.1);
+    CHECK(evolvedRecall >= 0.9);
+}
+
 TEST_CASE("SequenceAndTimingRecall runs the probe, then three consecutive trials whose first waits come one from each third of 300-1500", "[Solutions][SequenceAndTimingRecall]")
 {
     resetGlobalState();
