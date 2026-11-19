@@ -53,7 +53,9 @@ guided score and what `sequence-timing-behaviour` pays for the same trials.
 `sequence-and-timing-recall` scores the same way, on six joint goals on fields of 200: after the memory
 recall trigger (a boost of the input field), BSA (20), BLA (100), BSB (60), BLB (120), BS (160) and BP (180) must first
 peak in that order, 50, 150, 350, 450, 650 and 750 after it. An event first peaks when its place first goes above
-threshold, whatever bump takes it there, so a bump spread over several places peaks them all at once. After the probe, each evaluation runs three consecutive
+threshold, whatever bump takes it there, so a bump spread over several places peaks them all at once. An event counts
+only as far as the widest bump over its place, from its first peak until that peak ends, was as narrow as a peak: in
+full up to 15 wide, nothing from 25. After the probe, each evaluation runs three consecutive
 trials: one demonstration, then the trigger three times, one wait from each third of 300-1500. The first wait comes
 from a different third in each trial, and the later two follow in a shuffled order. In an evolution run every design
 of a generation meets the same waits, drawn anew each generation, so the generation's ranking compares designs and not

@@ -85,6 +85,10 @@ namespace neat_dnfs
 		constexpr double atThreshold = 0.5;
 		// A bump near an event still counts as its peak from this peak score: about a quarter of full height or more.
 		constexpr double peakingScore = 0.25;
+		// While an event is up, the bump over its place counts as a peak in full up to this wide, and not at all from the
+		// next: the reference's peaks, and those of most evolved designs that recall in order, stay 14 wide or less.
+		constexpr double fullCreditWidthWhileUp = 15.0;
+		constexpr double noCreditWidthWhileUp = 25.0;
 		// A recalled peak stays where it is: its centre may move this much from one sample to the next for full credit,
 		constexpr double stillPeakDrift = 1.0;
 		// and earns nothing from this much on, where a bump travelling around the field would credit each event it passes.
@@ -538,6 +542,13 @@ namespace neat_dnfs
 			{
 				observed.releasedAt = time;
 			}
+			// A bump over several places is narrow at some moment, as it ignites or once it splits: an event's peak is
+			// judged at its widest while it is up.
+			if (observed.firstPeak && !observed.releasedAt)
+			{
+				observed.widthWhileUp = std::min(observed.widthWhileUp, widthCreditOfNearestBumpToPosition(outputField,
+					position, fullCreditWidthWhileUp, noCreditWidthWhileUp));
+			}
 			if (observed.releasedAt)
 			{
 				observed.belowThreshold.push_back(belowThresholdAtPosition(outputField, position));
@@ -585,7 +596,7 @@ namespace neat_dnfs
 
 	double SequenceAndTimingRecall::creditInPlace(const Recall& recall, const size_t event)
 	{
-		return recall[event].bestScore * placeOf(recall, event);
+		return recall[event].bestScore * recall[event].widthWhileUp * placeOf(recall, event);
 	}
 
 	double SequenceAndTimingRecall::recallInOrder(const Recall& recall)
@@ -679,7 +690,8 @@ namespace neat_dnfs
 				{ "releasedAt", timeOrNull(observed.releasedAt) },
 				{ "inPlace", rounded(placeOf(recall, event)) },
 				{ "bestScore", rounded(observed.bestScore) },
-				{ "onTime", rounded(onTime(recall, event, cue)) },
+				{ "widthWhileUp", rounded(observed.widthWhileUp) },
+				{ "onTime",rounded(onTime(recall, event, cue)) },
 				{ "release", observed.belowThreshold.empty() ? nlohmann::json(nullptr)
 					: nlohmann::json(rounded(mean(observed.belowThreshold))) }
 			};

@@ -1635,6 +1635,23 @@ TEST_CASE("SequenceAndTimingRecall fires an event when its place first goes abov
     CHECK(solution.getFitness() < 0.3);
 }
 
+// The same design: BSA and BSB fire at about +20 inside bumps 24-47 wide, and are narrow peaks only once those split.
+// An event's width is judged at the widest bump over its place from its first peak to its release, in full up to 15
+// wide and not at all from 25: the reference's peaks, and those of most evolved designs, stay 14 wide or less.
+TEST_CASE("SequenceAndTimingRecall gives an event no recall credit if a bump 25 or wider stands over its place while it is up", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("merged-burst");
+    solution.evaluate();
+
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[3] < 0.05);
+    CHECK(partials[6] < 0.05);
+    CHECK(solution.getFitness() < 0.2);
+}
+
 // Batch ladder-L6's best of chain D (L6D04, 18 November 2026): narrow bumps jump around the output, with field-wide
 // flashes. A bump that jumps more than 10 counts as a new one, still in place, so wherever one landed on an event's
 // place that event peaked (fitness 0.596). Its first flash, about +30, puts five of the six places above threshold.

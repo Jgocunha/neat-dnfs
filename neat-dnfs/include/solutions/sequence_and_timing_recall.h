@@ -42,7 +42,9 @@ namespace neat_dnfs
 	///   peaks them all at once, however it splits into peaks centred on each later. Overlap is allowed: an
 	///   event's peak score is its own, however many peaks are up with it. A peak scores as far as it lies near the event,
 	///   in proportion to its height (full from 2), as far as it is as narrow as a peak (full up to 30 wide, nothing from
-	///   60) and as far as it stays in place;
+	///   60) and as far as it stays in place. An event counts only as far as the widest bump over it, from its first peak
+	///   until that peak ends, was as narrow as a peak: in full up to 15 wide, nothing from 25, since a bump over several
+	///   places is narrow at some moment, as it ignites or once it splits;
 	/// - each at the demonstrated time after the trigger, credited three quarters as a Gaussian 0.2 of that time wide
 	///   (scalar timing) and one quarter as the smaller of the delay and that time over the larger;
 	/// - once an event's peak ends, it stays released below threshold;
@@ -108,6 +110,9 @@ namespace neat_dnfs
 			/// @brief When its first peak ended, if it has: its place back below threshold, and no bump near it scoring a
 			/// quarter or more.
 			std::optional<double> releasedAt;
+			/// @brief Lowest width credit of the bump nearest the event from its first peak until that peak ended: full up
+			/// to 15 wide, nothing from 25.
+			double widthWhileUp = 1.0;
 			/// @brief How far below threshold it lay at each sample since its release.
 			std::vector<double> belowThreshold;
 			/// @brief How deep a trough it lay in at each sample since its release.
@@ -269,7 +274,7 @@ namespace neat_dnfs
 		/// @brief How far one event was recalled in its place in the recall.
 		/// @param recall Each event's record for the recall.
 		/// @param event Index of the event in the sequence.
-		/// @return Its best peak score times its place.
+		/// @return Its best peak score times its width credit while it was up, times its place.
 		[[nodiscard]] static double creditInPlace(const Recall& recall, size_t event);
 		/// @brief Scores one recall by order.
 		/// @param recall Each event's record for the recall.
@@ -306,8 +311,9 @@ namespace neat_dnfs
 		/// @param recall Each event's record for the recall.
 		/// @param after What the output did from the end of the sequence on.
 		/// @param cue When the trigger was given.
-		/// @return Each event's first peak, first peak after the trigger, release, place, best peak score, timing credit
-		/// and release score; and when the sequence was over and how far the output had no peak from then on.
+		/// @return Each event's first peak, first peak after the trigger, release, place, best peak score, width credit
+		/// while up, timing credit and release score; and when the sequence was over and how far the output had no peak
+		/// from then on.
 		[[nodiscard]] nlohmann::json recallSummary(const Recall& recall, const AfterRecall& after, double cue) const;
 		/// @brief Records what the input and output look like now, for the evaluation trace.
 		/// @param stage Name of the point in the schedule being scored, such as "BLA shown" or "recall BS".
