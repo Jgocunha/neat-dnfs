@@ -341,6 +341,44 @@ namespace neat_dnfs
                 return credit / static_cast<double>(index);
             }
 
+            /// @brief Score in [0,1] for how far one item of a sequence came in its place, by its worst pair with
+            /// another item.
+            ///
+            /// An item gets nothing if it never came, or if an item due after it came at the same time or before it.
+            /// Otherwise the first item is fully in place, and every later item is credited by the lowest, over the
+            /// items due before it, of how far it came after that item, as a share of @p spacingShare of the gap
+            /// between their due times, up to 1; an item due before it that never came gives nothing. A swap so costs
+            /// both of its items, and only them.
+            /// @param firstTimes When each item first came, in the order the items are due; empty for one that never
+            /// came.
+            /// @param dueTimes When each item was due, rising, one per item of @p firstTimes.
+            /// @param index Position of the item in the sequence.
+            /// @param spacingShare Share of each gap between due times that earns full credit; positive.
+            /// @return 0 if the item never came or an item due after it came with or before it, otherwise its lowest
+            /// credit over the items due before it, as above: 1 for the first item.
+            [[nodiscard]] inline double worstPairInPlace(const std::span<const std::optional<double>> firstTimes,
+                const std::span<const double> dueTimes, const size_t index, const double spacingShare)
+            {
+                const auto& came = firstTimes[index];
+                if (!came)
+                {
+                    return 0.0;
+                }
+                const auto cameWithOrBefore = [&came](const std::optional<double>& other) { return other && *other <= *came; };
+                if (std::ranges::any_of(firstTimes.subspan(index + 1), cameWithOrBefore))
+                {
+                    return 0.0;
+                }
+                double worst = 1.0;
+                for (size_t earlier = 0; earlier < index; ++earlier)
+                {
+                    const auto& other = firstTimes[earlier];
+                    const double fullGap = spacingShare * (dueTimes[index] - dueTimes[earlier]);
+                    worst = std::min(worst, other ? std::clamp((*came - *other) / fullGap, 0.0, 1.0) : 0.0);
+                }
+                return worst;
+            }
+
             /// @brief How far each value of a sequence stands above the next, and the last above a floor, as a share of
             /// a full step.
             ///

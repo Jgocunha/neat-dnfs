@@ -334,6 +334,62 @@ TEST_CASE("spacedShareInPlace gives no credit for an earlier item that came late
     CHECK(spacedShareInPlace(together, due, 2, 0.5) == 0.0);
 }
 
+TEST_CASE("worstPairInPlace gives every item that came at least the share of its gaps after the earlier ones its full place", "[worstPairInPlace]")
+{
+    using neat_dnfs::tools::utils::worstPairInPlace;
+    const std::vector<double> due{ 50.0, 150.0, 350.0, 450.0, 650.0, 750.0 };
+    const std::vector<std::optional<double>> spaced{ 60.0, 120.0, 330.0, 430.0, 630.0, 740.0 };
+
+    for (size_t item = 0; item < spaced.size(); ++item)
+    {
+        CHECK(worstPairInPlace(spaced, due, item, 0.5) == 1.0);
+    }
+}
+
+TEST_CASE("worstPairInPlace credits each item by the earlier item it came least far after, as a share of half their demonstrated gap", "[worstPairInPlace]")
+{
+    using neat_dnfs::tools::utils::worstPairInPlace;
+    const std::vector<double> due{ 50.0, 150.0, 350.0 };
+    const std::vector<std::optional<double>> crowded{ 50.0, 60.0, 70.0 };
+
+    CHECK(worstPairInPlace(crowded, due, 0, 0.5) == 1.0);
+    CHECK(worstPairInPlace(crowded, due, 1, 0.5) == Catch::Approx(10.0 / 50.0));
+    CHECK(worstPairInPlace(crowded, due, 2, 0.5) == Catch::Approx(10.0 / 100.0));
+}
+
+TEST_CASE("worstPairInPlace gives nothing to an item that a later item came with or before, or whose earlier item never came", "[worstPairInPlace]")
+{
+    using neat_dnfs::tools::utils::worstPairInPlace;
+    const std::vector<double> due{ 50.0, 150.0, 350.0 };
+    const std::vector<std::optional<double>> swapped{ 60.0, 50.0, 200.0 };
+    const std::vector<std::optional<double>> withoutSecond{ 50.0, std::nullopt, 300.0 };
+    const std::vector<std::optional<double>> together{ 50.0, 50.0, std::nullopt };
+
+    CHECK(worstPairInPlace(swapped, due, 0, 0.5) == 0.0);
+    CHECK(worstPairInPlace(swapped, due, 1, 0.5) == 0.0);
+    CHECK(worstPairInPlace(swapped, due, 2, 0.5) == Catch::Approx(140.0 / 150.0));
+    CHECK(worstPairInPlace(withoutSecond, due, 0, 0.5) == 1.0);
+    CHECK(worstPairInPlace(withoutSecond, due, 1, 0.5) == 0.0);
+    CHECK(worstPairInPlace(withoutSecond, due, 2, 0.5) == 0.0);
+    CHECK(worstPairInPlace(together, due, 0, 0.5) == 0.0);
+    CHECK(worstPairInPlace(together, due, 1, 0.5) == 0.0);
+    CHECK(worstPairInPlace(together, due, 2, 0.5) == 0.0);
+}
+
+TEST_CASE("worstPairInPlace makes a swap cost both of its items and only them", "[worstPairInPlace]")
+{
+    using neat_dnfs::tools::utils::worstPairInPlace;
+    const std::vector<double> due{ 50.0, 150.0, 350.0, 450.0, 650.0, 750.0 };
+    const std::vector<std::optional<double>> middleSwapped{ 50.0, 150.0, 450.0, 350.0, 650.0, 750.0 };
+
+    for (const size_t item : { 0, 1, 4, 5 })
+    {
+        CHECK(worstPairInPlace(middleSwapped, due, item, 0.5) == 1.0);
+    }
+    CHECK(worstPairInPlace(middleSwapped, due, 2, 0.5) == 0.0);
+    CHECK(worstPairInPlace(middleSwapped, due, 3, 0.5) == 0.0);
+}
+
 TEST_CASE("normalizeWithFlatheadGaussian is 1.0 inside the flat region", "[normalizeWithFlatheadGaussian]")
 {
     using neat_dnfs::tools::utils::normalizeWithFlatheadGaussian;
