@@ -65,7 +65,8 @@ more than timing. An event first peaking within 20% of its demonstrated time is 
 credit; beyond that window the credit falls off steeply with the distance past its edge. A recall's timing is its worst
 event's, so one late event costs the whole recall. Peaks may overlap in time, so an event's credit is not shared with the peaks up with it, but an event
 counts as recalled in order after each event due before it only as far as it first peaks at least half their demonstrated
-gap after it: events crowded together in time earn little order credit. After the last recall window of each
+gap after it: events crowded together in time earn little order credit. Each event is credited by its worst pair, so it
+earns nothing if an event due after it peaked with or before it, or if one due before it never peaked. After the last recall window of each
 consecutive trial the output is watched 1000 longer for silence, and a peak there counts as a peak after the
 sequence. The guides measure pre-shapes and troughs from the output's level far
 from every event, midway between two events, and score pre-shapes in order as a staircase: each event as far as it

@@ -591,7 +591,7 @@ namespace neat_dnfs
 		std::ranges::transform(recall, firstPeaks.begin(), &EventRecall::firstPeak);
 		std::array<double, eventCount> dueTimes{};
 		std::ranges::transform(sequence, dueTimes.begin(), &Event::onset);
-		return tools::utils::spacedShareInPlace(firstPeaks, dueTimes, event, orderSpacingShare);
+		return tools::utils::worstPairInPlace(firstPeaks, dueTimes, event, orderSpacingShare);
 	}
 
 	double SequenceAndTimingRecall::creditInPlace(const Recall& recall, const size_t event)

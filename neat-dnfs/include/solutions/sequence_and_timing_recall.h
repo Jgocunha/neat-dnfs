@@ -36,8 +36,9 @@ namespace neat_dnfs
 	/// (tests/fixtures/sequence-and-timing-recall-reference.dnf) does there:
 	/// - the input detects each event, and is back at rest by 50 after each pulse;
 	/// - the output stays below threshold through each demonstration and wait;
-	/// - after the trigger the output peaks at each event, first peaking in its place: BSA as far as no other event
-	///   peaked before it, each later event as far as the events due before it peaked before it. An event first peaks
+	/// - after the trigger the output peaks at each event, first peaking in its place: by its worst pair, so nothing if
+	///   an event due after it peaked with or before it, or one due before it never peaked, and otherwise as far as it
+	///   peaked at least half their demonstrated gap after each event due before it. An event first peaks
 	///   when its place first goes above threshold, whatever bump takes it there, so a bump spread over several places
 	///   peaks them all at once, however it splits into peaks centred on each later. Overlap is allowed: an
 	///   event's peak score is its own, however many peaks are up with it. A peak scores as far as it lies near the event,
@@ -267,9 +268,9 @@ namespace neat_dnfs
 		/// @brief How far one event first peaked in its place in the recall.
 		/// @param recall Each event's record for the recall.
 		/// @param event Index of the event in the sequence.
-		/// @return For BSA, the share of the other events that did not peak before it; for any later event, its mean
-		/// credit over the events due before it, each by how far it peaked after that event as a share of half their
-		/// demonstrated gap, up to 1; 0 if it never peaked.
+		/// @return 0 if it never peaked, or if an event due after it peaked with or before it; otherwise 1 for BSA, and
+		/// for any later event its lowest credit over the events due before it, each by how far it peaked after that event
+		/// as a share of half their demonstrated gap, up to 1, and nothing for one that never peaked.
 		[[nodiscard]] static double placeOf(const Recall& recall, size_t event);
 		/// @brief How far one event was recalled in its place in the recall.
 		/// @param recall Each event's record for the recall.

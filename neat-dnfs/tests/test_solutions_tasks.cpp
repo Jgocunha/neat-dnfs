@@ -1669,6 +1669,50 @@ TEST_CASE("SequenceAndTimingRecall gives bumps jumping across the output almost 
     CHECK(solution.getFitness() < 0.3);
 }
 
+// Batch ladder-L6's best of chain B (L6B04, 18 November 2026) peaks at separate narrow places, but swaps events, peaks
+// two at once and misses some. Credited by its mean over the events due before it, a later event lost only the pairs it
+// broke, so recalls with a swap kept 0.9 of the order credit and the design about 0.8. Each event is now credited by its
+// worst pair: nothing if an event due after it peaked with or before it, or if an event due before it never peaked.
+TEST_CASE("SequenceAndTimingRecall gives an event no place if an event due after it peaked with or before it, or one due before it never peaked", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("partial-order");
+    solution.evaluate();
+
+    size_t outOfPlace = 0;
+    for (const auto& recall : recallsOf(timingTrials(solution)))
+    {
+        const auto& events = recall.at("recall").at("events");
+        const auto afterCue = [&events](const std::string& label) { return events.at(label).at("afterCue"); };
+        for (size_t event = 0; event < recallEvents.size(); ++event)
+        {
+            const auto& came = afterCue(recallEvents[event].first);
+            if (came.is_null())
+            {
+                continue;
+            }
+            const bool laterCameFirst = std::any_of(recallEvents.begin() + event + 1, recallEvents.end(),
+                [&](const auto& later) {
+                    const auto& other = afterCue(later.first);
+                    return !other.is_null() && other.get<double>() <= came.get<double>();
+                });
+            const bool earlierMissing = std::any_of(recallEvents.begin(), recallEvents.begin() + event,
+                [&](const auto& earlier) { return afterCue(earlier.first).is_null(); });
+            if (laterCameFirst || earlierMissing)
+            {
+                ++outOfPlace;
+                INFO("event " << recallEvents[event].first);
+                CHECK(events.at(recallEvents[event].first).at("inPlace").get<double>() == 0.0);
+            }
+        }
+    }
+    CHECK(outOfPlace > 0);
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[3] < 0.65);
+}
+
 // Bursts and jumping bumps rank below a design that recalls part of the sequence in order with separate narrow peaks
 // (batch ladder-L6's best of chain B, L6B04: single order recall, timing drifting), which ranks below one that
 // recalls in order and on time after every trigger (batch ladder-L3's best of chain D, L3D03, 18 November 2026).
