@@ -29,8 +29,11 @@ namespace neat_dnfs
 	/// later two follow in a shuffled order. With an evaluation seed set the waits follow from it, so that a
 	/// population's solutions all meet the same waits in a generation. The probe trial never gives the trigger, and
 	/// watches as long as the evaluation's longest consecutive trial, its silence probe included, so whatever fires at a
-	/// fixed time after the demonstration inside any recall window fires inside it. All nine recalls count alike in the recall terms, so a design that recalls once after each
-	/// demonstration and cannot recall again loses two thirds of their credit. The schedule is laid down as timed
+	/// fixed time after the demonstration inside any recall window fires inside it. The first recall after a
+	/// demonstration has to work: in each recall term (the recall in order, its timing, the release and the stop), a
+	/// later recall counts only as far as its trial's first recall went, its credit times the first's. A design that
+	/// recalls only after later triggers earns almost nothing for them, and one that recalls once after each
+	/// demonstration and cannot recall again still loses most of the later recalls' credit. The schedule is laid down as timed
 	/// stimuli, so a saved solution replays one demonstration and one trigger after a wait of 900 in dnf-composer.
 	///
 	/// Every field is sampled every 10 and scored against what the reference design
@@ -151,6 +154,17 @@ namespace neat_dnfs
 			std::vector<double> releasedWithoutGuides;
 			std::vector<double> stoppedWithoutGuides;
 		};
+		/// @brief One recall's credit in each recall term, each scaled by how far the output had no peak before its
+		/// trigger.
+		struct RecallTerms
+		{
+			double recalled = 0.0;
+			double timing = 0.0;
+			double released = 0.0;
+			double stopped = 0.0;
+			double releasedWithoutGuides = 0.0;
+			double stoppedWithoutGuides = 0.0;
+		};
 
 		void testPhenotype() override;
 		void createPhenotypeEnvironment() override;
@@ -209,7 +223,8 @@ namespace neat_dnfs
 		/// @param waits The waits, the first from the end of the demonstration and each later one from the end of the
 		/// previous recall window.
 		/// @param scores Accumulates every term; each recall's terms are scaled by how far the output had no peak since
-		/// the trial began, for the first, or since the previous recall window ended.
+		/// the trial began, for the first, or since the previous recall window ended, and each later recall's recall
+		/// terms by the first recall's (countedAsFarAsFirst()).
 		/// @param trials Receives the trial's trace.
 		void runConsecutiveTrial(const std::array<double, 3>& waits, Scores& scores, nlohmann::json& trials);
 		/// @brief Samples the recall window after the trigger at @p cue, and the silence probe after it if asked, and
@@ -218,11 +233,22 @@ namespace neat_dnfs
 		/// @param quietBeforeCue How far the output had no peak before the trigger: every recall term is scaled by it.
 		/// @param probeSilence Whether the output is watched for silence after the window: true for a consecutive trial's
 		/// last recall, whose window no later trigger follows. Its samples count as samples after the sequence.
-		/// @param scores Accumulates the input rest and the recall terms.
+		/// @param terms Receives the recall's credit in each recall term.
+		/// @param scores Accumulates the input rest and the pre-shapes still to come.
 		/// @param snapshots Receives a snapshot when each event is due and at the window's end.
 		/// @return The recall's summary for the trace (recallSummary()).
-		nlohmann::json recallAfterCue(double cue, double quietBeforeCue, bool probeSilence, Scores& scores,
-			nlohmann::json& snapshots);
+		nlohmann::json recallAfterCue(double cue, double quietBeforeCue, bool probeSilence, RecallTerms& terms,
+			Scores& scores, nlohmann::json& snapshots);
+		/// @brief A later recall's credit as it counts: the first recall after a demonstration has to work, so each
+		/// later recall counts, term by term, only as far as its trial's first recall went.
+		/// @param later The later recall's credit in each recall term.
+		/// @param first The trial's first recall's credit in each recall term.
+		/// @return Each of @p later's terms times the same term of @p first.
+		[[nodiscard]] static RecallTerms countedAsFarAsFirst(const RecallTerms& later, const RecallTerms& first);
+		/// @brief Adds one recall's credit to the recall terms.
+		/// @param terms The recall's credit in each recall term, as it counts.
+		/// @param scores Accumulates the recall terms.
+		static void addRecall(const RecallTerms& terms, Scores& scores);
 
 		/// @brief The output's level far from every event: its median over baselinePositions.
 		/// @return The median activation there.

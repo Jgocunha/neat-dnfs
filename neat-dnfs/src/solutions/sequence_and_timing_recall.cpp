@@ -213,8 +213,8 @@ namespace neat_dnfs
 		const double input = 0.5 * mean(scores.inputPeaks) + 0.5 * mean(scores.inputRest); // detects, then rests
 		const double quiet = mean(scores.outputQuiet);              // no peak before the trigger, nor without it
 		const double memory = meanOrZero(scores.outputMemory);      // pre-shaped at the stored events, in order
-		// A design that fires without the trigger earns no credit for firing after it. Every recall counts alike, the
-		// first after a demonstration and the later ones.
+		// A design that fires without the trigger earns no credit for firing after it. A later recall counts only as far
+		// as its trial's first recall went (runConsecutiveTrial).
 		const double recalled = probeQuiet * mean(scores.recalled); // the events recalled in order
 		const double timing = probeQuiet * mean(scores.timing);     // each at its demonstrated time after the trigger
 		const double toCome = probeQuiet * meanOrZero(scores.toCome); // the events still to recall pre-shaped, in order
@@ -407,6 +407,7 @@ namespace neat_dnfs
 		nlohmann::json snapshots = nlohmann::json::array();
 		nlohmann::json recalls = nlohmann::json::array();
 		double quietBeforeCue = demonstrate(cues.front(), scores, snapshots);
+		RecallTerms firstRecall{};
 		for (size_t k = 0; k < cues.size(); ++k)
 		{
 			if (k > 0)
@@ -421,7 +422,13 @@ namespace neat_dnfs
 			}
 			snapshots.push_back(snapshot(std::format("before trigger {}", k + 1)));
 			const bool lastRecall = k + 1 == cues.size();
-			const nlohmann::json recall = recallAfterCue(cues[k], quietBeforeCue, lastRecall, scores, snapshots);
+			RecallTerms terms{};
+			const nlohmann::json recall = recallAfterCue(cues[k], quietBeforeCue, lastRecall, terms, scores, snapshots);
+			if (k == 0)
+			{
+				firstRecall = terms;
+			}
+			addRecall(k == 0 ? terms : countedAsFarAsFirst(terms, firstRecall), scores);
 			recalls.push_back({ { "wait", waits[k] }, { "cue", cues[k] }, { "quietBeforeCue", rounded(quietBeforeCue) },
 				{ "recall", recall } });
 		}
@@ -429,7 +436,7 @@ namespace neat_dnfs
 	}
 
 	nlohmann::json SequenceAndTimingRecall::recallAfterCue(const double cue, const double quietBeforeCue,
-		const bool probeSilence, Scores& scores, nlohmann::json& snapshots)
+		const bool probeSilence, RecallTerms& terms, Scores& scores, nlohmann::json& snapshots)
 	{
 		Recall recall{};
 		AfterRecall after{};
@@ -457,18 +464,39 @@ namespace neat_dnfs
 		}
 
 		// An output active before the trigger sweeps peaks past the events: recall counts only as far as it was quiet.
-		scores.recalled.push_back(quietBeforeCue * recallInOrder(recall));
-		scores.timing.push_back(quietBeforeCue * timingOf(recall, cue));
+		terms = { .recalled = quietBeforeCue * recallInOrder(recall),
+			.timing = quietBeforeCue * timingOf(recall, cue),
+			.released = quietBeforeCue * releaseAfterRecall(recall, true),
+			.stopped = quietBeforeCue * stoppedAfterRecall(recall, after, true),
+			.releasedWithoutGuides = quietBeforeCue * releaseAfterRecall(recall, false),
+			.stoppedWithoutGuides = quietBeforeCue * stoppedAfterRecall(recall, after, false) };
 		// A recall where every event peaked by the first sample had nothing waiting to score.
 		if (!waitingPreShapes.empty())
 		{
 			scores.toCome.push_back(quietBeforeCue * mean(waitingPreShapes));
 		}
-		scores.released.push_back(quietBeforeCue * releaseAfterRecall(recall, true));
-		scores.stopped.push_back(quietBeforeCue * stoppedAfterRecall(recall, after, true));
-		scores.releasedWithoutGuides.push_back(quietBeforeCue * releaseAfterRecall(recall, false));
-		scores.stoppedWithoutGuides.push_back(quietBeforeCue * stoppedAfterRecall(recall, after, false));
 		return recallSummary(recall, after, cue);
+	}
+
+	SequenceAndTimingRecall::RecallTerms SequenceAndTimingRecall::countedAsFarAsFirst(const RecallTerms& later,
+		const RecallTerms& first)
+	{
+		return { .recalled = later.recalled * first.recalled,
+			.timing = later.timing * first.timing,
+			.released = later.released * first.released,
+			.stopped = later.stopped * first.stopped,
+			.releasedWithoutGuides = later.releasedWithoutGuides * first.releasedWithoutGuides,
+			.stoppedWithoutGuides = later.stoppedWithoutGuides * first.stoppedWithoutGuides };
+	}
+
+	void SequenceAndTimingRecall::addRecall(const RecallTerms& terms, Scores& scores)
+	{
+		scores.recalled.push_back(terms.recalled);
+		scores.timing.push_back(terms.timing);
+		scores.released.push_back(terms.released);
+		scores.stopped.push_back(terms.stopped);
+		scores.releasedWithoutGuides.push_back(terms.releasedWithoutGuides);
+		scores.stoppedWithoutGuides.push_back(terms.stoppedWithoutGuides);
 	}
 
 	double SequenceAndTimingRecall::baseline() const

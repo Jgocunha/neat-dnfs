@@ -61,8 +61,10 @@ from a different third in each trial, and the later two follow in a shuffled ord
 without the trigger, watches as long as the longest of these trials, so an output that fires at a fixed time after the
 demonstration, inside any recall window, earns no recall credit. In an evolution run every design
 of a generation meets the same waits, drawn anew each generation, so the generation's ranking compares designs and not
-draws; `neat-dnfs-sol-eval` draws them afresh at every evaluation. All nine recalls count alike, so
-recalling once after each demonstration and never again loses two thirds of the recall credit. Order weighs
+draws; `neat-dnfs-sol-eval` draws them afresh at every evaluation. The first recall after a demonstration has to
+work: in order, timing, release and stop, each later recall counts only as far as its trial's first recall went, its
+credit times the first's. A design that recalls only after later triggers earns almost nothing for them, and one that
+recalls once after each demonstration and never again still loses most of the later recalls' credit. Order weighs
 more than timing. An event first peaking within 20% of its demonstrated time is on time and earns the full timing
 credit; beyond that window the credit falls off steeply with the distance past its edge. A recall's timing is its worst
 event's, so one late event costs the whole recall. Peaks may overlap in time, so an event's credit is not shared with the peaks up with it, but an event

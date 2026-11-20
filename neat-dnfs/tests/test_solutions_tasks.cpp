@@ -1485,8 +1485,10 @@ TEST_CASE("SequenceAndTimingRecall pays a fast cascade part of the order credit,
 
     const auto& partials = solution.getParameters().partialFitness;
     REQUIRE(partials.size() == 8);
-    CHECK(partials[3] > 0.4); // about 0.54: BLA comes soon after BSA, which the trigger's lift brings on time
-    CHECK(partials[3] < 0.7);
+    // About 0.35: each recall earns about half the order credit, as BLA comes soon after BSA, which the trigger's lift
+    // brings on time, and each later recall counts only as far as its trial's first went.
+    CHECK(partials[3] > 0.25);
+    CHECK(partials[3] < 0.5);
     CHECK(partials[4] < 0.3); // BSA alone on time: a sixth of the credit
 }
 
@@ -1569,7 +1571,9 @@ TEST_CASE("SequenceAndTimingRecall gives ordered peaks that overlap in time full
     const auto& partials = solution.getParameters().partialFitness;
     REQUIRE(partials.size() == 8);
     CHECK(partials[3] > 0.9);
-    CHECK(partials[4] > 0.85);
+    // Full in most evaluations (35 of 40 on 20 November 2026; 0.91 otherwise). An event late in a trial's first recall
+    // costs that trial's later recalls too, about 0.83 in all, which happens rarely.
+    CHECK(partials[4] > 0.75);
 }
 
 // The reference with 7-8's global part at 0.4: six pending events open the window by themselves, so after the
@@ -1894,30 +1898,100 @@ TEST_CASE("SequenceAndTimingRecall gives each consecutive trial one demonstratio
     CHECK(laterEverDescending);
 }
 
-// The reference without its wind-back recalls right after each demonstration and bursts at every later trigger. Its
-// three first recalls earn full order credit and its six later ones a burst's, and every recall counts alike.
-TEST_CASE("SequenceAndTimingRecall counts every recall alike, the first after a demonstration and the later ones", "[Solutions][SequenceAndTimingRecall]")
+// Each event's credit in place in one recall, from its trace: its best peak score, times its width credit while up,
+// times its place.
+static std::vector<double> creditsInPlace(const nlohmann::json& recall)
+{
+    const auto& events = recall.at("recall").at("events");
+    std::vector<double> credits;
+    for (const auto& [label, due] : recallEvents)
+    {
+        const auto& event = events.at(label);
+        credits.push_back(event.at("bestScore").get<double>() * event.at("widthWhileUp").get<double>()
+            * event.at("inPlace").get<double>());
+    }
+    return credits;
+}
+
+// One recall's order credit, from its trace: the mean of its events' credits in place, times how quiet the output
+// was before its trigger.
+static double orderCreditOf(const nlohmann::json& recall)
+{
+    const auto credits = creditsInPlace(recall);
+    return recall.at("quietBeforeCue").get<double>() * std::accumulate(credits.begin(), credits.end(), 0.0)
+        / static_cast<double>(credits.size());
+}
+
+// One recall's timing credit, from its trace: its worst event's credit in place times its timing credit, times how
+// quiet the output was before its trigger.
+static double timingCreditOf(const nlohmann::json& recall)
+{
+    const auto credits = creditsInPlace(recall);
+    const auto& events = recall.at("recall").at("events");
+    double worst = 1.0;
+    for (size_t event = 0; event < recallEvents.size(); ++event)
+    {
+        worst = std::min(worst, credits[event] * events.at(recallEvents[event].first).at("onTime").get<double>());
+    }
+    return recall.at("quietBeforeCue").get<double>() * worst;
+}
+
+// A recall term over an evaluation's nine recalls, from its trace: each later recall counted as far as its trial's
+// first recall went (@p countLaterByFirst), or every recall alike; all of it times how quiet the probe was.
+static double recallTermOf(const nlohmann::json& trials, const std::function<double(const nlohmann::json&)>& creditOf,
+    const bool countLaterByFirst)
+{
+    double term = 0.0;
+    for (const auto& trial : trials)
+    {
+        if (trial.at("kind") != "consecutive")
+        {
+            continue;
+        }
+        const auto& recalls = trial.at("recalls");
+        const double first = creditOf(recalls.front());
+        for (size_t k = 0; k < recalls.size(); ++k)
+        {
+            const double credit = creditOf(recalls[k]);
+            term += (k > 0 && countLaterByFirst ? credit * first : credit) / 9.0;
+        }
+    }
+    const auto& probe = trials.front();
+    return probe.at("quietWithoutCue").get<double>() * probe.at("eventsQuietWithoutCue").get<double>() * term;
+}
+
+// Batch rerun-L5's best of run A (L5RA, 20 November 2026): a slow field holds each event's place down until the
+// memory field lowers it, over about 2500 after the demonstration, so its first recalls stop after one to four events
+// while its later recalls run all six in order (fitness 0.63, order 0.74). The reference without its wind-back
+// (recalls-once) recalls in full after each demonstration and bursts at every later trigger. The first recall after a
+// demonstration has to work: each later recall counts, term by term, as far as its trial's first recall went.
+TEST_CASE("SequenceAndTimingRecall counts each later recall only as far as its trial's first recall went", "[Solutions][SequenceAndTimingRecall]")
 {
     resetGlobalState();
     const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
-    auto solution = loadRecallFixture("recalls-once");
-    solution.evaluate();
-
-    const auto recalls = recallsOf(timingTrials(solution));
-    REQUIRE(recalls.size() == 9);
-    double order = 0.0;
-    for (const auto& recall : recalls)
+    for (const std::string fixture : { "first-recall-cut-short", "recalls-once" })
     {
-        const auto& events = recall.at("recall").at("events");
-        for (const auto& [label, due] : recallEvents)
+        INFO("fixture " << fixture);
+        auto solution = loadRecallFixture(fixture);
+        solution.evaluate();
+        const auto trials = timingTrials(solution);
+        REQUIRE(recallsOf(trials).size() == 9);
+        const auto& partials = solution.getParameters().partialFitness;
+        REQUIRE(partials.size() == 8);
+
+        const double order = recallTermOf(trials, orderCreditOf, true);
+        // The trace rounds each value to two decimals.
+        CHECK(partials[3] == Catch::Approx(order).margin(0.02));
+        CHECK(partials[4] == Catch::Approx(recallTermOf(trials, timingCreditOf, true)).margin(0.02));
+        if (fixture == "first-recall-cut-short")
         {
-            order += recall.at("quietBeforeCue").get<double>() * events.at(label).at("bestScore").get<double>()
-                * events.at(label).at("inPlace").get<double>() / static_cast<double>(recalls.size() * recallEvents.size());
+            CHECK(recallTermOf(trials, orderCreditOf, false) > order + 0.15);
+        }
+        else
+        {
+            CHECK(order < 0.6);
         }
     }
-    // The trace rounds each value to two decimals.
-    CHECK(solution.getParameters().partialFitness[3] == Catch::Approx(order).margin(0.02));
-    CHECK(order < 0.6);
 }
 
 TEST_CASE("SequenceAndTimingRecall pays a design that recalls only after the first trigger less than the reference", "[Solutions][SequenceAndTimingRecall]")
@@ -2056,34 +2130,24 @@ TEST_CASE("SequenceAndTimingRecall scores each recall's timing by its worst even
 
         const auto trials = timingTrials(solution);
         REQUIRE(trials.front().at("kind") == "probe");
-        const double probeQuiet = trials.front().at("quietWithoutCue").get<double>()
-            * trials.front().at("eventsQuietWithoutCue").get<double>();
-        double worst = 0.0;
-        double average = 0.0;
-        const auto recalls = recallsOf(trials);
-        for (const auto& recall : recalls)
-        {
+        // The mean, over the events, of each one's credit in place times its timing credit.
+        const auto averageTimingCreditOf = [](const nlohmann::json& recall) {
+            const auto credits = creditsInPlace(recall);
             const auto& events = recall.at("recall").at("events");
-            double lowest = 1.0;
             double sum = 0.0;
-            for (const auto& [label, due] : recallEvents)
+            for (size_t event = 0; event < recallEvents.size(); ++event)
             {
-                const auto& event = events.at(label);
-                const double credit = event.at("bestScore").get<double>() * event.at("inPlace").get<double>()
-                    * event.at("onTime").get<double>();
-                lowest = std::min(lowest, credit);
-                sum += credit;
+                sum += credits[event] * events.at(recallEvents[event].first).at("onTime").get<double>();
             }
-            const double quiet = recall.at("quietBeforeCue").get<double>();
-            worst += quiet * lowest / static_cast<double>(recalls.size());
-            average += quiet * sum / static_cast<double>(recallEvents.size() * recalls.size());
-        }
+            return recall.at("quietBeforeCue").get<double>() * sum / static_cast<double>(recallEvents.size());
+        };
         const auto& partials = solution.getParameters().partialFitness;
         REQUIRE(partials.size() == 8);
-        CHECK(partials[4] == Catch::Approx(probeQuiet * worst).margin(0.01));
+        CHECK(partials[4] == Catch::Approx(recallTermOf(trials, timingCreditOf, true)).margin(0.01));
         if (fixture == "fast-cascade")
         {
-            CHECK(partials[4] < probeQuiet * average - 0.1);
+            // Recall by recall, before any later recall is counted by its trial's first.
+            CHECK(recallTermOf(trials, timingCreditOf, false) < recallTermOf(trials, averageTimingCreditOf, false) - 0.1);
         }
     }
 }
