@@ -1596,6 +1596,32 @@ TEST_CASE("SequenceAndTimingRecall gives an output that fires without the trigge
     CHECK(solution.getFitness() < 0.2);
 }
 
+// Batch rerun-L5's best of run B (L5RB, 20 November 2026): a slow integrator fed by the memory field peaks the six
+// events in order at +5440 to +6120 after the demonstration, with or without the trigger. Every consecutive trial's
+// third trigger comes 4600-5800 after the demonstration, so this clock filled every third recall window, while the
+// probe, watching only as long as a first recall, never saw it (fitness 0.465).
+TEST_CASE("SequenceAndTimingRecall watches the probe as long as the longest consecutive trial, so an output that fires at a fixed time after the demonstration earns almost no recall credit", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("late-clock");
+    solution.evaluate();
+
+    const auto trials = timingTrials(solution);
+    REQUIRE(trials.front().at("kind") == "probe");
+    const double probeQuiet = trials.front().at("quietWithoutCue").get<double>()
+        * trials.front().at("eventsQuietWithoutCue").get<double>();
+    CHECK(probeQuiet < 0.5);
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    for (size_t term = 3; term < partials.size(); ++term)
+    {
+        INFO("f" << term + 1);
+        CHECK(partials[term] < 0.1);
+    }
+    CHECK(solution.getFitness() < 0.25);
+}
+
 // The latest time any event first went above threshold after the trigger, less the earliest, over the events that did.
 static double firstPeakSpread(const nlohmann::json& recall)
 {
@@ -1749,13 +1775,19 @@ TEST_CASE("SequenceAndTimingRecall runs the probe, then three consecutive trials
         REQUIRE(trials.size() == 4);
         CHECK(trials.front().at("kind") == "probe");
         std::vector<double> waits;
+        double longestTrial = 0.0;
         for (size_t trial = 1; trial < 4; ++trial)
         {
             CHECK(trials[trial].at("kind") == "consecutive");
             waits.push_back(trials[trial].at("recalls").front().at("wait").get<double>());
+            // From the end of the demonstration (800) to the end of the silence probe after the last recall window.
+            const double lastCue = trials[trial].at("recalls").back().at("cue").get<double>();
+            longestTrial = std::max(longestTrial, lastCue + 1250.0 + 1000.0 - 800.0);
         }
-        // The probe waits as long as the longest first wait.
+        // The probe records the longest first wait, and watches as long as the longest consecutive trial after its
+        // demonstration.
         CHECK(trials.front().at("wait").get<double>() == waits.back());
+        CHECK(trials.front().at("watchedFor").get<double>() == Catch::Approx(longestTrial));
         return waits;
     };
 

@@ -57,7 +57,9 @@ threshold, whatever bump takes it there, so a bump spread over several places pe
 only as far as the widest bump over its place, from its first peak until that peak ends, was as narrow as a peak: in
 full up to 15 wide, nothing from 25. After the probe, each evaluation runs three consecutive
 trials: one demonstration, then the trigger three times, one wait from each third of 300-1500. The first wait comes
-from a different third in each trial, and the later two follow in a shuffled order. In an evolution run every design
+from a different third in each trial, and the later two follow in a shuffled order. The probe, a demonstration
+without the trigger, watches as long as the longest of these trials, so an output that fires at a fixed time after the
+demonstration, inside any recall window, earns no recall credit. In an evolution run every design
 of a generation meets the same waits, drawn anew each generation, so the generation's ranking compares designs and not
 draws; `neat-dnfs-sol-eval` draws them afresh at every evaluation. All nine recalls count alike, so
 recalling once after each demonstration and never again loses two thirds of the recall credit. Order weighs

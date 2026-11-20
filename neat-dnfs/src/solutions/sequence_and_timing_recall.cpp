@@ -196,9 +196,15 @@ namespace neat_dnfs
 		{
 			consecutiveWaits[trial] = drawConsecutiveWaits(trial, waitEngine);
 		}
-		// The probe waits as long as the longest first wait, so whatever fires at a fixed lag after the demonstration
-		// before any first recall ends fires inside it.
-		const double probeQuiet = runProbeTrial(consecutiveWaits.back().front(), scores, trials);
+		// The probe watches as long as the longest consecutive trial, so whatever fires at a fixed lag after the
+		// demonstration inside any recall window fires inside it.
+		double longestTrial = 0.0;
+		for (const auto& waits : consecutiveWaits)
+		{
+			longestTrial = std::max(longestTrial, std::accumulate(waits.begin(), waits.end(), 0.0)
+				+ static_cast<double>(waits.size()) * recallDuration);
+		}
+		const double probeQuiet = runProbeTrial(consecutiveWaits.back().front(), longestTrial, scores, trials);
 		for (const auto& waits : consecutiveWaits)
 		{
 			runConsecutiveTrial(waits, scores, trials);
@@ -352,7 +358,8 @@ namespace neat_dnfs
 		return mean(quietSamples);
 	}
 
-	double SequenceAndTimingRecall::runProbeTrial(const double wait, Scores& scores, nlohmann::json& trials)
+	double SequenceAndTimingRecall::runProbeTrial(const double wait, const double watchFor, Scores& scores,
+		nlohmann::json& trials)
 	{
 		setCues({});
 		nlohmann::json snapshots = nlohmann::json::array();
@@ -362,7 +369,7 @@ namespace neat_dnfs
 		// quiet samples still peaks at every event.
 		Recall withoutCue{};
 		std::vector<double> unscoredPreShapes;
-		sampleUntil(demonstrationEnd + wait + recallDuration + silenceProbeDuration, scores.inputRest,
+		sampleUntil(demonstrationEnd + watchFor + silenceProbeDuration, scores.inputRest,
 			[&](const double time, const std::optional<double> inputAtRest) {
 				const double noPeak = noBumps(outputField);
 				scores.outputQuiet.push_back(noPeak);
@@ -379,7 +386,8 @@ namespace neat_dnfs
 			events[sequence[event].label] = { { "peak", rounded(withoutCue[event].bestScore) } };
 		}
 		const double quiet = mean(quietWithoutCue);
-		trials.push_back({ { "kind", "probe" }, { "wait", wait }, { "quietInDemonstration", rounded(quietInDemonstration) },
+		trials.push_back({ { "kind", "probe" }, { "wait", wait }, { "watchedFor", watchFor + silenceProbeDuration },
+			{ "quietInDemonstration", rounded(quietInDemonstration) },
 			{ "quietWithoutCue", rounded(quiet) }, { "eventsQuietWithoutCue", rounded(mean(eventsQuiet)) },
 			{ "events", events }, { "snapshots", snapshots } });
 		return quiet * mean(eventsQuiet);

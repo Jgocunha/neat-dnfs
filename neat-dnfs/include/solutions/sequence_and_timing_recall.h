@@ -28,7 +28,8 @@ namespace neat_dnfs
 	/// comes from the first third in the first trial, the second in the second and the last in the third, and the
 	/// later two follow in a shuffled order. With an evaluation seed set the waits follow from it, so that a
 	/// population's solutions all meet the same waits in a generation. The probe trial never gives the trigger, and
-	/// waits as long as the longest first wait. All nine recalls count alike in the recall terms, so a design that recalls once after each
+	/// watches as long as the evaluation's longest consecutive trial, its silence probe included, so whatever fires at a
+	/// fixed time after the demonstration inside any recall window fires inside it. All nine recalls count alike in the recall terms, so a design that recalls once after each
 	/// demonstration and cannot recall again loses two thirds of their credit. The schedule is laid down as timed
 	/// stimuli, so a saved solution replays one demonstration and one trigger after a wait of 900 in dnf-composer.
 	///
@@ -77,8 +78,8 @@ namespace neat_dnfs
 	/// design that recalls on time without the guides is not ranked below one that has them.
 	///
 	/// Every evaluation records a trace in SolutionParameters::evaluationTrace: both weighted sums; per trial, its kind,
-	/// wait and how quiet the output stayed before the trigger; for the probe trial, how far each event peaked without
-	/// the trigger; for each recall, what each event did and its timing credit, and snapshots of the input and output
+	/// wait and how quiet the output stayed before the trigger; for the probe trial, how long it watched after its
+	/// demonstration and how far each event peaked without the trigger; for each recall, what each event did and its timing credit, and snapshots of the input and output
 	/// as each event is shown and when each is due. Each consecutive trial lists its three recalls, each with its wait,
 	/// trigger and how quiet the output stayed before it.
 	class SequenceAndTimingRecall final : public Solution
@@ -192,15 +193,17 @@ namespace neat_dnfs
 		/// @param snapshots Receives a snapshot before the first event and as each event is shown.
 		/// @return How far the output had no peak over the demonstration and the wait.
 		double demonstrate(double until, Scores& scores, nlohmann::json& snapshots);
-		/// @brief Runs the probe trial: a demonstration, then the wait, a recall's length and its silence probe without
-		/// the trigger.
-		/// @param wait How long the trial waits where a consecutive trial would give its first trigger: the evaluation's
-		/// longest first wait.
+		/// @brief Runs the probe trial: a demonstration, then, without the trigger, as long as the longest consecutive
+		/// trial runs after its demonstration, and a silence probe.
+		/// @param wait The evaluation's longest first wait, recorded in the trace.
+		/// @param watchFor How long the longest consecutive trial runs from the end of its demonstration to the end of its
+		/// last recall window: its three waits and three recall windows.
 		/// @param scores Accumulates the input and quiet output terms.
-		/// @param trials Receives the trial's trace.
+		/// @param trials Receives the trial's trace, with how long it watched after the demonstration, silence probe
+		/// included.
 		/// @return How far the output had no peak after the demonstration, times the mean, over the events, of how far
 		/// each did not peak there (1 minus its best peak score).
-		double runProbeTrial(double wait, Scores& scores, nlohmann::json& trials);
+		double runProbeTrial(double wait, double watchFor, Scores& scores, nlohmann::json& trials);
 		/// @brief Runs one consecutive trial: one demonstration, then a recall after each of @p waits, and scores each
 		/// recall.
 		/// @param waits The waits, the first from the end of the demonstration and each later one from the end of the
