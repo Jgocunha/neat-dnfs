@@ -51,7 +51,9 @@ namespace neat_dnfs
 	///   until that peak ends, was as narrow as a peak: in full up to 15 wide, nothing from 25, since a bump over several
 	///   places is narrow at some moment, as it ignites or once it splits;
 	/// - each at the demonstrated time after the trigger, credited three quarters as a Gaussian 0.2 of that time wide
-	///   (scalar timing) and one quarter as the smaller of the delay and that time over the larger;
+	///   (scalar timing) and one quarter as the smaller of the delay and that time over the larger. A recall's timing is
+	///   its worst event's among those that fired, times the share of the six that fired, so a recall that stops early
+	///   is timed by what it recalled;
 	/// - once an event's peak ends, it stays released below threshold;
 	/// - once the sequence is over, the output has no peak until the recall ends. The sequence is over once every event
 	///   has peaked and been released, or 300 after BP is due if that never happens.
@@ -321,8 +323,9 @@ namespace neat_dnfs
 		/// @brief Scores one recall's timing.
 		/// @param recall Each event's record for the recall.
 		/// @param cue When the trigger was given.
-		/// @return The lowest, over the events, of each one's credit in place times how close its first peak came to its
-		/// demonstrated time: one event late costs the whole recall.
+		/// @return The lowest, over the events that fired, of each one's credit in place times how close its first peak
+		/// came to its demonstrated time, times the share of the events that fired: one event late costs the whole
+		/// recall, and a recall that stops early is timed by what it recalled; 0 if no event fired.
 		[[nodiscard]] static double timingOf(const Recall& recall, double cue);
 		/// @brief Scores how each recalled event stayed released once its peak ended.
 		/// @param recall Each event's record for the recall.

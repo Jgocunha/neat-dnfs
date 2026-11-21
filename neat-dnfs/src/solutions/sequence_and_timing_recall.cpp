@@ -668,12 +668,20 @@ namespace neat_dnfs
 
 	double SequenceAndTimingRecall::timingOf(const Recall& recall, const double cue)
 	{
+		// Only the events that fired are timed, so a recall that stops early earns timing for what it recalled, while
+		// one event late among them still costs it all.
 		double worst = 1.0;
+		size_t fired = 0;
 		for (size_t event = 0; event < recall.size(); ++event)
 		{
+			if (!recall[event].firstPeak)
+			{
+				continue;
+			}
+			++fired;
 			worst = std::min(worst, creditInPlace(recall, event) * onTime(recall, event, cue));
 		}
-		return worst;
+		return fired == 0 ? 0.0 : worst * static_cast<double>(fired) / static_cast<double>(recall.size());
 	}
 
 	double SequenceAndTimingRecall::releaseAfterRecall(const Recall& recall, const bool withGuides)

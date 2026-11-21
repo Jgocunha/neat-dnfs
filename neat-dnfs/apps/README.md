@@ -67,7 +67,8 @@ credit times the first's. A design that recalls only after later triggers earns 
 recalls once after each demonstration and never again still loses most of the later recalls' credit. Order weighs
 more than timing. An event first peaking within 20% of its demonstrated time is on time and earns the full timing
 credit; beyond that window the credit falls off steeply with the distance past its edge. A recall's timing is its worst
-event's, so one late event costs the whole recall. Peaks may overlap in time, so an event's credit is not shared with the peaks up with it, but an event
+event's among those that fired, times the share of the six that fired, so one late event costs the whole recall, and a
+recall that stops early is timed by what it recalled. Peaks may overlap in time, so an event's credit is not shared with the peaks up with it, but an event
 counts as recalled in order after each event due before it only as far as it first peaks at least half their demonstrated
 gap after it: events crowded together in time earn little order credit. Each event is credited by its worst pair, so it
 earns nothing if an event due after it peaked with or before it, or if one due before it never peaked. After the last recall window of each

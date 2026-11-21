@@ -1922,18 +1922,26 @@ static double orderCreditOf(const nlohmann::json& recall)
         / static_cast<double>(credits.size());
 }
 
-// One recall's timing credit, from its trace: its worst event's credit in place times its timing credit, times how
-// quiet the output was before its trigger.
+// One recall's timing credit, from its trace: the worst, among the events that fired, of each one's credit in place
+// times its timing credit, times the share of the events that fired, times how quiet the output was before its trigger.
 static double timingCreditOf(const nlohmann::json& recall)
 {
     const auto credits = creditsInPlace(recall);
     const auto& events = recall.at("recall").at("events");
     double worst = 1.0;
+    size_t fired = 0;
     for (size_t event = 0; event < recallEvents.size(); ++event)
     {
-        worst = std::min(worst, credits[event] * events.at(recallEvents[event].first).at("onTime").get<double>());
+        const auto& observed = events.at(recallEvents[event].first);
+        if (observed.at("afterCue").is_null())
+        {
+            continue;
+        }
+        ++fired;
+        worst = std::min(worst, credits[event] * observed.at("onTime").get<double>());
     }
-    return recall.at("quietBeforeCue").get<double>() * worst;
+    const double share = static_cast<double>(fired) / static_cast<double>(recallEvents.size());
+    return fired == 0 ? 0.0 : recall.at("quietBeforeCue").get<double>() * worst * share;
 }
 
 // A recall term over an evaluation's nine recalls, from its trace: each later recall counted as far as its trial's
@@ -2150,6 +2158,29 @@ TEST_CASE("SequenceAndTimingRecall scores each recall's timing by its worst even
             CHECK(recallTermOf(trials, timingCreditOf, false) < recallTermOf(trials, averageTimingCreditOf, false) - 0.1);
         }
     }
+}
+
+// The reference with its window's self-excitation at 16 instead of 20 (recalls-four-on-time): the window lets go
+// early, so after every trigger BSA, BLA, BSB and BLB come in order and on time, and BS and BP never fire. Only the
+// events that fired are timed, so each recall earns the worst of their timing, times the four sixths of the events
+// that fired: a recall that stops early is paid for timing what it recalled, where the worst of all six pays nothing.
+TEST_CASE("SequenceAndTimingRecall times a recall that stops early by the events that fired", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("recalls-four-on-time");
+    solution.evaluate();
+
+    const auto trials = timingTrials(solution);
+    REQUIRE(recallsOf(trials).size() == 9);
+    const auto& first = trials[1].at("recalls").front().at("recall").at("events");
+    CHECK(first.at("BLB").at("onTime").get<double>() == Catch::Approx(1.0));
+    CHECK(first.at("BS").at("afterCue").is_null());
+    CHECK(first.at("BP").at("afterCue").is_null());
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[4] == Catch::Approx(recallTermOf(trials, timingCreditOf, true)).margin(0.02));
+    CHECK(partials[4] > 0.4);
 }
 
 // A saved solution carries what createPhenotypeEnvironment() adds: a recall trial with a wait of 900, the trial of the
