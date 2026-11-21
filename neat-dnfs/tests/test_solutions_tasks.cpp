@@ -1966,12 +1966,13 @@ static double timingCreditOf(const nlohmann::json& recall)
     return fired == 0 ? 0.0 : recall.at("quietBeforeCue").get<double>() * worst * share;
 }
 
-// A recall term over an evaluation's nine recalls, from its trace: each later recall counted as far as its trial's
-// first recall went (@p countLaterByFirst), or every recall alike; all of it times how quiet the probe was.
+// A recall term over an evaluation's nine recalls, from its trace: as the evaluator counts it (@p countLaterByFirst),
+// each trial's first recall for half the trial and each later one for a quarter, times the first's credit; or every
+// recall alike. All of it times how quiet the probe was.
 static double recallTermOf(const nlohmann::json& trials, const std::function<double(const nlohmann::json&)>& creditOf,
     const bool countLaterByFirst)
 {
-    double term = 0.0;
+    std::vector<double> trialTerms;
     for (const auto& trial : trials)
     {
         if (trial.at("kind") != "consecutive")
@@ -1980,14 +1981,38 @@ static double recallTermOf(const nlohmann::json& trials, const std::function<dou
         }
         const auto& recalls = trial.at("recalls");
         const double first = creditOf(recalls.front());
-        for (size_t k = 0; k < recalls.size(); ++k)
+        double trialTerm = countLaterByFirst ? 0.5 * first : first / 3.0;
+        for (size_t k = 1; k < recalls.size(); ++k)
         {
             const double credit = creditOf(recalls[k]);
-            term += (k > 0 && countLaterByFirst ? credit * first : credit) / 9.0;
+            trialTerm += countLaterByFirst ? 0.25 * credit * first : credit / 3.0;
         }
+        trialTerms.push_back(trialTerm);
     }
     const auto& probe = trials.front();
+    const double term = std::accumulate(trialTerms.begin(), trialTerms.end(), 0.0) / static_cast<double>(trialTerms.size());
     return probe.at("quietWithoutCue").get<double>() * probe.at("eventsQuietWithoutCue").get<double>() * term;
+}
+
+// The reference without its wind-back (recalls-once) recalls in full after each demonstration and never again. Each
+// trial's first recall counts for half the trial and the two later ones a quarter each, still times the first: a first
+// recall that works is worth half the recall credit, and recalling again after it the other half. With all nine alike,
+// as before, it was worth a third, and from scratch a working first recall was worth less than the plateau of fast
+// partial recalls that every rerun-L5-2 run settled on.
+TEST_CASE("SequenceAndTimingRecall counts each trial's first recall for half the trial", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto solution = loadRecallFixture("recalls-once");
+    solution.evaluate();
+
+    const auto trials = timingTrials(solution);
+    REQUIRE(recallsOf(trials).size() == 9);
+    const auto& partials = solution.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[3] == Catch::Approx(recallTermOf(trials, orderCreditOf, true)).margin(0.02));
+    CHECK(partials[3] > 0.45);
+    CHECK(partials[3] < 0.6);
 }
 
 // Batch rerun-L5's best of run A (L5RA, 20 November 2026): a slow field holds each event's place down until the

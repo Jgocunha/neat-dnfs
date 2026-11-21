@@ -31,9 +31,11 @@ namespace neat_dnfs
 	/// watches as long as the evaluation's longest consecutive trial, its silence probe included, so whatever fires at a
 	/// fixed time after the demonstration inside any recall window fires inside it. The first recall after a
 	/// demonstration has to work: in each recall term (the recall in order, its timing, the release and the stop), a
-	/// later recall counts only as far as its trial's first recall went, its credit times the first's. A design that
-	/// recalls only after later triggers earns almost nothing for them, and one that recalls once after each
-	/// demonstration and cannot recall again still loses most of the later recalls' credit. The schedule is laid down as timed
+	/// later recall counts only as far as its trial's first recall went, its credit times the first's. Each trial's
+	/// first recall counts for half the trial's recall credit and each later one for a quarter, so a first recall that
+	/// works is worth as much as recalling again after it. A design that recalls only after later triggers earns almost
+	/// nothing for them, and one that recalls once after each demonstration and cannot recall again loses half the
+	/// recall credit. The schedule is laid down as timed
 	/// stimuli, so a saved solution replays one demonstration and one trigger after a wait of 900 in dnf-composer.
 	///
 	/// Every field is sampled every 10 and scored against what the reference design
@@ -156,6 +158,8 @@ namespace neat_dnfs
 			std::vector<double> stopped;
 			std::vector<double> releasedWithoutGuides;
 			std::vector<double> stoppedWithoutGuides;
+			/// @brief How much each recall counts in the recall terms, one per recall, in the order they were added.
+			std::vector<double> recallWeights;
 		};
 		/// @brief One recall's credit in each recall term, each scaled by how far the output had no peak before its
 		/// trigger.
@@ -227,7 +231,8 @@ namespace neat_dnfs
 		/// previous recall window.
 		/// @param scores Accumulates every term; each recall's terms are scaled by how far the output had no peak since
 		/// the trial began, for the first, or since the previous recall window ended, and each later recall's recall
-		/// terms by the first recall's (countedAsFarAsFirst()).
+		/// terms by the first recall's (countedAsFarAsFirst()). The first recall counts for half the trial's recall
+		/// terms, each later one for a quarter.
 		/// @param trials Receives the trial's trace.
 		void runConsecutiveTrial(const std::array<double, 3>& waits, Scores& scores, nlohmann::json& trials);
 		/// @brief Samples the recall window after the trigger at @p cue, and the silence probe after it if asked, and
@@ -250,8 +255,9 @@ namespace neat_dnfs
 		[[nodiscard]] static RecallTerms countedAsFarAsFirst(const RecallTerms& later, const RecallTerms& first);
 		/// @brief Adds one recall's credit to the recall terms.
 		/// @param terms The recall's credit in each recall term, as it counts.
-		/// @param scores Accumulates the recall terms.
-		static void addRecall(const RecallTerms& terms, Scores& scores);
+		/// @param weight How much the recall counts: a trial's first recall half the trial, each later one a quarter.
+		/// @param scores Accumulates the recall terms and their weights.
+		static void addRecall(const RecallTerms& terms, double weight, Scores& scores);
 
 		/// @brief The output's level far from every event: its median over baselinePositions.
 		/// @return The median activation there.

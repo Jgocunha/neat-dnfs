@@ -16,6 +16,7 @@ namespace neat_dnfs
 	namespace
 	{
 		using tools::utils::mean;
+		using tools::utils::weightedMean;
 
 		// One demonstrated event: a Gaussian pulse on the input field, named "tgs <label>".
 		struct Event
@@ -74,6 +75,9 @@ namespace neat_dnfs
 		constexpr double replayedWait = 900.0;
 		// Each evaluation runs this many consecutive trials, the first wait of each from its own third of the range.
 		constexpr size_t consecutiveTrialCount = 3;
+		// A trial's first recall counts for this share of the trial's recall credit, its later recalls for the rest in
+		// equal parts: a first recall that works is worth as much as recalling again after it.
+		constexpr double firstRecallShare = 0.5;
 
 		constexpr auto taskSlug = "sequence-and-timing-recall";
 		// Holds only the intended behaviour's weights: it is no task of its own.
@@ -217,19 +221,21 @@ namespace neat_dnfs
 		const double input = 0.5 * mean(scores.inputPeaks) + 0.5 * mean(scores.inputRest); // detects, then rests
 		const double quiet = mean(scores.outputQuiet);              // no peak before the trigger, nor without it
 		const double memory = meanOrZero(scores.outputMemory);      // pre-shaped at the stored events, in order
-		// A design that fires without the trigger earns no credit for firing after it. A later recall counts only as far
-		// as its trial's first recall went (runConsecutiveTrial).
-		const double recalled = probeQuiet * mean(scores.recalled); // the events recalled in order
-		const double timing = probeQuiet * mean(scores.timing);     // each at its demonstrated time after the trigger
+		// A design that fires without the trigger earns no credit for firing after it. A trial's first recall counts for
+		// half the trial, and a later recall only as far as the first went (runConsecutiveTrial).
+		const auto& weights = scores.recallWeights;
+		const double recalled = probeQuiet * weightedMean(scores.recalled, weights); // the events recalled in order
+		const double timing = probeQuiet * weightedMean(scores.timing, weights); // each at its demonstrated time after the trigger
 		const double toCome = probeQuiet * meanOrZero(scores.toCome); // the events still to recall pre-shaped, in order
-		const double released = probeQuiet * mean(scores.released); // each recalled event released
-		const double stopped = probeQuiet * mean(scores.stopped);   // no peak once the sequence is over
+		const double released = probeQuiet * weightedMean(scores.released, weights); // each recalled event released
+		const double stopped = probeQuiet * weightedMean(scores.stopped, weights); // no peak once the sequence is over
 
 		parameters.partialFitness = { input, quiet, memory, recalled, timing, toCome, released, stopped };
 		const double guidedFitness = std::inner_product(parameters.partialFitness.begin(), parameters.partialFitness.end(),
 			fitnessWeights.begin(), 0.0);
 		const std::vector<double> intended{ input, quiet, recalled, timing,
-			probeQuiet * mean(scores.releasedWithoutGuides), probeQuiet * mean(scores.stoppedWithoutGuides) };
+			probeQuiet * weightedMean(scores.releasedWithoutGuides, weights),
+			probeQuiet * weightedMean(scores.stoppedWithoutGuides, weights) };
 		const double intendedFitness = std::inner_product(intended.begin(), intended.end(),
 			intendedFitnessWeights.begin(), 0.0);
 		// The guides lead the search toward the reference's way of recalling; they must not rank a design that recalls
@@ -431,8 +437,13 @@ namespace neat_dnfs
 			if (k == 0)
 			{
 				firstRecall = terms;
+				addRecall(terms, firstRecallShare, scores);
 			}
-			addRecall(k == 0 ? terms : countedAsFarAsFirst(terms, firstRecall), scores);
+			else
+			{
+				addRecall(countedAsFarAsFirst(terms, firstRecall),
+					(1.0 - firstRecallShare) / static_cast<double>(cues.size() - 1), scores);
+			}
 			recalls.push_back({ { "wait", waits[k] }, { "cue", cues[k] }, { "quietBeforeCue", rounded(quietBeforeCue) },
 				{ "recall", recall } });
 		}
@@ -493,8 +504,9 @@ namespace neat_dnfs
 			.stoppedWithoutGuides = later.stoppedWithoutGuides * first.stoppedWithoutGuides };
 	}
 
-	void SequenceAndTimingRecall::addRecall(const RecallTerms& terms, Scores& scores)
+	void SequenceAndTimingRecall::addRecall(const RecallTerms& terms, const double weight, Scores& scores)
 	{
+		scores.recallWeights.push_back(weight);
 		scores.recalled.push_back(terms.recalled);
 		scores.timing.push_back(terms.timing);
 		scores.released.push_back(terms.released);
