@@ -75,7 +75,8 @@ earns nothing if an event due after it peaked with or before it, or if one due b
 consecutive trial the output is watched 1000 longer for silence, and a peak there counts as a peak after the
 sequence. The guides measure pre-shapes and troughs from the output's level far
 from every event, midway between two events, and score pre-shapes in order as a staircase: each event as far as it
-stands above the next one in the sequence, the last one above that level, in full from 0.25. Its fitness is the larger of its guided score and the intended behaviour's, whose six weights are in
+stands above the next one in the sequence, the last one above that level, in full from 0.25. Before the trigger, each
+stored event counts only as far as it lies near threshold: in full to 12 below, nothing from 24 below. Its fitness is the larger of its guided score and the intended behaviour's, whose six weights are in
 `config/solutions/sequence-and-timing-recall-intended.json`.
 
 `output-feedback` is not an ablation but a wider search space: mutation may also wire

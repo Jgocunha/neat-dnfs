@@ -102,6 +102,10 @@ namespace neat_dnfs
 		// Pre-shapes in order are a staircase: each event's step above the next, the last one's above the output's
 		// level, counts in full from this height, twenty-five times the fields' noise.
 		constexpr double preShapeStep = 0.25;
+		// A stored event counts as pre-shaped in full only this near threshold, and not at all from the next depth:
+		// every design that recalls in order, hand-built or evolved, holds the stored events within about 11 of it.
+		constexpr double fullCreditMemoryDepth = 12.0;
+		constexpr double noCreditMemoryDepth = 24.0;
 		// The input's peak at a shown event, in the fixed input field.
 		constexpr double inputPeakAmplitude = 7.6;
 		constexpr double inputPeakWidth = 7.0;
@@ -341,7 +345,7 @@ namespace neat_dnfs
 			const size_t stored = eventsShownBy(time);
 			if (inputAtRest && stored > 0)
 			{
-				scores.outputMemory.push_back(preShapedInOrder(positionsOf(stored), baseline()) * *inputAtRest * noPeak);
+				scores.outputMemory.push_back(preShapedNearThreshold(positionsOf(stored), baseline()) * *inputAtRest * noPeak);
 			}
 		};
 
@@ -504,7 +508,7 @@ namespace neat_dnfs
 		return medianActivationAtPositions(outputField, baselinePositions);
 	}
 
-	double SequenceAndTimingRecall::preShapedInOrder(const std::vector<double>& positions, const double level) const
+	std::vector<double> SequenceAndTimingRecall::outputAt(const std::vector<double>& positions) const
 	{
 		std::vector<double> activations;
 		activations.reserve(positions.size());
@@ -512,6 +516,11 @@ namespace neat_dnfs
 		{
 			activations.push_back(activationAtPosition(outputField, position));
 		}
+		return activations;
+	}
+
+	std::vector<double> SequenceAndTimingRecall::preShapeSteps(const std::vector<double>& activations, const double level)
+	{
 		auto steps = tools::utils::stepsDown(activations, level, preShapeStep);
 		// An event at or above threshold is peaking, not pre-shaped.
 		for (size_t event = 0; event < steps.size(); ++event)
@@ -520,6 +529,22 @@ namespace neat_dnfs
 			{
 				steps[event] = 0.0;
 			}
+		}
+		return steps;
+	}
+
+	double SequenceAndTimingRecall::preShapedInOrder(const std::vector<double>& positions, const double level) const
+	{
+		return mean(preShapeSteps(outputAt(positions), level));
+	}
+
+	double SequenceAndTimingRecall::preShapedNearThreshold(const std::vector<double>& positions, const double level) const
+	{
+		const auto activations = outputAt(positions);
+		auto steps = preShapeSteps(activations, level);
+		for (size_t event = 0; event < steps.size(); ++event)
+		{
+			steps[event] *= 1.0 - tools::utils::normalize(-activations[event], fullCreditMemoryDepth, noCreditMemoryDepth);
 		}
 		return mean(steps);
 	}

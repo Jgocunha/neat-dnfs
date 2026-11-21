@@ -64,7 +64,8 @@ namespace neat_dnfs
 	/// that level, in full from 0.25, so a primacy gradient whose later events sit near the output's level earns them in
 	/// full when its steps are visible:
 	/// - through each demonstration and wait, the stored events pre-shaped, the earliest highest, as far as the input is
-	///   at rest and the output has no peak;
+	///   at rest and the output has no peak, and each only as far as it lies near threshold: in full to 12 below it,
+	///   nothing from 24 below, where every design that recalls in order holds them within about 11;
 	/// - while they wait, the events not yet recalled pre-shaped in order, as far as the input is at rest;
 	/// - a released event earns half its release for lying below threshold and half for a trough;
 	/// - once the sequence is over, half the stop is for a trough at every event, each as far as it was recalled in its
@@ -255,13 +256,28 @@ namespace neat_dnfs
 		/// @brief The output's level far from every event: its median over baselinePositions.
 		/// @return The median activation there.
 		[[nodiscard]] double baseline() const;
+		/// @brief The output's activation at each of @p positions.
+		/// @param positions Positions to read.
+		/// @return One activation per position, in the same order.
+		[[nodiscard]] std::vector<double> outputAt(const std::vector<double>& positions) const;
+		/// @brief Each event's step in a staircase of pre-shapes descending in order to @p level.
+		/// @param activations The output's activation at each event, highest pre-shape expected first.
+		/// @param level The output's baseline at this sample.
+		/// @return One credit per event: its step above the next one's activation (the last one's above @p level), in
+		/// full from 0.25; nothing for an event at or above threshold.
+		[[nodiscard]] static std::vector<double> preShapeSteps(const std::vector<double>& activations, double level);
 		/// @brief Scores the output pre-shaped at the events at @p positions as a staircase descending in that order
 		/// to @p level.
 		/// @param positions Event positions, highest pre-shape expected first.
 		/// @param level The output's baseline at this sample.
-		/// @return The mean, over the events, of each one's step above the next one's activation (the last one's above
-		/// @p level), in full from 0.25; nothing for an event at or above threshold.
+		/// @return The mean, over the events, of each one's step (preShapeSteps()).
 		[[nodiscard]] double preShapedInOrder(const std::vector<double>& positions, double level) const;
+		/// @brief Scores the stored events pre-shaped as a staircase, each only as far as it lies near threshold.
+		/// @param positions Positions of the events stored so far, the earliest first.
+		/// @param level The output's baseline at this sample.
+		/// @return The mean, over the events, of each one's step (preShapeSteps()) times how near threshold it lies: in
+		/// full to 12 below, falling linearly to nothing at 24 below.
+		[[nodiscard]] double preShapedNearThreshold(const std::vector<double>& positions, double level) const;
 		/// @brief How fully a peak stands at @p position: near it, tall enough, and no wider than a peak.
 		/// @param position Position of the event.
 		/// @return How close the output's nearest bump lies to @p position, times that bump's height credit and its width

@@ -1434,6 +1434,28 @@ TEST_CASE("SequenceAndTimingRecall pays the reference's primacy gradient by its 
     CHECK(partials[5] > 0.85); // the events to come
 }
 
+// Batch rerun-L5-2's best of run D (deep-staircase, 21 November 2026) never peaks: it holds the stored events in order
+// 130-160 below threshold, under a baseline of -338. Every design that recalls in order, hand-built or evolved, holds
+// them within about 11 of threshold before the trigger, and a staircase that deep earned both guides in full and drew
+// every rerun-L5-2 lineage away from them. The memory guide pays each stored event only as far as it lies near
+// threshold: in full to 12 below, nothing from 24 below.
+TEST_CASE("SequenceAndTimingRecall pays the memory guide only for pre-shapes near threshold", "[Solutions][SequenceAndTimingRecall]")
+{
+    resetGlobalState();
+    const ScopedTaskConfig taskConfig{ sequenceAndTimingRecall };
+    auto deep = loadRecallFixture("deep-staircase");
+    deep.evaluate();
+    auto reference = loadRecallFixture("reference");
+    reference.evaluate();
+
+    const auto& partials = deep.getParameters().partialFitness;
+    REQUIRE(partials.size() == 8);
+    CHECK(partials[2] < 0.1);
+    CHECK(partials[3] == 0.0); // it never recalls
+    CHECK(deep.getFitness() < 0.22);
+    CHECK(reference.getParameters().partialFitness[2] > 0.9);
+}
+
 // With no connection into the output, nothing drives a peak there: the output earns the input and quiet terms alone,
 // which are an eighth of the intended behaviour.
 TEST_CASE("SequenceAndTimingRecall gives an output that never responds the input and quiet terms alone", "[Solutions][SequenceAndTimingRecall]")
