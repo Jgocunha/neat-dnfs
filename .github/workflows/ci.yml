@@ -394,7 +394,7 @@ jobs:
           lcov --capture --directory . --output-file coverage.info \
             --ignore-errors negative,gcov
           lcov --remove coverage.info \
-            '*/deps/*' '*/vcpkg/*' '*/vcpkg_installed/*' '*/tests/*' '*/usr/*' \
+            '*/deps/*' '*/vcpkg_installed/*' '*/tests/*' '*/usr/*' \
             --output-file coverage_filtered.info \
             --ignore-errors negative,gcov
 
