@@ -19,8 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   against this project's manifest (`-DVCPKG_MANIFEST_DIR`), so both link the same dependency
   versions. Before, setup and CI took vcpkg HEAD and both sibling repos' HEAD, so two runs of
   the same commit could build from different sources.
-- `scripts/setup.*` no longer install vcpkg packages or build `imgui-platform-kit`; they fetch
-  the vcpkg baseline when `VCPKG_ROOT` lacks it and rebuild `deps/dnfc-install` whenever the
+- `scripts/setup.*` no longer install vcpkg packages or build `imgui-platform-kit`; they check
+  that `VCPKG_ROOT` is a clone at the vcpkg baseline or newer (unshallowing a shallow one),
+  and rebuild `deps/dnfc-install` whenever the
   pinned ref or the manifest changes. `IPK_REF` is gone; `DNFC_REF` still overrides the pin.
 - Build provenance (`build_info.h`) takes the `imgui-platform-kit` revision from the port's
   pinned `REF`, and the package list from the build tree's own vcpkg install instead of
@@ -31,10 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   next to the latest ones.
 
 ### Migrating
-1. `VCPKG_ROOT` must be a **git clone** of vcpkg (not a release tarball). Run
-   `scripts/setup.sh` (or `setup.bat`) once; it fetches the baseline commit.
-2. Delete `deps/imgui-platform-kit/` and `deps/ipk-install/`, and existing build trees.
-   `deps/dnfc-install` is rebuilt automatically.
+1. `VCPKG_ROOT` must be a **git clone** of vcpkg (not a release tarball) at the baseline
+   commit or newer. Run `scripts/setup.sh` (or `setup.bat`) once; it unshallows a shallow
+   clone and tells you how to update one that is too old.
+2. Delete `deps/imgui-platform-kit/` and `deps/ipk-install/`, and existing build trees: a
+   tree configured before `vcpkg.json` existed keeps vcpkg's classic mode cached and skips
+   the manifest. `deps/dnfc-install` is rebuilt automatically.
 3. Drop `deps/ipk-install` from any `CMAKE_PREFIX_PATH` of your own.
 
 ---

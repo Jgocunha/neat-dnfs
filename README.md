@@ -157,7 +157,9 @@ To build an archive yourself from a Release build tree, run `scripts/package.sh`
   [`neat-dnfs/vcpkg.json`](neat-dnfs/vcpkg.json) and installed by CMake on the first
   configure, at the versions of the vcpkg commit pinned there as `builtin-baseline`
   (`imgui-platform-kit` is an overlay port in [`neat-dnfs/ports/`](neat-dnfs/ports/)).
-  `VCPKG_ROOT` must be a git clone of vcpkg; the setup script fetches the baseline commit.
+  `VCPKG_ROOT` must be a git clone of vcpkg at that commit or newer; the setup script
+  checks it. The manifest pins the packages, not vcpkg itself: the `vcpkg` executable and
+  the scripts it builds ports with come from your clone. CI uses the baseline commit itself.
 * [`dynamic-neural-field-composer`](https://github.com/Jgocunha/dynamic-neural-field-composer)
   is built from source by the setup script, at the commit in
   [`neat-dnfs/scripts/dnfc-ref.txt`](neat-dnfs/scripts/dnfc-ref.txt), against the same
@@ -165,11 +167,25 @@ To build an archive yourself from a Release build tree, run `scripts/package.sh`
 
 ### Build Instructions
 
+Linux and macOS:
+
 ```bash
 cd neat-dnfs
 bash scripts/setup.sh     # once: vcpkg baseline + dynamic-neural-field-composer
-bash scripts/build.sh     # Linux; scripts/build_macos.sh on macOS, scripts\build.bat on Windows
+export VCPKG_ROOT="${VCPKG_ROOT:-$HOME/vcpkg}"   # where setup.sh put vcpkg, if VCPKG_ROOT was unset
+bash scripts/build.sh     # bash scripts/build_macos.sh on macOS
 ```
+
+Windows:
+
+```bat
+cd neat-dnfs
+scripts\setup.bat
+scripts\build.bat
+```
+
+If `VCPKG_ROOT` was unset, `setup.bat` sets it with `setx`, which only new terminals see:
+run `build.bat` from a new one.
 
 ---
 
