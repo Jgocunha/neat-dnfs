@@ -102,14 +102,6 @@ if(GIT_FOUND)
     endif()
 
     execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/deps/imgui-platform-kit
-        OUTPUT_VARIABLE NEAT_DNFS_IPK_SHA_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
-        RESULT_VARIABLE NEAT_DNFS_IPK_SHA_RESULT ERROR_QUIET)
-    if(NEAT_DNFS_IPK_SHA_RESULT EQUAL 0)
-        set(NEAT_DNFS_IPK_SHA "${NEAT_DNFS_IPK_SHA_OUT}")
-    endif()
-
-    execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/deps/dynamic-neural-field-composer
         OUTPUT_VARIABLE NEAT_DNFS_DNFC_SHA_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
         RESULT_VARIABLE NEAT_DNFS_DNFC_SHA_RESULT ERROR_QUIET)
@@ -118,10 +110,19 @@ if(GIT_FOUND)
     endif()
 endif()
 
+# imgui-platform-kit is a vcpkg overlay port, built from the commit its portfile pins.
+file(STRINGS "${CMAKE_SOURCE_DIR}/ports/imgui-platform-kit/portfile.cmake" NEAT_DNFS_IPK_REF_LINE
+    REGEX "^[ \t]*REF[ \t]+[0-9a-f]+")
+if(NEAT_DNFS_IPK_REF_LINE)
+    string(REGEX REPLACE "^[ \t]*REF[ \t]+([0-9a-f]+).*" "\\1" NEAT_DNFS_IPK_SHA "${NEAT_DNFS_IPK_REF_LINE}")
+endif()
+
+# The packages this build tree's manifest install put in VCPKG_INSTALLED_DIR -- not
+# vcpkg's own classic installed/ tree, which this project does not use.
 set(NEAT_DNFS_VCPKG_LIST "unknown")
 find_program(NEAT_DNFS_VCPKG_EXECUTABLE NAMES vcpkg PATHS "${VCPKG_ROOT}" NO_DEFAULT_PATH)
 if(NEAT_DNFS_VCPKG_EXECUTABLE)
-    execute_process(COMMAND ${NEAT_DNFS_VCPKG_EXECUTABLE} list
+    execute_process(COMMAND ${NEAT_DNFS_VCPKG_EXECUTABLE} list "--x-install-root=${VCPKG_INSTALLED_DIR}"
         WORKING_DIRECTORY ${VCPKG_ROOT}
         OUTPUT_VARIABLE NEAT_DNFS_VCPKG_LIST_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
         RESULT_VARIABLE NEAT_DNFS_VCPKG_LIST_RESULT ERROR_QUIET)

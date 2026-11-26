@@ -16,15 +16,13 @@ them directly.
 
 `VCPKG_ROOT` must be set in the environment - `CMakeLists.txt` fails outright without it, not
 with a warning. If it is unset, run `scripts/setup.bat` (Windows) or `scripts/setup.sh`
-(Linux/macOS) once. Beyond installing the vcpkg packages, setup clones and builds two sibling
-dependencies into `deps/`:
+(Linux/macOS) once. vcpkg packages, `imgui-platform-kit` included, come from `vcpkg.json`
+and are installed by the first configure of each build tree (pinned by `builtin-baseline`;
+`VCPKG_ROOT` must be a git clone with that commit - setup fetches it). Setup also clones and
+builds `dynamic-neural-field-composer` at the commit in `scripts/dnfc-ref.txt` into
+`deps/dnfc-install`, against this project's manifest.
 
-| Dependency | Installs to |
-|---|---|
-| `imgui-platform-kit` | `deps/ipk-install` |
-| `dynamic-neural-field-composer` | `deps/dnfc-install` |
-
-Neither is found automatically - they reach CMake only through `-DCMAKE_PREFIX_PATH`, which the
+It is not found automatically - it reaches CMake only through `-DCMAKE_PREFIX_PATH`, which the
 build scripts pass for you. A hand-rolled `cmake -S . -B ...` that omits it fails at
 `find_package`. This is the main reason to use the scripts rather than driving CMake yourself.
 

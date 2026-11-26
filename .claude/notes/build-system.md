@@ -13,21 +13,28 @@ if(NOT DEFINED ENV{VCPKG_ROOT})
 endif()
 ```
 
-vcpkg is used in *classic* mode - there is no `vcpkg.json` manifest. Packages are installed
-imperatively by `scripts/setup.{bat,sh}`: `imgui[docking-experimental,core,opengl3-binding,glfw-binding]`,
-`implot`, `imgui-node-editor`, `nlohmann-json`, `catch2`, `fftw3`.
+vcpkg runs in *manifest* mode. `neat-dnfs/vcpkg.json` declares every vcpkg dependency and pins
+its version with `builtin-baseline` (one vcpkg commit); the first configure of a build tree
+installs them into `<tree>/vcpkg_installed/`. `imgui-platform-kit` is an overlay port in
+`ports/`, pinned by `REF`/`SHA512` in its `portfile.cmake`. `VCPKG_ROOT` must be a git clone
+containing the baseline commit; `scripts/setup.*` fetch it if missing.
 
-## Two sibling dependencies are built from source into `deps/`
+## dynamic-neural-field-composer is built from source into `deps/`
 
-`scripts/setup.*` also clones and builds two of the author's own repos:
+`scripts/setup.*` clone it at the commit in `scripts/dnfc-ref.txt` (`DNFC_REF` overrides it)
+and install it into `neat-dnfs/deps/dnfc-install`. It is configured with
+`-DVCPKG_MANIFEST_DIR=<neat-dnfs>`, so it compiles against **this** project's manifest - one
+dependency set for both, no second imgui. Its install is stamped (`.revision`) with the ref
+and a hash of `vcpkg.json`/`vcpkg-configuration.json`/`ports/`; changing any of them makes the
+next setup rebuild it. It stays source-built rather than a vcpkg port because it reads its
+fonts and `data/` from its own source tree at runtime (compiled-in `PROJECT_DIR` fallback).
 
-| Dependency | Installs to |
-|---|---|
-| `imgui-platform-kit` | `neat-dnfs/deps/ipk-install` |
-| `dynamic-neural-field-composer` | `neat-dnfs/deps/dnfc-install` |
-
-These are not found automatically. They reach CMake only via `-DCMAKE_PREFIX_PATH`, which the
+It is not found automatically. It reaches CMake only via `-DCMAKE_PREFIX_PATH`, which the
 build scripts pass. A hand-rolled `cmake -S . -B ...` that omits it fails at `find_package`.
+
+Build provenance (`build_info.h`) reads the kit's revision from the port's `REF`, and the
+package list from `vcpkg list --x-install-root=${VCPKG_INSTALLED_DIR}` - the build tree's
+manifest install, not vcpkg's classic `installed/`.
 
 ## The three scripts build three differently-named trees
 

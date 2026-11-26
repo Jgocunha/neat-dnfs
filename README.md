@@ -150,22 +150,25 @@ To build an archive yourself from a Release build tree, run `scripts/package.sh`
 * **C++20** compiler
 * **VCPKG** package manager
 
-**Dependencies (via VCPKG):**
+**Dependencies:** every version is pinned.
 
-* `imgui`, `implot`, `imgui-node-editor`, `nlohmann-json`
-
-**Additional dependencies:**
-
-* [`imgui-platform-kit`](https://github.com/Jgocunha/imgui-platform-kit)
+* `imgui`, `implot`, `imgui-node-editor`, `nlohmann-json`, `fftw3`, `catch2` and
+  [`imgui-platform-kit`](https://github.com/Jgocunha/imgui-platform-kit) are declared in
+  [`neat-dnfs/vcpkg.json`](neat-dnfs/vcpkg.json) and installed by CMake on the first
+  configure, at the versions of the vcpkg commit pinned there as `builtin-baseline`
+  (`imgui-platform-kit` is an overlay port in [`neat-dnfs/ports/`](neat-dnfs/ports/)).
+  `VCPKG_ROOT` must be a git clone of vcpkg; the setup script fetches the baseline commit.
 * [`dynamic-neural-field-composer`](https://github.com/Jgocunha/dynamic-neural-field-composer)
+  is built from source by the setup script, at the commit in
+  [`neat-dnfs/scripts/dnfc-ref.txt`](neat-dnfs/scripts/dnfc-ref.txt), against the same
+  manifest.
 
 ### Build Instructions
 
 ```bash
-export VCPKG_ROOT=/path/to/vcpkg
-mkdir build && cd build
-cmake ..
-cmake --build . --config Release
+cd neat-dnfs
+bash scripts/setup.sh     # once: vcpkg baseline + dynamic-neural-field-composer
+bash scripts/build.sh     # Linux; scripts/build_macos.sh on macOS, scripts\build.bat on Windows
 ```
 
 ---

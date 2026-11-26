@@ -69,7 +69,7 @@ the same one for `gh pr create --base`. Record the mapping of issue to worktree 
 find each one again in Phase 4.
 
 **Each worktree needs its own build tree, and a cold build is expensive.** `deps/` is
-gitignored, so a fresh worktree has no `ipk-install` / `dnfc-install` and `setup` must run
+gitignored, so a fresh worktree has no `dnfc-install` and `setup` must run
 before anything compiles. Tell each worker to expect that, and stagger the first builds rather
 than starting three cold ones at once.
 
