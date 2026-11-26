@@ -62,7 +62,10 @@ genuinely concurrent path - including code inside the upstream `dnf_composer` de
 ## Running the binary needs the vcpkg DLLs on Windows
 
 ```bat
-set "PATH=%VCPKG_ROOT%/installed/x64-windows/bin;%PATH%"
+set "PATH=%CD%\build\x64-release\vcpkg_installed\x64-windows\bin;%PATH%"
 ```
+
+That is the Release tree's manifest install directory; for Debug use
+`build\x64-debug\vcpkg_installed\x64-windows\debug\bin`.
 
 Without it the test executable fails to start rather than failing a test.

@@ -15,11 +15,13 @@ level down.
 them directly.
 
 `VCPKG_ROOT` must be set in the environment - `CMakeLists.txt` fails outright without it, not
-with a warning. If it is unset, run `scripts/setup.bat` (Windows) or `scripts/setup.sh`
-(Linux/macOS) once. vcpkg packages, `imgui-platform-kit` included, come from `vcpkg.json`
-and are installed by the first configure of each build tree (pinned by `builtin-baseline`;
-`VCPKG_ROOT` must be a git clone with that commit - setup fetches it). Setup also clones and
-builds `dynamic-neural-field-composer` at the commit in `scripts/dnfc-ref.txt` into
+with a warning. Run `scripts/setup.bat` (Windows) or `scripts/setup.sh` (Linux/macOS) when
+`VCPKG_ROOT` is unset, when `deps/dnfc-install` is missing (a fresh clone or worktree), and
+again after `scripts/dnfc-ref.txt` or `vcpkg.json` changes; when nothing changed it skips the
+rebuild. vcpkg packages, `imgui-platform-kit` included, come from `vcpkg.json` and are
+installed by the first configure of each build tree (pinned by `builtin-baseline`;
+`VCPKG_ROOT` must be a git clone at that commit or newer - setup checks it). Setup also clones
+and builds `dynamic-neural-field-composer` at the commit in `scripts/dnfc-ref.txt` into
 `deps/dnfc-install`, against this project's manifest.
 
 It is not found automatically - it reaches CMake only through `-DCMAKE_PREFIX_PATH`, which the
@@ -90,11 +92,13 @@ before reporting a failure there as a regression.
 PR runs on Windows and macOS use `-LE slow`, so only Linux exercises that tier in CI.
 
 **On Windows, put the vcpkg DLLs on `PATH` first** or the binary fails to start rather than
-failing a test:
+failing a test. They are in the build tree's manifest install directory:
 
 ```bat
-set "PATH=%VCPKG_ROOT%/installed/x64-windows/bin;%PATH%"
+set "PATH=%CD%\build\x64-release\vcpkg_installed\x64-windows\bin;%PATH%"
 ```
+
+For the Debug tree use `build\x64-debug\vcpkg_installed\x64-windows\debug\bin`.
 
 For the TDD inner loop, run the Catch2 binary directly with a tag or name filter:
 
