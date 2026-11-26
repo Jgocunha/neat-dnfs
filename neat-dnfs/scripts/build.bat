@@ -3,8 +3,6 @@
 set SCRIPT_DIR=%~dp0
 set PROJECT_ROOT=%SCRIPT_DIR%..
 set DEPS_DIR=%PROJECT_ROOT%\deps
-set IPK_RELEASE=%DEPS_DIR%\ipk-install\release
-set IPK_DEBUG=%DEPS_DIR%\ipk-install\debug
 set DNFC_RELEASE=%DEPS_DIR%\dnfc-install\release
 set DNFC_DEBUG=%DEPS_DIR%\dnfc-install\debug
 
@@ -21,7 +19,7 @@ cmake ^
     -S "%PROJECT_ROOT%" -B "%PROJECT_ROOT%\build\x64-release" ^
     -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" ^
     -DCMAKE_BUILD_TYPE=Release ^
-    -DCMAKE_PREFIX_PATH="%IPK_RELEASE%;%DNFC_RELEASE%" ^
+    -DCMAKE_PREFIX_PATH="%DNFC_RELEASE%" ^
     -DCMAKE_MAP_IMPORTED_CONFIG_MINSIZEREL=Release ^
     -DCMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO=Release
 if errorlevel 1 ( echo ERROR: CMake Release configure failed. & exit /b 1 )
@@ -41,7 +39,7 @@ cmake ^
     -S "%PROJECT_ROOT%" -B "%PROJECT_ROOT%\build\x64-debug" ^
     -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" ^
     -DCMAKE_BUILD_TYPE=Debug ^
-    -DCMAKE_PREFIX_PATH="%IPK_DEBUG%;%DNFC_DEBUG%" ^
+    -DCMAKE_PREFIX_PATH="%DNFC_DEBUG%" ^
     -DCMAKE_MAP_IMPORTED_CONFIG_MINSIZEREL=Debug ^
     -DCMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO=Debug
 if errorlevel 1 ( echo ERROR: CMake Debug configure failed. & exit /b 1 )

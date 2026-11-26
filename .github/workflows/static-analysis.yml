@@ -16,11 +16,12 @@ concurrency:
 
 jobs:
   static-analysis:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
 
     env:
       VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-binary-cache
       VCPKG_DEFAULT_TRIPLET: x64-linux
 
     steps:
@@ -39,39 +40,26 @@ jobs:
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
 
-      - name: Clone vcpkg
-        run: git clone --depth=1 https://github.com/microsoft/vcpkg.git "$VCPKG_ROOT"
-
-      - name: Bootstrap vcpkg
-        run: $VCPKG_ROOT/bootstrap-vcpkg.sh -disableMetrics
-
-      - name: Cache vcpkg packages
-        uses: actions/cache@v4
+      - name: Set up vcpkg
+        id: vcpkg
+        uses: ./.github/actions/setup-vcpkg
         with:
-          path: ${{ env.VCPKG_ROOT }}/installed
-          key: vcpkg-${{ runner.os }}-${{ hashFiles('neat-dnfs/scripts/setup.sh') }}
-          restore-keys: vcpkg-${{ runner.os }}-
+          triplet: ${{ env.VCPKG_DEFAULT_TRIPLET }}
 
-      # ── Sibling dependencies ─────────────────────────────────────────────────
       - name: Resolve dependency revisions
         id: deps
-        run: |
-          echo "ipk=$(git ls-remote https://github.com/Jgocunha/imgui-platform-kit.git HEAD | cut -f1)" >> "$GITHUB_OUTPUT"
-          echo "dnfc=$(git ls-remote https://github.com/Jgocunha/dynamic-neural-field-composer.git HEAD | cut -f1)" >> "$GITHUB_OUTPUT"
+        shell: bash
+        run: echo "dnfc=$(cat neat-dnfs/scripts/dnfc-ref.txt)" >> "$GITHUB_OUTPUT"
 
       - name: Cache prebuilt dependencies
         uses: actions/cache@v4
         with:
           path: |
-            neat-dnfs/deps/ipk-install
             neat-dnfs/deps/dnfc-install
-          key: deps-${{ runner.os }}-${{ env.VCPKG_DEFAULT_TRIPLET }}-${{ steps.deps.outputs.ipk }}-${{ steps.deps.outputs.dnfc }}-${{ hashFiles('neat-dnfs/scripts/setup.sh') }}
+          key: deps-${{ runner.os }}-${{ env.VCPKG_DEFAULT_TRIPLET }}-${{ steps.deps.outputs.dnfc }}-${{ hashFiles('neat-dnfs/vcpkg.json', 'neat-dnfs/vcpkg-configuration.json', 'neat-dnfs/ports/**') }}-${{ hashFiles('neat-dnfs/scripts/setup.sh') }}
 
       - name: Setup dependencies
         working-directory: ./neat-dnfs
-        env:
-          IPK_REF: ${{ steps.deps.outputs.ipk }}
-          DNFC_REF: ${{ steps.deps.outputs.dnfc }}
         run: |
           chmod +x scripts/setup.sh
           ./scripts/setup.sh
@@ -83,7 +71,14 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DCMAKE_PREFIX_PATH="deps/ipk-install;deps/dnfc-install"
+            -DCMAKE_PREFIX_PATH="deps/dnfc-install"
+
+      - name: Save vcpkg binary cache
+        if: ${{ !cancelled() && steps.vcpkg.outcome == 'success' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: ${{ steps.vcpkg.outputs.cache-key-prefix }}${{ hashFiles('vcpkg-binary-cache/**') }}
 
       - name: Run clang-tidy
         working-directory: ./neat-dnfs

@@ -9,10 +9,10 @@ name: Release
 # relative to their own location -- see
 # neat-dnfs/include/neat_tools/resource_paths.h.
 #
-# Note that scripts/setup.* clone vcpkg, imgui-platform-kit and
-# dynamic-neural-field-composer at unpinned HEAD, exactly as ci.yml does. Two
-# runs of the same tag can therefore differ; pinning them is deliberately left
-# for a follow-up.
+# Every dependency is pinned, exactly as in ci.yml: vcpkg packages and
+# imgui-platform-kit by neat-dnfs/vcpkg.json and ports/, and
+# dynamic-neural-field-composer by neat-dnfs/scripts/dnfc-ref.txt. Two runs of the
+# same tag build from the same sources.
 
 on:
   push:
@@ -36,13 +36,14 @@ jobs:
           # the runner's glibc, and 24.04's is too new to run on older distros.
           - os: ubuntu-22.04
             label: linux
-          - os: windows-latest
+          - os: windows-2025-vs2026
             label: windows
-          - os: macos-latest
+          - os: macos-26
             label: macos
 
     env:
       VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-binary-cache
 
     defaults:
       run:
@@ -54,7 +55,9 @@ jobs:
 
       - name: Normalize paths
         if: runner.os == 'Windows'
-        run: echo "VCPKG_ROOT=$(echo "$VCPKG_ROOT" | tr '\\' '/')" >> "$GITHUB_ENV"
+        run: |
+          echo "VCPKG_ROOT=$(echo "$VCPKG_ROOT" | tr '\\' '/')" >> "$GITHUB_ENV"
+          echo "VCPKG_DEFAULT_BINARY_CACHE=$(echo "$VCPKG_DEFAULT_BINARY_CACHE" | tr '\\' '/')" >> "$GITHUB_ENV"
 
       - name: Set vcpkg triplet
         id: triplet
@@ -93,25 +96,12 @@ jobs:
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
 
       # ── vcpkg ──────────────────────────────────────────────────────────────
-      - name: Clone vcpkg
-        run: git clone --depth=1 https://github.com/microsoft/vcpkg.git "$VCPKG_ROOT"
-
-      - name: Bootstrap vcpkg
-        run: |
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            "$VCPKG_ROOT/bootstrap-vcpkg.bat" -disableMetrics
-          else
-            "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
-          fi
-
-      - name: Cache vcpkg packages
-        uses: actions/cache@v4
+      - name: Set up vcpkg
+        id: vcpkg
+        uses: ./.github/actions/setup-vcpkg
         with:
-          path: ${{ env.VCPKG_ROOT }}/installed
-          key: vcpkg-${{ runner.os }}-${{ steps.triplet.outputs.vcpkg_triplet }}-${{ hashFiles('neat-dnfs/scripts/setup.sh', 'neat-dnfs/scripts/setup.bat') }}
-          restore-keys: vcpkg-${{ runner.os }}-${{ steps.triplet.outputs.vcpkg_triplet }}-
+          triplet: ${{ steps.triplet.outputs.vcpkg_triplet }}
 
-      # ── Dependencies, build, package ───────────────────────────────────────
       - name: Setup dependencies
         if: runner.os != 'Windows'
         working-directory: ./neat-dnfs
@@ -144,6 +134,13 @@ jobs:
         working-directory: ./neat-dnfs
         shell: cmd
         run: scripts\build.bat
+
+      - name: Save vcpkg binary cache
+        if: ${{ !cancelled() && steps.vcpkg.outcome == 'success' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: ${{ steps.vcpkg.outputs.cache-key-prefix }}${{ hashFiles('vcpkg-binary-cache/**') }}
 
       - name: Package
         if: runner.os != 'Windows'
@@ -238,7 +235,7 @@ jobs:
     name: Publish release
     needs: package
     if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
 

@@ -9,6 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Every dependency is now pinned.** `neat-dnfs/vcpkg.json` declares the vcpkg packages and
+  pins them with `builtin-baseline` to vcpkg commit `0699a19d0c` (imgui 1.92.9, implot 1.0,
+  imgui-node-editor 0.9.3, nlohmann-json 3.12.0, fftw3 3.3.11, catch2 3.16.0); CMake installs
+  them on the first configure. `imgui-platform-kit` is a vcpkg overlay port in `ports/`,
+  pinned to commit `27ada91`. `dynamic-neural-field-composer` is still built from source by
+  `scripts/setup.*`, now at the commit in `scripts/dnfc-ref.txt` (`a1d52b2`, v2.12.1) and
+  against this project's manifest (`-DVCPKG_MANIFEST_DIR`), so both link the same dependency
+  versions. Before, setup and CI took vcpkg HEAD and both sibling repos' HEAD, so two runs of
+  the same commit could build from different sources.
+- `scripts/setup.*` no longer install vcpkg packages or build `imgui-platform-kit`; they check
+  that `VCPKG_ROOT` is a clone at the vcpkg baseline or newer (unshallowing a shallow one),
+  and rebuild `deps/dnfc-install` whenever the
+  pinned ref or the manifest changes. `IPK_REF` is gone; `DNFC_REF` still overrides the pin.
+- Build provenance (`build_info.h`) takes the `imgui-platform-kit` revision from the port's
+  pinned `REF`, and the package list from the build tree's own vcpkg install instead of
+  vcpkg's classic `installed/` tree, which this project no longer uses.
+- CI: runner images pinned (`ubuntu-24.04`, `windows-2025-vs2026`, `macos-26`; release keeps
+  `ubuntu-22.04`); vcpkg cloned at the pinned baseline; vcpkg's ABI-keyed binary cache is
+  cached instead of its `installed/` tree. The monthly vcpkg report lists pinned versions
+  next to the latest ones.
+
+### Migrating
+1. `VCPKG_ROOT` must be a **git clone** of vcpkg (not a release tarball) at the baseline
+   commit or newer. Run `scripts/setup.sh` (or `setup.bat`) once; it unshallows a shallow
+   clone and tells you how to update one that is too old.
+2. Delete `deps/imgui-platform-kit/` and `deps/ipk-install/`, and existing build trees: a
+   tree configured before `vcpkg.json` existed keeps vcpkg's classic mode cached and skips
+   the manifest. `deps/dnfc-install` is rebuilt automatically.
+3. Drop `deps/ipk-install` from any `CMAKE_PREFIX_PATH` of your own.
+
 ---
 
 ## [0.3.0] - 2026-09-01
