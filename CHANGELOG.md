@@ -46,6 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - the exported include directory was `include/`, while the headers install to
     `include/neat-dnfs/` and include each other relative to it. It is `include/neat-dnfs/`
     now.
+  - `cmake --install --component dev` left out the library itself: `COMPONENT dev` came
+    after the last artifact kind in `install(TARGETS ...)`, so it only covered `FRAMEWORK`.
+    Each kind now carries it.
 
   `implot` and `imgui-node-editor` stay in `CMakeLists.txt`: nothing in neat-dnfs includes
   them, but imgui-platform-kit's exported target needs them. CI now installs the package and

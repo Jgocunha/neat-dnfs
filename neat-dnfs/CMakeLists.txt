@@ -256,12 +256,13 @@ set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
 # archives are built with `cmake --install --component runtime` (see
 # scripts/package.sh) so they carry only what is needed to run an experiment;
 # a plain `cmake --install` still installs both.
+# COMPONENT goes on each artifact kind: after the last one it would only cover FRAMEWORK,
+# and the library itself would be left out of `cmake --install --component dev`.
 install(TARGETS ${CMAKE_PROJECT_NAME} EXPORT ${CMAKE_PROJECT_NAME}Targets
-    RUNTIME       DESTINATION ${NEAT_DNFS_RUNTIME_INSTALL_DIR}
-    LIBRARY       DESTINATION ${NEAT_DNFS_LIBRARY_INSTALL_DIR}
-    ARCHIVE       DESTINATION ${NEAT_DNFS_ARCHIVE_INSTALL_DIR}
-    FRAMEWORK     DESTINATION ${NEAT_DNFS_FRAMEWORK_INSTALL_DIR}
-    COMPONENT dev
+    RUNTIME       DESTINATION ${NEAT_DNFS_RUNTIME_INSTALL_DIR}   COMPONENT dev
+    LIBRARY       DESTINATION ${NEAT_DNFS_LIBRARY_INSTALL_DIR}   COMPONENT dev
+    ARCHIVE       DESTINATION ${NEAT_DNFS_ARCHIVE_INSTALL_DIR}   COMPONENT dev
+    FRAMEWORK     DESTINATION ${NEAT_DNFS_FRAMEWORK_INSTALL_DIR} COMPONENT dev
 )
 
 # Install the headers
