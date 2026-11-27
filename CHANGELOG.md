@@ -31,6 +31,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cached instead of its `installed/` tree. The monthly vcpkg report lists pinned versions
   next to the latest ones.
 
+### Fixed
+- A downstream project could not use an installed neat-dnfs through
+  `find_package(neat-dnfs)` (#71):
+  - the package config only found `nlohmann_json`, but the exported target also names
+    `imgui::imgui`, `imgui-platform-kit` and `dynamic-neural-field-composer`, so configure
+    stopped with "target was not found". The config now finds every package that
+    `CMakeLists.txt` finds, including `implot`, `imgui-node-editor`, `OpenGL` and `FFTW3`,
+    which the exports of imgui-platform-kit and dynamic-neural-field-composer need but whose
+    own configs never find;
+  - imgui, imgui-platform-kit and dynamic-neural-field-composer were linked `PRIVATE`
+    although the public headers include theirs, so their include directories never reached
+    the consumer. They are `PUBLIC` now;
+  - the exported include directory was `include/`, while the headers install to
+    `include/neat-dnfs/` and include each other relative to it. It is `include/neat-dnfs/`
+    now.
+
+  `implot` and `imgui-node-editor` stay in `CMakeLists.txt`: nothing in neat-dnfs includes
+  them, but imgui-platform-kit's exported target needs them. CI now installs the package and
+  builds `tests/package_consumer/` against it.
+- The README asked for CMake 3.31.6 or newer; `CMakeLists.txt` needs 3.21 (#74).
+
 ### Migrating
 1. `VCPKG_ROOT` must be a **git clone** of vcpkg (not a release tarball) at the baseline
    commit or newer. Run `scripts/setup.sh` (or `setup.bat`) once; it unshallows a shallow

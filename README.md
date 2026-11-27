@@ -146,7 +146,7 @@ To build an archive yourself from a Release build tree, run `scripts/package.sh`
 
 ### Prerequisites
 
-* **CMake 3.31.6+**
+* **CMake 3.21+**
 * **C++20** compiler
 * **VCPKG** package manager
 
