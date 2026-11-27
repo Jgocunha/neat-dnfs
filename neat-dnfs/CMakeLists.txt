@@ -199,18 +199,22 @@ set(src
 add_library(${CMAKE_PROJECT_NAME} ${header} ${src})
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:${NEAT_DNFS_INC_INSTALL_DIR}>
+    $<INSTALL_INTERFACE:${NEAT_DNFS_INC_INSTALL_DIR}/neat-dnfs>
 )
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE "${CMAKE_BINARY_DIR}/generated/include")
 
+# imgui, imgui-platform-kit and dynamic-neural-field-composer are PUBLIC because the
+# public headers include theirs (neat_tools/logger.h -> imgui-platform-kit/log_window.h ->
+# imgui.h; neat/*.h -> dnf_composer/...). Every package found here is found again by
+# cmake/neat-dnfs-config.cmake.in, so a downstream find_package(neat-dnfs) resolves them.
+
 # Setup imgui - win32 Directx12
 find_package(imgui CONFIG REQUIRED)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE imgui::imgui)
+target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC imgui::imgui)
 
-# Setup implot
+# implot and imgui-node-editor are not used here directly, but imgui-platform-kit's exported
+# link interface names their targets without finding them itself.
 find_package(implot CONFIG REQUIRED)
-
-# Setup imgui-node-editor
 find_package(unofficial-imgui-node-editor CONFIG REQUIRED)
 
 # Setup nlohmann-json
@@ -224,14 +228,14 @@ endif()
 
 # Setup imgui-platform-kit
 find_package(imgui-platform-kit REQUIRED)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE imgui-platform-kit)
+target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC imgui-platform-kit)
 
 # Setup FFTW3 (transitive dependency of dynamic-neural-field-composer's spectral convolution path)
 find_package(FFTW3 CONFIG REQUIRED)
 
 # Setup dynamic-neural-field-composer
 find_package(dynamic-neural-field-composer REQUIRED)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE dynamic-neural-field-composer)
+target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC dynamic-neural-field-composer)
 
 
 target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC
@@ -252,12 +256,13 @@ set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
 # archives are built with `cmake --install --component runtime` (see
 # scripts/package.sh) so they carry only what is needed to run an experiment;
 # a plain `cmake --install` still installs both.
+# COMPONENT goes on each artifact kind: after the last one it would only cover FRAMEWORK,
+# and the library itself would be left out of `cmake --install --component dev`.
 install(TARGETS ${CMAKE_PROJECT_NAME} EXPORT ${CMAKE_PROJECT_NAME}Targets
-    RUNTIME       DESTINATION ${NEAT_DNFS_RUNTIME_INSTALL_DIR}
-    LIBRARY       DESTINATION ${NEAT_DNFS_LIBRARY_INSTALL_DIR}
-    ARCHIVE       DESTINATION ${NEAT_DNFS_ARCHIVE_INSTALL_DIR}
-    FRAMEWORK     DESTINATION ${NEAT_DNFS_FRAMEWORK_INSTALL_DIR}
-    COMPONENT dev
+    RUNTIME       DESTINATION ${NEAT_DNFS_RUNTIME_INSTALL_DIR}   COMPONENT dev
+    LIBRARY       DESTINATION ${NEAT_DNFS_LIBRARY_INSTALL_DIR}   COMPONENT dev
+    ARCHIVE       DESTINATION ${NEAT_DNFS_ARCHIVE_INSTALL_DIR}   COMPONENT dev
+    FRAMEWORK     DESTINATION ${NEAT_DNFS_FRAMEWORK_INSTALL_DIR} COMPONENT dev
 )
 
 # Install the headers
@@ -274,10 +279,9 @@ write_basic_package_version_file(${version_file}
     COMPATIBILITY AnyNewerVersion
 )
 
-# config_loader.h publicly includes <nlohmann/json.hpp>, so the installed
-# package config must resolve nlohmann_json for downstream consumers -- a
-# plain install(EXPORT ... FILE ...config.cmake) has no room for that
-# find_dependency() call, hence the template instead.
+# The installed package config must find the dependencies above for downstream
+# consumers -- a plain install(EXPORT ... FILE ...config.cmake) has no room for
+# those find_dependency() calls, hence the template instead.
 set(config_file "${CMAKE_CURRENT_BINARY_DIR}/cmake/${CMAKE_PROJECT_NAME}-config.cmake")
 configure_package_config_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/${CMAKE_PROJECT_NAME}-config.cmake.in"

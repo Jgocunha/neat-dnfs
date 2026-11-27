@@ -36,6 +36,16 @@ Build provenance (`build_info.h`) reads the kit's revision from the port's `REF`
 package list from `vcpkg list --x-install-root=${VCPKG_INSTALLED_DIR}` - the build tree's
 manifest install, not vcpkg's classic `installed/`.
 
+## Some `find_package` calls exist only for other packages' exports
+
+`implot`, `imgui-node-editor`, `OpenGL` and `FFTW3` are found in `CMakeLists.txt` even though
+nothing in neat-dnfs uses them directly. imgui-platform-kit's exported target names `implot`,
+`imgui-node-editor`, `glfw` and `OpenGL`, and dynamic-neural-field-composer's names `FFTW3` and
+the kit, but neither package config finds them. Remove one and configure fails with "target
+... was not found". `cmake/neat-dnfs-config.cmake.in` repeats the same finds for downstream
+projects, so a package added to `CMakeLists.txt` belongs there too. CI checks this by building
+`tests/package_consumer/` against the installed `dev` component.
+
 ## The three scripts build three differently-named trees
 
 | Script | Tree |

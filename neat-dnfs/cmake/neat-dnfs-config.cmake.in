@@ -1,7 +1,21 @@
 @PACKAGE_INIT@
 
 include(CMakeFindDependencyMacro)
-find_dependency(nlohmann_json CONFIG REQUIRED)
+# The same packages, in the same order, as neat-dnfs's CMakeLists.txt finds them. The
+# exported targets name theirs, and neither imgui-platform-kit's nor
+# dynamic-neural-field-composer's own package config finds what their targets need.
+# imgui's config finds glfw3 itself where its GLFW binding is enabled, which covers the
+# `glfw` that imgui-platform-kit's export names on Linux and macOS.
+find_dependency(imgui CONFIG)
+find_dependency(implot CONFIG)
+find_dependency(unofficial-imgui-node-editor CONFIG)
+find_dependency(nlohmann_json CONFIG)
+if(NOT WIN32)
+    find_dependency(OpenGL)
+endif()
+find_dependency(imgui-platform-kit)
+find_dependency(FFTW3 CONFIG)
+find_dependency(dynamic-neural-field-composer)
 
 include("${CMAKE_CURRENT_LIST_DIR}/neat-dnfs-targets.cmake")
 

@@ -125,6 +125,20 @@ jobs:
         working-directory: ./neat-dnfs/build/linux-release
         run: ctest --output-on-failure --parallel $(nproc)
 
+      # The library's install paths are absolute, so this installs to the default prefix;
+      # the runner is discarded afterwards.
+      - name: Build a downstream project against the installed package
+        working-directory: ./neat-dnfs
+        run: |
+          sudo cmake --install build/linux-release --component dev
+          cmake -S tests/package_consumer -B build/package-consumer \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+            -DVCPKG_MANIFEST_DIR="$PWD" \
+            -DVCPKG_INSTALLED_DIR="$PWD/build/linux-release/vcpkg_installed" \
+            -DCMAKE_PREFIX_PATH="$PWD/deps/dnfc-install"
+          cmake --build build/package-consumer
+          ./build/package-consumer/neat-dnfs-package-consumer
+
   # ── Windows ────────────────────────────────────────────────────────────────
   build-windows:
     runs-on: windows-2025-vs2026
